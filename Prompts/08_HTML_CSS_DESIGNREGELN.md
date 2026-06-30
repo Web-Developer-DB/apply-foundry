@@ -80,7 +80,7 @@ Für finale PDF-Ausgabe:
 
 ## Seitenumbruch
 
-Ein Einseiten-Dokument soll als eine A4-Seite gebaut werden. Wenn der Inhalt nicht passt, Inhalt kürzen oder Layout verdichten.
+Ein Einseiten-Dokument soll als eine A4-Seite gebaut werden. Wenn der Inhalt nicht passt, wird zuerst fachlich gekürzt: irrelevante Zusatzkenntnisse, fachfremde Projekte, lange Skill-Listen und unnötige Detailabsätze entfernen oder reduzieren. Layoutverdichtung kommt erst danach und darf keine schlechtere Lesbarkeit erzeugen.
 
 Wenn zwei Seiten nötig sind, werden zwei klare Seitencontainer genutzt:
 
@@ -89,4 +89,4 @@ Wenn zwei Seiten nötig sind, werden zwei klare Seitencontainer genutzt:
 <main class="page">Seite 2</main>
 ```
 
-Kein zufälliger Umbruch mitten im Layout.
+Kein zufälliger Umbruch mitten im Layout. Kein finaler Inhalt darf durch `overflow: hidden` nur optisch versteckt werden.

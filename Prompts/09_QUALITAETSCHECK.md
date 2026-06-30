@@ -5,25 +5,45 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 ## Inhalt
 
 - Ist die Bewerbung klar auf die Stellenbeschreibung zugeschnitten?
+- Wurde das Bewerbungsprofil aus Stellenbeschreibung und privaten Daten abgeleitet, nicht aus öffentlichen Beispielprompts?
 - Sind die wichtigsten Anforderungen der Stelle sichtbar?
 - Sind irrelevante Profilteile für die konkrete Zielrolle entfernt oder reduziert?
 - Sind die rollennahen Kenntnisse aus den privaten Profildaten sichtbar genug?
-- Sind passende Projekte oder Praxisbelege ausreichend sichtbar?
+- Sind Zusatzkenntnisse nur enthalten, wenn sie für die Zielrolle einen Recruiter-Nutzen haben?
+- Sind passende Projekte, Praxisbelege oder Erfahrungsbeispiele ausreichend sichtbar?
 - Sind alle Angaben wahr und durch die Profildaten gedeckt?
-- Gibt es keine erfundenen Arbeitgeber, Zeiträume oder Zertifikate?
+- Gibt es keine erfundenen Arbeitgeber, Zeiträume, Zertifikate, Branchen, Tools oder Verantwortlichkeiten?
 - Sind die wichtigsten Keywords natürlich enthalten?
 - Wirkt der Text recruiterfreundlich und nicht KI-generiert?
+
+## Rollen- und Recruiter-Strategie
+
+- Wurde Zielrolle, Branche oder Arbeitsfeld korrekt erkannt?
+- Wurde die Firmengröße oder Organisationsart berücksichtigt, falls sie aus der Stellenbeschreibung ableitbar ist?
+- Sind bei großen oder standardisierten Arbeitgebern Rollenpassung und Muss-Anforderungen besonders schnell sichtbar?
+- Sind bei kleinen oder breiten Arbeitgebern nützliche Allrounder- und Zusatzkenntnisse sinnvoll, aber nicht ausufernd eingebunden?
+- Lenkt kein Abschnitt von der Zielrolle ab?
+- Sind bewusst weggelassene Inhalte in `Analyse.md` oder `Qualitaetscheck.md` kurz begründet?
 
 ## Lebenslauf
 
 - Ist der Lebenslauf scanbar?
 - Ist die Reihenfolge passend zur Zielrolle?
-- Sind Skills sauber gruppiert?
+- Sind Kompetenzen sauber gruppiert und nicht als vollständige Inventarliste dargestellt?
 - Ist die Länge angemessen?
-- Sind private IT-Kenntnisse professionell formuliert?
+- Sind zusätzliche oder nicht-klassische Kenntnisse professionell und korrekt eingeordnet?
 - Sind Kontaktdaten korrekt?
 - Sind finale sichtbare Platzhalter vollständig entfernt?
 - Sind fehlende Daten stattdessen in `Offene_Fragen.md` dokumentiert?
+
+## A4-Fit-Check
+
+- Passt ein Einseiten-Lebenslauf vollständig in eine A4-Seite?
+- Ist unten kein Inhalt abgeschnitten?
+- Wurden bei Platzproblemen zuerst fachlich irrelevante Inhalte gekürzt, bevor Layout verdichtet wurde?
+- Sind fachfremde Zusatzkenntnisse, Nebenprojekte oder lange Skill-Listen entfernt, wenn sie für diese Stelle keinen Nutzen haben?
+- Gibt es keine versteckten Inhalte durch `overflow: hidden`?
+- Wenn zwei Seiten nötig sind: gibt es zwei explizite A4-Seitencontainer statt eines zufälligen Umbruchs?
 
 ## Anschreiben
 
@@ -57,7 +77,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Bei bewusst zweiseitigem Lebenslauf existieren zwei explizite A4-Seitencontainer statt eines automatisch umbrechenden langen Containers.
 - `@page` ist widerspruchsfrei und nutzt in finalen Dateien `margin: 0`.
 - `html`, `body` und `.page` haben im Print-Modus die A4-Geometrie `210mm x 297mm`.
-- `overflow: hidden` wird nur auf der äußeren A4-Seitenfläche genutzt, nicht auf einzelnen Textblöcken.
+- `overflow: hidden` wird nur auf der äußeren A4-Seitenfläche genutzt und darf keinen relevanten Inhalt verdecken.
 - Browser-Kopf- und Fußzeilen sind als Nutzer-/Druckdialog-Einstellung dokumentiert.
 - `Druck-Hinweis.md` liegt im Bewerbungsordner.
 
@@ -71,7 +91,9 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 ## Abschlussnotiz
 
 Am Ende von `Qualitaetscheck.md` kurz festhalten:
+
 - gewählte Profilstrategie
+- vermutete Recruiter-Strategie und ggf. Firmengröße
 - bewusst weggelassene Inhalte
 - offene Daten oder Risiken
 - verwendete Designvorlage, falls vorhanden

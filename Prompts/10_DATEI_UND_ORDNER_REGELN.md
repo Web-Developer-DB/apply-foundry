@@ -42,13 +42,13 @@ Der Firmenname wird als sauberer Ordnername verwendet.
 Beispiel:
 
 ```text
-Team System House GmbH
+Muster GmbH
 ```
 
 wird zu:
 
 ```text
-Private/Bewerbungen/Team-System-House-GmbH/
+Private/Bewerbungen/Muster-GmbH/
 ```
 
 ## Bewerbungsordner
@@ -62,7 +62,7 @@ Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
 Beispiel:
 
 ```text
-Private/Bewerbungen/Team-System-House-GmbH/2026-06-30--IT-Support/
+Private/Bewerbungen/Muster-GmbH/2026-06-30--Sachbearbeitung/
 ```
 
 Wenn die Zielrolle nicht eindeutig ist:
@@ -101,7 +101,7 @@ Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/
 Beispiel:
 
 ```text
-Private/Bewerbungen/Team-System-House-GmbH/_Arbeitsdateien/2026-06-30--IT-Support/
+Private/Bewerbungen/Muster-GmbH/_Arbeitsdateien/2026-06-30--Sachbearbeitung/
 ```
 
 Der finale Bewerbungsordner bleibt:
@@ -121,13 +121,13 @@ Regel:
 Ein neuer Bewerbungsordner kann unter Windows 11 mit PowerShell vorbereitet werden:
 
 ```powershell
-.\Tools\Neue-Bewerbung.ps1 -Firma "Team System House GmbH" -Rolle "IT-Support"
+.\Tools\Neue-Bewerbung.ps1 -Firma "Muster GmbH" -Rolle "Sachbearbeitung"
 ```
 
 Unter Linux mit Bash:
 
 ```bash
-bash Tools/neue-bewerbung.sh --firma "Team System House GmbH" --rolle "IT-Support"
+bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Sachbearbeitung"
 ```
 
 Beide Skripte erstellen den Firmenordner, den finalen Bewerbungsordner sowie einen Arbeitsordner unter `_Arbeitsdateien`.
@@ -179,16 +179,16 @@ Finale Bewerbungsdateien dürfen keine sichtbaren Arbeitsmarker enthalten:
 ## Beispiele
 
 ```text
-Beispiel IT GmbH
--> Private/Bewerbungen/Beispiel-IT-GmbH/2026-06-30--IT-Systemadministrator/
+Beispiel GmbH
+-> Private/Bewerbungen/Beispiel-GmbH/2026-06-30--Sachbearbeitung/
 ```
 
 ```text
-Team System House GmbH
--> Private/Bewerbungen/Team-System-House-GmbH/2026-06-30--Webentwickler/
+Muster GmbH
+-> Private/Bewerbungen/Muster-GmbH/2026-06-30--Kundenservice/
 ```
 
 ```text
-Müller & Partner IT GmbH
--> Private/Bewerbungen/Mueller-und-Partner-IT-GmbH/2026-06-30--IT-Support/
+Müller & Partner GmbH
+-> Private/Bewerbungen/Mueller-und-Partner-GmbH/2026-06-30--Projektassistenz/
 ```

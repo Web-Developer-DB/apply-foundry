@@ -19,7 +19,7 @@
 
 ## Projekte und Praxis
 
-- [Projekt oder private Praxis, Technologien, Aufgaben, Ergebnis]
+- [Projekt oder private Praxis, Werkzeuge, Methoden, Aufgaben, Ergebnis]
 
 ## Skills
 

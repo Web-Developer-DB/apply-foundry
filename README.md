@@ -1,6 +1,6 @@
 # bewerbungs-agent
 
-`bewerbungs-agent` ist ein modularer KI-gestützter Bewerbungsagent für deutsche Bewerbungsunterlagen.
+`bewerbungs-agent` ist ein modularer KI-gestützter Bewerbungsagent für deutsche Bewerbungsunterlagen. Er ist bewusst branchenneutral: Das konkrete Bewerbungsprofil entsteht aus der Stellenbeschreibung und den privaten Profildaten.
 
 Aus einer Stellenbeschreibung erzeugt der Agent:
 
@@ -30,7 +30,7 @@ Der Agent liest dann:
 2. öffentliche Agentenregeln aus `Prompts/`
 3. Designvorlagen aus `Vorlagen/`
 
-Die fertige Bewerbung wird gespeichert unter:
+Der Agent erstellt den passenden Bewerbungsordner automatisch und speichert die fertige Bewerbung unter:
 
 ```text
 Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
@@ -43,20 +43,20 @@ Normalerweise erstellt der Agent den Bewerbungsordner automatisch. Die folgenden
 Windows 11 / PowerShell:
 
 ```powershell
-.\Tools\Neue-Bewerbung.ps1 -Firma "Team System House GmbH" -Rolle "IT-Support"
+.\Tools\Neue-Bewerbung.ps1 -Firma "Muster GmbH" -Rolle "Sachbearbeitung"
 ```
 
 Linux / Bash:
 
 ```bash
-bash Tools/neue-bewerbung.sh --firma "Team System House GmbH" --rolle "IT-Support"
+bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Sachbearbeitung"
 ```
 
 Beide Skripte erzeugen dieselbe private Ordnerstruktur:
 
 ```text
-Private/Bewerbungen/Team-System-House-GmbH/YYYY-MM-DD--IT-Support/
-Private/Bewerbungen/Team-System-House-GmbH/_Arbeitsdateien/YYYY-MM-DD--IT-Support/
+Private/Bewerbungen/Muster-GmbH/YYYY-MM-DD--Sachbearbeitung/
+Private/Bewerbungen/Muster-GmbH/_Arbeitsdateien/YYYY-MM-DD--Sachbearbeitung/
 ```
 
 Die Skripte legen Platzhalter und Entwürfe in `_Arbeitsdateien` ab. Im finalen Bewerbungsordner entstehen dadurch keine unfertigen `Analyse.md`, `Email-Nachricht--FIRMA.md` oder `Qualitaetscheck.md` Dateien.
@@ -171,10 +171,10 @@ Diese Dateien dürfen keine echten privaten Bewerberdaten enthalten.
 - `Prompts/03_LEBENSLAUF_REGELN.md`: Aufbau, Länge, Priorisierung und Stil des Lebenslaufs.
 - `Prompts/04_ANSCHREIBEN_REGELN.md`: Aufbau, Tonalität und Inhalt des Anschreibens.
 - `Prompts/05_EMAIL_NACHRICHT_REGELN.md`: kurze E-Mail-Nachricht.
-- `Prompts/06_ROLLENLOGIK.md`: Gewichtung je nach Stellenbeschreibung.
+- `Prompts/06_ROLLENLOGIK.md`: neutrale Profil-, Rollen- und Recruiter-Strategie je nach Stellenbeschreibung.
 - `Prompts/07_WAHRHEIT_UND_GRENZEN.md`: keine erfundenen Angaben.
 - `Prompts/08_HTML_CSS_DESIGNREGELN.md`: A4, Firefox-Druck und HTML/CSS-Regeln.
-- `Prompts/09_QUALITAETSCHECK.md`: Checkliste vor Abschluss.
+- `Prompts/09_QUALITAETSCHECK.md`: Checkliste vor Abschluss, inklusive Recruiter-Nutzen und A4-Fit-Check.
 - `Prompts/10_DATEI_UND_ORDNER_REGELN.md`: Struktur, Namen, Slugs und Arbeitsdateien.
 
 ## 7. Ausgabe pro Bewerbung
@@ -262,7 +262,7 @@ Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm 
 2. Firma und Zielrolle erkennen.
 3. Private Daten aus `Private/Daten/` lesen.
 4. Agentenregeln aus `Prompts/` lesen.
-5. Rollenstrategie bestimmen.
+5. neutrales Bewerbungsprofil, Rollenstrategie und Recruiter-Strategie bestimmen.
 6. Bewerbungsordner unter `Private/Bewerbungen/` erstellen.
 7. Analyse speichern.
 8. Lebenslauf erstellen.
