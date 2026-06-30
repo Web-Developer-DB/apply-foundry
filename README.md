@@ -189,8 +189,8 @@ Pflichtdateien:
 
 - `Stellenbeschreibung.md`
 - `Analyse.md`
-- `Lebenslauf--FIRMA.html`
-- `Anschreiben--FIRMA.html`
+- `Lebenslauf - NACHNAME.VORNAME.html`
+- `Anschreiben - NACHNAME.VORNAME.html`
 - `Email-Nachricht--FIRMA.md`
 - `Qualitaetscheck.md`
 - `Druck-Hinweis.md`
@@ -213,6 +213,22 @@ Typische Arbeitsdateien:
 - `Arbeitsnotizen.md`
 
 Diese Dateien sind nicht final und dürfen nicht unverändert versendet werden.
+
+Für den Versand per E-Mail oder PDF-Export heißen Lebenslauf und Anschreiben nach Bewerbername:
+
+```text
+Lebenslauf - NACHNAME.VORNAME.html
+Anschreiben - NACHNAME.VORNAME.html
+```
+
+Falls PDFs erstellt werden:
+
+```text
+Lebenslauf - NACHNAME.VORNAME.pdf
+Anschreiben - NACHNAME.VORNAME.pdf
+```
+
+Vorname und Nachname kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`. Der Firmenname bleibt im Bewerbungsordner und wird nicht mehr in den finalen Versanddateien verwendet.
 
 ## 8. Windows und Linux
 
@@ -276,7 +292,7 @@ Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm 
 
 | Ziel | Datei |
 | --- | --- |
-| Kontaktdaten ändern | `Private/Daten/01_PERSOENLICHE_DATEN.md` |
+| Kontaktdaten, Vorname/Nachname und Versanddateinamen ändern | `Private/Daten/01_PERSOENLICHE_DATEN.md` |
 | Profil, Skills, Projekte ändern | `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` |
 | Lebenslauf-Aufbau ändern | `Prompts/03_LEBENSLAUF_REGELN.md` |
 | Anschreiben-Stil ändern | `Prompts/04_ANSCHREIBEN_REGELN.md` |
