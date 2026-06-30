@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anschreiben - {{NAME}} - {{FIRMA}}</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #e9edf3; color: #101828; font-family: Arial, Helvetica, sans-serif; font-size: 13.5px; line-height: 1.48; }
+    .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 18mm 20mm; background: #fff; box-shadow: 0 14px 40px rgba(16, 24, 40, .18); }
+    .topbar { height: 7mm; margin: -18mm -20mm 14mm; background: linear-gradient(90deg, #12355b, #1f7898); }
+    .sender { display: flex; justify-content: space-between; gap: 10mm; padding-bottom: 10mm; border-bottom: 1px solid #c8d3df; }
+    h1 { margin: 0; font-size: 24px; line-height: 1.1; color: #071b34; }
+    .role { margin: 2mm 0 0; font-weight: 700; color: #003f7d; }
+    .contact { text-align: right; font-size: 12px; color: #344054; }
+    .address { margin-top: 12mm; }
+    .date { text-align: right; margin-top: 8mm; }
+    h2 { margin: 10mm 0 6mm; color: #003f7d; font-size: 16px; }
+    p { margin: 0 0 4mm; }
+    .signature { margin-top: 9mm; }
+    @media print { html, body { width: 210mm; min-height: 297mm; background: #fff; } .page { width: 210mm; min-height: 297mm; margin: 0; box-shadow: none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="topbar"></div>
+    <header class="sender">
+      <div><h1>{{NAME}}</h1><p class="role">{{ZIELROLLE}}</p></div>
+      <div class="contact">{{ADRESSE}}<br>{{TELEFON}}<br>{{EMAIL}}</div>
+    </header>
+    <section class="address"><p>{{FIRMA}}</p><p>{{ANSPRECHPARTNER_ODER_ABTEILUNG}}</p><p>{{FIRMENADRESSE}}</p></section>
+    <p class="date">{{ORT}}, {{DATUM}}</p>
+    <h2>Bewerbung als {{ZIELROLLE}}</h2>
+    <p>{{ANREDE}}</p>
+    <p>{{EINSTIEG}}</p>
+    <p>{{PASSUNG_ABSATZ_1}}</p>
+    <p>{{PASSUNG_ABSATZ_2}}</p>
+    <p>{{ABSCHLUSS}}</p>
+    <div class="signature"><p>Mit freundlichen Grüßen</p><p>{{NAME}}</p></div>
+  </main>
+</body>
+</html>

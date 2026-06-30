@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lebenslauf - {{NAME}} - {{FIRMA}}</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #e9edf3; color: #101828; font-family: Arial, Helvetica, sans-serif; font-size: 13px; line-height: 1.35; }
+    .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 14mm 16mm; background: #fff; box-shadow: 0 14px 40px rgba(16, 24, 40, .18); }
+    .topbar { height: 8mm; margin: -14mm -16mm 10mm; background: linear-gradient(90deg, #12355b, #1f7898); }
+    .header { display: grid; grid-template-columns: 1fr 92mm; gap: 12mm; padding-bottom: 9mm; border-bottom: 1px solid #c8d3df; }
+    h1 { margin: 0 0 3mm; font-size: 28px; line-height: 1.05; color: #071b34; }
+    .role { margin: 0 0 6mm; font-weight: 700; color: #003f7d; font-size: 14px; }
+    .summary { margin: 0; max-width: 86mm; }
+    .contact { border: 1px solid #cbd6e2; background: #f4f8fc; border-radius: 6px; padding: 5mm; }
+    .contact h2 { margin-top: 0; }
+    .contact dl { display: grid; grid-template-columns: 24mm 1fr; gap: 2mm 4mm; margin: 0; }
+    .contact dt { font-weight: 700; color: #003f7d; }
+    .contact dd { margin: 0; }
+    .content { display: grid; grid-template-columns: 62mm 1fr; gap: 12mm; padding-top: 8mm; }
+    h2 { margin: 0 0 4mm; color: #003f7d; font-size: 15px; letter-spacing: .5px; text-transform: uppercase; }
+    h3 { margin: 0 0 1.5mm; font-size: 13px; color: #101828; }
+    section { margin-bottom: 7mm; break-inside: avoid; }
+    p { margin: 0 0 3mm; }
+    ul { margin: 0; padding-left: 4mm; }
+    li { margin-bottom: 1.5mm; }
+    .tags { display: flex; flex-wrap: wrap; gap: 2mm; }
+    .tag { border: 1px solid #cbd6e2; background: #f7fbff; border-radius: 4px; padding: 1mm 2mm; font-size: 11px; }
+    .meta { color: #475467; font-weight: 700; font-size: 12px; }
+    @media print { html, body { width: 210mm; min-height: 297mm; background: #fff; } .page { width: 210mm; min-height: 297mm; margin: 0; box-shadow: none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="topbar"></div>
+    <header class="header">
+      <div>
+        <h1>{{NAME}}</h1>
+        <p class="role">{{ZIELROLLE}}</p>
+        <p class="summary">{{KURZPROFIL}}</p>
+      </div>
+      <aside class="contact">
+        <h2>Kontakt</h2>
+        <dl>
+          <dt>Adresse</dt><dd>{{ADRESSE}}</dd>
+          <dt>Telefon</dt><dd>{{TELEFON}}</dd>
+          <dt>E-Mail</dt><dd>{{EMAIL}}</dd>
+          <dt>Portfolio</dt><dd>{{PORTFOLIO}}</dd>
+          <dt>Verfügbar</dt><dd>{{VERFUEGBARKEIT}}</dd>
+        </dl>
+      </aside>
+    </header>
+    <div class="content">
+      <aside>
+        <section>
+          <h2>Kernkompetenzen</h2>
+          <h3>{{KOMPETENZGRUPPE_1}}</h3>
+          <div class="tags">{{SKILL_TAGS_1}}</div>
+          <h3>{{KOMPETENZGRUPPE_2}}</h3>
+          <div class="tags">{{SKILL_TAGS_2}}</div>
+        </section>
+        <section><h2>Arbeitsweise</h2><ul>{{ARBEITSWEISE}}</ul></section>
+        <section><h2>Sprachen</h2><ul>{{SPRACHEN}}</ul></section>
+      </aside>
+      <article>
+        <section><h2>Berufserfahrung</h2><h3>{{ERFAHRUNG_TITEL}}</h3><p class="meta">{{ERFAHRUNG_META}}</p><p>{{ERFAHRUNG_TEXT}}</p><ul>{{ERFAHRUNG_BULLETS}}</ul></section>
+        <section><h2>Weiterbildung</h2><h3>{{WEITERBILDUNG_TITEL}}</h3><p class="meta">{{WEITERBILDUNG_META}}</p><p>{{WEITERBILDUNG_TEXT}}</p></section>
+        <section><h2>Relevante Praxis</h2><h3>{{PRAXIS_TITEL}}</h3><p class="meta">{{PRAXIS_META}}</p><p>{{PRAXIS_TEXT}}</p></section>
+      </article>
+    </div>
+  </main>
+</body>
+</html>

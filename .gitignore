@@ -1,0 +1,17 @@
+# Private local data
+Private/
+Bewerbungen/
+Bewertungen/
+LebenslaufUniversal/
+Archiv/
+
+# Generated documents and temporary exports
+*.pdf
+*.docx
+*.tmp
+*.bak
+*.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
