@@ -28,7 +28,13 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 ## Lebenslauf
 
 - Ist der Lebenslauf scanbar?
+- Entspricht die Struktur einem modernen deutschsprachigen Lebenslauf und nicht nur einem Skill- oder Projektprofil?
 - Ist die Reihenfolge passend zur Zielrolle?
+- Sind Berufserfahrung oder berufliche Stationen klar sichtbar?
+- Sind Ausbildung, Studium oder berufliche Bildung berücksichtigt, sofern entsprechende Daten vorhanden sind?
+- Ist Schulbildung enthalten oder bewusst und nachvollziehbar weggelassen?
+- Sind Weiterbildungen, Zertifikate und Qualifikationen sinnvoll platziert?
+- Verdrängen Projekte, private Praxis, Zusatzkenntnisse oder Skill-Listen keine formalen CV-Stationen?
 - Sind Kompetenzen sauber gruppiert und nicht als vollständige Inventarliste dargestellt?
 - Ist die Länge angemessen?
 - Sind zusätzliche oder nicht-klassische Kenntnisse professionell und korrekt eingeordnet?
@@ -41,11 +47,15 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 ## A4-Fit-Check
 
 - Passt ein Einseiten-Lebenslauf vollständig in eine A4-Seite?
+- Wenn eine Seite nicht sauber reicht: wurde bewusst ein strukturierter zweiseitiger Lebenslauf erstellt?
 - Ist unten kein Inhalt abgeschnitten?
 - Wurden bei Platzproblemen zuerst fachlich irrelevante Inhalte gekürzt, bevor Layout verdichtet wurde?
 - Sind fachfremde Zusatzkenntnisse, Nebenprojekte oder lange Skill-Listen entfernt, wenn sie für diese Stelle keinen Nutzen haben?
+- Bleiben Berufserfahrung, Ausbildung/Studium/berufliche Bildung, Schulbildung und wichtige Weiterbildungen trotz Kürzung sichtbar, sofern Daten vorhanden sind?
+- Ist die Schrift auch nach Layoutoptimierung professionell lesbar?
 - Gibt es keine versteckten Inhalte durch `overflow: hidden`?
 - Wenn zwei Seiten nötig sind: gibt es zwei explizite A4-Seitencontainer statt eines zufälligen Umbruchs?
+- Wirkt Seite 2 bewusst strukturiert und nicht wie ein abgeschnittener Rest?
 
 ## Anschreiben
 

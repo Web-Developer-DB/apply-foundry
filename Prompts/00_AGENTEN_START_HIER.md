@@ -87,6 +87,20 @@ Wichtig:
 - Keine erfundenen Kenntnisse, Branchen, Rollen oder Verantwortlichkeiten.
 - Keine Formulierungen, die nach generischer KI klingen.
 
+## Lebenslauf-Standard
+
+Der Lebenslauf muss als moderner deutschsprachiger CV funktionieren. Er darf nicht nur aus Skills, Projekten und Kurzprofil bestehen.
+
+Prüfe besonders:
+
+- Berufserfahrung oder berufliche Stationen
+- Ausbildung, Studium oder berufliche Bildung
+- Schulbildung, sofern vorhanden oder für den CV sinnvoll
+- Weiterbildungen, Zertifikate und Qualifikationen
+- Kenntnisse, Sprachen und Zusatzpraxis nur in passender Priorität
+
+Ziel ist eine DIN-A4-Seite. Wenn die wichtigen formalen Stationen und die Stellenpassung nicht professionell auf eine Seite passen, erstelle bewusst zwei strukturierte DIN-A4-Seiten. Niemals Inhalt abschneiden oder zufällig umbrechen lassen.
+
 ## Finale Ausgabe
 
 Am Ende sollen im Bewerbungsordner mindestens diese Dateien liegen:

@@ -9,24 +9,38 @@
 - [Zielrolle 1]
 - [Zielrolle 2]
 
-## Berufserfahrung
+## Berufserfahrung / berufliche Stationen
 
-- [Erfahrung, Zeitraum, Schwerpunkt, belegbare Tätigkeiten]
+- [Zeitraum] - [Arbeitgeber/Rolle]: [Schwerpunkt, belegbare Tätigkeiten, relevante Ergebnisse]
 
-## Weiterbildung
+## Ausbildung / Studium / berufliche Bildung
 
-- [Weiterbildung, Anbieter, Zeitraum, relevante Inhalte]
+- [Zeitraum] - [Abschluss/Bildungsgang/Studium/Ausbildung], [Einrichtung], [Ort optional]
+
+## Schulbildung
+
+- [Zeitraum oder Abschlussjahr] - [höchster Schulabschluss], [Schule optional]
+
+## Weiterbildung / Zertifikate / Qualifikationen
+
+- [Zeitraum] - [Weiterbildung/Zertifikat], [Anbieter], [relevante Inhalte]
 
 ## Projekte und Praxis
 
 - [Projekt oder private Praxis, Werkzeuge, Methoden, Aufgaben, Ergebnis]
 
-## Skills
+## Kenntnisse und Kompetenzen
 
 - Fachlich: [Skills]
-- Tools: [Tools]
-- Arbeitsweise: [Stärken]
+- Tools/Systeme: [Tools]
+- Methoden/Arbeitsweise: [Stärken]
 - Sprachen: [Niveau]
+
+## Relevanz- und Kürzungshinweise
+
+- Besonders wichtig zeigen: [Inhalte, die fast immer relevant sind]
+- Nur bei passender Stelle zeigen: [Zusatzkenntnisse, Projekte, Nebenthemen]
+- Weglassen, wenn Platz knapp ist: [weniger wichtige Inhalte]
 
 ## Grenzen
 

@@ -14,27 +14,41 @@ Keine Branche, keine konkrete Fachrolle und kein Projekttyp darf aus den öffent
 
 ## Aufbau
 
+Der Lebenslauf orientiert sich am deutschsprachigen Arbeitsmarkt. Er ist kein reines Skill-Profil und keine Projektsammlung, sondern ein moderner, klar strukturierter CV mit formalen Stationen.
+
 Empfohlene Grundstruktur:
 
-1. Name, Zielprofil und Kurzprofil
-2. Kontaktblock
+1. Kopfbereich mit Name, Zielrolle und Kontakt
+2. Kurzprofil mit 3 bis 5 Zeilen
 3. Kernkompetenzen passend zur Stelle
-4. Berufserfahrung oder rollenrelevante Erfahrung
-5. Weiterbildung, Qualifikation oder Ausbildung
-6. Projekte, Praxis, Zusatzkenntnisse oder rollennahe Beispiele
-7. Arbeitsweise
-8. Sprachen
+4. Berufserfahrung / berufliche Stationen
+5. Ausbildung, Studium oder berufliche Bildung
+6. Schulbildung, sofern vorhanden und für den deutschen CV sinnvoll
+7. Weiterbildungen, Zertifikate und Qualifikationen
+8. Kenntnisse / Kompetenzen
+9. Sprachen
+10. Projekte, Praxis oder Zusatzkenntnisse nur dann, wenn sie für diese Stelle erkennbaren Recruiter-Nutzen haben
 
-Die Reihenfolge und Abschnittsnamen dürfen je nach Profil angepasst werden. Beispiele:
+Pflichtlogik für formale Stationen:
+
+- Berufserfahrung, Ausbildung/Studium/berufliche Bildung und Schulbildung dürfen nicht durch Projekte, Skill-Listen oder private Praxis verdrängt werden.
+- Wenn entsprechende Daten in `Private/Daten/` vorhanden sind, müssen sie im Lebenslauf berücksichtigt werden.
+- Wenn wichtige formale Daten fehlen, werden sie nicht erfunden, sondern in `Offene_Fragen.md` dokumentiert.
+- Nicht-klassische Erfahrung, private Praxis, Quereinstieg oder Projektarbeit wird ehrlich als solche eingeordnet.
+- Projekte und Zusatzpraxis stehen hinter den formalen Stationen oder werden kompakt in passende Abschnitte integriert.
+
+Die Reihenfolge und Abschnittsnamen dürfen je nach Profil angepasst werden, aber die formalen CV-Stationen müssen erkennbar bleiben. Mögliche Abschnittsnamen:
 
 - `Berufserfahrung`
-- `Kaufmännische Erfahrung`
+- `Berufliche Stationen`
 - `Praxiserfahrung`
-- `Technische Praxis`
-- `Projektarbeit`
-- `Weiterbildung`
 - `Ausbildung`
+- `Studium`
+- `Berufliche Bildung`
+- `Schulbildung`
+- `Weiterbildung und Zertifikate`
 - `Zusatzqualifikationen`
+- `Projekte und Praxis`
 
 Abschnittsnamen müssen zur Zielrolle passen und dürfen keine falsche Spezialisierung suggerieren.
 
@@ -100,28 +114,51 @@ Bei unklarer Firmengröße:
 
 ## A4-Inhaltsbudget
 
-Für einen Einseiten-Lebenslauf gilt: Inhalt kürzen kommt vor Layout-Quetschen.
+Ziel ist ein Lebenslauf, der im Idealfall auf eine DIN-A4-Seite passt. Eine Seite ist aber kein Dogma. Wenn der Lebenslauf mit den wichtigen formalen Stationen nicht sauber auf eine Seite passt, wird bewusst ein professioneller zweiseitiger Lebenslauf erstellt.
+
+Grundregel:
+
+1. Inhalt priorisieren.
+2. Danach Layout moderat optimieren.
+3. Wenn es weiterhin nicht sauber passt, bewusst auf zwei A4-Seiten wechseln.
+4. Niemals relevante Inhalte abschneiden, verstecken oder unlesbar klein quetschen.
 
 Richtwerte für eine A4-Seite:
 
-- Kurzprofil: maximal 4 bis 5 Zeilen
+- Kurzprofil: maximal 3 bis 5 Zeilen
 - Kernkompetenzen: maximal 3 Gruppen
 - Skill-/Kompetenz-Tags: nur die wichtigsten, keine vollständige Inventarliste
-- Arbeitsweise: maximal 4 Bulletpoints
-- Berufserfahrung: 1 kurzer Absatz plus maximal 3 bis 4 Bulletpoints
+- Arbeitsweise: maximal 3 bis 4 Bulletpoints oder in andere Abschnitte integrieren
+- Berufserfahrung: kompakt, aber nicht auf Kosten der Verständlichkeit
+- Ausbildung, Studium, berufliche Bildung und Schulbildung: kurz, aber sichtbar, wenn Daten vorhanden sind
+- Weiterbildung/Zertifikate: nur relevante Stationen oder kompakte Auswahl
 - Praxis/Projekte/Zusatzkenntnisse: nur 1 bis 2 wirklich relevante Blöcke
-- Weiterbildung/Ausbildung: kurz, rollenbezogen und ohne unnötige Detailfülle
 
-Wenn der Inhalt nicht auf A4 passt:
+Kürzungsreihenfolge bei Platzproblemen:
 
 1. fachfremde Zusatzkenntnisse entfernen
 2. nicht rollennahe Projekte entfernen oder auf eine Zeile reduzieren
-3. Bulletpoints kürzen
-4. Skill-Listen reduzieren
-5. Kurzprofil straffen
-6. erst danach Layout minimal verdichten
+3. lange Skill-Listen auf wichtigste Anforderungen reduzieren
+4. Arbeitsweise kürzen oder in Profil/Berufserfahrung integrieren
+5. Wiederholungen zwischen Kurzprofil, Skills und Erfahrung entfernen
+6. Bulletpoints straffen
+7. Kurzprofil verdichten
+8. Layout minimal verdichten, solange Lesbarkeit und Druckqualität professionell bleiben
 
-Wenn zwei Seiten fachlich wirklich nötig sind, werden zwei explizite A4-Seitencontainer erstellt. Kein zufälliger Browserumbruch und kein abgeschnittener Inhalt.
+Nicht gekürzt oder verdrängt werden dürfen:
+
+- belegbare Berufserfahrung oder berufliche Stationen
+- Ausbildung, Studium oder berufliche Bildung, wenn vorhanden
+- Schulbildung, wenn sie für den deutschsprachigen CV relevant ist oder die privaten Daten sie ausdrücklich enthalten
+- wichtige Weiterbildungen/Zertifikate, wenn sie zur Stelle passen
+
+Wenn zwei Seiten fachlich sinnvoll sind:
+
+- Es werden zwei explizite A4-Seitencontainer erstellt.
+- Seite 1 enthält die wichtigsten Recruiter-Signale: Name, Zielrolle, Kurzprofil, Kontakt, Kernkompetenzen und relevante Berufserfahrung.
+- Seite 2 enthält sauber strukturierte formale Ergänzungen: Ausbildung/Studium/berufliche Bildung, Schulbildung, Weiterbildungen/Zertifikate, Sprachen und relevante Projekte/Zusatzpraxis.
+- Seite 2 darf nicht wie ein zufälliger Rest wirken.
+- Es gibt keinen zufälligen Browserumbruch und keinen abgeschnittenen Inhalt.
 
 ## Stil
 
