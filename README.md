@@ -93,7 +93,21 @@ Offizielle Einstiegspunkte:
 - LM Studio: <https://lmstudio.ai/>
 - Ollama: <https://ollama.com/download>
 
-## 3. Private Daten einrichten
+## 3. Lebenslauf-Standard
+
+Der Agent erstellt moderne Lebensläufe für den deutschsprachigen Arbeitsmarkt. Der Lebenslauf soll nicht nur Skills und Projekte zeigen, sondern die klassischen CV-Stationen sauber berücksichtigen:
+
+- Berufserfahrung / berufliche Stationen
+- Ausbildung, Studium oder berufliche Bildung
+- Schulbildung, sofern vorhanden oder sinnvoll
+- Weiterbildungen, Zertifikate und Qualifikationen
+- Kenntnisse, Sprachen und relevante Zusatzpraxis
+
+Ziel ist eine klare, recruiterfreundliche DIN-A4-Seite. Wenn wichtige Stationen sonst abgeschnitten, gequetscht oder unübersichtlich würden, erstellt der Agent bewusst einen strukturierten zweiseitigen Lebenslauf. Eine zweite Seite ist erlaubt, wenn sie sauber aufgebaut ist und nicht wie ein zufälliger Rest wirkt.
+
+Projekte, private Praxis und Zusatzkenntnisse werden nur aufgenommen, wenn sie zur Stelle passen oder einen echten Recruiter-Nutzen haben. Sie dürfen formale Stationen wie Ausbildung oder Schulbildung nicht verdrängen.
+
+## 4. Private Daten einrichten
 
 Echte persönliche Daten gehören ausschließlich hierhin:
 
@@ -123,7 +137,7 @@ Vorgehen:
 
 Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlicht werden.
 
-## 4. Was ist privat?
+## 5. Was ist privat?
 
 Privat und nicht für GitHub:
 
@@ -147,7 +161,7 @@ Archiv/
 
 Privat sind insbesondere Kontaktdaten, Profil, Berufserfahrung, Projekte, Skills, generierte Bewerbungen, Stellenbeschreibungen, Bewertungen, Notizen und Exporte.
 
-## 5. Was darf auf GitHub?
+## 6. Was darf auf GitHub?
 
 Öffentlich geeignet:
 
@@ -163,12 +177,12 @@ README.md
 
 Diese Dateien dürfen keine echten privaten Bewerberdaten enthalten.
 
-## 6. Wichtige Dateien
+## 7. Wichtige Dateien
 
 - `Prompts/00_AGENTEN_START_HIER.md`: zentrale Startdatei für den Agenten.
 - `Private/Daten/01_PERSOENLICHE_DATEN.md`: lokale private Kontaktdaten.
 - `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`: lokales privates Profil, Skills, Grenzen und Belege.
-- `Prompts/03_LEBENSLAUF_REGELN.md`: Aufbau, Länge, Priorisierung und Stil des Lebenslaufs.
+- `Prompts/03_LEBENSLAUF_REGELN.md`: deutscher CV-Aufbau, formale Stationen, Länge, Priorisierung und Stil des Lebenslaufs.
 - `Prompts/04_ANSCHREIBEN_REGELN.md`: Aufbau, Tonalität und Inhalt des Anschreibens.
 - `Prompts/05_EMAIL_NACHRICHT_REGELN.md`: kurze E-Mail-Nachricht.
 - `Prompts/06_ROLLENLOGIK.md`: neutrale Profil-, Rollen- und Recruiter-Strategie je nach Stellenbeschreibung.
@@ -177,7 +191,7 @@ Diese Dateien dürfen keine echten privaten Bewerberdaten enthalten.
 - `Prompts/09_QUALITAETSCHECK.md`: Checkliste vor Abschluss, inklusive Recruiter-Nutzen und A4-Fit-Check.
 - `Prompts/10_DATEI_UND_ORDNER_REGELN.md`: Struktur, Namen, Slugs und Arbeitsdateien.
 
-## 7. Ausgabe pro Bewerbung
+## 8. Ausgabe pro Bewerbung
 
 Finaler Bewerbungsordner:
 
@@ -230,7 +244,7 @@ Anschreiben - NACHNAME.VORNAME.pdf
 
 Vorname und Nachname kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`. Der Firmenname bleibt im Bewerbungsordner und wird nicht mehr in den finalen Versanddateien verwendet.
 
-## 8. Windows und Linux
+## 9. Windows und Linux
 
 Das Projekt soll unter Windows 11 PowerShell und Linux Bash gleich funktionieren.
 
@@ -247,7 +261,7 @@ Private/Bewerbungen/
 
 Projektinterne Pfade werden in der Dokumentation mit `/` geschrieben. Unter Windows darf PowerShell intern `\` verwenden.
 
-## 9. Vorlagen
+## 10. Vorlagen
 
 Aktive öffentliche Vorlagen liegen in `Vorlagen/`:
 
@@ -256,7 +270,7 @@ Aktive öffentliche Vorlagen liegen in `Vorlagen/`:
 
 Vorlagen dürfen nur Platzhalter enthalten, keine echten Bewerberdaten.
 
-## 10. Drucken und PDF
+## 11. Drucken und PDF
 
 Die HTML-Dateien sind für A4 vorbereitet.
 
@@ -270,9 +284,9 @@ Vor dem finalen PDF-Export oder Druck in Firefox:
 4. Skalierung auf `100%` stellen.
 5. Ränder auf `Keine` stellen.
 
-Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm x 297mm`. Wenn ein Lebenslauf bewusst zwei Seiten braucht, sollen zwei getrennte A4-Seitencontainer erstellt werden.
+Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm x 297mm`. Wenn ein Lebenslauf bewusst zwei Seiten braucht, sollen zwei getrennte A4-Seitencontainer erstellt werden. Der Agent soll zuerst Inhalte priorisieren und Layout moderat optimieren; wenn das nicht professionell reicht, ist ein sauber strukturierter zweiseitiger Lebenslauf besser als ein abgeschnittener oder gequetschter Einseiter.
 
-## 11. Typischer Agentenablauf
+## 12. Typischer Agentenablauf
 
 1. Stellenbeschreibung lesen.
 2. Firma und Zielrolle erkennen.
@@ -281,14 +295,14 @@ Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm 
 5. neutrales Bewerbungsprofil, Rollenstrategie und Recruiter-Strategie bestimmen.
 6. Bewerbungsordner unter `Private/Bewerbungen/` erstellen.
 7. Analyse speichern.
-8. Lebenslauf erstellen.
+8. Lebenslauf nach deutschem CV-Standard erstellen: Berufserfahrung, Ausbildung/Studium/berufliche Bildung, Schulbildung, Weiterbildungen, Kenntnisse und relevante Praxis korrekt priorisieren.
 9. Anschreiben erstellen.
 10. E-Mail-Nachricht erstellen.
 11. Druckfähigkeit prüfen.
 12. Qualitätscheck speichern.
 13. Kurz berichten, wo die Dateien liegen.
 
-## 12. Anpassung
+## 13. Anpassung
 
 | Ziel | Datei |
 | --- | --- |
@@ -305,7 +319,7 @@ Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm 
 | Windows-Skript ändern | `Tools/Neue-Bewerbung.ps1` |
 | Linux-Skript ändern | `Tools/neue-bewerbung.sh` |
 
-## 13. Projektstruktur
+## 14. Projektstruktur
 
 Öffentliche Struktur:
 
@@ -331,7 +345,7 @@ Private/
 └─ Archiv/
 ```
 
-## 14. GitHub-Sicherheit
+## 15. GitHub-Sicherheit
 
 Vor einem Commit prüfen:
 
@@ -349,7 +363,7 @@ git status --short --ignored
 
 `!! Private/` ist normal und bedeutet, dass der private Ordner ignoriert wird.
 
-## 15. Entwicklerhinweise
+## 16. Entwicklerhinweise
 
 - `.gitattributes` erzwingt LF-Zeilenenden für `.sh`.
 - `.gitignore` schützt private Daten und generierte Dokumente.
