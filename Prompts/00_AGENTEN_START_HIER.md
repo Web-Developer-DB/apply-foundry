@@ -60,8 +60,8 @@ Frage nur nach, wenn eine fehlende Information die fachliche Korrektheit der fin
 4. Erstelle einen neuen Bewerbungsordner nach `Prompts/10_DATEI_UND_ORDNER_REGELN.md`.
 5. Speichere die originale Stellenbeschreibung als `Stellenbeschreibung.md`.
 6. Speichere eine kurze Analyse als `Analyse.md`.
-7. Erstelle den Lebenslauf als `Lebenslauf--FIRMA.html`.
-8. Erstelle das Anschreiben als `Anschreiben--FIRMA.html`.
+7. Erstelle den Lebenslauf als `Lebenslauf - NACHNAME.VORNAME.html`.
+8. Erstelle das Anschreiben als `Anschreiben - NACHNAME.VORNAME.html`.
 9. Erstelle die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
 10. Speichere den finalen Qualitätscheck als `Qualitaetscheck.md`.
 11. Prüfe, dass finale HTML- und Markdown-Dateien keine sichtbaren Platzhalter enthalten.
@@ -93,8 +93,8 @@ Am Ende sollen im Bewerbungsordner mindestens diese Dateien liegen:
 
 - `Stellenbeschreibung.md`
 - `Analyse.md`
-- `Lebenslauf--FIRMA.html`
-- `Anschreiben--FIRMA.html`
+- `Lebenslauf - NACHNAME.VORNAME.html`
+- `Anschreiben - NACHNAME.VORNAME.html`
 - `Email-Nachricht--FIRMA.md`
 - `Qualitaetscheck.md`
 - `Druck-Hinweis.md`
@@ -104,6 +104,17 @@ Gib dem Nutzer danach kurz an, wo die Dateien gespeichert wurden und welche Prof
 ## Finale-Dokumente-Regel
 
 Finale Lebensläufe, Anschreiben und E-Mail-Nachrichten dürfen keine sichtbaren Platzhalter enthalten.
+
+Finale Versanddateien für Lebenslauf und Anschreiben werden nach Bewerbername benannt, nicht nach Firma. Der Firmenname steht bereits im Bewerbungsordner.
+
+Pflichtschema:
+
+- `Lebenslauf - NACHNAME.VORNAME.html`
+- `Anschreiben - NACHNAME.VORNAME.html`
+
+Wenn PDFs erstellt werden, gilt dasselbe Schema mit `.pdf`.
+
+`NACHNAME.VORNAME` kommt aus `Private/Daten/01_PERSOENLICHE_DATEN.md`. Wenn Vorname oder Nachname fehlen oder uneindeutig sind, keine finale Datei mit Platzhalter erzeugen, sondern in `Offene_Fragen.md` dokumentieren oder gezielt nachfragen.
 
 Nicht erlaubt in finalen Dateien:
 - `[ergänzen]`

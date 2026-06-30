@@ -2,7 +2,10 @@
 
 ## Kontakt
 
-- Name: [Vorname Nachname]
+- Vorname: [Vorname]
+- Nachname: [Nachname]
+- Vollständiger Name: [Vorname Nachname]
+- Dateiname-Name: [Nachname.Vorname]
 - Adresse: [Straße, PLZ Ort]
 - Telefon: [Telefonnummer]
 - E-Mail: [E-Mail-Adresse]

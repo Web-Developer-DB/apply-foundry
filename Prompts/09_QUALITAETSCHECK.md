@@ -33,6 +33,8 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Ist die Länge angemessen?
 - Sind zusätzliche oder nicht-klassische Kenntnisse professionell und korrekt eingeordnet?
 - Sind Kontaktdaten korrekt?
+- Sind Vorname und Nachname für die finalen Dateinamen eindeutig aus `Private/Daten/01_PERSOENLICHE_DATEN.md` übernommen?
+- Enthalten finale Versanddateien den Bewerbernamen statt des Firmennamens?
 - Sind finale sichtbare Platzhalter vollständig entfernt?
 - Sind fehlende Daten stattdessen in `Offene_Fragen.md` dokumentiert?
 
@@ -68,7 +70,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Keine abgeschnittenen Inhalte.
 - Keine fixen problematischen Höhen in Textbereichen.
 - Keine externen Abhängigkeiten.
-- Dateinamen folgen dem Schema `Lebenslauf--FIRMA.html` und `Anschreiben--FIRMA.html`.
+- Finale Versanddateien folgen dem Schema `Lebenslauf - NACHNAME.VORNAME.html` und `Anschreiben - NACHNAME.VORNAME.html`.
 - Keine sichtbaren Marker wie `[ergänzen]`, `{{FIRMA}}`, `TODO` oder `DOKUMENT NOCH NICHT FINAL`.
 - Firefox-Druckansicht wurde gedanklich oder praktisch geprüft.
 - Die Druckansicht entspricht den sichtbaren Browser-Proportionen.

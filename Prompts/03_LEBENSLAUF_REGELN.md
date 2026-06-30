@@ -136,6 +136,6 @@ Wenn zwei Seiten fachlich wirklich nötig sind, werden zwei explizite A4-Seitenc
 
 Dateiname:
 
-`Lebenslauf--FIRMA.html`
+`Lebenslauf - NACHNAME.VORNAME.html`
 
-Finale Lebenslaufdateien dürfen keine Platzhalter, Warnhinweise, Entwurfsmarker oder abgeschnittene Inhalte enthalten.
+Finale Lebenslaufdateien dürfen keine Platzhalter, Warnhinweise, Entwurfsmarker oder abgeschnittene Inhalte enthalten. Der Dateiname nutzt den Bewerbernamen aus den privaten Daten, damit E-Mail-Anhänge für Recruiter schnell zuordenbar sind.

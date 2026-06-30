@@ -77,8 +77,8 @@ In jedem Bewerbungsordner sollen am Ende mindestens diese Dateien liegen:
 
 - `Stellenbeschreibung.md`
 - `Analyse.md`
-- `Lebenslauf--FIRMA.html`
-- `Anschreiben--FIRMA.html`
+- `Lebenslauf - NACHNAME.VORNAME.html`
+- `Anschreiben - NACHNAME.VORNAME.html`
 - `Email-Nachricht--FIRMA.md`
 - `Qualitaetscheck.md`
 - `Druck-Hinweis.md`
@@ -145,12 +145,15 @@ Platzhalter, Warnhinweise und Entwürfe der Hilfsskripte gehören ausschließlic
 
 ## Dateinamen-Regeln
 
-- Keine Sonderzeichen außer Bindestrich.
-- Keine Umlaute in Dateinamen.
-- Leerzeichen durch Bindestriche ersetzen.
-- Mehrere Bindestriche innerhalb von Firmen- oder Rollen-Slugs vermeiden.
-- Der doppelte Bindestrich in `YYYY-MM-DD--ROLLENNAME`, `Lebenslauf--FIRMA.html` und `Anschreiben--FIRMA.html` ist als technischer Trenner ausdrücklich erlaubt.
-- Namen kurz, lesbar und eindeutig halten.
+- Ordner-Slugs für Firma und Rolle bleiben technisch sauber: keine Umlaute, Leerzeichen durch Bindestriche, mehrere Bindestriche vermeiden.
+- Finale Versanddateien für Lebenslauf und Anschreiben nutzen Bewerbername statt Firma.
+- Pflichtschema für finale HTML-Dateien: `Lebenslauf - NACHNAME.VORNAME.html` und `Anschreiben - NACHNAME.VORNAME.html`.
+- Pflichtschema für finale PDF-Dateien, falls erzeugt: `Lebenslauf - NACHNAME.VORNAME.pdf` und `Anschreiben - NACHNAME.VORNAME.pdf`.
+- In finalen Versanddateien sind Leerzeichen um den Bindestrich und der Punkt zwischen Nachname und Vorname ausdrücklich erlaubt.
+- `NACHNAME.VORNAME` kommt aus `Private/Daten/01_PERSOENLICHE_DATEN.md`.
+- Umlaute und Sonderzeichen im Bewerbernamen werden dateisicher umgewandelt, z. B. `ä` zu `ae`, `ß` zu `ss`; Schrägstriche und andere Pfadzeichen sind verboten.
+- Wenn Vorname oder Nachname fehlen oder uneindeutig sind, keine finale Datei mit Platzhalter erzeugen; stattdessen in `Offene_Fragen.md` dokumentieren oder nachfragen.
+- Interne Entwurfsdateien dürfen weiterhin technische Namen mit Firma oder `ENTWURF` verwenden, weil sie nicht versendet werden.
 
 ## Finale-Dateien
 

@@ -31,6 +31,6 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 
 Dateiname:
 
-`Anschreiben--FIRMA.html`
+`Anschreiben - NACHNAME.VORNAME.html`
 
-Finale Anschreiben dürfen keine Platzhalter, Warnhinweise oder Entwurfsmarker enthalten.
+Finale Anschreiben dürfen keine Platzhalter, Warnhinweise oder Entwurfsmarker enthalten. Der Dateiname nutzt den Bewerbernamen aus den privaten Daten, damit E-Mail-Anhänge für Recruiter schnell zuordenbar sind.
