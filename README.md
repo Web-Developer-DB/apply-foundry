@@ -36,7 +36,9 @@ Die fertige Bewerbung wird gespeichert unter:
 Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
 ```
 
-### Bewerbungsordner vorher anlegen
+### Optional: Bewerbungsordner mit Hilfsskript vorbereiten
+
+Normalerweise erstellt der Agent den Bewerbungsordner automatisch. Die folgenden Skripte sind nur optional, zum Beispiel wenn du die Ordnerstruktur vorab vorbereiten oder testen möchtest.
 
 Windows 11 / PowerShell:
 
@@ -59,7 +61,39 @@ Private/Bewerbungen/Team-System-House-GmbH/_Arbeitsdateien/YYYY-MM-DD--IT-Suppor
 
 Die Skripte legen Platzhalter und Entwürfe in `_Arbeitsdateien` ab. Im finalen Bewerbungsordner entstehen dadurch keine unfertigen `Analyse.md`, `Email-Nachricht--FIRMA.md` oder `Qualitaetscheck.md` Dateien.
 
-## 2. Private Daten einrichten
+## 2. Empfohlene Agenten und Modelle
+
+Die Empfehlung ist bewusst nach einfacher Bedienung sortiert. Ziel ist: möglichst wenig Einrichtung, keine API-Schlüssel und keine komplexe Entwicklerumgebung für normale Anwender.
+
+| Empfehlung | Geeignet für | Kosten/Setup | Warum |
+| --- | --- | --- | --- |
+| **Gemini App, optional mit eigenem Gem** | normale Anwender | Google-Konto, Browser oder Smartphone; kostenloser Einstieg möglich, je nach Konto/Funktionsumfang auch kostenpflichtig | Sehr niedrige Einstiegshürde. Ein Gem kann feste Anweisungen und Wissensdateien nutzen. Gut für Nutzer, die Stellenbeschreibung und Ergebnisdateien manuell kopieren oder herunterladen möchten. |
+| **Gemini Code Assist in VS Code** | Nutzer mit etwas IT-Verständnis | Google-Konto und VS Code; kostenloser Einstieg möglich | Gute leicht zugängliche Agentenlösung direkt in VS Code. Sinnvoll, wenn der Agent Projektdateien lesen und mit der lokalen Ordnerstruktur arbeiten soll. |
+| **Codex in VS Code** | Projektpflege und fortgeschrittene Nutzer | ChatGPT-/Codex-Zugang und VS Code; je nach Konto kostenpflichtig | Beste Wahl für dieses Repository, wenn Dateien geändert, Audits gemacht, Skripte geprüft oder Git sauber gehalten werden sollen. Für reine Endanwender etwas technischer. |
+| **ChatGPT Web/Desktop** | Textqualität und manuelle Nutzung | OpenAI-Konto; kostenloser Einstieg möglich, bessere Modelle/Funktionen je nach Konto kostenpflichtig | Gut für Lebenslauf- und Anschreiben-Formulierungen. Einfach zugänglich, aber ohne automatische lokale Ordner- und Dateiablage wie ein Editor-Agent. |
+| **LM Studio** | lokale Nutzung mit Datenschutzfokus | kostenlose lokale App, aber passende Hardware und Modell-Download nötig | Gute lokale Oberfläche für Nutzer, die KI-Modelle auf dem eigenen Rechner ausführen möchten. Mehr Einrichtung und passende Hardware nötig. |
+| **Ollama** | technischere lokale Nutzung | kostenlos lokal, aber Terminal und Modell-Download nötig | Stark für lokale Modelle und Automatisierung, aber eher terminalorientiert und deshalb nicht der einfachste Standardweg für normale Verbraucher. |
+
+Empfohlener Standard für normale Anwender: **Gemini App mit eigenem Gem**.
+
+Empfohlener Standard für VS-Code-Nutzer: **Gemini Code Assist** oder **Codex in VS Code**.
+
+Empfohlene lokale Datenschutzoption: **LM Studio**. Ollama nur dann, wenn Terminalnutzung kein Problem ist.
+
+Nicht als Standard empfohlen: API-only-Setups, komplexe lokale Agentenframeworks oder Anbieter, bei denen Nutzer erst API-Schlüssel, Zusatzdienste und mehrere Integrationsschritte einrichten müssen.
+
+Wichtig: Keine konkrete Modellversion fest in die Prompts schreiben. Die Dienste wechseln ihre Standardmodelle. Für die Nutzung gilt deshalb: Das beste verfügbare Modell des gewählten Agenten verwenden und die Ausgabe nach `Prompts/09_QUALITAETSCHECK.md` prüfen.
+
+Offizielle Einstiegspunkte:
+
+- Gemini Gems: <https://support.google.com/gemini/answer/15235603>
+- Gemini Code Assist: <https://developers.google.com/gemini-code-assist/docs/overview>
+- Codex: <https://openai.com/codex/>
+- ChatGPT: <https://chatgpt.com/>
+- LM Studio: <https://lmstudio.ai/>
+- Ollama: <https://ollama.com/download>
+
+## 3. Private Daten einrichten
 
 Echte persönliche Daten gehören ausschließlich hierhin:
 
@@ -89,7 +123,7 @@ Vorgehen:
 
 Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlicht werden.
 
-## 3. Was ist privat?
+## 4. Was ist privat?
 
 Privat und nicht für GitHub:
 
@@ -113,7 +147,7 @@ Archiv/
 
 Privat sind insbesondere Kontaktdaten, Profil, Berufserfahrung, Projekte, Skills, generierte Bewerbungen, Stellenbeschreibungen, Bewertungen, Notizen und Exporte.
 
-## 4. Was darf auf GitHub?
+## 5. Was darf auf GitHub?
 
 Öffentlich geeignet:
 
@@ -129,7 +163,7 @@ README.md
 
 Diese Dateien dürfen keine echten privaten Bewerberdaten enthalten.
 
-## 5. Wichtige Dateien
+## 6. Wichtige Dateien
 
 - `Prompts/00_AGENTEN_START_HIER.md`: zentrale Startdatei für den Agenten.
 - `Private/Daten/01_PERSOENLICHE_DATEN.md`: lokale private Kontaktdaten.
@@ -143,7 +177,7 @@ Diese Dateien dürfen keine echten privaten Bewerberdaten enthalten.
 - `Prompts/09_QUALITAETSCHECK.md`: Checkliste vor Abschluss.
 - `Prompts/10_DATEI_UND_ORDNER_REGELN.md`: Struktur, Namen, Slugs und Arbeitsdateien.
 
-## 6. Ausgabe pro Bewerbung
+## 7. Ausgabe pro Bewerbung
 
 Finaler Bewerbungsordner:
 
@@ -180,7 +214,7 @@ Typische Arbeitsdateien:
 
 Diese Dateien sind nicht final und dürfen nicht unverändert versendet werden.
 
-## 7. Windows und Linux
+## 8. Windows und Linux
 
 Das Projekt soll unter Windows 11 PowerShell und Linux Bash gleich funktionieren.
 
@@ -197,7 +231,7 @@ Private/Bewerbungen/
 
 Projektinterne Pfade werden in der Dokumentation mit `/` geschrieben. Unter Windows darf PowerShell intern `\` verwenden.
 
-## 8. Vorlagen
+## 9. Vorlagen
 
 Aktive öffentliche Vorlagen liegen in `Vorlagen/`:
 
@@ -206,7 +240,7 @@ Aktive öffentliche Vorlagen liegen in `Vorlagen/`:
 
 Vorlagen dürfen nur Platzhalter enthalten, keine echten Bewerberdaten.
 
-## 9. Drucken und PDF
+## 10. Drucken und PDF
 
 Die HTML-Dateien sind für A4 vorbereitet.
 
@@ -222,7 +256,7 @@ Vor dem finalen PDF-Export oder Druck in Firefox:
 
 Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm x 297mm`. Wenn ein Lebenslauf bewusst zwei Seiten braucht, sollen zwei getrennte A4-Seitencontainer erstellt werden.
 
-## 10. Typischer Agentenablauf
+## 11. Typischer Agentenablauf
 
 1. Stellenbeschreibung lesen.
 2. Firma und Zielrolle erkennen.
@@ -238,7 +272,7 @@ Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm 
 12. Qualitätscheck speichern.
 13. Kurz berichten, wo die Dateien liegen.
 
-## 11. Anpassung
+## 12. Anpassung
 
 | Ziel | Datei |
 | --- | --- |
@@ -255,7 +289,7 @@ Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm 
 | Windows-Skript ändern | `Tools/Neue-Bewerbung.ps1` |
 | Linux-Skript ändern | `Tools/neue-bewerbung.sh` |
 
-## 12. Projektstruktur
+## 13. Projektstruktur
 
 Öffentliche Struktur:
 
@@ -281,7 +315,7 @@ Private/
 └─ Archiv/
 ```
 
-## 13. GitHub-Sicherheit
+## 14. GitHub-Sicherheit
 
 Vor einem Commit prüfen:
 
@@ -299,7 +333,7 @@ git status --short --ignored
 
 `!! Private/` ist normal und bedeutet, dass der private Ordner ignoriert wird.
 
-## 14. Entwicklerhinweise
+## 15. Entwicklerhinweise
 
 - `.gitattributes` erzwingt LF-Zeilenenden für `.sh`.
 - `.gitignore` schützt private Daten und generierte Dokumente.
