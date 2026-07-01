@@ -29,6 +29,7 @@ Lies vor der Erstellung in dieser Reihenfolge:
 8. `Prompts/08_HTML_CSS_DESIGNREGELN.md`
 9. `Prompts/09_QUALITAETSCHECK.md`
 10. `Prompts/10_DATEI_UND_ORDNER_REGELN.md`
+11. `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`
 
 Nutze zusätzlich den Ordner `Vorlagen/`, wenn dort passende HTML- oder Designvorlagen vorhanden sind.
 
@@ -69,6 +70,8 @@ Frage nur nach, wenn eine fehlende Information die fachliche Korrektheit der fin
 11. Speichere den finalen Qualitätscheck als `Qualitaetscheck.md`.
 12. Prüfe, dass finale HTML- und Markdown-Dateien keine sichtbaren Platzhalter enthalten.
 13. Prüfe besonders bei HTML-Dateien, dass Firefox nicht automatisch mitten im Dokument umbricht. Ein Einseiten-Dokument muss technisch eine feste A4-Seite sein; ein zweiseitiges Dokument muss zwei explizite A4-Seitencontainer haben.
+14. Führe, sofern PowerShell verfügbar ist, den statischen technischen Check aus: `.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
+15. Optional: Führe den Browser-Layoutcheck aus: `.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`. Werte ihn nur als bestanden, wenn die erwarteten Dateien tatsächlich erzeugt wurden.
 
 Temporäre Entwürfe, Zwischenschritte oder Arbeitsnotizen dürfen nicht direkt im Projektwurzelordner liegen. Sie gehören immer in den privaten Firmenordner unter:
 
@@ -182,6 +185,24 @@ bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Sachbearbeitung"
 Die Skripte erstellen nur die private Ordnerstruktur, `Druck-Hinweis.md` und Entwurfsdateien unter `_Arbeitsdateien`.
 
 Danach erstellt der Agent die finalen Bewerbungsdateien im ausgegebenen finalen Bewerbungsordner.
+
+## Technischer Abschlusscheck
+
+Nach dem Erstellen der finalen Bewerbung soll der statische Prüfer genutzt werden:
+
+```powershell
+.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+```
+
+Dieser Check ist der technische Mindestabschluss. Er prüft Pflichtdateien, sichtbare Platzhalter, finale Dateinamen und A4-Grundstruktur.
+
+Optional kann zusätzlich ein Browser-Layoutcheck erzeugt werden:
+
+```powershell
+.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+```
+
+Der Browser-Layoutcheck gilt nur als bestanden, wenn Screenshots oder PDFs wirklich im privaten `_Arbeitsdateien`-Ordner erzeugt wurden.
 
 ## Plattformregeln
 
