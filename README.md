@@ -1,131 +1,70 @@
 # bewerbungs-agent
 
-`bewerbungs-agent` ist ein modularer KI-gestützter Bewerbungsagent für deutsche Bewerbungsunterlagen. Er ist bewusst branchenneutral: Das konkrete Bewerbungsprofil entsteht aus der Stellenbeschreibung und den privaten Profildaten.
+`bewerbungs-agent` ist ein lokaler, modularer Bewerbungsassistent für deutsche Bewerbungsunterlagen. Aus einer konkreten Stellenbeschreibung und den privaten Profildaten erstellt der Agent eine passgenaue Bewerbung:
 
-Aus einer Stellenbeschreibung erzeugt der Agent:
+- Lebenslauf als druckstabile HTML-Datei
+- Anschreiben als druckstabile HTML-Datei
+- kurze E-Mail-Nachricht
+- Stellenanalyse
+- Qualitätscheck
+- optional PDFs aus Lebenslauf und Anschreiben
 
-- einen bewerbungsspezifischen Lebenslauf als HTML
-- ein individuelles Anschreiben als HTML
-- eine kurze E-Mail-Nachricht
-- eine Analyse der Stellenanzeige
-- einen Qualitätscheck
+Das Projekt ist bewusst so aufgebaut, dass öffentliche Agentenlogik auf GitHub liegen kann, während echte persönliche Daten und generierte Bewerbungen lokal unter `Private/` bleiben.
 
-Das Projekt ist so getrennt, dass öffentliche Agentenlogik auf GitHub liegen kann, während echte private Daten lokal unter `Private/` bleiben.
+## Inhalt
 
-## 1. Schnellstart
+- [Teil 1: Anleitung für Anwender](#teil-1-anleitung-für-anwender)
+- [Teil 2: Dokumentation für Entwickler](#teil-2-dokumentation-für-entwickler)
 
-### Bewerbung direkt durch den Agenten erstellen
+# Teil 1: Anleitung für Anwender
 
-Dem Agenten diesen Auftrag geben:
+Dieser Teil erklärt, wie du mit dem Projekt Bewerbungsunterlagen erzeugst, prüfst und als PDF exportierst.
 
-```text
-Nutze Prompts/00_AGENTEN_START_HIER.md und erstelle eine Bewerbung für diese Stellenbeschreibung:
+## Was du bekommst
 
-[Stellenbeschreibung hier einfügen]
-```
-
-Der Agent liest dann:
-
-1. private Daten aus `Private/Daten/`
-2. öffentliche Agentenregeln aus `Prompts/`
-3. Designvorlagen aus `Vorlagen/`
-
-Der Agent erstellt den passenden Bewerbungsordner automatisch und speichert die fertige Bewerbung unter:
+Pro Bewerbung entsteht ein eigener privater Ordner:
 
 ```text
 Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
 ```
 
-### Optional: Bewerbungsordner mit Hilfsskript vorbereiten
-
-Normalerweise erstellt der Agent den Bewerbungsordner automatisch. Die folgenden Skripte sind nur optional, zum Beispiel wenn du die Ordnerstruktur vorab vorbereiten oder testen möchtest.
-
-Windows 11 / PowerShell:
-
-```powershell
-.\Tools\Neue-Bewerbung.ps1 -Firma "Muster GmbH" -Rolle "Sachbearbeitung"
-```
-
-Linux / Bash:
-
-```bash
-bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Sachbearbeitung"
-```
-
-Beide Skripte erzeugen dieselbe private Ordnerstruktur:
+Darin liegen am Ende typischerweise:
 
 ```text
-Private/Bewerbungen/Muster-GmbH/YYYY-MM-DD--Sachbearbeitung/
-Private/Bewerbungen/Muster-GmbH/_Arbeitsdateien/YYYY-MM-DD--Sachbearbeitung/
+Stellenbeschreibung.md
+Analyse.md
+Lebenslauf - NACHNAME.VORNAME.html
+Lebenslauf - NACHNAME.VORNAME.pdf
+Anschreiben - NACHNAME.VORNAME.html
+Anschreiben - NACHNAME.VORNAME.pdf
+Email-Nachricht--FIRMA.md
+Qualitaetscheck.md
+Druck-Hinweis.md
+Offene_Fragen.md
 ```
 
-Die Skripte legen Platzhalter und Entwürfe in `_Arbeitsdateien` ab. Im finalen Bewerbungsordner entstehen dadurch keine unfertigen `Analyse.md`, `Email-Nachricht--FIRMA.md` oder `Qualitaetscheck.md` Dateien.
+PDF-Dateien entstehen nur, wenn der automatische PDF-Export ausgeführt wurde und Chrome oder Edge verfügbar ist.
 
-### Bewerbung technisch prüfen
+## Voraussetzungen
 
-Nach jeder finalen Bewerbung sollte der statische Prüfer laufen:
+Für die normale Nutzung brauchst du:
 
-```powershell
-.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
-```
+- dieses Repository lokal auf deinem Rechner
+- einen KI-Agenten, der lokale Projektdateien lesen und schreiben kann, zum Beispiel Codex in VS Code
+- private Profildaten unter `Private/Daten/`
+- eine konkrete Stellenbeschreibung
 
-Optional kann ein Browser-Layoutcheck Screenshots im privaten Arbeitsordner erzeugen:
+Für die technischen Hilfsskripte unter Windows:
 
-```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
-```
+- PowerShell
+- optional Chrome oder Edge für automatischen PDF-Export
+- optional Chrome, Edge oder Firefox für den Browser-Layoutcheck
 
-Der statische Prüfer ist der technische Mindestcheck. Der Browser-Layoutcheck ist hilfreich, gilt aber nur als bestanden, wenn die erwarteten Dateien wirklich unter `_Arbeitsdateien` erzeugt wurden.
+Unter Linux gibt es aktuell ein Bash-Skript für die Ordnererstellung. Die technischen Prüf- und Exporttools sind derzeit PowerShell-Skripte.
 
-## 2. Empfohlene Agenten und Modelle
+## Private Daten einrichten
 
-Die Empfehlung ist bewusst nach einfacher Bedienung sortiert. Ziel ist: möglichst wenig Einrichtung, keine API-Schlüssel und keine komplexe Entwicklerumgebung für normale Anwender.
-
-| Empfehlung | Geeignet für | Kosten/Setup | Warum |
-| --- | --- | --- | --- |
-| **Gemini App, optional mit eigenem Gem** | normale Anwender | Google-Konto, Browser oder Smartphone; kostenloser Einstieg möglich, je nach Konto/Funktionsumfang auch kostenpflichtig | Sehr niedrige Einstiegshürde. Ein Gem kann feste Anweisungen und Wissensdateien nutzen. Gut für Nutzer, die Stellenbeschreibung und Ergebnisdateien manuell kopieren oder herunterladen möchten. |
-| **Gemini Code Assist in VS Code** | Nutzer mit etwas IT-Verständnis | Google-Konto und VS Code; kostenloser Einstieg möglich | Gute leicht zugängliche Agentenlösung direkt in VS Code. Sinnvoll, wenn der Agent Projektdateien lesen und mit der lokalen Ordnerstruktur arbeiten soll. |
-| **Codex in VS Code** | Projektpflege und fortgeschrittene Nutzer | ChatGPT-/Codex-Zugang und VS Code; je nach Konto kostenpflichtig | Beste Wahl für dieses Repository, wenn Dateien geändert, Audits gemacht, Skripte geprüft oder Git sauber gehalten werden sollen. Für reine Endanwender etwas technischer. |
-| **ChatGPT Web/Desktop** | Textqualität und manuelle Nutzung | OpenAI-Konto; kostenloser Einstieg möglich, bessere Modelle/Funktionen je nach Konto kostenpflichtig | Gut für Lebenslauf- und Anschreiben-Formulierungen. Einfach zugänglich, aber ohne automatische lokale Ordner- und Dateiablage wie ein Editor-Agent. |
-| **LM Studio** | lokale Nutzung mit Datenschutzfokus | kostenlose lokale App, aber passende Hardware und Modell-Download nötig | Gute lokale Oberfläche für Nutzer, die KI-Modelle auf dem eigenen Rechner ausführen möchten. Mehr Einrichtung und passende Hardware nötig. |
-| **Ollama** | technischere lokale Nutzung | kostenlos lokal, aber Terminal und Modell-Download nötig | Stark für lokale Modelle und Automatisierung, aber eher terminalorientiert und deshalb nicht der einfachste Standardweg für normale Verbraucher. |
-
-Empfohlener Standard für normale Anwender: **Gemini App mit eigenem Gem**.
-
-Empfohlener Standard für VS-Code-Nutzer: **Gemini Code Assist** oder **Codex in VS Code**.
-
-Empfohlene lokale Datenschutzoption: **LM Studio**. Ollama nur dann, wenn Terminalnutzung kein Problem ist.
-
-Nicht als Standard empfohlen: API-only-Setups, komplexe lokale Agentenframeworks oder Anbieter, bei denen Nutzer erst API-Schlüssel, Zusatzdienste und mehrere Integrationsschritte einrichten müssen.
-
-Wichtig: Keine konkrete Modellversion fest in die Prompts schreiben. Die Dienste wechseln ihre Standardmodelle. Für die Nutzung gilt deshalb: Das beste verfügbare Modell des gewählten Agenten verwenden und die Ausgabe nach `Prompts/09_QUALITAETSCHECK.md` prüfen.
-
-Offizielle Einstiegspunkte:
-
-- Gemini Gems: <https://support.google.com/gemini/answer/15235603>
-- Gemini Code Assist: <https://developers.google.com/gemini-code-assist/docs/overview>
-- Codex: <https://openai.com/codex/>
-- ChatGPT: <https://chatgpt.com/>
-- LM Studio: <https://lmstudio.ai/>
-- Ollama: <https://ollama.com/download>
-
-## 3. Lebenslauf-Standard
-
-Der Agent erstellt moderne Lebensläufe für den deutschsprachigen Arbeitsmarkt. Der Lebenslauf soll nicht nur Skills und Projekte zeigen, sondern die klassischen CV-Stationen sauber berücksichtigen:
-
-- Berufserfahrung / berufliche Stationen
-- Ausbildung, Studium oder berufliche Bildung
-- Schulbildung, sofern vorhanden oder sinnvoll
-- Weiterbildungen, Zertifikate und Qualifikationen
-- Kenntnisse, Sprachen und relevante Zusatzpraxis
-
-Ziel ist eine klare, recruiterfreundliche DIN-A4-Seite. Wenn wichtige Stationen sonst abgeschnitten, gequetscht oder unübersichtlich würden, erstellt der Agent bewusst einen strukturierten zweiseitigen Lebenslauf. Eine zweite Seite ist erlaubt, wenn sie sauber aufgebaut ist und nicht wie ein zufälliger Rest wirkt.
-
-Projekte, private Praxis und Zusatzkenntnisse werden nur aufgenommen, wenn sie zur Stelle passen oder einen echten Recruiter-Nutzen haben. Sie dürfen formale Stationen wie Ausbildung oder Schulbildung nicht verdrängen.
-
-## 4. Private Daten einrichten
-
-Echte persönliche Daten gehören ausschließlich hierhin:
+Echte persönliche Daten gehören ausschließlich in:
 
 ```text
 Private/Daten/
@@ -138,22 +77,194 @@ Private/Daten/01_PERSOENLICHE_DATEN.md
 Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
 ```
 
-Wenn der Ordner fehlt, die Beispielstruktur verwenden:
+Wenn `Private/Daten/` noch fehlt:
 
-```text
-Private.example/Daten/
-```
-
-Vorgehen:
-
-1. `Private/Daten/` lokal erstellen.
-2. Beispiele aus `Private.example/Daten/` kopieren.
-3. `.example` aus den Dateinamen entfernen.
-4. Platzhalter durch echte private Daten ersetzen.
+1. Erstelle den Ordner `Private/Daten/`.
+2. Nutze die Dateien aus `Private.example/Daten/` als Strukturvorlage.
+3. Entferne Beispielplatzhalter.
+4. Trage echte Kontaktdaten, Profil, Kompetenzen, Berufserfahrung, Weiterbildung und Projekte ein.
 
 Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlicht werden.
 
-## 5. Was ist privat?
+## Bewerbung durch den Agenten erstellen lassen
+
+Gib dem Agenten diesen Auftrag:
+
+```text
+Nutze Prompts/00_AGENTEN_START_HIER.md und erstelle eine Bewerbung für diese Stellenbeschreibung:
+
+<Stellenbeschreibung einfügen>
+```
+
+Der Agent liest dann:
+
+1. `Private/Daten/01_PERSOENLICHE_DATEN.md`
+2. `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`
+3. die Regeln aus `Prompts/`
+4. passende Designreferenzen aus `Vorlagen/`
+
+Danach erstellt er einen privaten Bewerbungsordner und speichert dort die finalen Dateien.
+
+## Was der Agent fachlich macht
+
+Der Agent erstellt keinen universellen Lebenslauf. Er erstellt eine bewerbungsspezifische Version.
+
+Dabei entscheidet die Stellenbeschreibung, welche Profilteile sichtbar werden:
+
+- Zielrolle und Firma erkennen
+- Anforderungen, Muss-Kriterien und Kann-Kriterien analysieren
+- passende Kompetenzen aus den privaten Daten auswählen
+- irrelevante Themen kürzen oder weglassen
+- Quereinstieg, Lücken und private Praxis ehrlich einordnen
+- Lebenslauf, Anschreiben und E-Mail passend zur Rolle formulieren
+- keine Kenntnisse, Arbeitgeber, Zeiträume oder Zertifikate erfinden
+
+Der Lebenslauf soll wie ein deutscher tabellarischer CV wirken, nicht wie eine Portfolioseite oder reine Skill-Sammlung.
+
+## Optional: Bewerbungsordner manuell vorbereiten
+
+Normalerweise erstellt der Agent den Ordner selbst. Du kannst die Struktur aber auch manuell vorbereiten.
+
+Windows / PowerShell:
+
+```powershell
+.\Tools\Neue-Bewerbung.ps1 -Firma "Muster GmbH" -Rolle "Junior Webentwickler"
+```
+
+Linux / Bash:
+
+```bash
+bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Junior Webentwickler"
+```
+
+Die Skripte erzeugen:
+
+```text
+Private/Bewerbungen/Muster-GmbH/YYYY-MM-DD--Junior-Webentwickler/
+Private/Bewerbungen/Muster-GmbH/_Arbeitsdateien/YYYY-MM-DD--Junior-Webentwickler/
+```
+
+Entwürfe und Arbeitsnotizen liegen immer unter `_Arbeitsdateien`. Der finale Bewerbungsordner bleibt für Versanddateien sauber.
+
+## Bewerbung technisch prüfen
+
+Nach jeder Bewerbung sollte der statische Prüfer laufen:
+
+```powershell
+.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+```
+
+Der Prüfer kontrolliert:
+
+- Pflichtdateien vorhanden
+- finale Dateinamen korrekt
+- Lebenslauf und Anschreiben nutzen denselben Bewerbernamen
+- keine sichtbaren Platzhalter oder Entwurfsmarker
+- HTML-Dateien haben feste A4-Grundstruktur
+- CSS ist eingebettet
+- keine externen Skripte, Fonts oder CDNs
+- `overflow: hidden` wird nur auf der äußeren A4-Seite verwendet
+- E-Mail-Nachricht ist kurz und platzhalterfrei
+
+Wenn der Prüfer rot ist, sollte die Bewerbung noch nicht versendet werden.
+
+## Optional: Layoutcheck erzeugen
+
+Der Layoutcheck öffnet die finalen HTML-Dateien per Headless-Browser und erzeugt Screenshots im privaten Arbeitsordner:
+
+```powershell
+.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+```
+
+Die Screenshots liegen unter:
+
+```text
+Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
+```
+
+Der Layoutcheck gilt nur als erfolgreich, wenn die erwarteten Screenshot-Dateien wirklich erzeugt wurden und eine sinnvolle Größe haben.
+
+## PDFs automatisch exportieren
+
+Wenn der statische Check grün ist und Chrome oder Edge verfügbar ist:
+
+```powershell
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+```
+
+Mit Layoutcheck vor dem Export:
+
+```powershell
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -MitLayoutcheck
+```
+
+Das Exporttool:
+
+- führt zuerst den statischen Prüfer aus
+- bricht ab, wenn die Bewerbung technisch nicht sauber ist
+- nutzt Chrome oder Edge Headless
+- erzeugt PDFs im finalen Bewerbungsordner
+- prüft Existenz, Dateigröße und PDF-Header
+
+Die PDFs heißen genauso wie die HTML-Dateien:
+
+```text
+Lebenslauf - NACHNAME.VORNAME.html
+Lebenslauf - NACHNAME.VORNAME.pdf
+Anschreiben - NACHNAME.VORNAME.html
+Anschreiben - NACHNAME.VORNAME.pdf
+```
+
+## Drucken und manueller PDF-Export
+
+Die HTML-Dateien sind für A4 vorbereitet.
+
+Wenn in Firefox Dateiname, URL, Datum oder Seitenzahl erscheinen, kommt das aus dem Druckdialog, nicht aus der HTML-Datei.
+
+Empfohlene Firefox-Einstellungen:
+
+1. HTML-Datei öffnen.
+2. `Strg + P` drücken.
+3. `Weitere Einstellungen` öffnen.
+4. `Kopf- und Fußzeilen drucken` deaktivieren.
+5. Skalierung auf `100%` stellen.
+6. Ränder auf `Keine` stellen.
+
+Bei Einseiten-Dokumenten soll eine feste A4-Fläche von `210mm x 297mm` verwendet werden. Wenn ein Lebenslauf fachlich nicht sauber auf eine Seite passt, ist ein bewusst zweiseitiger Lebenslauf besser als ein gequetschter oder abgeschnittener Einseiter.
+
+## Offene Fragen in Bewerbungen
+
+Wenn wichtige Informationen fehlen, legt der Agent `Offene_Fragen.md` an oder ergänzt sie.
+
+Typische offene Punkte:
+
+- Schulabschluss noch nicht bestätigt
+- Ansprechpartner fehlt
+- Eintrittstermin oder Kündigungsfrist unklar
+- eine in der Anzeige gewünschte Technologie ist nur als Lernfeld, nicht als Erfahrung belegt
+
+Offene Fragen blockieren die Bewerbung nur dann, wenn sie fachlich kritisch sind. Sonst werden sie dokumentiert und die Bewerbung neutral formuliert.
+
+## Was darf versendet werden?
+
+Für den Versand geeignet sind:
+
+- `Lebenslauf - NACHNAME.VORNAME.html`
+- `Lebenslauf - NACHNAME.VORNAME.pdf`
+- `Anschreiben - NACHNAME.VORNAME.html`
+- `Anschreiben - NACHNAME.VORNAME.pdf`
+- `Email-Nachricht--FIRMA.md`
+
+Nicht versenden:
+
+- Dateien aus `_Arbeitsdateien`
+- Entwürfe
+- Screenshots aus dem Layoutcheck
+- interne Notizen
+- `Analyse.md`, falls sie nur für dich gedacht ist
+- `Qualitaetscheck.md`, falls er nicht ausdrücklich gewünscht ist
+
+## Datenschutz
 
 Privat und nicht für GitHub:
 
@@ -165,19 +276,6 @@ Private/Bewertungen/
 Private/LebenslaufUniversal/
 Private/Archiv/
 ```
-
-Zusätzlich werden alte private Root-Ordner ignoriert, falls sie später versehentlich wieder entstehen:
-
-```text
-Bewerbungen/
-Bewertungen/
-LebenslaufUniversal/
-Archiv/
-```
-
-Privat sind insbesondere Kontaktdaten, Profil, Berufserfahrung, Projekte, Skills, generierte Bewerbungen, Stellenbeschreibungen, Bewertungen, Notizen und Exporte.
-
-## 6. Was darf auf GitHub?
 
 Öffentlich geeignet:
 
@@ -191,183 +289,7 @@ README.md
 .gitattributes
 ```
 
-Diese Dateien dürfen keine echten privaten Bewerberdaten enthalten.
-
-## 7. Wichtige Dateien
-
-- `Prompts/00_AGENTEN_START_HIER.md`: zentrale Startdatei für den Agenten.
-- `Private/Daten/01_PERSOENLICHE_DATEN.md`: lokale private Kontaktdaten.
-- `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`: lokales privates Profil, Skills, Grenzen und Belege.
-- `Prompts/03_LEBENSLAUF_REGELN.md`: deutscher CV-Aufbau, formale Stationen, Länge, Priorisierung und Stil des Lebenslaufs.
-- `Prompts/04_ANSCHREIBEN_REGELN.md`: Aufbau, Tonalität und Inhalt des Anschreibens.
-- `Prompts/05_EMAIL_NACHRICHT_REGELN.md`: kurze E-Mail-Nachricht.
-- `Prompts/06_ROLLENLOGIK.md`: neutrale Profil-, Rollen- und Recruiter-Strategie je nach Stellenbeschreibung.
-- `Prompts/07_WAHRHEIT_UND_GRENZEN.md`: keine erfundenen Angaben.
-- `Prompts/08_HTML_CSS_DESIGNREGELN.md`: A4, Firefox-Druck und HTML/CSS-Regeln.
-- `Prompts/09_QUALITAETSCHECK.md`: Checkliste vor Abschluss, inklusive Recruiter-Nutzen und A4-Fit-Check.
-- `Prompts/10_DATEI_UND_ORDNER_REGELN.md`: Struktur, Namen, Slugs und Arbeitsdateien.
-- `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`: technische Schlussprüfung, robuste Suchmuster, statischer Prüfer und optionaler Browser-Layoutcheck.
-
-## 8. Ausgabe pro Bewerbung
-
-Finaler Bewerbungsordner:
-
-```text
-Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
-```
-
-Pflichtdateien:
-
-- `Stellenbeschreibung.md`
-- `Analyse.md`
-- `Lebenslauf - NACHNAME.VORNAME.html`
-- `Anschreiben - NACHNAME.VORNAME.html`
-- `Email-Nachricht--FIRMA.md`
-- `Qualitaetscheck.md`
-- `Druck-Hinweis.md`
-
-Arbeitsdateien:
-
-```text
-Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/
-```
-
-Typische Arbeitsdateien:
-
-- `Stellenbeschreibung--ENTWURF.md`
-- `Analyse--ENTWURF.md`
-- `Lebenslauf--FIRMA--ENTWURF.html`
-- `Anschreiben--FIRMA--ENTWURF.html`
-- `Email-Nachricht--FIRMA--ENTWURF.md`
-- `Qualitaetscheck--ENTWURF.md`
-- `Offene_Fragen--ENTWURF.md`
-- `Arbeitsnotizen.md`
-
-Diese Dateien sind nicht final und dürfen nicht unverändert versendet werden.
-
-Für den Versand per E-Mail oder PDF-Export heißen Lebenslauf und Anschreiben nach Bewerbername:
-
-```text
-Lebenslauf - NACHNAME.VORNAME.html
-Anschreiben - NACHNAME.VORNAME.html
-```
-
-Falls PDFs erstellt werden:
-
-```text
-Lebenslauf - NACHNAME.VORNAME.pdf
-Anschreiben - NACHNAME.VORNAME.pdf
-```
-
-Vorname und Nachname kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`. Der Firmenname bleibt im Bewerbungsordner und wird nicht mehr in den finalen Versanddateien verwendet.
-
-## 9. Windows und Linux
-
-Das Projekt soll unter Windows 11 PowerShell und Linux Bash gleich funktionieren.
-
-Parameter:
-
-- PowerShell: `-Firma`, `-Rolle`, `-Datum`, `-StellenbeschreibungPath`, `-BewerbungenRoot`
-- Bash: `--firma`, `--rolle`, `--datum`, `--stellenbeschreibung-path`, `--bewerbungen-root`
-
-Standardausgabeordner beider Skripte:
-
-```text
-Private/Bewerbungen/
-```
-
-Projektinterne Pfade werden in der Dokumentation mit `/` geschrieben. Unter Windows darf PowerShell intern `\` verwenden.
-
-## 10. Vorlagen
-
-Aktive öffentliche Vorlagen liegen in `Vorlagen/`:
-
-- `Designreferenz-Lebenslauf.html`
-- `Designreferenz-Anschreiben.html`
-
-Vorlagen dürfen nur Platzhalter enthalten, keine echten Bewerberdaten.
-
-## 11. Drucken und PDF
-
-Die HTML-Dateien sind für A4 vorbereitet.
-
-Wenn Dateiname, URL, Datum oder Seitenzahl im Ausdruck erscheinen, kommt das aus dem Firefox-Druckdialog und nicht aus der HTML-Datei.
-
-Vor dem finalen PDF-Export oder Druck in Firefox:
-
-1. `Strg + P` drücken.
-2. `Weitere Einstellungen` öffnen.
-3. `Kopf- und Fußzeilen drucken` deaktivieren.
-4. Skalierung auf `100%` stellen.
-5. Ränder auf `Keine` stellen.
-
-Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm x 297mm`. Wenn ein Lebenslauf bewusst zwei Seiten braucht, sollen zwei getrennte A4-Seitencontainer erstellt werden. Der Agent soll zuerst Inhalte priorisieren und Layout moderat optimieren; wenn das nicht professionell reicht, ist ein sauber strukturierter zweiseitiger Lebenslauf besser als ein abgeschnittener oder gequetschter Einseiter.
-
-## 12. Typischer Agentenablauf
-
-1. Stellenbeschreibung lesen.
-2. Firma und Zielrolle erkennen.
-3. Private Daten aus `Private/Daten/` lesen.
-4. Agentenregeln aus `Prompts/` lesen.
-5. neutrales Bewerbungsprofil, Rollenstrategie und Recruiter-Strategie bestimmen.
-6. Bewerbungsordner unter `Private/Bewerbungen/` erstellen.
-7. Analyse speichern.
-8. Lebenslauf nach deutschem CV-Standard erstellen: Berufserfahrung, Ausbildung/Studium/berufliche Bildung, Schulbildung, Weiterbildungen, Kenntnisse und relevante Praxis korrekt priorisieren.
-9. Anschreiben erstellen.
-10. E-Mail-Nachricht erstellen.
-11. Druckfähigkeit prüfen.
-12. Qualitätscheck speichern.
-13. Statischen technischen Check mit `Tools/Pruefe-Bewerbung.ps1` ausführen.
-14. Optional Browser-Layoutcheck mit `Tools/Layoutcheck-Bewerbung.ps1` ausführen.
-15. Kurz berichten, wo die Dateien liegen und welche Checks bestanden wurden.
-
-## 13. Anpassung
-
-| Ziel | Datei |
-| --- | --- |
-| Kontaktdaten, Vorname/Nachname und Versanddateinamen ändern | `Private/Daten/01_PERSOENLICHE_DATEN.md` |
-| Profil, Skills, Projekte ändern | `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` |
-| Lebenslauf-Aufbau ändern | `Prompts/03_LEBENSLAUF_REGELN.md` |
-| Anschreiben-Stil ändern | `Prompts/04_ANSCHREIBEN_REGELN.md` |
-| E-Mail-Text ändern | `Prompts/05_EMAIL_NACHRICHT_REGELN.md` |
-| Rollenlogik ändern | `Prompts/06_ROLLENLOGIK.md` |
-| Wahrheitsregeln ändern | `Prompts/07_WAHRHEIT_UND_GRENZEN.md` |
-| HTML/CSS ändern | `Prompts/08_HTML_CSS_DESIGNREGELN.md` |
-| Qualitätscheck ändern | `Prompts/09_QUALITAETSCHECK.md` |
-| Ordnerstruktur ändern | `Prompts/10_DATEI_UND_ORDNER_REGELN.md` |
-| Technische Abschlussprüfung ändern | `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`, `Tools/Pruefe-Bewerbung.ps1`, `Tools/Layoutcheck-Bewerbung.ps1` |
-| Windows-Skript ändern | `Tools/Neue-Bewerbung.ps1` |
-| Linux-Skript ändern | `Tools/neue-bewerbung.sh` |
-
-## 14. Projektstruktur
-
-Öffentliche Struktur:
-
-```text
-bewerbungs-agent/
-├─ README.md
-├─ .gitignore
-├─ .gitattributes
-├─ Prompts/
-├─ Vorlagen/
-├─ Tools/
-└─ Private.example/
-```
-
-Lokale private Struktur:
-
-```text
-Private/
-├─ Daten/
-├─ Bewerbungen/
-├─ Bewertungen/
-├─ LebenslaufUniversal/
-└─ Archiv/
-```
-
-## 15. GitHub-Sicherheit
-
-Vor einem Commit prüfen:
+Vor einem Commit:
 
 ```powershell
 git status --short
@@ -375,18 +297,437 @@ git status --short
 
 In dieser Ausgabe dürfen keine echten Dateien aus `Private/` erscheinen.
 
-Optional prüfen:
+## Häufige Probleme
 
-```powershell
-git status --short --ignored
+Wenn der statische Check fehlschlägt:
+
+- Fehlermeldung lesen
+- HTML oder Markdown korrigieren
+- `Pruefe-Bewerbung.ps1` erneut ausführen
+
+Wenn der Layoutcheck fehlschlägt:
+
+- prüfen, ob Chrome, Edge oder Firefox installiert ist
+- prüfen, ob die Ausgabedateien unter `_Arbeitsdateien` erzeugt wurden
+- den statischen Check trotzdem separat betrachten
+
+Wenn der PDF-Export fehlschlägt:
+
+- prüfen, ob Chrome oder Edge installiert ist
+- statischen Check erneut ausführen
+- manuell über Firefox drucken, falls kein Headless-Export möglich ist
+
+Wenn Text im PDF abgeschnitten wirkt:
+
+- HTML öffnen und Layout prüfen
+- Lebenslauf kürzen oder bewusst auf zwei A4-Seiten umbauen
+- niemals Inhalt durch `overflow` verstecken
+
+# Teil 2: Dokumentation für Entwickler
+
+Dieser Teil beschreibt Projektstruktur, Datenfluss, Tool-Verantwortlichkeiten und Erweiterungspunkte.
+
+## Projektprinzipien
+
+Das Projekt trennt strikt zwischen öffentlicher Logik und privaten Daten.
+
+Öffentlich:
+
+- Prompts und Regeln
+- Designreferenzen
+- Hilfsskripte
+- Beispielstrukturen
+- README
+
+Privat:
+
+- echte Bewerberdaten
+- generierte Bewerbungen
+- Stellenbeschreibungen
+- Arbeitsnotizen
+- Screenshots
+- PDFs
+
+Die öffentlichen Dateien dürfen keine echten Kontaktdaten, privaten Lebenslaufdaten oder realen Bewerbungsunterlagen enthalten.
+
+## Öffentliche Projektstruktur
+
+```text
+bewerbungs-agent/
+├─ README.md
+├─ .gitignore
+├─ .gitattributes
+├─ Prompts/
+│  ├─ 00_AGENTEN_START_HIER.md
+│  ├─ 03_LEBENSLAUF_REGELN.md
+│  ├─ 04_ANSCHREIBEN_REGELN.md
+│  ├─ 05_EMAIL_NACHRICHT_REGELN.md
+│  ├─ 06_ROLLENLOGIK.md
+│  ├─ 07_WAHRHEIT_UND_GRENZEN.md
+│  ├─ 08_HTML_CSS_DESIGNREGELN.md
+│  ├─ 09_QUALITAETSCHECK.md
+│  ├─ 10_DATEI_UND_ORDNER_REGELN.md
+│  └─ 11_TECHNISCHER_CHECK_WORKFLOW.md
+├─ Tools/
+│  ├─ Neue-Bewerbung.ps1
+│  ├─ neue-bewerbung.sh
+│  ├─ Pruefe-Bewerbung.ps1
+│  ├─ Layoutcheck-Bewerbung.ps1
+│  └─ Exportiere-PDF.ps1
+├─ Vorlagen/
+│  ├─ Designreferenz-Lebenslauf.html
+│  ├─ Designreferenz-Anschreiben.html
+│  └─ README.md
+└─ Private.example/
 ```
 
-`!! Private/` ist normal und bedeutet, dass der private Ordner ignoriert wird.
+## Private lokale Struktur
 
-## 16. Entwicklerhinweise
+```text
+Private/
+├─ Daten/
+│  ├─ 01_PERSOENLICHE_DATEN.md
+│  └─ 02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
+├─ Bewerbungen/
+│  └─ FIRMA/
+│     ├─ YYYY-MM-DD--ROLLENNAME/
+│     └─ _Arbeitsdateien/
+│        └─ YYYY-MM-DD--ROLLENNAME/
+├─ Bewertungen/
+├─ LebenslaufUniversal/
+└─ Archiv/
+```
 
-- `.gitattributes` erzwingt LF-Zeilenenden für `.sh`.
-- `.gitignore` schützt private Daten und generierte Dokumente.
-- Öffentliche Beispiel-Dateien liegen in `Private.example/`.
-- Die Hilfsskripte sollen dieselbe Ordnerstruktur erzeugen.
-- Finale Bewerbungsdateien dürfen keine sichtbaren Platzhalter enthalten.
+`Private/` ist ignoriert und darf nicht versioniert werden.
+
+## Prompt-System
+
+Der zentrale Einstieg ist:
+
+```text
+Prompts/00_AGENTEN_START_HIER.md
+```
+
+Diese Datei legt Rolle, Arbeitsablauf, relevante Dateien, finale Ausgabe und technische Abschlusschecks fest.
+
+Die Spezialregeln sind getrennt:
+
+| Datei | Verantwortung |
+| --- | --- |
+| `03_LEBENSLAUF_REGELN.md` | Aufbau, Priorisierung, deutscher CV-Standard, A4-Seitenstrategie |
+| `04_ANSCHREIBEN_REGELN.md` | Struktur, Ton und Grenzen des Anschreibens |
+| `05_EMAIL_NACHRICHT_REGELN.md` | kurze Versandnachricht |
+| `06_ROLLENLOGIK.md` | Ableitung von Zielrolle, Recruiter-Strategie und Profilgewichtung |
+| `07_WAHRHEIT_UND_GRENZEN.md` | keine erfundenen Angaben, ehrliche Einordnung von Grundlagen und Praxis |
+| `08_HTML_CSS_DESIGNREGELN.md` | feste A4-Geometrie, Firefox-Druck, HTML/CSS-Regeln |
+| `09_QUALITAETSCHECK.md` | inhaltliche und technische Checkliste |
+| `10_DATEI_UND_ORDNER_REGELN.md` | private Ordner, Dateinamen, Slugs, Arbeitsdateien |
+| `11_TECHNISCHER_CHECK_WORKFLOW.md` | statischer Prüfer, Layoutcheck, PDF-Export und robuste Shell-Regeln |
+
+Änderungen sollten in der fachlich passenden Datei erfolgen, nicht alles in `00_AGENTEN_START_HIER.md`.
+
+## Datenfluss einer Bewerbung
+
+1. Stellenbeschreibung kommt vom Nutzer.
+2. Agent liest private Daten aus `Private/Daten/`.
+3. Agent liest Prompt-Regeln aus `Prompts/`.
+4. Agent erkennt Firma, Rolle, Anforderungen, Muss-Kriterien, Kann-Kriterien und Risiken.
+5. Agent legt Rollenstrategie und Lebenslaufstrategie fest.
+6. Ordner wird unter `Private/Bewerbungen/` erstellt.
+7. Originale Stellenbeschreibung wird als `Stellenbeschreibung.md` gesichert.
+8. Analyse wird als `Analyse.md` gespeichert.
+9. Lebenslauf und Anschreiben werden als HTML erstellt.
+10. E-Mail-Nachricht wird als Markdown erstellt.
+11. Offene Fragen werden dokumentiert, falls nötig.
+12. Qualitätscheck wird gespeichert.
+13. Statischer technischer Check wird ausgeführt.
+14. Optional Layoutcheck.
+15. Optional PDF-Export.
+
+## Finale Dateinamen
+
+Lebenslauf und Anschreiben werden nach Bewerbername benannt, nicht nach Firma:
+
+```text
+Lebenslauf - NACHNAME.VORNAME.html
+Anschreiben - NACHNAME.VORNAME.html
+Lebenslauf - NACHNAME.VORNAME.pdf
+Anschreiben - NACHNAME.VORNAME.pdf
+```
+
+`NACHNAME.VORNAME` kommt aus:
+
+```text
+Private/Daten/01_PERSOENLICHE_DATEN.md
+```
+
+Wenn Vorname oder Nachname fehlen, darf keine finale Datei mit Platzhalter erzeugt werden.
+
+## Ordner- und Slug-Regeln
+
+Firmen- und Rollenordner werden technisch bereinigt:
+
+- Leerzeichen werden Bindestriche
+- Umlaute werden umgewandelt
+- Sonderzeichen werden entfernt oder ersetzt
+- mehrere Trennzeichen werden geglättet
+
+Beispiel:
+
+```text
+Müller & Partner GmbH
+-> Mueller-und-Partner-GmbH
+```
+
+Die Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und sind in den Ordnerhelfern gespiegelt.
+
+## Tools im Überblick
+
+### `Tools/Neue-Bewerbung.ps1`
+
+Erstellt unter Windows die Ordnerstruktur für eine neue Bewerbung.
+
+Wichtige Parameter:
+
+- `-Firma`
+- `-Rolle`
+- `-Datum`
+- `-StellenbeschreibungPath`
+- `-BewerbungenRoot`
+
+Das Skript erstellt finale Ordner und Arbeitsordner. Entwürfe werden nur unter `_Arbeitsdateien` abgelegt.
+
+### `Tools/neue-bewerbung.sh`
+
+Bash-Variante des Ordnerhelfers.
+
+Wichtige Parameter:
+
+- `--firma`
+- `--rolle`
+- `--datum`
+- `--stellenbeschreibung-path`
+- `--bewerbungen-root`
+
+Die Struktur soll zur PowerShell-Variante kompatibel bleiben.
+
+### `Tools/Pruefe-Bewerbung.ps1`
+
+Statischer Mindestcheck für finale Bewerbungsordner.
+
+Beispiel:
+
+```powershell
+.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLE"
+```
+
+Exitcodes:
+
+- `0`: Prüfung bestanden
+- `1`: Fehler gefunden
+
+Das Skript ist bewusst unabhängig von `rg` und Browsern, damit der wichtigste Abschlusscheck stabil bleibt.
+
+### `Tools/Layoutcheck-Bewerbung.ps1`
+
+Optionaler Browsercheck mit Screenshots.
+
+Beispiel:
+
+```powershell
+.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLE"
+```
+
+Nützliche Parameter:
+
+- `-Browser auto`
+- `-Browser chrome`
+- `-Browser edge`
+- `-Browser firefox`
+- `-NurVorbereiten`
+- `-Pdf`
+- `-OutputRoot`
+
+Screenshots und Browserprofile müssen unter `_Arbeitsdateien` landen, nicht im finalen Bewerbungsordner.
+
+### `Tools/Exportiere-PDF.ps1`
+
+Automatischer PDF-Export nach erfolgreichem statischem Check.
+
+Beispiel:
+
+```powershell
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLE"
+```
+
+Nützliche Parameter:
+
+- `-Browser auto`
+- `-Browser chrome`
+- `-Browser edge`
+- `-MitLayoutcheck`
+- `-NichtUeberschreiben`
+- `-MinPdfBytes`
+
+Das Skript nutzt Chrome oder Edge Headless, erzeugt PDFs im finalen Bewerbungsordner und prüft Existenz, Größe und PDF-Header.
+
+## HTML- und CSS-Standard
+
+Finale HTML-Dateien müssen eigenständig funktionieren:
+
+- CSS direkt im HTML
+- keine externen Fonts
+- keine Skripte
+- keine CDNs
+- feste A4-Seitencontainer
+- `@page { size: A4; margin: 0; }`
+- `.page` mit `width: 210mm` und `height: 297mm`
+- `overflow: hidden` nur auf der äußeren `.page`
+
+Ein Einseiten-Dokument darf nicht nur `min-height: 297mm` verwenden. Wenn Inhalt nicht passt, muss fachlich gekürzt oder auf zwei explizite A4-Seiten umgestellt werden.
+
+## Qualitätsstrategie
+
+Es gibt zwei Arten von Qualität:
+
+Fachliche Qualität:
+
+- Stellenpassung
+- keine erfundenen Angaben
+- glaubwürdiger Quereinstieg
+- Recruiter-Lesbarkeit
+- ATS-freundliche Begriffe
+- angemessene Gewichtung der privaten Profildaten
+
+Technische Qualität:
+
+- Pflichtdateien vorhanden
+- Dateinamen korrekt
+- keine sichtbaren Platzhalter
+- A4-Geometrie korrekt
+- keine externen Abhängigkeiten
+- PDF-Export nur nach erfolgreicher Prüfung
+
+Fachliche Regeln stehen vor allem in `Prompts/03` bis `Prompts/09`. Technische Regeln stehen vor allem in `Prompts/08`, `Prompts/10` und `Prompts/11`.
+
+## Browser- und PDF-Details
+
+Der automatische PDF-Export nutzt Chrome oder Edge Headless. Firefox bleibt für manuelle Druckvorschau und manuelle PDF-Erzeugung geeignet, ist aber für CLI-PDF-Export weniger zuverlässig.
+
+Wichtig:
+
+- Ein Browserprozess gilt nur als Erfolg, wenn die erwartete Datei existiert.
+- Eine Screenshot- oder PDF-Datei muss eine sinnvolle Größe haben.
+- PDFs werden zusätzlich auf `%PDF-`-Header geprüft.
+- Stille Browserprozesse ohne Ausgabedatei sind Fehler.
+
+## Umgang mit `rg` und PowerShell
+
+Für Dateisuche bevorzugt das Projekt `rg`.
+
+Unter PowerShell keine Pfad-Wildcards wie diese verwenden:
+
+```powershell
+rg "MUSTER" "ORDNER/*.html"
+```
+
+Stattdessen:
+
+```powershell
+rg -g "*.html" "MUSTER" "ORDNER"
+```
+
+Die PowerShell-Prüftools vermeiden diese Abhängigkeit für kritische Checks.
+
+## Git- und Datenschutzregeln
+
+Vor Commits:
+
+```powershell
+git status --short
+```
+
+Erwartet sind nur öffentliche Dateien wie:
+
+```text
+Prompts/...
+Tools/...
+Vorlagen/...
+README.md
+Private.example/...
+```
+
+Nicht im Commit auftauchen dürfen:
+
+```text
+Private/...
+Bewerbungen/...
+Bewertungen/...
+LebenslaufUniversal/...
+Archiv/...
+```
+
+Wenn `git status --short --ignored` `!! Private/` zeigt, ist das normal.
+
+## Erweiterungspunkte
+
+| Ziel | Datei |
+| --- | --- |
+| Hauptablauf ändern | `Prompts/00_AGENTEN_START_HIER.md` |
+| Lebenslaufregeln ändern | `Prompts/03_LEBENSLAUF_REGELN.md` |
+| Anschreibenregeln ändern | `Prompts/04_ANSCHREIBEN_REGELN.md` |
+| E-Mail-Regeln ändern | `Prompts/05_EMAIL_NACHRICHT_REGELN.md` |
+| Rollenlogik ändern | `Prompts/06_ROLLENLOGIK.md` |
+| Wahrheitsregeln ändern | `Prompts/07_WAHRHEIT_UND_GRENZEN.md` |
+| HTML/CSS-Regeln ändern | `Prompts/08_HTML_CSS_DESIGNREGELN.md` |
+| Qualitätscheck ändern | `Prompts/09_QUALITAETSCHECK.md` |
+| Datei- und Ordnerregeln ändern | `Prompts/10_DATEI_UND_ORDNER_REGELN.md` |
+| technische Abschlusslogik ändern | `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md` |
+| Ordnererstellung unter Windows ändern | `Tools/Neue-Bewerbung.ps1` |
+| Ordnererstellung unter Linux ändern | `Tools/neue-bewerbung.sh` |
+| statischen Check ändern | `Tools/Pruefe-Bewerbung.ps1` |
+| Layoutcheck ändern | `Tools/Layoutcheck-Bewerbung.ps1` |
+| PDF-Export ändern | `Tools/Exportiere-PDF.ps1` |
+| Designreferenzen ändern | `Vorlagen/Designreferenz-Lebenslauf.html`, `Vorlagen/Designreferenz-Anschreiben.html` |
+
+## Empfohlener Entwickler-Workflow
+
+1. Änderungen an Prompt, Tool oder Vorlage machen.
+2. Mit einer privaten Testbewerbung prüfen.
+3. Statischen Check ausführen.
+4. Optional Layoutcheck ausführen.
+5. Optional PDF-Export ausführen.
+6. `git status --short` prüfen.
+7. Sicherstellen, dass keine privaten Dateien im Commit landen.
+
+PowerShell-Syntaxcheck für Tools:
+
+```powershell
+$files = @(
+  "Tools/Pruefe-Bewerbung.ps1",
+  "Tools/Layoutcheck-Bewerbung.ps1",
+  "Tools/Exportiere-PDF.ps1"
+)
+
+foreach ($file in $files) {
+  $tokens = $null
+  $errors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile(
+    (Resolve-Path -LiteralPath $file).Path,
+    [ref]$tokens,
+    [ref]$errors
+  ) | Out-Null
+
+  if ($errors.Count -gt 0) {
+    $errors
+    exit 1
+  }
+}
+```
+
+## Bekannte Grenzen
+
+- Die technischen Prüf- und Exporttools sind aktuell PowerShell-basiert.
+- Der automatische PDF-Export unterstützt Chrome und Edge, nicht Firefox.
+- Eine echte manuelle Sichtprüfung der finalen PDFs bleibt sinnvoll, besonders bei neuen Designs oder zweiseitigen Lebensläufen.
+- Die Qualität der Bewerbung hängt weiterhin von gepflegten privaten Profildaten ab.
