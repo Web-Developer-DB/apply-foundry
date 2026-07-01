@@ -13,6 +13,8 @@ Deine Aufgabe ist es, aus einer konkreten Stellenbeschreibung automatisch eine p
 
 Die Bewerbung muss professionell, glaubwürdig, ATS-kompatibel, druckfreundlich und nicht wie generischer KI-Text wirken. Branche, Zielrolle und Profilrichtung werden nicht aus diesem öffentlichen Prompt abgeleitet, sondern aus der Stellenbeschreibung und den privaten Daten.
 
+Der Lebenslauf muss zusätzlich wie ein sauberer deutscher, recruiterfreundlicher tabellarischer Lebenslauf wirken. Er darf nicht wie eine Portfolioseite, Skill-Sammlung oder Webprofil-Karte aussehen. Gestaltung, Inhalt und Drucklayout müssen gemeinsam geplant werden.
+
 ## Relevante Dateien lesen
 
 Lies vor der Erstellung in dieser Reihenfolge:
@@ -57,14 +59,16 @@ Frage nur nach, wenn eine fehlende Information die fachliche Korrektheit der fin
 1. Analysiere die Stellenbeschreibung.
 2. Erkenne Firma, Zielrolle, Anforderungen, Muss-Kriterien, Kann-Kriterien, Fachkenntnisse, Werkzeuge, Methoden und Soft Skills.
 3. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten.
-4. Erstelle einen neuen Bewerbungsordner nach `Prompts/10_DATEI_UND_ORDNER_REGELN.md`.
-5. Speichere die originale Stellenbeschreibung als `Stellenbeschreibung.md`.
-6. Speichere eine kurze Analyse als `Analyse.md`.
-7. Erstelle den Lebenslauf als `Lebenslauf - NACHNAME.VORNAME.html`.
-8. Erstelle das Anschreiben als `Anschreiben - NACHNAME.VORNAME.html`.
-9. Erstelle die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
-10. Speichere den finalen Qualitätscheck als `Qualitaetscheck.md`.
-11. Prüfe, dass finale HTML- und Markdown-Dateien keine sichtbaren Platzhalter enthalten.
+4. Lege vor dem Schreiben eine kurze Lebenslauf-Strategie fest: deutscher Standard, Beweislogik für die Zielrolle, Umgang mit Quereinstieg/Lücken, Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`.
+5. Erstelle einen neuen Bewerbungsordner nach `Prompts/10_DATEI_UND_ORDNER_REGELN.md`.
+6. Speichere die originale Stellenbeschreibung als `Stellenbeschreibung.md`.
+7. Speichere eine kurze Analyse als `Analyse.md`.
+8. Erstelle den Lebenslauf als `Lebenslauf - NACHNAME.VORNAME.html`.
+9. Erstelle das Anschreiben als `Anschreiben - NACHNAME.VORNAME.html`.
+10. Erstelle die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
+11. Speichere den finalen Qualitätscheck als `Qualitaetscheck.md`.
+12. Prüfe, dass finale HTML- und Markdown-Dateien keine sichtbaren Platzhalter enthalten.
+13. Prüfe besonders bei HTML-Dateien, dass Firefox nicht automatisch mitten im Dokument umbricht. Ein Einseiten-Dokument muss technisch eine feste A4-Seite sein; ein zweiseitiges Dokument muss zwei explizite A4-Seitencontainer haben.
 
 Temporäre Entwürfe, Zwischenschritte oder Arbeitsnotizen dürfen nicht direkt im Projektwurzelordner liegen. Sie gehören immer in den privaten Firmenordner unter:
 
@@ -82,7 +86,9 @@ Wichtig:
 - Relevanz schlägt Vollständigkeit.
 - Recruiter lesen schnell und selektiv.
 - Die wichtigsten Anforderungen der Stelle müssen innerhalb der ersten 10 bis 20 Sekunden sichtbar sein.
+- Der Lebenslauf muss auf den ersten Blick wie ein deutscher tabellarischer CV erkennbar sein.
 - Irrelevante Projekte, Skills, Zusatzkenntnisse und Details müssen weggelassen werden, wenn sie für diese Zielrolle keinen Recruiter-Nutzen haben.
+- Keine unruhigen Skill-Wolken, dekorativen Kontaktkarten oder portfolioartigen Layouts, wenn ein seriöser Recruiter-CV gefragt ist.
 - Keine künstlich aufgeblähte Sprache.
 - Keine erfundenen Kenntnisse, Branchen, Rollen oder Verantwortlichkeiten.
 - Keine Formulierungen, die nach generischer KI klingen.
@@ -90,6 +96,13 @@ Wichtig:
 ## Lebenslauf-Standard
 
 Der Lebenslauf muss als moderner deutschsprachiger CV funktionieren. Er darf nicht nur aus Skills, Projekten und Kurzprofil bestehen.
+
+Bevor der Lebenslauf final gespeichert wird, ist er gedanklich aus Recruiter-Sicht zu prüfen:
+
+- Ist innerhalb von 10 bis 20 Sekunden erkennbar, welche Rolle angestrebt wird?
+- Belegt der Werdegang die Zielrichtung glaubwürdig, auch bei Quereinstieg?
+- Sind Zeiträume, Wechsel und aktuelle Entwicklung nachvollziehbar?
+- Wirkt das Layout ruhig, tabellarisch und druckstabil?
 
 Prüfe besonders:
 
@@ -99,7 +112,7 @@ Prüfe besonders:
 - Weiterbildungen, Zertifikate und Qualifikationen
 - Kenntnisse, Sprachen und Zusatzpraxis nur in passender Priorität
 
-Ziel ist eine DIN-A4-Seite. Wenn die wichtigen formalen Stationen und die Stellenpassung nicht professionell auf eine Seite passen, erstelle bewusst zwei strukturierte DIN-A4-Seiten. Niemals Inhalt abschneiden oder zufällig umbrechen lassen.
+Ziel ist eine DIN-A4-Seite mit fester, druckstabiler A4-Geometrie. Wenn die wichtigen formalen Stationen und die Stellenpassung nicht professionell auf eine Seite passen, erstelle bewusst zwei strukturierte DIN-A4-Seiten. Niemals Inhalt abschneiden, durch `overflow` verstecken oder Firefox zufällig umbrechen lassen.
 
 ## Finale Ausgabe
 

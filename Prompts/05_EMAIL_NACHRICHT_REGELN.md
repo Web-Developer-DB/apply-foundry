@@ -14,6 +14,7 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 - Kurzer Hinweis auf Bewerbung und Zielrolle.
 - Hinweis auf Anlagen.
 - Freundlicher Abschluss mit Name aus den privaten Daten.
+- Wenn die Stellenanzeige eine konkrete Bewerbungsfrage enthält, darf sie nur kurz und sachlich aufgegriffen werden, sofern die Antwort aus den Nutzerdaten oder der Stellenbeschreibung ableitbar ist.
 
 ## Stil
 
@@ -21,6 +22,7 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 - Keine langen Motivationsabsätze.
 - Keine Platzhalter in finaler Datei.
 - Kein erfundener Ansprechpartner.
+- Keine Wiederholung des Anschreibens.
 
 ## Beispielstruktur
 

@@ -17,7 +17,9 @@ Der Agent ist neutral. Er darf keine Branche, keine konkrete Fachrolle, keine Ve
 7. Firmengröße oder Organisationsart ableiten, falls Hinweise vorhanden sind.
 8. Private Profildaten auf echte Belege prüfen.
 9. Profilstrategie festlegen.
-10. Irrelevante Inhalte bewusst reduzieren.
+10. Beweislogik festlegen: Welche Stationen, Weiterbildungen, Projekte oder Praxisbelege tragen die Zielrolle wirklich?
+11. Risiken, Lücken oder fehlende formale Anforderungen erkennen.
+12. Irrelevante Inhalte bewusst reduzieren.
 
 ## Bewerbungsprofil
 
@@ -31,6 +33,8 @@ Vor Lebenslauf und Anschreiben wird eine kurze Profilstrategie erstellt:
 - wichtigste Anforderungen der Stelle
 - stärkste belegbare Argumente aus den privaten Daten
 - Zusatzkenntnisse mit Nutzen
+- Beweislogik für Recruiter: welche Belege im Lebenslauf die Passung in 10 bis 20 Sekunden sichtbar machen
+- offene Risiken, Lücken oder fehlende formale Anforderungen
 - bewusst weggelassene Inhalte
 
 Diese Strategie wird in `Analyse.md` dokumentiert.
@@ -54,6 +58,8 @@ Die Rollenstrategie darf Inhalte gewichten, aber sie darf den deutschen Lebensla
 - Rollenrelevante Projekte, private Praxis und Zusatzkenntnisse dürfen formale Stationen ergänzen, aber nicht ersetzen.
 - Bei Quereinstieg, Rollenwechsel oder wenig klassischer Berufserfahrung werden formale Stationen ehrlich dargestellt und durch passende Praxisbelege ergänzt.
 - Wenn formale Daten fehlen, werden sie nicht erfunden und nicht durch scheinbar berufliche Projektformulierungen kaschiert.
+- Entwicklungsfelder werden klar von vorhandener Erfahrung getrennt. Sie dürfen sichtbar sein, wenn die Stelle Lernbereitschaft oder Einarbeitung betont.
+- Der Lebenslauf muss trotz Rollenstrategie wie ein deutscher tabellarischer CV funktionieren.
 
 ## Gewichtung nach Firmengröße
 

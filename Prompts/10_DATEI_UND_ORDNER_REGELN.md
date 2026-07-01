@@ -88,6 +88,8 @@ Optional:
 - `Notizen.md`
 - `PDF/`, falls später PDFs erzeugt werden
 
+Wenn ein HTML-Dokument nachträglich wegen Drucklayout, A4-Fit oder Recruiter-Design überarbeitet wird, bleibt der finale Dateiname gleich. Alte Entwurfsvarianten gehören nur in den passenden `_Arbeitsdateien`-Ordner und nicht neben die finale Versanddatei.
+
 ## Temporäre Dateien / Arbeitsdateien
 
 Temporäre Entwürfe, Arbeitsnotizen, Zwischenergebnisse und nicht finale HTML-Dateien dürfen nicht direkt im Projektwurzelordner oder in öffentlichen Ordnern abgelegt werden.
@@ -159,6 +161,12 @@ Platzhalter, Warnhinweise und Entwürfe der Hilfsskripte gehören ausschließlic
 
 Das Hilfsskript darf Arbeitsdateien mit Warnhinweisen nur unter `_Arbeitsdateien` erzeugen.
 Der finale Bewerbungsordner darf erst nach Agentenprüfung finale Dateien ohne sichtbare Platzhalter enthalten.
+
+Finale HTML-Dateien müssen außerdem druckstabil sein:
+
+- Einseiten-Dokumente dürfen in Firefox bei 100 Prozent Skalierung keine zweite Seite erzeugen.
+- Zweiseitige Dokumente müssen bewusst zwei A4-Seitencontainer enthalten.
+- Drucklayout-Korrekturen werden direkt an der finalen HTML-Datei vorgenommen und anschließend im `Qualitaetscheck.md` dokumentiert.
 
 Finale Bewerbungsdateien dürfen keine sichtbaren Arbeitsmarker enthalten:
 - `[ergänzen]`

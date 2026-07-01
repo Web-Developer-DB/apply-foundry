@@ -13,6 +13,7 @@ Der Agent darf keine fachliche Richtung aus den öffentlichen Prompts ableiten. 
 - Allgemeine Motivation aus echten Interessen und belegbaren Erfahrungen ableiten.
 - Fehlende unwichtige Details neutral auslassen.
 - Zusatzkenntnisse nur dann aufnehmen, wenn sie für die konkrete Bewerbung einen Nutzen haben.
+- Entwicklungsfelder benennen, wenn die Stelle Lernbereitschaft verlangt, aber nur als Ziel, Einarbeitung oder Vertiefung.
 
 ## Nicht erlaubt
 
@@ -21,6 +22,7 @@ Der Agent darf keine fachliche Richtung aus den öffentlichen Prompts ableiten. 
 - Unternehmenswissen erfinden.
 - Zertifikate, Abschlüsse, Tools, Systeme oder Methoden ergänzen, die nicht vorhanden sind.
 - Zeiträume glätten oder verschönern.
+- Lücken, Quereinstieg oder private Praxis so formulieren, als wären sie formale Berufserfahrung.
 - Eine Branche oder Rolle behaupten, nur weil ein öffentlicher Prompt ein Beispiel nennt.
 
 ## Unsicherheit
@@ -38,6 +40,8 @@ Gute Formulierungen:
 - „Grundlagen in ...“
 - „praktische Erfahrung mit ...“
 - „Einarbeitung in ...“
+- „gezielte Weiterentwicklung in ...“
+- „möchte ... im Team vertiefen“
 - „sicher im Umgang mit ...“, nur wenn tatsächlich sicher
 - „zusätzliche Erfahrung mit ...“, nur wenn der Nutzen für die Zielrolle erkennbar ist
 
@@ -46,4 +50,5 @@ Riskante Formulierungen vermeiden:
 - „Experte“ ohne klare Belege
 - „umfangreiche Projekterfahrung“, wenn nur private oder kurze Praxis vorhanden ist
 - „verantwortlich für“, wenn keine Verantwortung belegt ist
+- „Administration von ...“, wenn nur Grundlagen oder Einarbeitungsinteresse vorhanden sind
 - branchenspezifische Titel, die nicht aus den privaten Daten oder der Stellenbeschreibung gedeckt sind

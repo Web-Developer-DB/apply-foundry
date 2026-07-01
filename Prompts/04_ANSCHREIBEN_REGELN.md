@@ -19,11 +19,14 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 - Keine erfundenen Unternehmensdetails.
 - Keine Übertreibungen wie „perfekt“, wenn die Daten das nicht tragen.
 - Nicht den Lebenslauf wiederholen, sondern die Passung erklären.
+- Visuell ruhig und passend zum Lebenslauf, aber ohne dekorative Karten- oder Marketingoptik.
+- In Firefox druckstabil als eine feste A4-Seite anlegen, nicht als wachsendes Dokument mit zufälligem Umbruch.
 
 ## Inhaltliche Regeln
 
 - Nutze echte Belege aus `Private/Daten/`.
 - Sprich Lücken oder Grenzen nicht defensiv an, sondern fokussiere passende Stärken.
+- Bei Quereinstieg oder Entwicklungsrollen die Brücke zwischen vorhandener Erfahrung und Zielrolle konkret erklären.
 - Wenn Ansprechpartner fehlt, neutrale Anrede verwenden.
 - Wenn Firmenadresse fehlt, kein Fantasie-Adressenblock.
 

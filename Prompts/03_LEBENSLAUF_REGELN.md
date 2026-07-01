@@ -16,18 +16,20 @@ Keine Branche, keine konkrete Fachrolle und kein Projekttyp darf aus den öffent
 
 Der Lebenslauf orientiert sich am deutschsprachigen Arbeitsmarkt. Er ist kein reines Skill-Profil und keine Projektsammlung, sondern ein moderner, klar strukturierter CV mit formalen Stationen.
 
+Der Standard ist ein ruhiger, tabellarisch wirkender deutscher Lebenslauf. Moderne Gestaltung ist erlaubt, aber sie muss die Recruiter-Lesbarkeit stärken. Vermeide Layouts, die wie Portfolioseiten, Skill-Dashboards, Marketingkarten oder Webprofile wirken.
+
 Empfohlene Grundstruktur:
 
-1. Kopfbereich mit Name, Zielrolle und Kontakt
-2. Kurzprofil mit 3 bis 5 Zeilen
-3. Kernkompetenzen passend zur Stelle
-4. Berufserfahrung / berufliche Stationen
-5. Ausbildung, Studium oder berufliche Bildung
-6. Schulbildung, sofern vorhanden und für den deutschen CV sinnvoll
-7. Weiterbildungen, Zertifikate und Qualifikationen
-8. Kenntnisse / Kompetenzen
+1. Kompakter Kopfbereich mit Name, Zielrolle und Kontakt
+2. Kurzprofil mit maximal 3 bis 4 präzisen Zeilen oder 2 bis 3 starken Kurzpunkten
+3. Rollenrelevante Kompetenzen als klar gruppierte Zeilen
+4. Beruflicher Werdegang / Berufserfahrung, bevorzugt tabellarisch und chronologisch rückwärts
+5. Praktische Zusatzpraxis, Projekte oder Home-Lab nur mit klarer Rollenrelevanz
+6. Weiterbildung, Zertifikate und Qualifikationen
+7. Ausbildung, Studium oder berufliche Bildung
+8. Schulbildung, sofern vorhanden und für den deutschen CV sinnvoll
 9. Sprachen
-10. Projekte, Praxis oder Zusatzkenntnisse nur dann, wenn sie für diese Stelle erkennbaren Recruiter-Nutzen haben
+10. Weitere Kenntnisse nur dann, wenn sie für diese Stelle erkennbaren Recruiter-Nutzen haben
 
 Pflichtlogik für formale Stationen:
 
@@ -36,6 +38,7 @@ Pflichtlogik für formale Stationen:
 - Wenn wichtige formale Daten fehlen, werden sie nicht erfunden, sondern in `Offene_Fragen.md` dokumentiert.
 - Nicht-klassische Erfahrung, private Praxis, Quereinstieg oder Projektarbeit wird ehrlich als solche eingeordnet.
 - Projekte und Zusatzpraxis stehen hinter den formalen Stationen oder werden kompakt in passende Abschnitte integriert.
+- Zeiträume müssen für Recruiter nachvollziehbar sein. Auffällige Lücken oder aktuelle Phasen werden nicht erfunden, sondern mit vorhandenen Daten sauber eingeordnet oder in `Offene_Fragen.md` dokumentiert.
 
 Die Reihenfolge und Abschnittsnamen dürfen je nach Profil angepasst werden, aber die formalen CV-Stationen müssen erkennbar bleiben. Mögliche Abschnittsnamen:
 
@@ -52,6 +55,36 @@ Die Reihenfolge und Abschnittsnamen dürfen je nach Profil angepasst werden, abe
 
 Abschnittsnamen müssen zur Zielrolle passen und dürfen keine falsche Spezialisierung suggerieren.
 
+## Deutscher Recruiter-Standard
+
+Vor dem finalen Schreiben ist der Lebenslauf gedanklich wie von einem Recruiter zu prüfen:
+
+- Welche Zielrolle ist nach 5 Sekunden erkennbar?
+- Welche Belege im Werdegang tragen diese Zielrolle wirklich?
+- Gibt es eine nachvollziehbare Brücke bei Quereinstieg, Rollenwechsel oder nicht-klassischer Erfahrung?
+- Sind Zeiträume und aktuelle Entwicklung verständlich?
+- Wirkt der Lebenslauf formal seriös, ruhig, tabellarisch und nicht wie ein Portfolio?
+
+Bevorzugte Darstellungsformen:
+
+- Zeiträume links oder gut sichtbar vorangestellt, Inhalt rechts oder direkt daneben.
+- Kompetenzen als gruppierte Textzeilen, nicht als unruhige Tag-Wolke.
+- Private Praxis als `Praktische Erfahrung`, `Home-Lab`, `Projektpraxis` oder ähnliche ehrliche Bezeichnung.
+- Entwicklungsfelder klar von vorhandener Erfahrung trennen.
+- Kontaktinformationen kompakt darstellen, nicht als dominierende Karte.
+
+Nur nutzen, wenn es wirklich passt:
+
+- Skill-Tags oder Chips, und dann sparsam.
+- große farbige Kästen, Kontaktboxen, Kartenlayouts oder dekorative Elemente.
+- Projektlisten vor dem formalen Werdegang.
+
+Nicht nutzen:
+
+- eine vollständige Skill-Inventarliste
+- portfolioartige Selbstdarstellung als Ersatz für berufliche Stationen
+- visuelle Elemente, die den deutschen CV-Standard überdecken
+
 ## Bewerbungsprofil ableiten
 
 Vor dem Schreiben des Lebenslaufs muss der Agent ein kurzes Bewerbungsprofil bestimmen:
@@ -64,6 +97,8 @@ Vor dem Schreiben des Lebenslaufs muss der Agent ein kurzes Bewerbungsprofil bes
 - Kernargumente für die Zielrolle
 - Zusatzkenntnisse mit Recruiter-Nutzen
 - bewusst weggelassene Inhalte
+- Beweislogik: welche Stationen oder Praxisbelege die Zielrolle tragen
+- Risiken oder Lücken, die neutral behandelt oder in `Offene_Fragen.md` dokumentiert werden
 
 Dieses Profil steuert Auswahl, Reihenfolge und Kürzung des Lebenslaufs.
 
@@ -73,6 +108,7 @@ Dieses Profil steuert Auswahl, Reihenfolge und Kürzung des Lebenslaufs.
 - Formuliere kurz, konkret und ohne übertriebene Selbstdarstellung.
 - Priorisiere Muss-Anforderungen der Stelle.
 - Nenne private, ehrenamtliche, schulische, akademische oder inoffizielle Praxis korrekt als solche, nicht als berufliche Verantwortung.
+- Trenne vorhandene Erfahrung, Grundlagen und Entwicklungsfelder sprachlich eindeutig.
 - Erfinde keine Arbeitgeber, Zeiträume, Zertifikate, Tools, Systeme, Branchen oder Verantwortlichkeiten.
 - Lasse irrelevante Inhalte weg, auch wenn sie grundsätzlich vorhanden sind.
 
@@ -125,9 +161,9 @@ Grundregel:
 
 Richtwerte für eine A4-Seite:
 
-- Kurzprofil: maximal 3 bis 5 Zeilen
+- Kurzprofil: maximal 3 bis 4 Zeilen
 - Kernkompetenzen: maximal 3 Gruppen
-- Skill-/Kompetenz-Tags: nur die wichtigsten, keine vollständige Inventarliste
+- Skill-/Kompetenz-Tags: nur ausnahmsweise und sparsam; bevorzugt gruppierte Kompetenzzeilen
 - Arbeitsweise: maximal 3 bis 4 Bulletpoints oder in andere Abschnitte integrieren
 - Berufserfahrung: kompakt, aber nicht auf Kosten der Verständlichkeit
 - Ausbildung, Studium, berufliche Bildung und Schulbildung: kurz, aber sichtbar, wenn Daten vorhanden sind
@@ -160,6 +196,12 @@ Wenn zwei Seiten fachlich sinnvoll sind:
 - Seite 2 darf nicht wie ein zufälliger Rest wirken.
 - Es gibt keinen zufälligen Browserumbruch und keinen abgeschnittenen Inhalt.
 
+Wenn eine Seite gewählt wird:
+
+- Die HTML-Seite muss technisch eine feste A4-Seite sein, nicht nur ein `min-height`-Container.
+- Das Layout muss so kompakt sein, dass Firefox bei 100 Prozent Skalierung nicht automatisch eine zweite Seite erzeugt.
+- `overflow: hidden` darf nur auf der äußeren A4-Seite genutzt werden und nur, wenn vorher fachlich und visuell sichergestellt ist, dass kein relevanter Inhalt verdeckt wird.
+
 ## Stil
 
 - Klar, scanbar, sachlich.
@@ -168,6 +210,8 @@ Wenn zwei Seiten fachlich sinnvoll sind:
 - Bulletpoints nur dort, wo sie Lesbarkeit erhöhen.
 - Keywords natürlich integrieren, nicht stapeln.
 - Fachsprache nur verwenden, wenn sie zur Zielrolle und zu den privaten Daten passt.
+- Ruhiges Layout schlägt dekoratives Layout.
+- Deutsche CV-Konventionen schlagen Portfolio-Optik.
 
 ## Finale Datei
 

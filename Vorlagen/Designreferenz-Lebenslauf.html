@@ -3,71 +3,243 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lebenslauf - {{NAME}} - {{FIRMA}}</title>
+  <title>Lebenslauf - {{NAME}}</title>
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: #e9edf3; color: #101828; font-family: Arial, Helvetica, sans-serif; font-size: 13px; line-height: 1.35; }
-    .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 14mm 16mm; background: #fff; box-shadow: 0 14px 40px rgba(16, 24, 40, .18); }
-    .topbar { height: 8mm; margin: -14mm -16mm 10mm; background: linear-gradient(90deg, #12355b, #1f7898); }
-    .header { display: grid; grid-template-columns: 1fr 92mm; gap: 12mm; padding-bottom: 9mm; border-bottom: 1px solid #c8d3df; }
-    h1 { margin: 0 0 3mm; font-size: 28px; line-height: 1.05; color: #071b34; }
-    .role { margin: 0 0 6mm; font-weight: 700; color: #003f7d; font-size: 14px; }
-    .summary { margin: 0; max-width: 86mm; }
-    .contact { border: 1px solid #cbd6e2; background: #f4f8fc; border-radius: 6px; padding: 5mm; }
-    .contact h2 { margin-top: 0; }
-    .contact dl { display: grid; grid-template-columns: 24mm 1fr; gap: 2mm 4mm; margin: 0; }
-    .contact dt { font-weight: 700; color: #003f7d; }
-    .contact dd { margin: 0; }
-    .content { display: grid; grid-template-columns: 62mm 1fr; gap: 12mm; padding-top: 8mm; }
-    h2 { margin: 0 0 4mm; color: #003f7d; font-size: 15px; letter-spacing: .5px; text-transform: uppercase; }
-    h3 { margin: 0 0 1.5mm; font-size: 13px; color: #101828; }
-    section { margin-bottom: 7mm; break-inside: avoid; }
-    p { margin: 0 0 3mm; }
-    ul { margin: 0; padding-left: 4mm; }
-    li { margin-bottom: 1.5mm; }
-    .tags { display: flex; flex-wrap: wrap; gap: 2mm; }
-    .tag { border: 1px solid #cbd6e2; background: #f7fbff; border-radius: 4px; padding: 1mm 2mm; font-size: 11px; }
-    .meta { color: #475467; font-weight: 700; font-size: 12px; }
-    @media print { html, body { width: 210mm; min-height: 297mm; background: #fff; } .page { width: 210mm; min-height: 297mm; margin: 0; box-shadow: none; } }
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #e9edf3;
+      color: #111827;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11.25px;
+      line-height: 1.25;
+    }
+    .page {
+      width: 210mm;
+      height: 297mm;
+      margin: 0 auto;
+      padding: 11mm 13mm 10mm;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 14px 40px rgba(16, 24, 40, .16);
+    }
+    .accent {
+      height: 4mm;
+      margin: -11mm -13mm 8mm;
+      background: #17466f;
+    }
+    .header {
+      display: grid;
+      grid-template-columns: 1fr 78mm;
+      gap: 8mm;
+      padding-bottom: 4.5mm;
+      border-bottom: 1px solid #b9c6d3;
+    }
+    h1 {
+      margin: 0 0 1.5mm;
+      color: #071b34;
+      font-size: 25px;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+    .target {
+      margin: 0 0 2.2mm;
+      color: #17466f;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .headline {
+      margin: 0;
+      max-width: 94mm;
+      color: #243244;
+    }
+    .contact {
+      display: grid;
+      grid-template-columns: 18mm 1fr;
+      align-self: end;
+      gap: 1.2mm 2.5mm;
+      margin: 0;
+      font-size: 10.55px;
+      line-height: 1.2;
+    }
+    .contact dt,
+    .skills dt {
+      color: #17466f;
+      font-weight: 700;
+    }
+    .contact dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 58mm 1fr;
+      gap: 8mm;
+      padding-top: 5mm;
+    }
+    section {
+      margin: 0 0 4.2mm;
+      break-inside: avoid;
+    }
+    h2 {
+      margin: 0 0 2mm;
+      padding-bottom: 1mm;
+      border-bottom: 1px solid #d3dce6;
+      color: #17466f;
+      font-size: 11.7px;
+      line-height: 1.15;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    h3 {
+      margin: 0 0 .7mm;
+      color: #111827;
+      font-size: 11.4px;
+      line-height: 1.2;
+    }
+    p { margin: 0 0 1.6mm; }
+    ul {
+      margin: 0;
+      padding-left: 3.8mm;
+    }
+    li {
+      margin-bottom: .7mm;
+      padding-left: .2mm;
+    }
+    .skills {
+      display: grid;
+      gap: 1.6mm;
+      margin: 0;
+    }
+    .skills dt { margin: 0 0 .5mm; }
+    .skills dd { margin: 0; }
+    .timeline {
+      display: grid;
+      grid-template-columns: 30mm 1fr;
+      gap: 2.7mm 5mm;
+    }
+    .period {
+      color: #475467;
+      font-weight: 700;
+      font-size: 10.75px;
+      padding-top: .2mm;
+    }
+    .meta {
+      margin: 0 0 1mm;
+      color: #475467;
+      font-weight: 700;
+      font-size: 10.65px;
+    }
+    .compact-list li { margin-bottom: .55mm; }
+    .note {
+      color: #344054;
+      font-size: 10.8px;
+    }
+    @media print {
+      html,
+      body {
+        width: 210mm;
+        height: 297mm;
+        min-height: 297mm;
+        background: #fff;
+      }
+      .page {
+        width: 210mm;
+        height: 297mm;
+        margin: 0;
+        box-shadow: none;
+      }
+    }
   </style>
 </head>
 <body>
   <main class="page">
-    <div class="topbar"></div>
+    <div class="accent"></div>
+
     <header class="header">
       <div>
         <h1>{{NAME}}</h1>
-        <p class="role">{{ZIELROLLE}}</p>
-        <p class="summary">{{KURZPROFIL}}</p>
+        <p class="target">{{ZIELROLLE}}</p>
+        <p class="headline">{{KURZPROFIL_KOMPAKT}}</p>
       </div>
-      <aside class="contact">
-        <h2>Kontakt</h2>
-        <dl>
-          <dt>Adresse</dt><dd>{{ADRESSE}}</dd>
-          <dt>Telefon</dt><dd>{{TELEFON}}</dd>
-          <dt>E-Mail</dt><dd>{{EMAIL}}</dd>
-          <dt>Portfolio</dt><dd>{{PORTFOLIO}}</dd>
-          <dt>Verfügbar</dt><dd>{{VERFUEGBARKEIT}}</dd>
-        </dl>
-      </aside>
+      <dl class="contact">
+        <dt>Adresse</dt><dd>{{ADRESSE}}</dd>
+        <dt>Telefon</dt><dd>{{TELEFON}}</dd>
+        <dt>E-Mail</dt><dd>{{EMAIL}}</dd>
+        <dt>GitHub</dt><dd>{{GITHUB}}</dd>
+        <dt>Portfolio</dt><dd>{{PORTFOLIO}}</dd>
+        <dt>Verfügbar</dt><dd>{{VERFUEGBARKEIT}}</dd>
+      </dl>
     </header>
-    <div class="content">
+
+    <div class="layout">
       <aside>
         <section>
-          <h2>Kernkompetenzen</h2>
-          <h3>{{KOMPETENZGRUPPE_1}}</h3>
-          <div class="tags">{{SKILL_TAGS_1}}</div>
-          <h3>{{KOMPETENZGRUPPE_2}}</h3>
-          <div class="tags">{{SKILL_TAGS_2}}</div>
+          <h2>Kompetenzen</h2>
+          <dl class="skills">
+            <div>
+              <dt>{{KOMPETENZGRUPPE_1}}</dt>
+              <dd>{{KOMPETENZEN_1}}</dd>
+            </div>
+            <div>
+              <dt>{{KOMPETENZGRUPPE_2}}</dt>
+              <dd>{{KOMPETENZEN_2}}</dd>
+            </div>
+            <div>
+              <dt>{{KOMPETENZGRUPPE_3}}</dt>
+              <dd>{{KOMPETENZEN_3}}</dd>
+            </div>
+            <div>
+              <dt>{{ENTWICKLUNGSFELDER_TITEL}}</dt>
+              <dd>{{ENTWICKLUNGSFELDER}}</dd>
+            </div>
+          </dl>
         </section>
-        <section><h2>Arbeitsweise</h2><ul>{{ARBEITSWEISE}}</ul></section>
-        <section><h2>Sprachen</h2><ul>{{SPRACHEN}}</ul></section>
+
+        <section>
+          <h2>Arbeitsweise</h2>
+          <ul class="compact-list">
+            {{ARBEITSWEISE_BULLETS}}
+          </ul>
+        </section>
+
+        <section>
+          <h2>Sprachen</h2>
+          <ul class="compact-list">
+            {{SPRACHEN_BULLETS}}
+          </ul>
+        </section>
       </aside>
+
       <article>
-        <section><h2>Berufserfahrung</h2><h3>{{ERFAHRUNG_TITEL}}</h3><p class="meta">{{ERFAHRUNG_META}}</p><p>{{ERFAHRUNG_TEXT}}</p><ul>{{ERFAHRUNG_BULLETS}}</ul></section>
-        <section><h2>Weiterbildung</h2><h3>{{WEITERBILDUNG_TITEL}}</h3><p class="meta">{{WEITERBILDUNG_META}}</p><p>{{WEITERBILDUNG_TEXT}}</p></section>
-        <section><h2>Relevante Praxis</h2><h3>{{PRAXIS_TITEL}}</h3><p class="meta">{{PRAXIS_META}}</p><p>{{PRAXIS_TEXT}}</p></section>
+        <section>
+          <h2>Kurzprofil</h2>
+          <p>{{KURZPROFIL_DETAIL}}</p>
+        </section>
+
+        <section>
+          <h2>Beruflicher Werdegang</h2>
+          <div class="timeline">
+            {{BERUFLICHER_WERDEGANG}}
+          </div>
+        </section>
+
+        <section>
+          <h2>{{PRAXIS_ABSCHNITT_TITEL}}</h2>
+          <div class="timeline">
+            {{PRAXIS_EINTRAEGE}}
+          </div>
+        </section>
+
+        <section>
+          <h2>Weiterbildung und berufliche Bildung</h2>
+          <div class="timeline">
+            {{BILDUNG_EINTRAEGE}}
+          </div>
+        </section>
       </article>
     </div>
   </main>

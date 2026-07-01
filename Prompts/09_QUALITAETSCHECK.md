@@ -15,6 +15,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Gibt es keine erfundenen Arbeitgeber, Zeiträume, Zertifikate, Branchen, Tools oder Verantwortlichkeiten?
 - Sind die wichtigsten Keywords natürlich enthalten?
 - Wirkt der Text recruiterfreundlich und nicht KI-generiert?
+- Wirkt der Lebenslauf wie ein deutscher tabellarischer CV und nicht wie eine Portfolio- oder Skill-Dashboard-Seite?
 
 ## Rollen- und Recruiter-Strategie
 
@@ -36,8 +37,11 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Sind Weiterbildungen, Zertifikate und Qualifikationen sinnvoll platziert?
 - Verdrängen Projekte, private Praxis, Zusatzkenntnisse oder Skill-Listen keine formalen CV-Stationen?
 - Sind Kompetenzen sauber gruppiert und nicht als vollständige Inventarliste dargestellt?
+- Werden Kompetenzen bevorzugt als klare Gruppen/Zeilen dargestellt statt als unruhige Tag-Wolke?
 - Ist die Länge angemessen?
 - Sind zusätzliche oder nicht-klassische Kenntnisse professionell und korrekt eingeordnet?
+- Sind vorhandene Erfahrung, Grundlagen und Entwicklungsfelder sprachlich klar getrennt?
+- Sind auffällige Lücken, Rollenwechsel oder aktuelle Phasen nachvollziehbar behandelt oder in `Offene_Fragen.md` dokumentiert?
 - Sind Kontaktdaten korrekt?
 - Sind Vorname und Nachname für die finalen Dateinamen eindeutig aus `Private/Daten/01_PERSOENLICHE_DATEN.md` übernommen?
 - Enthalten finale Versanddateien den Bewerbernamen statt des Firmennamens?
@@ -47,6 +51,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 ## A4-Fit-Check
 
 - Passt ein Einseiten-Lebenslauf vollständig in eine A4-Seite?
+- Erzeugt Firefox bei einem Einseiten-Lebenslauf in der Druckvorschau genau eine Seite?
 - Wenn eine Seite nicht sauber reicht: wurde bewusst ein strukturierter zweiseitiger Lebenslauf erstellt?
 - Ist unten kein Inhalt abgeschnitten?
 - Wurden bei Platzproblemen zuerst fachlich irrelevante Inhalte gekürzt, bevor Layout verdichtet wurde?
@@ -54,6 +59,8 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Bleiben Berufserfahrung, Ausbildung/Studium/berufliche Bildung, Schulbildung und wichtige Weiterbildungen trotz Kürzung sichtbar, sofern Daten vorhanden sind?
 - Ist die Schrift auch nach Layoutoptimierung professionell lesbar?
 - Gibt es keine versteckten Inhalte durch `overflow: hidden`?
+- Wird `overflow: hidden` nur auf der äußeren A4-Seitenfläche genutzt und nicht auf Textabschnitten?
+- Nutzt ein finaler Einseiten-Lebenslauf `height: 297mm` auf `.page` statt nur `min-height: 297mm`?
 - Wenn zwei Seiten nötig sind: gibt es zwei explizite A4-Seitencontainer statt eines zufälligen Umbruchs?
 - Wirkt Seite 2 bewusst strukturiert und nicht wie ein abgeschnittener Rest?
 
@@ -79,6 +86,8 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - A4-Druck ist berücksichtigt.
 - Keine abgeschnittenen Inhalte.
 - Keine fixen problematischen Höhen in Textbereichen.
+- Einseiten-Dokumente verwenden eine feste A4-Seite und erzeugen keinen automatischen Firefox-Umbruch.
+- Zweiseitige Dokumente verwenden explizite `.page`-Container, nicht einen langen Container mit Browser-Autoumbruch.
 - Keine externen Abhängigkeiten.
 - Finale Versanddateien folgen dem Schema `Lebenslauf - NACHNAME.VORNAME.html` und `Anschreiben - NACHNAME.VORNAME.html`.
 - Keine sichtbaren Marker wie `[ergänzen]`, `{{FIRMA}}`, `TODO` oder `DOKUMENT NOCH NICHT FINAL`.
@@ -89,6 +98,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Bei bewusst zweiseitigem Lebenslauf existieren zwei explizite A4-Seitencontainer statt eines automatisch umbrechenden langen Containers.
 - `@page` ist widerspruchsfrei und nutzt in finalen Dateien `margin: 0`.
 - `html`, `body` und `.page` haben im Print-Modus die A4-Geometrie `210mm x 297mm`.
+- Für Einseiter hat `.page` auch außerhalb des Print-Modus eine feste Höhe von `297mm`, damit Bildschirm- und Druckansicht dieselbe Seitenlogik zeigen.
 - `overflow: hidden` wird nur auf der äußeren A4-Seitenfläche genutzt und darf keinen relevanten Inhalt verdecken.
 - Browser-Kopf- und Fußzeilen sind als Nutzer-/Druckdialog-Einstellung dokumentiert.
 - `Druck-Hinweis.md` liegt im Bewerbungsordner.
