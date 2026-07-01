@@ -1,4 +1,4 @@
-<!-- cspell:words Layoutcheck MitLayoutcheck NurVorbereiten MinPdfBytes NichtUeberschreiben firefox Pruefe Qualitaetscheck Strg Headless Sandbox Sandboxfehler Browserfreigabe -->
+<!-- cspell:words Layoutcheck MitLayoutcheck NurVorbereiten MinPdfBytes NichtUeberschreiben firefox Pruefe Qualitaetscheck Strg Headless Sandbox Sandboxfehler Browserfreigabe MediaBox -->
 
 # bewerbungs-agent
 
@@ -261,7 +261,7 @@ Das Exporttool:
 - bricht ab, wenn die Bewerbung technisch nicht sauber ist
 - nutzt Chrome oder Edge Headless
 - erzeugt PDFs im finalen Bewerbungsordner
-- prüft Existenz, Dateigröße und PDF-Header
+- prüft Existenz, Dateigröße, PDF-Header und DIN-A4-MediaBox
 
 Die PDFs heißen genauso wie die HTML-Dateien:
 
@@ -630,7 +630,7 @@ Nützliche Parameter:
 - `-NichtUeberschreiben`
 - `-MinPdfBytes`
 
-Das Skript nutzt Chrome oder Edge Headless, erzeugt PDFs im finalen Bewerbungsordner und prüft Existenz, Größe und PDF-Header.
+Das Skript nutzt Chrome oder Edge Headless, erzeugt PDFs im finalen Bewerbungsordner und prüft Existenz, Größe, PDF-Header und DIN-A4-MediaBox.
 
 ## HTML- und CSS-Standard
 
@@ -680,6 +680,7 @@ Wichtig:
 - Ein Browser-Prozess gilt nur als Erfolg, wenn die erwartete Datei existiert.
 - Eine Screenshot- oder PDF-Datei muss eine sinnvolle Größe haben.
 - PDFs werden zusätzlich auf `%PDF-`-Header geprüft.
+- PDFs werden zusätzlich auf eine DIN-A4-MediaBox geprüft.
 - Stille Browser-Prozesse ohne Ausgabedatei sind Fehler.
 
 ## Umgang mit `rg` und PowerShell
