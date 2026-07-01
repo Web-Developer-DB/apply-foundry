@@ -61,6 +61,22 @@ Private/Bewerbungen/Muster-GmbH/_Arbeitsdateien/YYYY-MM-DD--Sachbearbeitung/
 
 Die Skripte legen Platzhalter und Entwürfe in `_Arbeitsdateien` ab. Im finalen Bewerbungsordner entstehen dadurch keine unfertigen `Analyse.md`, `Email-Nachricht--FIRMA.md` oder `Qualitaetscheck.md` Dateien.
 
+### Bewerbung technisch prüfen
+
+Nach jeder finalen Bewerbung sollte der statische Prüfer laufen:
+
+```powershell
+.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+```
+
+Optional kann ein Browser-Layoutcheck Screenshots im privaten Arbeitsordner erzeugen:
+
+```powershell
+.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+```
+
+Der statische Prüfer ist der technische Mindestcheck. Der Browser-Layoutcheck ist hilfreich, gilt aber nur als bestanden, wenn die erwarteten Dateien wirklich unter `_Arbeitsdateien` erzeugt wurden.
+
 ## 2. Empfohlene Agenten und Modelle
 
 Die Empfehlung ist bewusst nach einfacher Bedienung sortiert. Ziel ist: möglichst wenig Einrichtung, keine API-Schlüssel und keine komplexe Entwicklerumgebung für normale Anwender.
@@ -190,6 +206,7 @@ Diese Dateien dürfen keine echten privaten Bewerberdaten enthalten.
 - `Prompts/08_HTML_CSS_DESIGNREGELN.md`: A4, Firefox-Druck und HTML/CSS-Regeln.
 - `Prompts/09_QUALITAETSCHECK.md`: Checkliste vor Abschluss, inklusive Recruiter-Nutzen und A4-Fit-Check.
 - `Prompts/10_DATEI_UND_ORDNER_REGELN.md`: Struktur, Namen, Slugs und Arbeitsdateien.
+- `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`: technische Schlussprüfung, robuste Suchmuster, statischer Prüfer und optionaler Browser-Layoutcheck.
 
 ## 8. Ausgabe pro Bewerbung
 
@@ -300,7 +317,9 @@ Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm 
 10. E-Mail-Nachricht erstellen.
 11. Druckfähigkeit prüfen.
 12. Qualitätscheck speichern.
-13. Kurz berichten, wo die Dateien liegen.
+13. Statischen technischen Check mit `Tools/Pruefe-Bewerbung.ps1` ausführen.
+14. Optional Browser-Layoutcheck mit `Tools/Layoutcheck-Bewerbung.ps1` ausführen.
+15. Kurz berichten, wo die Dateien liegen und welche Checks bestanden wurden.
 
 ## 13. Anpassung
 
@@ -316,6 +335,7 @@ Bei Einseiten-Dokumenten nutzt der Print-Modus eine feste A4-Fläche von `210mm 
 | HTML/CSS ändern | `Prompts/08_HTML_CSS_DESIGNREGELN.md` |
 | Qualitätscheck ändern | `Prompts/09_QUALITAETSCHECK.md` |
 | Ordnerstruktur ändern | `Prompts/10_DATEI_UND_ORDNER_REGELN.md` |
+| Technische Abschlussprüfung ändern | `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`, `Tools/Pruefe-Bewerbung.ps1`, `Tools/Layoutcheck-Bewerbung.ps1` |
 | Windows-Skript ändern | `Tools/Neue-Bewerbung.ps1` |
 | Linux-Skript ändern | `Tools/neue-bewerbung.sh` |
 
