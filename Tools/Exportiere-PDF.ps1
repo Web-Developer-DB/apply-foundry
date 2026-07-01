@@ -35,7 +35,7 @@ function Add-Fail {
   Write-Host "[FEHLER] $Message" -ForegroundColor Red
 }
 
-function Quote-Argument {
+function ConvertTo-QuotedArgument {
   param([string]$Value)
   if ($Value -match '[\s"]') {
     return '"' + ($Value -replace '"', '\"') + '"'
@@ -171,7 +171,7 @@ function Export-HtmlToPdf {
     $uri
   )
 
-  $argumentLine = ($arguments | ForEach-Object { Quote-Argument -Value $_ }) -join " "
+  $argumentLine = ($arguments | ForEach-Object { ConvertTo-QuotedArgument -Value $_ }) -join " "
   $process = Start-Process -FilePath $BrowserInfo.Path -ArgumentList $argumentLine -WindowStyle Hidden -Wait -PassThru
 
   $pdfError = Test-PdfFile -Path $PdfPath -MinBytes $MinPdfBytes
