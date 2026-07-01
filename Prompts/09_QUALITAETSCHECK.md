@@ -115,6 +115,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Der PDF-Export nutzt das Schema `Lebenslauf - NACHNAME.VORNAME.pdf` und `Anschreiben - NACHNAME.VORNAME.pdf`.
 - PDF-Dateien liegen nur im finalen Bewerbungsordner, nicht in `_Arbeitsdateien`.
 - Jede erzeugte PDF-Datei wurde auf Existenz, sinnvolle Dateigröße und PDF-Header geprüft.
+- Jede erzeugte PDF-Datei wurde auf DIN-A4-MediaBox geprüft, sofern das Exporttool dies unterstützt.
 - Wenn der automatische PDF-Export nicht möglich war, ist dies offen dokumentiert.
 
 ## Ablage
