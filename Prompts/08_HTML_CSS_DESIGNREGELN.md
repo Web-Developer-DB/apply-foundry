@@ -150,6 +150,13 @@ Wenn zwei Seiten nötig sind, werden zwei klare Seitencontainer genutzt:
 
 Kein zufälliger Umbruch mitten im Layout. Kein finaler Inhalt darf durch `overflow: hidden` nur optisch versteckt werden.
 
+Vor der finalen Ausgabe eines zweiseitigen Lebenslaufs muss die Verteilung auf die Seiten geprüft werden:
+
+- Seite 1 muss wie eine vollständig genutzte CV-Seite wirken, nicht wie ein Kopfbereich mit etwas Inhalt und großer leerer Fläche.
+- Seite 2 muss bewusst strukturiert sein und darf nicht nur aus ausgelagerten Restabschnitten bestehen.
+- Formale Stationen wie Ausbildung, berufliche Bildung und Schulbildung dürfen nicht am unteren Seitenrand abgeschnitten oder optisch gefährdet sein.
+- Wenn die Verteilung nicht stimmt, ist das Layout nicht final; Inhalte müssen neu verteilt, gekürzt oder wieder auf einen kompakten Einseiten-Lebenslauf gebracht werden.
+
 ## Lebenslauf-Designstandard
 
 Für deutsche Bewerbungen ist der bevorzugte Lebenslaufstil:

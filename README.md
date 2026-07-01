@@ -1,4 +1,4 @@
-<!-- cspell:words Layoutcheck MitLayoutcheck NurVorbereiten MinPdfBytes NichtUeberschreiben firefox Pruefe Qualitaetscheck Strg -->
+<!-- cspell:words Layoutcheck MitLayoutcheck NurVorbereiten MinPdfBytes NichtUeberschreiben firefox Pruefe Qualitaetscheck Strg Headless Sandbox Sandboxfehler Browserfreigabe -->
 
 # bewerbungs-agent
 
@@ -205,6 +205,12 @@ Der Layout-Check öffnet die finalen HTML-Dateien per Headless-Browser und erzeu
 .\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
 ```
 
+Unter Windows 11 mit VS Code, PowerShell und installiertem Chrome ist dieser direkte Weg empfohlen:
+
+```powershell
+.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome
+```
+
 Die Screenshots liegen unter:
 
 ```text
@@ -212,6 +218,22 @@ Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
 ```
 
 Der Layout-Check gilt nur als erfolgreich, wenn die erwarteten Screenshot-Dateien wirklich erzeugt wurden und eine sinnvolle Größe haben.
+
+Bei Agenten mit Sandbox kann der Browserstart dort fehlschlagen, obwohl das HTML korrekt ist. Dann denselben Chrome-Befehl außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut ausführen und den Sandboxfehler dokumentieren. Nicht unnötig auf Firefox wechseln, wenn Chrome lokal verfügbar ist.
+
+Der erzeugte Screenshot sollte danach visuell geprüft werden:
+
+- Einseiten-Dokumente zeigen eine vollständige A4-Seite.
+- Keine Inhalte sind unten abgeschnitten.
+- Es gibt keine zerstückelte zweite Seite und keine großen ungewollten Leerflächen.
+- Schulbildung, berufliche Bildung und Weiterbildung bleiben sichtbar.
+- Schriftgröße, Zeilenabstand und Spalten wirken professionell lesbar.
+
+Bei bewusst zweiseitigen Lebensläufen zusätzlich einen höheren Screenshot erzeugen oder die PDF-Ausgabe mit allen Seiten prüfen:
+
+```powershell
+.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome -Height 2300
+```
 
 ## PDFs automatisch exportieren
 
@@ -225,6 +247,12 @@ Mit Layout-Check vor dem Export:
 
 ```powershell
 .\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -MitLayoutcheck
+```
+
+Unter Windows 11 mit Chrome kann der Export gezielt mit Chrome gestartet werden:
+
+```powershell
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome
 ```
 
 Das Exporttool:
@@ -339,6 +367,8 @@ Wenn der Layout-Check fehlschlägt:
 - prüfen, ob Chrome, Edge oder Firefox installiert ist
 - prüfen, ob die Ausgabedateien unter `_Arbeitsdateien` erzeugt wurden
 - den statischen Check trotzdem separat betrachten
+- unter Windows 11 zuerst `-Browser chrome` nutzen
+- bei Sandboxfehler denselben Chrome-Lauf außerhalb der Sandbox oder mit lokaler Browserfreigabe wiederholen
 
 Wenn der PDF-Export fehlschlägt:
 

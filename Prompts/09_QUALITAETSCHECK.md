@@ -66,6 +66,9 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Nutzt ein finaler Einseiten-Lebenslauf `height: 297mm` auf `.page` statt nur `min-height: 297mm`?
 - Wenn zwei Seiten nötig sind: gibt es zwei explizite A4-Seitencontainer statt eines zufälligen Umbruchs?
 - Wirkt Seite 2 bewusst strukturiert und nicht wie ein abgeschnittener Rest?
+- Wirkt Seite 1 bei einem zweiseitigen Lebenslauf ausreichend gefüllt und nicht wie ein Einstieg mit zu viel Leeraum?
+- Sind Schulbildung, berufliche Bildung und Weiterbildung sichtbar und nicht an den unteren Seitenrand gedrückt?
+- Wurde ein zweiseitiges Layout bei schlechter Verteilung auf die Seiten wieder zu einem besseren Einseiten-Layout oder zu einer neu verteilten Zwei-Seiten-Fassung überarbeitet?
 
 ## Anschreiben
 

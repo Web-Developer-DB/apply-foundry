@@ -59,6 +59,52 @@ Der Layoutcheck:
 
 Der Browser-Layoutcheck ist hilfreich, aber optional. Wenn er wegen lokaler Browser- oder Sandbox-Einschränkungen nicht läuft, muss der statische Check trotzdem erfolgreich sein und der nicht ausgeführte Layoutcheck offen benannt werden.
 
+## Standardweg unter Windows 11 / VS Code / PowerShell
+
+Wenn der Agent unter Windows 11 in VS Code mit PowerShell arbeitet und Chrome installiert ist, soll für die visuelle Prüfung direkt Chrome gewählt werden:
+
+```powershell
+.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome
+```
+
+Das vermeidet unnötige Browserwechsel. Besonders in Sandbox-Umgebungen können Headless-Browser ohne echte Layoutursache fehlschlagen oder hängen. Wenn der Chrome-Lauf im Sandbox-Kontext keine Screenshot-Dateien erzeugt, mit einem Browser-Startfehler endet oder hängen bleibt:
+
+- den Lauf nicht als bestandenen Layoutcheck werten
+- nicht automatisch auf Firefox ausweichen, wenn Chrome lokal vorhanden ist
+- denselben Chrome-Befehl außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut ausführen
+- den Sandbox-Fehler in `Qualitaetscheck.md` nur als technischen Laufzeitfehler dokumentieren
+
+Erfolgreiche Screenshots liegen hier:
+
+```text
+Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
+```
+
+Typische Dateinamen:
+
+```text
+Lebenslauf---NACHNAME.VORNAME--chrome.png
+Anschreiben---NACHNAME.VORNAME--chrome.png
+```
+
+Wenn ein Bildbetrachter oder ein Agentenwerkzeug für lokale Bilder verfügbar ist, muss mindestens der Lebenslauf-Screenshot geöffnet und visuell geprüft werden. Bei einer Layoutkorrektur ist danach erneut ein Screenshot zu erzeugen.
+
+Visuelle Bewertung des Screenshots:
+
+- Ein einseitiger Lebenslauf zeigt genau eine vollständige A4-Seite und keine zweite Restseite.
+- Ein zweiseitiger Lebenslauf wirkt bewusst verteilt; Seite 1 ist nicht halb leer und Seite 2 nicht nur ein ausgelagerter Rest.
+- Überschriften, Zeiträume und Kontaktdaten überlappen nicht.
+- Am unteren Seitenrand ist kein Inhalt abgeschnitten.
+- Formale Stationen wie Berufserfahrung, Weiterbildung, berufliche Bildung und Schulbildung sind sichtbar.
+- Schriftgröße, Zeilenabstand und Weißraum wirken professionell lesbar.
+- Der Screenshot enthält keine Browser-Kopfzeilen, Dateipfade, URLs oder Druckdialog-Reste.
+
+Für bewusst zweiseitige Lebensläufe reicht ein Screenshot der ersten A4-Höhe nicht aus. Dann zusätzlich einen höheren Screenshot erzeugen oder die PDF-Ausgabe mit allen Seiten prüfen:
+
+```powershell
+.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome -Height 2300
+```
+
 ## Automatischer PDF-Export
 
 Wenn die finalen HTML-Dateien technisch im grünen Bereich sind, können Lebenslauf und Anschreiben automatisch als PDF exportiert werden:
@@ -92,16 +138,23 @@ Optional kann der PDF-Export vorher auch den Browser-Layoutcheck ausführen:
 .\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -MitLayoutcheck
 ```
 
+Unter Windows 11 / VS Code / PowerShell mit Chrome kann der Export gezielt mit Chrome ausgeführt werden:
+
+```powershell
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome
+```
+
 Wenn kein Chrome oder Edge verfügbar ist, wird kein PDF-Export als bestanden gemeldet. Dann bleibt der manuelle PDF-Export über Firefox oder einen anderen Browser möglich, muss aber offen dokumentiert werden.
 
 ## Reihenfolge im Abschluss
 
 1. Finale Dateien erzeugen.
 2. `Tools/Pruefe-Bewerbung.ps1` ausführen.
-3. Optional `Tools/Layoutcheck-Bewerbung.ps1` ausführen.
-4. Wenn PDF-Dateien gewünscht sind oder ein Browser verfügbar ist: `Tools/Exportiere-PDF.ps1` ausführen.
-5. Ergebnis in `Qualitaetscheck.md` oder in der Abschlussnachricht knapp dokumentieren.
-6. Bei Fehlern nicht final melden, sondern Dateien korrigieren und den Check erneut ausführen.
+3. Optional `Tools/Layoutcheck-Bewerbung.ps1` ausführen, unter Windows 11 bevorzugt mit `-Browser chrome`.
+4. Erzeugten Screenshot visuell prüfen und bei Layoutproblemen die HTML-Datei korrigieren.
+5. Wenn PDF-Dateien gewünscht sind oder ein Browser verfügbar ist: `Tools/Exportiere-PDF.ps1` ausführen.
+6. Ergebnis in `Qualitaetscheck.md` oder in der Abschlussnachricht knapp dokumentieren.
+7. Bei Fehlern nicht final melden, sondern Dateien korrigieren und den Check erneut ausführen.
 
 ## Keine stillen Erfolge
 
