@@ -1,5 +1,9 @@
 # Bewerberprofil und Positionierung
 
+Diese Datei ist die fachliche Quelle für Lebenslauf, Anschreiben und Rollenstrategie.
+
+Persönliche Stammdaten wie Name, Adresse, Telefon, E-Mail, Links und Dateiname-Name gehören ausschließlich in `01_PERSOENLICHE_DATEN.md`.
+
 ## Kurzprofil
 
 [Kurze, wahre berufliche Positionierung. Keine erfundenen Jahre, Arbeitgeber oder Zertifikate.]
@@ -9,32 +13,68 @@
 - [Zielrolle 1]
 - [Zielrolle 2]
 
+## Profilvarianten nach Zielrolle
+
+### [Zielrolle oder Rollenfamilie]
+
+[Kurze Positionierung für diese Rollenfamilie.]
+
 ## Berufserfahrung / berufliche Stationen
 
-- [Zeitraum] - [Arbeitgeber/Rolle]: [Schwerpunkt, belegbare Tätigkeiten, relevante Ergebnisse]
+### [Rolle]
+
+[Arbeitgeber], [Zeitraum]
+
+- [belegbare Tätigkeit]
+- [belegbarer Schwerpunkt]
 
 ## Ausbildung / Studium / berufliche Bildung
 
-- [Zeitraum] - [Abschluss/Bildungsgang/Studium/Ausbildung], [Einrichtung], [Ort optional]
+### [Abschluss/Bildungsgang/Studium/Ausbildung]
 
-## Schulbildung
-
-- [Zeitraum oder Abschlussjahr] - [höchster Schulabschluss], [Schule optional]
+[Einrichtung], [Zeitraum], [Ort optional]
 
 ## Weiterbildung / Zertifikate / Qualifikationen
 
-- [Zeitraum] - [Weiterbildung/Zertifikat], [Anbieter], [relevante Inhalte]
+### [Weiterbildung/Zertifikat]
+
+[Anbieter], [Zeitraum], relevante Inhalte:
+
+- [Inhalt]
+- [Inhalt]
+
+## Schulbildung
+
+### [höchster Schulabschluss oder Bildungsgang]
+
+[Schule/Einrichtung optional], [Zeitraum oder Abschlussjahr]
 
 ## Projekte und Praxis
 
-- [Projekt oder private Praxis, Werkzeuge, Methoden, Aufgaben, Ergebnis]
+### [Projekt oder private Praxis]
+
+[Werkzeuge, Methoden, Aufgaben, Ergebnis. Private Praxis klar als private Praxis benennen.]
 
 ## Kenntnisse und Kompetenzen
 
-- Fachlich: [Skills]
-- Tools/Systeme: [Tools]
-- Methoden/Arbeitsweise: [Stärken]
-- Sprachen: [Niveau]
+### Fachlich
+
+- [Skill]
+- [Skill]
+
+### Tools/Systeme
+
+- [Tool/System]
+- [Tool/System]
+
+### Methoden und Arbeitsweise
+
+- [Stärke]
+- [Stärke]
+
+## Sprachen
+
+- [Sprache]: [Niveau]
 
 ## Relevanz- und Kürzungshinweise
 

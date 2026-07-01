@@ -254,17 +254,22 @@ foreach ($candidate in $browserCandidates) {
       $browserErrors.Add("$($result.Browser): Screenshot fehlt oder ist zu klein für $($result.File). ExitCode: $($result.ExitCode). Ziel: $($result.Screenshot)") | Out-Null
     }
 
-    if ($Pdf -and ($candidate.Type -eq "chromium")) {
-      if ($result.PdfOk) {
-        Add-Ok "$($result.Browser): PDF erzeugt für $($result.File)"
+    if ($Pdf) {
+      if ($candidate.Type -eq "chromium") {
+        if ($result.PdfOk) {
+          Add-Ok "$($result.Browser): PDF erzeugt für $($result.File)"
+        } else {
+          $allPdfsOk = $false
+          $browserErrors.Add("$($result.Browser): PDF fehlt oder ist zu klein für $($result.File). ExitCode: $($result.ExitCode). Ziel: $($result.Pdf)") | Out-Null
+        }
       } else {
         $allPdfsOk = $false
-        $browserErrors.Add("$($result.Browser): PDF fehlt oder ist zu klein für $($result.File). ExitCode: $($result.ExitCode). Ziel: $($result.Pdf)") | Out-Null
+        $browserErrors.Add("$($result.Browser): PDF-Export ist für diesen Browser nicht unterstützt. Ziel: $($result.Pdf)") | Out-Null
       }
     }
   }
 
-  if ($allScreenshotsOk -and ((-not $Pdf) -or $allPdfsOk -or ($candidate.Type -ne "chromium"))) {
+  if ($allScreenshotsOk -and ((-not $Pdf) -or $allPdfsOk)) {
     Add-Ok "Layoutcheck erfolgreich mit Browser: $($candidate.Name)"
     exit 0
   }

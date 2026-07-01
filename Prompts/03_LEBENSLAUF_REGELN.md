@@ -12,6 +12,15 @@ Der öffentliche Agent ist neutral. Branche, Rollenprofil, Erfahrungsart, Zusatz
 
 Keine Branche, keine konkrete Fachrolle und kein Projekttyp darf aus den öffentlichen Prompts als Standard angenommen werden.
 
+## Datenquellen für den Lebenslauf
+
+Für den Lebenslauf gelten klare Zuständigkeiten:
+
+- Kontakt, Name, Dateiname-Name, Links und Verfügbarkeit kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`.
+- Zielrollen, Kurzprofil, Berufserfahrung, Ausbildung, Studium, Umschulung, Weiterbildung, Schulbildung, Kompetenzen, Sprachen, Projekte und private Praxis kommen aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`.
+- Schulbildung gehört fachlich zu Datei `02`, nicht zu Datei `01`.
+- Wenn fachliche Angaben in Datei `01` stehen, aber in Datei `02` fehlen oder widersprüchlich sind, muss der Agent dies in `Offene_Fragen.md` dokumentieren und darf daraus keine stillschweigend geglättete finale Fassung bauen.
+
 ## Aufbau
 
 Der Lebenslauf orientiert sich am deutschsprachigen Arbeitsmarkt. Er ist kein reines Skill-Profil und keine Projektsammlung, sondern ein moderner, klar strukturierter CV mit formalen Stationen.
@@ -105,6 +114,7 @@ Dieses Profil steuert Auswahl, Reihenfolge und Kürzung des Lebenslaufs.
 ## Inhalt
 
 - Verwende nur Daten aus `Private/Daten/` und aus der konkreten Stellenbeschreibung.
+- Verwende Datei `01` nur für persönliche Stammdaten und Datei `02` für fachliche Lebenslaufdaten.
 - Formuliere kurz, konkret und ohne übertriebene Selbstdarstellung.
 - Priorisiere Muss-Anforderungen der Stelle.
 - Nenne private, ehrenamtliche, schulische, akademische oder inoffizielle Praxis korrekt als solche, nicht als berufliche Verantwortung.

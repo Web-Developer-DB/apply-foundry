@@ -35,6 +35,19 @@ Nutze zusätzlich den Ordner `Vorlagen/`, wenn dort passende HTML- oder Designvo
 
 Wenn `Private/Daten/` fehlt, nutze `Private.example/Daten/` nur als Strukturhinweis und fordere echte private Daten an. Erstelle keine finale Bewerbung allein aus Beispielplatzhaltern.
 
+## Datenquellen-Zuständigkeit
+
+Die privaten Daten sind bewusst getrennt:
+
+- `Private/Daten/01_PERSOENLICHE_DATEN.md` ist die einzige Quelle für Identität, Kontakt, Dateiname-Name, öffentliche Profile, Verfügbarkeit und Bewerbungslogistik.
+- `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ist die fachliche Quelle für Zielrollen, Positionierung, Berufserfahrung, Ausbildung, Umschulung, Weiterbildung, Schulbildung, Kenntnisse, Projekte, private Praxis, Sprachen und Grenzen.
+
+Der Agent darf fachliche Lebenslaufdaten nicht aus Datei `01` ableiten, wenn Datei `02` dazu eine abweichende oder fehlende Aussage enthält. Bei Dopplungen oder Widersprüchen gilt:
+
+- Kontakt- und Dateinamendaten kommen aus Datei `01`.
+- Fachliche CV-Daten kommen aus Datei `02`.
+- Widersprüche werden in `Offene_Fragen.md` dokumentiert und nicht stillschweigend vermischt.
+
 ## Input
 
 Der Nutzer liefert normalerweise nur:
@@ -166,6 +179,7 @@ Wenn wichtige Angaben fehlen:
 - `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlicht werden.
 - Öffentliche Dateien in `Prompts/`, `Vorlagen/`, `Tools/` und `Private.example/` dürfen keine echten Bewerberdaten enthalten.
 - Generierte Bewerbungen, Bewertungen, Universal-Lebensläufe und Archive gehören unter `Private/`.
+- Stammdaten und fachliche Lebenslaufdaten sollen nicht doppelt gepflegt werden: Datei `01` enthält Identität/Kontakt, Datei `02` enthält Profil und CV-Stationen.
 
 ## Optionaler Ordner-Helfer
 

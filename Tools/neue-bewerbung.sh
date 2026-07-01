@@ -109,6 +109,11 @@ if [[ ! "$datum" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
   exit 2
 fi
 
+if [[ -n "$stellenbeschreibung_path" && ! -e "$stellenbeschreibung_path" ]]; then
+  echo "Fehler: --stellenbeschreibung-path existiert nicht: $stellenbeschreibung_path" >&2
+  exit 2
+fi
+
 firma_slug="$(convert_to_slug "$firma")"
 rolle_slug="$(convert_to_slug "$rolle")"
 firma_html="$(html_escape "$firma")"

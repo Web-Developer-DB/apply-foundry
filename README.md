@@ -1,9 +1,11 @@
+<!-- cspell:words Layoutcheck MitLayoutcheck NurVorbereiten MinPdfBytes NichtUeberschreiben firefox Pruefe Qualitaetscheck Strg -->
+
 # bewerbungs-agent
 
 `bewerbungs-agent` ist ein lokaler, modularer Bewerbungsassistent für deutsche Bewerbungsunterlagen. Aus einer konkreten Stellenbeschreibung und den privaten Profildaten erstellt der Agent eine passgenaue Bewerbung:
 
-- Lebenslauf als druckstabile HTML-Datei
-- Anschreiben als druckstabile HTML-Datei
+- Lebenslauf als für den Druck vorbereitete HTML-Datei
+- Anschreiben als für den Druck vorbereitete HTML-Datei
 - kurze E-Mail-Nachricht
 - Stellenanalyse
 - Qualitätscheck
@@ -58,7 +60,7 @@ Für die technischen Hilfsskripte unter Windows:
 
 - PowerShell
 - optional Chrome oder Edge für automatischen PDF-Export
-- optional Chrome, Edge oder Firefox für den Browser-Layoutcheck
+- optional Chrome, Edge oder Firefox für die visuelle Prüfung im Browser
 
 Unter Linux gibt es aktuell ein Bash-Skript für die Ordnererstellung. Die technischen Prüf- und Exporttools sind derzeit PowerShell-Skripte.
 
@@ -77,14 +79,41 @@ Private/Daten/01_PERSOENLICHE_DATEN.md
 Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
 ```
 
+Optional, aber empfohlen:
+
+```text
+Private/Daten/README.md
+```
+
 Wenn `Private/Daten/` noch fehlt:
 
 1. Erstelle den Ordner `Private/Daten/`.
 2. Nutze die Dateien aus `Private.example/Daten/` als Strukturvorlage.
 3. Entferne Beispielplatzhalter.
-4. Trage echte Kontaktdaten, Profil, Kompetenzen, Berufserfahrung, Weiterbildung und Projekte ein.
+4. Trage persönliche Stammdaten nur in `01_PERSOENLICHE_DATEN.md` ein.
+5. Trage fachliche Lebenslaufdaten nur in `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ein.
+6. Nutze `Private/Daten/README.md` als lokale Pflegeanleitung, wenn du die Daten später erweiterst.
 
 Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlicht werden.
+
+### Zuständigkeit der privaten Datenfiles
+
+`01_PERSOENLICHE_DATEN.md` enthält nur:
+
+- Name, Vorname, Nachname und Dateiname-Name
+- Adresse, Telefon, E-Mail
+- GitHub, Portfolio und andere öffentliche Profile
+- Verfügbarkeit und optionale persönliche Angaben
+
+`02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` enthält:
+
+- Zielrollen und Positionierung
+- Berufserfahrung und übertragbare Erfahrung
+- Ausbildung, Umschulung, Weiterbildung und Schulbildung
+- Kenntnisse, Sprachen, Projekte und private Praxis
+- Grenzen und Hinweise, was nicht behauptet werden darf
+
+Eine Information soll nur an einer Stelle gepflegt werden. Kontakt- und Angaben für Dateinamen kommen aus Datei `01`; fachliche CV-Daten kommen aus Datei `02`.
 
 ## Bewerbung durch den Agenten erstellen lassen
 
@@ -107,7 +136,7 @@ Danach erstellt er einen privaten Bewerbungsordner und speichert dort die finale
 
 ## Was der Agent fachlich macht
 
-Der Agent erstellt keinen universellen Lebenslauf. Er erstellt eine bewerbungsspezifische Version.
+Der Agent erstellt keinen universellen Lebenslauf. Er erstellt eine auf die konkrete Bewerbung zugeschnittene Version.
 
 Dabei entscheidet die Stellenbeschreibung, welche Profilteile sichtbar werden:
 
@@ -119,7 +148,7 @@ Dabei entscheidet die Stellenbeschreibung, welche Profilteile sichtbar werden:
 - Lebenslauf, Anschreiben und E-Mail passend zur Rolle formulieren
 - keine Kenntnisse, Arbeitgeber, Zeiträume oder Zertifikate erfinden
 
-Der Lebenslauf soll wie ein deutscher tabellarischer CV wirken, nicht wie eine Portfolioseite oder reine Skill-Sammlung.
+Der Lebenslauf soll wie ein deutscher tabellarischer CV wirken, nicht wie eine Portfolio-Seite oder reine Skill-Sammlung.
 
 ## Optional: Bewerbungsordner manuell vorbereiten
 
@@ -164,13 +193,13 @@ Der Prüfer kontrolliert:
 - CSS ist eingebettet
 - keine externen Skripte, Fonts oder CDNs
 - `overflow: hidden` wird nur auf der äußeren A4-Seite verwendet
-- E-Mail-Nachricht ist kurz und platzhalterfrei
+- E-Mail-Nachricht ist kurz und ohne Platzhalter
 
 Wenn der Prüfer rot ist, sollte die Bewerbung noch nicht versendet werden.
 
-## Optional: Layoutcheck erzeugen
+## Optional: Visuelle Prüfung erzeugen
 
-Der Layoutcheck öffnet die finalen HTML-Dateien per Headless-Browser und erzeugt Screenshots im privaten Arbeitsordner:
+Der Layout-Check öffnet die finalen HTML-Dateien per Headless-Browser und erzeugt Screenshots im privaten Arbeitsordner:
 
 ```powershell
 .\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
@@ -182,7 +211,7 @@ Die Screenshots liegen unter:
 Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
 ```
 
-Der Layoutcheck gilt nur als erfolgreich, wenn die erwarteten Screenshot-Dateien wirklich erzeugt wurden und eine sinnvolle Größe haben.
+Der Layout-Check gilt nur als erfolgreich, wenn die erwarteten Screenshot-Dateien wirklich erzeugt wurden und eine sinnvolle Größe haben.
 
 ## PDFs automatisch exportieren
 
@@ -192,7 +221,7 @@ Wenn der statische Check grün ist und Chrome oder Edge verfügbar ist:
 .\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
 ```
 
-Mit Layoutcheck vor dem Export:
+Mit Layout-Check vor dem Export:
 
 ```powershell
 .\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -MitLayoutcheck
@@ -224,13 +253,13 @@ Wenn in Firefox Dateiname, URL, Datum oder Seitenzahl erscheinen, kommt das aus 
 Empfohlene Firefox-Einstellungen:
 
 1. HTML-Datei öffnen.
-2. `Strg + P` drücken.
+2. Den Druckdialog öffnen, zum Beispiel mit `Strg + P`.
 3. `Weitere Einstellungen` öffnen.
 4. `Kopf- und Fußzeilen drucken` deaktivieren.
 5. Skalierung auf `100%` stellen.
 6. Ränder auf `Keine` stellen.
 
-Bei Einseiten-Dokumenten soll eine feste A4-Fläche von `210mm x 297mm` verwendet werden. Wenn ein Lebenslauf fachlich nicht sauber auf eine Seite passt, ist ein bewusst zweiseitiger Lebenslauf besser als ein gequetschter oder abgeschnittener Einseiter.
+Bei einseitigen Dokumenten soll eine feste A4-Fläche von `210mm x 297mm` verwendet werden. Wenn ein Lebenslauf fachlich nicht sauber auf eine Seite passt, ist ein bewusst zweiseitiger Lebenslauf besser als ein gequetschtes oder abgeschnittenes einseitiges Dokument.
 
 ## Offene Fragen in Bewerbungen
 
@@ -259,7 +288,7 @@ Nicht versenden:
 
 - Dateien aus `_Arbeitsdateien`
 - Entwürfe
-- Screenshots aus dem Layoutcheck
+- Screenshots aus dem Layout-Check
 - interne Notizen
 - `Analyse.md`, falls sie nur für dich gedacht ist
 - `Qualitaetscheck.md`, falls er nicht ausdrücklich gewünscht ist
@@ -305,7 +334,7 @@ Wenn der statische Check fehlschlägt:
 - HTML oder Markdown korrigieren
 - `Pruefe-Bewerbung.ps1` erneut ausführen
 
-Wenn der Layoutcheck fehlschlägt:
+Wenn der Layout-Check fehlschlägt:
 
 - prüfen, ob Chrome, Edge oder Firefox installiert ist
 - prüfen, ob die Ausgabedateien unter `_Arbeitsdateien` erzeugt wurden
@@ -386,6 +415,7 @@ bewerbungs-agent/
 ```text
 Private/
 ├─ Daten/
+│  ├─ README.md
 │  ├─ 01_PERSOENLICHE_DATEN.md
 │  └─ 02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
 ├─ Bewerbungen/
@@ -398,7 +428,7 @@ Private/
 └─ Archiv/
 ```
 
-`Private/` ist ignoriert und darf nicht versioniert werden.
+`Private/` ist ignoriert und darf nicht in Git aufgenommen werden.
 
 ## Prompt-System
 
@@ -422,7 +452,7 @@ Die Spezialregeln sind getrennt:
 | `08_HTML_CSS_DESIGNREGELN.md` | feste A4-Geometrie, Firefox-Druck, HTML/CSS-Regeln |
 | `09_QUALITAETSCHECK.md` | inhaltliche und technische Checkliste |
 | `10_DATEI_UND_ORDNER_REGELN.md` | private Ordner, Dateinamen, Slugs, Arbeitsdateien |
-| `11_TECHNISCHER_CHECK_WORKFLOW.md` | statischer Prüfer, Layoutcheck, PDF-Export und robuste Shell-Regeln |
+| `11_TECHNISCHER_CHECK_WORKFLOW.md` | statischer Prüfer, Layout-Check, PDF-Export und robuste Shell-Regeln |
 
 Änderungen sollten in der fachlich passenden Datei erfolgen, nicht alles in `00_AGENTEN_START_HIER.md`.
 
@@ -430,19 +460,20 @@ Die Spezialregeln sind getrennt:
 
 1. Stellenbeschreibung kommt vom Nutzer.
 2. Agent liest private Daten aus `Private/Daten/`.
-3. Agent liest Prompt-Regeln aus `Prompts/`.
-4. Agent erkennt Firma, Rolle, Anforderungen, Muss-Kriterien, Kann-Kriterien und Risiken.
-5. Agent legt Rollenstrategie und Lebenslaufstrategie fest.
-6. Ordner wird unter `Private/Bewerbungen/` erstellt.
-7. Originale Stellenbeschreibung wird als `Stellenbeschreibung.md` gesichert.
-8. Analyse wird als `Analyse.md` gespeichert.
-9. Lebenslauf und Anschreiben werden als HTML erstellt.
-10. E-Mail-Nachricht wird als Markdown erstellt.
-11. Offene Fragen werden dokumentiert, falls nötig.
-12. Qualitätscheck wird gespeichert.
-13. Statischer technischer Check wird ausgeführt.
-14. Optional Layoutcheck.
-15. Optional PDF-Export.
+3. Agent trennt dabei Datei `01` als Quelle für Identität/Kontakt und Datei `02` als Quelle für fachliche CV-Daten.
+4. Agent liest Prompt-Regeln aus `Prompts/`.
+5. Agent erkennt Firma, Rolle, Anforderungen, Muss-Kriterien, Kann-Kriterien und Risiken.
+6. Agent legt Rollenstrategie und Lebenslaufstrategie fest.
+7. Ordner wird unter `Private/Bewerbungen/` erstellt.
+8. Originale Stellenbeschreibung wird als `Stellenbeschreibung.md` gesichert.
+9. Analyse wird als `Analyse.md` gespeichert.
+10. Lebenslauf und Anschreiben werden als HTML erstellt.
+11. E-Mail-Nachricht wird als Markdown erstellt.
+12. Offene Fragen werden dokumentiert, falls nötig.
+13. Qualitätscheck wird gespeichert.
+14. Statischer technischer Check wird ausgeführt.
+15. Optional Layout-Check.
+16. Optional PDF-Export.
 
 ## Finale Dateinamen
 
@@ -530,7 +561,7 @@ Das Skript ist bewusst unabhängig von `rg` und Browsern, damit der wichtigste A
 
 ### `Tools/Layoutcheck-Bewerbung.ps1`
 
-Optionaler Browsercheck mit Screenshots.
+Optionale Browser-Prüfung mit Screenshots.
 
 Beispiel:
 
@@ -548,7 +579,7 @@ Nützliche Parameter:
 - `-Pdf`
 - `-OutputRoot`
 
-Screenshots und Browserprofile müssen unter `_Arbeitsdateien` landen, nicht im finalen Bewerbungsordner.
+Screenshots und Browser-Profile müssen unter `_Arbeitsdateien` landen, nicht im finalen Bewerbungsordner.
 
 ### `Tools/Exportiere-PDF.ps1`
 
@@ -616,10 +647,10 @@ Der automatische PDF-Export nutzt Chrome oder Edge Headless. Firefox bleibt für
 
 Wichtig:
 
-- Ein Browserprozess gilt nur als Erfolg, wenn die erwartete Datei existiert.
+- Ein Browser-Prozess gilt nur als Erfolg, wenn die erwartete Datei existiert.
 - Eine Screenshot- oder PDF-Datei muss eine sinnvolle Größe haben.
 - PDFs werden zusätzlich auf `%PDF-`-Header geprüft.
-- Stille Browserprozesse ohne Ausgabedatei sind Fehler.
+- Stille Browser-Prozesse ohne Ausgabedatei sind Fehler.
 
 ## Umgang mit `rg` und PowerShell
 
@@ -675,7 +706,7 @@ Wenn `git status --short --ignored` `!! Private/` zeigt, ist das normal.
 | --- | --- |
 | Hauptablauf ändern | `Prompts/00_AGENTEN_START_HIER.md` |
 | Lebenslaufregeln ändern | `Prompts/03_LEBENSLAUF_REGELN.md` |
-| Anschreibenregeln ändern | `Prompts/04_ANSCHREIBEN_REGELN.md` |
+| Regeln für Anschreiben ändern | `Prompts/04_ANSCHREIBEN_REGELN.md` |
 | E-Mail-Regeln ändern | `Prompts/05_EMAIL_NACHRICHT_REGELN.md` |
 | Rollenlogik ändern | `Prompts/06_ROLLENLOGIK.md` |
 | Wahrheitsregeln ändern | `Prompts/07_WAHRHEIT_UND_GRENZEN.md` |
@@ -686,7 +717,7 @@ Wenn `git status --short --ignored` `!! Private/` zeigt, ist das normal.
 | Ordnererstellung unter Windows ändern | `Tools/Neue-Bewerbung.ps1` |
 | Ordnererstellung unter Linux ändern | `Tools/neue-bewerbung.sh` |
 | statischen Check ändern | `Tools/Pruefe-Bewerbung.ps1` |
-| Layoutcheck ändern | `Tools/Layoutcheck-Bewerbung.ps1` |
+| Layout-Check ändern | `Tools/Layoutcheck-Bewerbung.ps1` |
 | PDF-Export ändern | `Tools/Exportiere-PDF.ps1` |
 | Designreferenzen ändern | `Vorlagen/Designreferenz-Lebenslauf.html`, `Vorlagen/Designreferenz-Anschreiben.html` |
 
@@ -695,7 +726,7 @@ Wenn `git status --short --ignored` `!! Private/` zeigt, ist das normal.
 1. Änderungen an Prompt, Tool oder Vorlage machen.
 2. Mit einer privaten Testbewerbung prüfen.
 3. Statischen Check ausführen.
-4. Optional Layoutcheck ausführen.
+4. Optional Layout-Check ausführen.
 5. Optional PDF-Export ausführen.
 6. `git status --short` prüfen.
 7. Sicherstellen, dass keine privaten Dateien im Commit landen.

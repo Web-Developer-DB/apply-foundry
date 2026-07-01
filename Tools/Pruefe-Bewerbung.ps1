@@ -230,9 +230,8 @@ if ($emailFiles.Count -eq 1) {
 $markerPatterns = @(
   '\{\{',
   '\}\}',
-  '\[ergänzen\]',
-  '\[Zeitraum ergänzen\]',
-  '\[Name aus',
+  '\[[^\]\r\n]*(ergänzen|optional|Zeitraum|Name aus|Platzhalter|hier einfügen)[^\]\r\n]*\]',
+  '\[(Name|Rolle|Firma|Vorname|Nachname|Adresse|Telefon|E-Mail|Email)\]',
   'TODO',
   'DOKUMENT NOCH NICHT FINAL'
 )
