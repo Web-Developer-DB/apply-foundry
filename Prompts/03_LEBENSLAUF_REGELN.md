@@ -204,6 +204,9 @@ Wenn zwei Seiten fachlich sinnvoll sind:
 - Seite 1 enthält die wichtigsten Recruiter-Signale: Name, Zielrolle, Kurzprofil, Kontakt, Kernkompetenzen und relevante Berufserfahrung.
 - Seite 2 enthält sauber strukturierte formale Ergänzungen: Ausbildung/Studium/berufliche Bildung, Schulbildung, Weiterbildungen/Zertifikate, Sprachen und relevante Projekte/Zusatzpraxis.
 - Seite 2 darf nicht wie ein zufälliger Rest wirken.
+- Seite 1 darf nicht halb leer wirken; Seite 2 darf kein ausgelagerter Rest mit unten abgeschnittenen formalen Stationen sein.
+- Wenn Seite 1 deutlich zu wenig Inhalt trägt oder Seite 2 nur durch einzelne verschobene Rubriken entsteht, muss neu verteilt, fachlich gekürzt oder wieder ein kompakter Einseiten-Lebenslauf erstellt werden.
+- Schulbildung und berufliche Bildung dürfen bei einer zweiseitigen Fassung nicht erst so spät stehen, dass sie am Seitenende gefährdet oder abgeschnitten wirken.
 - Es gibt keinen zufälligen Browserumbruch und keinen abgeschnittenen Inhalt.
 
 Wenn eine Seite gewählt wird:

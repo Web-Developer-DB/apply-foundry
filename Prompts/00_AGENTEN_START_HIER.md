@@ -84,8 +84,10 @@ Frage nur nach, wenn eine fehlende Information die fachliche Korrektheit der fin
 12. Prüfe, dass finale HTML- und Markdown-Dateien keine sichtbaren Platzhalter enthalten.
 13. Prüfe besonders bei HTML-Dateien, dass Firefox nicht automatisch mitten im Dokument umbricht. Ein Einseiten-Dokument muss technisch eine feste A4-Seite sein; ein zweiseitiges Dokument muss zwei explizite A4-Seitencontainer haben.
 14. Führe, sofern PowerShell verfügbar ist, den statischen technischen Check aus: `.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
-15. Optional: Führe den Browser-Layoutcheck aus: `.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`. Werte ihn nur als bestanden, wenn die erwarteten Dateien tatsächlich erzeugt wurden.
-16. Wenn Chrome oder Edge verfügbar ist, exportiere Lebenslauf und Anschreiben nach erfolgreichem statischem Check automatisch als PDF: `.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
+15. Optional: Führe den Browser-Layoutcheck aus. Unter Windows 11 / VS Code / PowerShell mit installiertem Chrome ist der direkte Standardweg: `.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome`. Werte ihn nur als bestanden, wenn die erwarteten Screenshot-Dateien tatsächlich erzeugt wurden.
+16. Prüfe den erzeugten Screenshot visuell: keine abgeschnittenen Inhalte, keine zerhackten Seiten, keine großen ungewollten Leerflächen, keine zweite Seite nur mit Restinhalt, formale CV-Stationen sichtbar.
+17. Wenn Chrome im Sandbox-Kontext keine Screenshot-Dateien erzeugt oder hängt, nicht weiter mit Firefox experimentieren. Beende oder verwerfe den Lauf, dokumentiere den Sandbox-Fehler und führe denselben Chrome-Layoutcheck außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut aus.
+18. Wenn Chrome oder Edge verfügbar ist, exportiere Lebenslauf und Anschreiben nach erfolgreichem statischem Check automatisch als PDF: `.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
 
 Temporäre Entwürfe, Zwischenschritte oder Arbeitsnotizen dürfen nicht direkt im Projektwurzelordner liegen. Sie gehören immer in den privaten Firmenordner unter:
 
@@ -218,6 +220,28 @@ Optional kann zusätzlich ein Browser-Layoutcheck erzeugt werden:
 ```
 
 Der Browser-Layoutcheck gilt nur als bestanden, wenn Screenshots oder PDFs wirklich im privaten `_Arbeitsdateien`-Ordner erzeugt wurden.
+
+Bekannter Standardweg unter Windows 11 / VS Code / PowerShell:
+
+```powershell
+.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome
+```
+
+Wenn der Agent in einer Sandbox läuft und Chrome dort keine Ausgabe erzeugt oder der Browserprozess hängt, gilt das nicht als Layouturteil über die Bewerbung. Dann denselben Befehl mit lokaler Browserfreigabe außerhalb der Sandbox erneut ausführen. Nicht auf Firefox ausweichen, nur um irgendetwas zu probieren.
+
+Nach erfolgreichem Lauf den Screenshot unter folgendem Pfad öffnen und bewerten:
+
+```text
+Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
+```
+
+Bewertung:
+
+- Einseiten-Dokumente müssen als eine vollständige A4-Seite sichtbar sein.
+- Zweiseitige Lebensläufe dürfen nicht halb leer oder wie ein zufälliger Rest wirken.
+- Unten darf kein Inhalt abgeschnitten sein.
+- Schulbildung, berufliche Bildung und Weiterbildung dürfen nicht an den Rand gedrückt oder verdeckt sein.
+- Schriftgröße und Abstände müssen professionell lesbar wirken.
 
 Wenn Chrome oder Edge verfügbar ist, können danach automatisch PDFs erzeugt werden:
 
