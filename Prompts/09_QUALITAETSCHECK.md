@@ -103,6 +103,14 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Browser-Kopf- und Fußzeilen sind als Nutzer-/Druckdialog-Einstellung dokumentiert.
 - `Druck-Hinweis.md` liegt im Bewerbungsordner.
 
+## PDF-Export
+
+- PDFs werden nur nach erfolgreichem statischem Check erzeugt.
+- Der PDF-Export nutzt das Schema `Lebenslauf - NACHNAME.VORNAME.pdf` und `Anschreiben - NACHNAME.VORNAME.pdf`.
+- PDF-Dateien liegen nur im finalen Bewerbungsordner, nicht in `_Arbeitsdateien`.
+- Jede erzeugte PDF-Datei wurde auf Existenz, sinnvolle Dateigröße und PDF-Header geprüft.
+- Wenn der automatische PDF-Export nicht möglich war, ist dies offen dokumentiert.
+
 ## Ablage
 
 - Finale Dateien liegen im finalen Bewerbungsordner `Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/`.
