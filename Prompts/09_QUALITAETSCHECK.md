@@ -6,6 +6,8 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 
 - Ist die Bewerbung klar auf die Stellenbeschreibung zugeschnitten?
 - Wurde das Bewerbungsprofil aus Stellenbeschreibung und privaten Daten abgeleitet, nicht aus öffentlichen Beispielprompts?
+- Wurden die Datenquellen sauber getrennt: Datei `01` nur für Identität/Kontakt, Datei `02` für fachliche CV-Daten?
+- Gibt es keine stillschweigend vermischten Dopplungen oder Widersprüche zwischen Datei `01` und Datei `02`?
 - Sind die wichtigsten Anforderungen der Stelle sichtbar?
 - Sind irrelevante Profilteile für die konkrete Zielrolle entfernt oder reduziert?
 - Sind die rollennahen Kenntnisse aus den privaten Profildaten sichtbar genug?
@@ -34,6 +36,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Sind Berufserfahrung oder berufliche Stationen klar sichtbar?
 - Sind Ausbildung, Studium oder berufliche Bildung berücksichtigt, sofern entsprechende Daten vorhanden sind?
 - Ist Schulbildung enthalten oder bewusst und nachvollziehbar weggelassen?
+- Wurde Schulbildung, sofern vorhanden, aus der fachlichen Profildatei `02` berücksichtigt und nicht durch Kontakt-/Stammdaten verdrängt?
 - Sind Weiterbildungen, Zertifikate und Qualifikationen sinnvoll platziert?
 - Verdrängen Projekte, private Praxis, Zusatzkenntnisse oder Skill-Listen keine formalen CV-Stationen?
 - Sind Kompetenzen sauber gruppiert und nicht als vollständige Inventarliste dargestellt?

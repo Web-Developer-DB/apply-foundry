@@ -55,6 +55,7 @@ Zusatzkenntnisse dürfen nicht automatisch übernommen werden. Sie brauchen eine
 Die Rollenstrategie darf Inhalte gewichten, aber sie darf den deutschen Lebenslaufstandard nicht auflösen.
 
 - Berufserfahrung, Ausbildung/Studium/berufliche Bildung und Schulbildung bleiben als formale Stationen erkennbar, wenn entsprechende Daten vorhanden sind.
+- Formale CV-Stationen werden fachlich aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` entnommen; `Private/Daten/01_PERSOENLICHE_DATEN.md` ist nur für Identität, Kontakt, Dateiname-Name und Bewerbungslogistik zuständig.
 - Rollenrelevante Projekte, private Praxis und Zusatzkenntnisse dürfen formale Stationen ergänzen, aber nicht ersetzen.
 - Bei Quereinstieg, Rollenwechsel oder wenig klassischer Berufserfahrung werden formale Stationen ehrlich dargestellt und durch passende Praxisbelege ergänzt.
 - Wenn formale Daten fehlen, werden sie nicht erfunden und nicht durch scheinbar berufliche Projektformulierungen kaschiert.

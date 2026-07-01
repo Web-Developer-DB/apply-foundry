@@ -80,10 +80,10 @@ Der PDF-Export:
 Beispielausgabe:
 
 ```text
-Lebenslauf - Barbje.Dimitri.html
-Lebenslauf - Barbje.Dimitri.pdf
-Anschreiben - Barbje.Dimitri.html
-Anschreiben - Barbje.Dimitri.pdf
+Lebenslauf - Nachname.Vorname.html
+Lebenslauf - Nachname.Vorname.pdf
+Anschreiben - Nachname.Vorname.html
+Anschreiben - Nachname.Vorname.pdf
 ```
 
 Optional kann der PDF-Export vorher auch den Browser-Layoutcheck ausführen:

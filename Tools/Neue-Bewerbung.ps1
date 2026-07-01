@@ -50,6 +50,16 @@ $firmaHtml = [System.Net.WebUtility]::HtmlEncode($Firma)
 $rolleHtml = [System.Net.WebUtility]::HtmlEncode($Rolle)
 $bewerbungenRootFull = [System.IO.Path]::GetFullPath($BewerbungenRoot)
 
+if ($Datum -notmatch '^\d{4}-\d{2}-\d{2}$') {
+  Write-Host "[FEHLER] Der Parameter -Datum muss im Format YYYY-MM-DD angegeben werden." -ForegroundColor Red
+  exit 2
+}
+
+if ($StellenbeschreibungPath -and -not (Test-Path -LiteralPath $StellenbeschreibungPath)) {
+  Write-Host "[FEHLER] StellenbeschreibungPath existiert nicht: $StellenbeschreibungPath" -ForegroundColor Red
+  exit 2
+}
+
 $firmaDir = Join-Path -Path $bewerbungenRootFull -ChildPath $firmaSlug
 $zielDir = Join-Path -Path $firmaDir -ChildPath "$Datum--$rolleSlug"
 $arbeitsDir = Join-Path -Path (Join-Path -Path $firmaDir -ChildPath "_Arbeitsdateien") -ChildPath "$Datum--$rolleSlug"
