@@ -18,6 +18,7 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Browser- oder Headless-Checks nur als bestanden werten, wenn die erwartete Ausgabe wirklich existiert und eine sinnvolle Dateigröße hat.
 - Wenn ein Browser-Layoutcheck keine Datei erzeugt, ist das kein bestandener Layoutcheck. Dann muss der Fehler klar dokumentiert werden.
 - Finale Bewerbungsdateien dürfen erst gemeldet werden, nachdem mindestens der statische Check erfolgreich war.
+- PDFs dürfen erst erzeugt werden, nachdem der statische Check erfolgreich war.
 
 ## Pflichtprüfung nach jeder Bewerbung
 
@@ -58,16 +59,52 @@ Der Layoutcheck:
 
 Der Browser-Layoutcheck ist hilfreich, aber optional. Wenn er wegen lokaler Browser- oder Sandbox-Einschränkungen nicht läuft, muss der statische Check trotzdem erfolgreich sein und der nicht ausgeführte Layoutcheck offen benannt werden.
 
+## Automatischer PDF-Export
+
+Wenn die finalen HTML-Dateien technisch im grünen Bereich sind, können Lebenslauf und Anschreiben automatisch als PDF exportiert werden:
+
+```powershell
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+```
+
+Der PDF-Export:
+
+- führt zuerst `Tools/Pruefe-Bewerbung.ps1` aus
+- bricht ab, wenn der statische Check fehlschlägt
+- nutzt Chrome oder Edge Headless für den PDF-Export
+- speichert die PDFs im finalen Bewerbungsordner
+- nutzt dieselben Dateinamen wie die HTML-Dateien, nur mit `.pdf`
+- prüft, ob jede PDF-Datei existiert, nicht leer ist und einen PDF-Header enthält
+- nutzt einen privaten Arbeitsordner unter `_Arbeitsdateien/.../PDF-Export` für Browserprofile
+
+Beispielausgabe:
+
+```text
+Lebenslauf - BEISPIEL.PERSON.html
+Lebenslauf - BEISPIEL.PERSON.pdf
+Anschreiben - BEISPIEL.PERSON.html
+Anschreiben - BEISPIEL.PERSON.pdf
+```
+
+Optional kann der PDF-Export vorher auch den Browser-Layoutcheck ausführen:
+
+```powershell
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -MitLayoutcheck
+```
+
+Wenn kein Chrome oder Edge verfügbar ist, wird kein PDF-Export als bestanden gemeldet. Dann bleibt der manuelle PDF-Export über Firefox oder einen anderen Browser möglich, muss aber offen dokumentiert werden.
+
 ## Reihenfolge im Abschluss
 
 1. Finale Dateien erzeugen.
 2. `Tools/Pruefe-Bewerbung.ps1` ausführen.
 3. Optional `Tools/Layoutcheck-Bewerbung.ps1` ausführen.
-4. Ergebnis in `Qualitaetscheck.md` oder in der Abschlussnachricht knapp dokumentieren.
-5. Bei Fehlern nicht final melden, sondern Dateien korrigieren und den Check erneut ausführen.
+4. Wenn PDF-Dateien gewünscht sind oder ein Browser verfügbar ist: `Tools/Exportiere-PDF.ps1` ausführen.
+5. Ergebnis in `Qualitaetscheck.md` oder in der Abschlussnachricht knapp dokumentieren.
+6. Bei Fehlern nicht final melden, sondern Dateien korrigieren und den Check erneut ausführen.
 
 ## Keine stillen Erfolge
 
 Ein technischer Check gilt nur als erfolgreich, wenn das Tool mit Exitcode `0` endet und eine klare OK-Meldung ausgibt.
 
-Stille Browserprozesse, fehlende Screenshot-Dateien, leere PDFs oder durch Shell-Syntax fehlgeschlagene Suchläufe dürfen nicht als bestandene Prüfung behandelt werden.
+Stille Browserprozesse, fehlende Screenshot-Dateien, fehlende oder leere PDFs, PDFs ohne PDF-Header oder durch Shell-Syntax fehlgeschlagene Suchläufe dürfen nicht als bestandene Prüfung behandelt werden.

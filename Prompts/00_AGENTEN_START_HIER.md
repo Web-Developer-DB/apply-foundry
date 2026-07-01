@@ -72,6 +72,7 @@ Frage nur nach, wenn eine fehlende Information die fachliche Korrektheit der fin
 13. Prüfe besonders bei HTML-Dateien, dass Firefox nicht automatisch mitten im Dokument umbricht. Ein Einseiten-Dokument muss technisch eine feste A4-Seite sein; ein zweiseitiges Dokument muss zwei explizite A4-Seitencontainer haben.
 14. Führe, sofern PowerShell verfügbar ist, den statischen technischen Check aus: `.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
 15. Optional: Führe den Browser-Layoutcheck aus: `.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`. Werte ihn nur als bestanden, wenn die erwarteten Dateien tatsächlich erzeugt wurden.
+16. Wenn Chrome oder Edge verfügbar ist, exportiere Lebenslauf und Anschreiben nach erfolgreichem statischem Check automatisch als PDF: `.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
 
 Temporäre Entwürfe, Zwischenschritte oder Arbeitsnotizen dürfen nicht direkt im Projektwurzelordner liegen. Sie gehören immer in den privaten Firmenordner unter:
 
@@ -203,6 +204,14 @@ Optional kann zusätzlich ein Browser-Layoutcheck erzeugt werden:
 ```
 
 Der Browser-Layoutcheck gilt nur als bestanden, wenn Screenshots oder PDFs wirklich im privaten `_Arbeitsdateien`-Ordner erzeugt wurden.
+
+Wenn Chrome oder Edge verfügbar ist, können danach automatisch PDFs erzeugt werden:
+
+```powershell
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+```
+
+Der PDF-Export führt den statischen Prüfer erneut aus und bricht ab, wenn die HTML-Bewerbung nicht im grünen Bereich ist.
 
 ## Plattformregeln
 
