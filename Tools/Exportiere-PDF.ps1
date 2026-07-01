@@ -143,7 +143,70 @@ function Test-PdfFile {
     $stream.Dispose()
   }
 
+  $a4Error = Test-PdfA4MediaBox -Path $Path
+  if ($a4Error) {
+    return $a4Error
+  }
+
   return $null
+}
+
+function Get-PdfMediaBoxes {
+  param([string]$Path)
+
+  $bytes = [System.IO.File]::ReadAllBytes($Path)
+  $text = [System.Text.Encoding]::ASCII.GetString($bytes)
+  $pattern = '/MediaBox\s*\[\s*([-+]?[0-9]*\.?[0-9]+)\s+([-+]?[0-9]*\.?[0-9]+)\s+([-+]?[0-9]*\.?[0-9]+)\s+([-+]?[0-9]*\.?[0-9]+)\s*\]'
+  $matches = [System.Text.RegularExpressions.Regex]::Matches($text, $pattern)
+  $culture = [System.Globalization.CultureInfo]::InvariantCulture
+  $boxes = New-Object System.Collections.Generic.List[object]
+
+  foreach ($match in $matches) {
+    $left = [double]::Parse($match.Groups[1].Value, $culture)
+    $bottom = [double]::Parse($match.Groups[2].Value, $culture)
+    $right = [double]::Parse($match.Groups[3].Value, $culture)
+    $top = [double]::Parse($match.Groups[4].Value, $culture)
+    $boxes.Add([pscustomobject]@{
+      Left = $left
+      Bottom = $bottom
+      Right = $right
+      Top = $top
+      Width = [Math]::Abs($right - $left)
+      Height = [Math]::Abs($top - $bottom)
+    }) | Out-Null
+  }
+
+  return $boxes
+}
+
+function Test-PdfA4MediaBox {
+  param([string]$Path)
+
+  $boxes = @(Get-PdfMediaBoxes -Path $Path)
+  if ($boxes.Count -eq 0) {
+    return "PDF enthält keine lesbare MediaBox: $Path"
+  }
+
+  foreach ($box in $boxes) {
+    $isA4Portrait = ($box.Width -ge 590 -and $box.Width -le 600 -and $box.Height -ge 838 -and $box.Height -le 846)
+    if (-not $isA4Portrait) {
+      return ("PDF ist nicht DIN A4. MediaBox: {0:N2} x {1:N2} pt, erwartet ca. 595 x 842 pt: {2}" -f $box.Width, $box.Height, $Path)
+    }
+  }
+
+  return $null
+}
+
+function Format-PdfMediaBoxSummary {
+  param([string]$Path)
+
+  $boxes = @(Get-PdfMediaBoxes -Path $Path)
+  if ($boxes.Count -eq 0) {
+    return $null
+  }
+
+  $first = $boxes[0]
+  return ("{0:N2} x {1:N2} pt" -f $first.Width, $first.Height)
 }
 
 function Export-HtmlToPdf {
@@ -278,6 +341,10 @@ foreach ($candidate in $browserCandidates) {
     $exportedPdfs.Add($pdfPath) | Out-Null
     $pdfInfo = Get-Item -LiteralPath $pdfPath
     Add-Ok "$($candidate.Name): PDF erzeugt: $([System.IO.Path]::GetFileName($pdfPath)) ($($pdfInfo.Length) Bytes)"
+    $mediaBoxSummary = Format-PdfMediaBoxSummary -Path $pdfPath
+    if ($mediaBoxSummary) {
+      Add-Ok "$($candidate.Name): DIN A4 MediaBox geprüft: $mediaBoxSummary"
+    }
   }
 
   if ($candidateOk) {

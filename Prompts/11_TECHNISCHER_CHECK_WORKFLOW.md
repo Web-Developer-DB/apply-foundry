@@ -121,6 +121,7 @@ Der PDF-Export:
 - speichert die PDFs im finalen Bewerbungsordner
 - nutzt dieselben Dateinamen wie die HTML-Dateien, nur mit `.pdf`
 - prüft, ob jede PDF-Datei existiert, nicht leer ist und einen PDF-Header enthält
+- prüft, ob die PDF-MediaBox DIN A4 entspricht, sofern das Exporttool dies unterstützt
 - nutzt einen privaten Arbeitsordner unter `_Arbeitsdateien/.../PDF-Export` für Browserprofile
 
 Beispielausgabe:
