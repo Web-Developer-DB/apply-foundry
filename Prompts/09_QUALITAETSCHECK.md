@@ -20,6 +20,19 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Wirkt der Text recruiterfreundlich und nicht KI-generiert?
 - Wirkt der Lebenslauf wie ein deutscher tabellarischer CV und nicht wie eine Portfolio- oder Skill-Dashboard-Seite?
 
+## Fachlicher Abschlusstest
+
+Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachricht auszuführen und bei Korrekturen zu wiederholen.
+
+- Wurden `Stellenbeschreibung.md`, `Analyse.md`, Datei `01`, Datei `02`, Lebenslauf, Anschreiben und E-Mail-Nachricht erneut gegeneinander geprüft?
+- Gibt es in `Qualitaetscheck.md` einen kurzen Anforderungsabgleich mit den wichtigsten Muss- und Kann-Anforderungen der Stelle?
+- Ist je Hauptanforderung erkennbar, ob sie im Lebenslauf sichtbar belegt, im Anschreiben sinnvoll aufgegriffen, nur indirekt passend oder als offene Frage/Risiko dokumentiert ist?
+- Sind alle Aussagen in Lebenslauf und Anschreiben durch Datei `01` oder Datei `02` gedeckt?
+- Wurden Anforderungen, zu denen keine private Datengrundlage existiert, nicht erfunden, sondern neutral ausgelassen oder in `Offene_Fragen.md` dokumentiert?
+- Stimmen Lebenslauf, Anschreiben, E-Mail-Nachricht, Dateinamen, Zielrolle, Firma und Ansprechpartner widerspruchsfrei überein?
+- Sind fehlende Daten die einzigen offenen Punkte und werden sie nicht als sichtbare Platzhalter in finalen Dateien geführt?
+- Wurden bei gefundenen Unstimmigkeiten die finalen Dateien korrigiert und danach erneut geprüft?
+
 ## Rollen- und Recruiter-Strategie
 
 - Wurde Zielrolle, Branche oder Arbeitsfeld korrekt erkannt?
@@ -147,4 +160,5 @@ Am Ende von `Qualitaetscheck.md` kurz festhalten:
 - vermutete Recruiter-Strategie und ggf. Firmengröße
 - bewusst weggelassene Inhalte
 - offene Daten oder Risiken
+- Ergebnis des fachlichen Abschlusstests und ggf. vorgenommene Korrekturen
 - verwendete Designvorlage, falls vorhanden
