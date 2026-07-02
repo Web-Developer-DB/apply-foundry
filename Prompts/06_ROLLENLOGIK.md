@@ -72,6 +72,7 @@ Bei Konflikten gilt die vorsichtigere Belegart. Beispiel: Eine Technologie, die 
 Die Rollenstrategie darf Inhalte gewichten, aber sie darf den deutschen Lebenslaufstandard nicht auflösen.
 
 - Berufserfahrung, Ausbildung/Studium/berufliche Bildung und Schulbildung bleiben als formale Stationen erkennbar, wenn entsprechende Daten vorhanden sind.
+- Rollenrelevanz entscheidet über Detailtiefe und Reihenfolge, aber nicht darüber, ob formale Stationen mit Zeitraum entfernt werden. Vorhandene berufliche Stationen, Ausbildung/Umschulung/Studium, formale Weiterbildungen und Schulbildung bleiben mit Zeitraum, Institution/Arbeitgeber und Rollen- oder Bildungsbezeichnung sichtbar.
 - Formale CV-Stationen werden fachlich aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` entnommen; `Private/Daten/01_PERSOENLICHE_DATEN.md` ist nur für Identität, Kontakt, Dateiname-Name und Bewerbungslogistik zuständig.
 - Für die Rolle relevante Projekte, private Praxis und Zusatzkenntnisse dürfen formale Stationen ergänzen, aber nicht ersetzen.
 - Bei Quereinstieg, Rollenwechsel oder wenig klassischer Berufserfahrung werden formale Stationen ehrlich dargestellt und durch passende Praxisbelege ergänzt.

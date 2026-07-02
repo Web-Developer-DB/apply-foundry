@@ -36,8 +36,11 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Ist die Reihenfolge passend zur Zielrolle?
 - Sind Berufserfahrung oder berufliche Stationen klar sichtbar?
 - Sind Ausbildung, Studium oder berufliche Bildung berücksichtigt, sofern entsprechende Daten vorhanden sind?
-- Ist Schulbildung enthalten oder bewusst und nachvollziehbar weggelassen?
+- Ist Schulbildung enthalten, sofern sie in Datei `02` vorhanden ist?
 - Wurde Schulbildung, sofern vorhanden, aus der fachlichen Profildatei `02` berücksichtigt und nicht durch Kontakt-/Stammdaten verdrängt?
+- Wurden alle formalen Stationen aus Datei `02` mit Zeitraum, Stationstyp, Arbeitgeber/Institution und Rollen- oder Bildungsbezeichnung in den finalen Lebenslauf übernommen?
+- Fehlt keine vorhandene berufliche Station, Ausbildungs-/Umschulungsstation, Weiterbildungsstation oder Schulbildungsstation wegen Platzmangel?
+- Wurde bei Platzproblemen zuerst die Beschreibung gekürzt, statt eine formale Station oder deren Zeitraum zu entfernen?
 - Sind Weiterbildungen, Zertifikate und Qualifikationen sinnvoll platziert?
 - Verdrängen Projekte, private Praxis, Zusatzkenntnisse oder Skill-Listen keine formalen CV-Stationen?
 - Sind Kompetenzen sauber gruppiert und nicht als vollständige Inventarliste dargestellt?
@@ -64,6 +67,9 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Wurden bei Platzproblemen zuerst fachlich irrelevante Inhalte gekürzt, bevor Layout verdichtet wurde?
 - Sind fachfremde Zusatzkenntnisse, Nebenprojekte oder lange Skill-Listen entfernt, wenn sie für diese Stelle keinen Nutzen haben?
 - Bleiben Berufserfahrung, Ausbildung/Studium/berufliche Bildung, Schulbildung und wichtige Weiterbildungen trotz Kürzung sichtbar, sofern Daten vorhanden sind?
+- Sind Zeitraum und Stationsbezeichnung jeder vorhandenen formalen Station erhalten geblieben?
+- Wurde kein formaler Zeitraum entfernt, um den Lebenslauf einseitig zu halten?
+- Wenn die vollständige formale Chronologie nicht sauber auf eine Seite passt: wurde ein bewusst zweiseitiger Lebenslauf erstellt?
 - Ist die Schrift auch nach Layoutoptimierung professionell lesbar?
 - Gibt es keine versteckten Inhalte durch `overflow: hidden`?
 - Wird `overflow: hidden` nur auf der äußeren A4-Seitenfläche genutzt und nicht auf Textabschnitten?

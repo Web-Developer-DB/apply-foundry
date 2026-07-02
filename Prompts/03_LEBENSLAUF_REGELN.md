@@ -45,6 +45,10 @@ Pflichtlogik für formale Stationen:
 
 - Berufserfahrung, Ausbildung/Studium/berufliche Bildung und Schulbildung dürfen nicht durch Projekte, Skill-Listen oder private Praxis verdrängt werden.
 - Wenn entsprechende Daten in `Private/Daten/` vorhanden sind, müssen sie im Lebenslauf berücksichtigt werden.
+- Formale Stationen mit Zeitraum sind im deutschen Lebenslauf nicht frei kürzbar. Wenn sie in Datei `02` vorhanden sind, müssen Zeitraum, Stationstyp, Name/Institution/Arbeitgeber und Rollen- oder Bildungsbezeichnung sichtbar bleiben.
+- Diese Nicht-Kürzungsregel gilt für berufliche Stationen, Ausbildung, Umschulung, Studium, Weiterbildung, Zertifikate mit Zeitraum und Schulbildung. Sie gilt unabhängig davon, ob die einzelne Station für die Zielrolle fachlich stark relevant ist.
+- Bei Platzmangel dürfen zuerst Beschreibungen, Bulletpoints, Projektlisten, Tool-Details, Zusatzpraxis, Kurzprofil und Kompetenzlisten gekürzt werden. Formale Zeiträume und Stationsnamen dürfen nicht entfernt werden, nur um eine Seite zu halten.
+- Wenn die vollständige formale Chronologie nicht sauber und lesbar auf eine DIN-A4-Seite passt, muss bewusst ein zweiseitiger Lebenslauf mit zwei expliziten A4-Seitencontainern erstellt werden.
 - Wenn wichtige formale Daten fehlen, werden sie nicht erfunden, sondern in `Offene_Fragen.md` dokumentiert.
 - Nicht-klassische Erfahrung, private Praxis, Quereinstieg oder Projektarbeit wird ehrlich als solche eingeordnet.
 - Projekte und Zusatzpraxis stehen hinter den formalen Stationen oder werden kompakt in passende Abschnitte integriert.
@@ -180,9 +184,9 @@ Richtwerte für eine A4-Seite:
 - Kompetenz- oder Profilbasis: maximal 3 Gruppen; bei Quereinstieg keine Überschrift wählen, die berufliche Spezialistenpraxis suggeriert
 - Skill-/Kompetenz-Tags: nur ausnahmsweise und sparsam; bevorzugt gruppierte Kompetenzzeilen
 - Arbeitsweise: maximal 3 bis 4 Bulletpoints oder in andere Abschnitte integrieren
-- Berufserfahrung: kompakt, aber nicht auf Kosten der Verständlichkeit
-- Ausbildung, Studium, berufliche Bildung und Schulbildung: kurz, aber sichtbar, wenn Daten vorhanden sind
-- Weiterbildung/Zertifikate: nur relevante Stationen oder kompakte Auswahl
+- Berufserfahrung: kompakt, aber mit allen vorhandenen formalen Stationen, Zeiträumen, Arbeitgebern und Rollenbezeichnungen
+- Ausbildung, Studium, berufliche Bildung und Schulbildung: kurz, aber vollständig als formale Chronologie mit Zeitraum und Stationsbezeichnung, wenn Daten vorhanden sind
+- Weiterbildung/Zertifikate: rollenrelevante Beschreibungen priorisieren; vorhandene formale Weiterbildungsstationen mit Zeitraum und Bezeichnung nicht aus Platzgründen entfernen
 - Praxis/Projekte/Zusatzkenntnisse: nur 1 bis 2 wirklich relevante Blöcke
 
 Kürzungsreihenfolge bei Platzproblemen:
@@ -194,14 +198,18 @@ Kürzungsreihenfolge bei Platzproblemen:
 5. Wiederholungen zwischen Kurzprofil, Skills und Erfahrung entfernen
 6. Bulletpoints straffen
 7. Kurzprofil verdichten
-8. Layout minimal verdichten, solange Lesbarkeit und Druckqualität professionell bleiben
+8. Beschreibungen formaler Stationen weiter verdichten, ohne Zeitraum, Arbeitgeber/Institution, Stationstyp oder Rollen-/Bildungsbezeichnung zu entfernen
+9. Layout minimal verdichten, solange Lesbarkeit und Druckqualität professionell bleiben
+10. Wenn die vollständige formale Chronologie weiterhin nicht passt, bewusst auf zwei A4-Seiten wechseln
 
 Nicht gekürzt oder verdrängt werden dürfen:
 
-- belegbare Berufserfahrung oder berufliche Stationen
-- Ausbildung, Studium oder berufliche Bildung, wenn vorhanden
-- Schulbildung, wenn sie für den deutschsprachigen CV relevant ist oder die privaten Daten sie ausdrücklich enthalten
-- wichtige Weiterbildungen/Zertifikate, wenn sie zur Stelle passen
+- alle belegbaren beruflichen Stationen mit Zeitraum, Arbeitgeber und Rollenbezeichnung
+- Ausbildung, Studium, Umschulung oder berufliche Bildung mit Zeitraum, Institution und Bildungsbezeichnung, wenn vorhanden
+- Schulbildung mit Zeitraum und Schul-/Bildungsbezeichnung, wenn sie in den privaten Daten enthalten ist
+- Weiterbildungen/Zertifikate mit Zeitraum, Institution und Bezeichnung, wenn sie in den privaten Daten als formale Qualifikation enthalten sind
+
+Nur die Detailtiefe innerhalb dieser Stationen ist kürzbar. Die Station selbst bleibt sichtbar.
 
 Wenn zwei Seiten fachlich sinnvoll sind:
 
