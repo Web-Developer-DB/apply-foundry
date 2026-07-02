@@ -175,6 +175,21 @@ Private/Bewerbungen/Muster-GmbH/_Arbeitsdateien/YYYY-MM-DD--Junior-Webentwickler
 
 Entwürfe und Arbeitsnotizen liegen immer unter `_Arbeitsdateien`. Der finale Bewerbungsordner bleibt für Versanddateien sauber.
 
+## Bewerbung fachlich gegenprüfen
+
+Vor der technischen Prüfung soll der Agent einen fachlichen Abschlusstest machen. Dabei werden Stellenbeschreibung, Analyse, private Daten, Lebenslauf, Anschreiben und E-Mail-Nachricht noch einmal gegeneinander geprüft.
+
+Der Abschlusstest kontrolliert:
+
+- wichtigste Muss- und Kann-Anforderungen der Stelle
+- sichtbare Belege im Lebenslauf
+- passende Argumentation im Anschreiben
+- keine erfundenen Arbeitgeber, Zeiträume, Tools, Zertifikate oder Verantwortlichkeiten
+- keine Widersprüche zwischen Lebenslauf, Anschreiben, E-Mail und privaten Daten
+- fehlende Daten nur in `Offene_Fragen.md`, nicht als Platzhalter in finalen Dateien
+
+Wenn der Abschlusstest Unstimmigkeiten findet, soll der Agent die betroffenen Dateien korrigieren und danach erneut prüfen. Das Ergebnis wird in `Qualitaetscheck.md` kurz dokumentiert, idealerweise mit einem knappen Anforderungsabgleich.
+
 ## Bewerbung technisch prüfen
 
 Nach jeder Bewerbung sollte der statische Prüfer laufen:
@@ -500,10 +515,12 @@ Die Spezialregeln sind getrennt:
 10. Lebenslauf und Anschreiben werden als HTML erstellt.
 11. E-Mail-Nachricht wird als Markdown erstellt.
 12. Offene Fragen werden dokumentiert, falls nötig.
-13. Qualitätscheck wird gespeichert.
-14. Statischer technischer Check wird ausgeführt.
-15. Optional Layout-Check.
-16. Optional PDF-Export.
+13. Fachlicher Abschlusstest gleicht Stellenanforderungen, private Daten und finale Texte ab.
+14. Gefundene Unstimmigkeiten werden korrigiert und erneut geprüft.
+15. Qualitätscheck wird gespeichert.
+16. Statischer technischer Check wird ausgeführt.
+17. Optional Layout-Check.
+18. Optional PDF-Export.
 
 ## Finale Dateinamen
 
@@ -659,6 +676,7 @@ Fachliche Qualität:
 - Recruiter-Lesbarkeit
 - ATS-freundliche Begriffe
 - angemessene Gewichtung der privaten Profildaten
+- fachlicher Abschlusstest mit Abgleich von Stellenanzeige, privaten Daten und finalen Texten
 
 Technische Qualität:
 
