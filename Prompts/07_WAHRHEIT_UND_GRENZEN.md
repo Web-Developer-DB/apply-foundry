@@ -15,6 +15,7 @@ Der Agent darf keine fachliche Richtung aus den öffentlichen Prompts ableiten. 
 - Zusatzkenntnisse nur dann aufnehmen, wenn sie für die konkrete Bewerbung einen Nutzen haben.
 - Entwicklungsfelder benennen, wenn die Stelle Lernbereitschaft verlangt, aber nur als Ziel, Einarbeitung oder Vertiefung.
 - Bei Quereinstieg private Praxis, Weiterbildung und Grundlagen ausdrücklich als solche kennzeichnen, damit keine berufliche Erfahrung in einer nicht belegten Zielrolle suggeriert wird.
+- Belegarten aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` verwenden, wenn vorhanden. Sie sind verbindlich für die Formulierungsebene.
 
 ## Nicht erlaubt
 
@@ -58,3 +59,17 @@ Riskante Formulierungen vermeiden:
 - „Administration von ...“, wenn nur Grundlagen oder Einarbeitungsinteresse vorhanden sind
 - „Kernkompetenzen“ für nicht beruflich belegte Systeme, wenn dadurch professionelle Rollenpraxis suggeriert wird
 - branchenspezifische Titel, die nicht aus den privaten Daten oder der Stellenbeschreibung gedeckt sind
+- Inhalte aus `NICHT BEHAUPTEN` als Erfahrung, Verantwortung oder sichere Kompetenz darstellen
+
+## Belegarten-Sprache
+
+Pflichtlogik:
+
+- `BERUFLICH BELEGT`: darf beruflich formuliert werden.
+- `ÜBERTRAGBAR`: als übertragbare Stärke oder Brücke formulieren.
+- `WEITERBILDUNG`: als Weiterbildung oder Qualifikation formulieren.
+- `PROJEKTPRAXIS`: als Projekt oder Projektpraxis formulieren.
+- `PRIVATE PRAXIS / HOME-LAB`: als privat, eigene Systeme oder Home-Lab formulieren.
+- `GRUNDLAGEN / VERSTÄNDNIS`: als Grundlagen, Verständnis oder Basiswissen formulieren.
+- `EINARBEITUNGSZIEL`: als Einarbeitung, Lernziel oder Vertiefung formulieren.
+- `NICHT BEHAUPTEN`: nicht verwenden, außer als interne Sperre. Wenn eine Erwähnung nötig ist, nur als nicht vorhandene Erfahrung in `Offene_Fragen.md` oder Qualitätscheck dokumentieren.

@@ -33,6 +33,17 @@ Dazu gehören:
 - private IT-Praxis, Home-Lab und Projekte
 - Grenzen und Hinweise, was nicht behauptet werden darf
 
+Die fachlichen Angaben sollen nach Belegarten getrennt werden:
+
+- `BERUFLICH BELEGT`: berufliche Stationen und Tätigkeiten
+- `ÜBERTRAGBAR`: beruflich belegte Stärken, die in andere Rollen übertragen werden können
+- `WEITERBILDUNG`: Kurse, Umschulungen, Zertifikate und Qualifikationen
+- `PROJEKTPRAXIS`: Lern-, Portfolio- oder Weiterbildungsprojekte
+- `PRIVATE PRAXIS / HOME-LAB`: private Systeme und selbstständige Praxis
+- `GRUNDLAGEN / VERSTÄNDNIS`: Basiswissen ohne professionelle Routine
+- `EINARBEITUNGSZIEL`: Themen für eine neue Rolle
+- `NICHT BEHAUPTEN`: Sperrliste für nicht belegte Erfahrung oder Verantwortung
+
 Nicht hier eintragen:
 
 - Adresse, Telefon, E-Mail oder Dateiname-Name

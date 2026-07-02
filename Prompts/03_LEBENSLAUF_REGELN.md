@@ -18,6 +18,7 @@ Für den Lebenslauf gelten klare Zuständigkeiten:
 
 - Kontakt, Name, Dateiname-Name, Links und Verfügbarkeit kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`.
 - Zielrollen, Kurzprofil, Berufserfahrung, Ausbildung, Studium, Umschulung, Weiterbildung, Schulbildung, Kompetenzen, Sprachen, Projekte und private Praxis kommen aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`.
+- Wenn Datei `02` fachliche Inhalte nach Belegarten strukturiert, sind diese Belegarten verbindlich. Inhalte aus `BERUFLICH BELEGT`, `ÜBERTRAGBAR`, `WEITERBILDUNG`, `PROJEKTPRAXIS`, `PRIVATE PRAXIS / HOME-LAB`, `GRUNDLAGEN / VERSTÄNDNIS`, `EINARBEITUNGSZIEL` und `NICHT BEHAUPTEN` dürfen nicht sprachlich gleichgesetzt werden.
 - Schulbildung gehört fachlich zu Datei `02`, nicht zu Datei `01`.
 - Wenn fachliche Angaben in Datei `01` stehen, aber in Datei `02` fehlen oder widersprüchlich sind, muss der Agent dies in `Offene_Fragen.md` dokumentieren und darf daraus keine stillschweigend geglättete finale Fassung bauen.
 
@@ -49,6 +50,7 @@ Pflichtlogik für formale Stationen:
 - Projekte und Zusatzpraxis stehen hinter den formalen Stationen oder werden kompakt in passende Abschnitte integriert.
 - Zeiträume müssen für Recruiter nachvollziehbar sein. Auffällige Lücken oder aktuelle Phasen werden nicht erfunden, sondern mit vorhandenen Daten sauber eingeordnet oder in `Offene_Fragen.md` dokumentiert.
 - Bei Quereinstieg darf der Lebenslauf nicht den Eindruck erwecken, dass private IT-Praxis, Weiterbildung oder Grundlagen berufliche Administratorerfahrung seien. Abschnittstitel und Formulierungen müssen klar unterscheiden zwischen `übertragbarer technischer Erfahrung`, `IT-Grundlagen`, `privater Praxis / Home-Lab` und `Einarbeitungsfeldern`.
+- Wenn eine Kompetenz aus mehreren Belegarten stammt, muss die vorsichtigere Belegart die Formulierung steuern. Beispiel: `Linux` aus Home-Lab wird als `private Linux-Praxis` oder `Linux-Grundlagen aus Home-Lab` formuliert, nicht als berufliche Linux-Administration.
 
 Die Reihenfolge und Abschnittsnamen dürfen je nach Profil angepasst werden, aber die formalen CV-Stationen müssen erkennbar bleiben. Mögliche Abschnittsnamen:
 
@@ -121,6 +123,7 @@ Dieses Profil steuert Auswahl, Reihenfolge und Kürzung des Lebenslaufs.
 - Nenne private, ehrenamtliche, schulische, akademische oder inoffizielle Praxis korrekt als solche, nicht als berufliche Verantwortung.
 - Trenne vorhandene Erfahrung, Grundlagen und Entwicklungsfelder sprachlich eindeutig.
 - Bei Quereinstiegsprofilen müssen Zielrolle und Einstiegssituation früh sichtbar sein, z. B. durch Formulierungen wie `Bewerbung als ... (Quereinstieg)`, `IT-Grundlagen aus Weiterbildung und Home-Lab` oder `gezielte Einarbeitung in ...`.
+- Verwende `NICHT BEHAUPTEN`-Abschnitte aus Datei `02` als harte Sperrliste. Diese Inhalte dürfen höchstens als Einarbeitungsziel erwähnt werden, wenn Datei `02` oder die Stellenanzeige dies erlaubt.
 - Erfinde keine Arbeitgeber, Zeiträume, Zertifikate, Tools, Systeme, Branchen oder Verantwortlichkeiten.
 - Lasse irrelevante Inhalte weg, auch wenn sie grundsätzlich vorhanden sind.
 
