@@ -73,7 +73,7 @@ Frage nur nach, wenn eine fehlende Information die fachliche Korrektheit der fin
 1. Analysiere die Stellenbeschreibung.
 2. Erkenne Firma, Zielrolle, Anforderungen, Muss-Kriterien, Kann-Kriterien, Fachkenntnisse, Werkzeuge, Methoden und Soft Skills.
 3. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten.
-4. Lege vor dem Schreiben eine kurze Lebenslauf-Strategie fest: deutscher Standard, Beweislogik für die Zielrolle, Umgang mit Quereinstieg/Lücken, Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`.
+4. Lege vor dem Schreiben eine kurze Lebenslauf-Strategie fest: deutscher Standard, Beweislogik für die Zielrolle, Umgang mit Quereinstieg/Lücken, Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`. Bei mehrseitigen Lebensläufen ist zusätzlich eine feste Footer-Strategie Pflicht: jede A4-Seite erhält unten eine dezente Trennlinie und darunter rechts die Seitenangabe.
 5. Erstelle einen neuen Bewerbungsordner nach `Prompts/10_DATEI_UND_ORDNER_REGELN.md`.
 6. Speichere die originale Stellenbeschreibung als `Stellenbeschreibung.md`.
 7. Speichere eine kurze Analyse als `Analyse.md`.
@@ -82,10 +82,10 @@ Frage nur nach, wenn eine fehlende Information die fachliche Korrektheit der fin
 10. Erstelle die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
 11. Speichere den finalen Qualitätscheck als `Qualitaetscheck.md`.
 12. Prüfe, dass finale HTML- und Markdown-Dateien keine sichtbaren Platzhalter enthalten.
-13. Prüfe besonders bei HTML-Dateien, dass Firefox nicht automatisch mitten im Dokument umbricht. Ein Einseiten-Dokument muss technisch eine feste A4-Seite sein; ein zweiseitiges Dokument muss zwei explizite A4-Seitencontainer haben.
+13. Prüfe besonders bei HTML-Dateien, dass Firefox nicht automatisch mitten im Dokument umbricht. Ein Einseiten-Dokument muss technisch eine feste A4-Seite sein; ein zweiseitiges Dokument muss zwei explizite A4-Seitencontainer haben. Bei mehrseitigen Lebensläufen müssen Seitenzahlen als fester Footer am unteren Seitenrand stehen, nicht als normaler Absatz im Inhaltsfluss.
 14. Führe, sofern PowerShell verfügbar ist, den statischen technischen Check aus: `.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
 15. Optional: Führe den Browser-Layoutcheck aus. Unter Windows 11 / VS Code / PowerShell mit installiertem Chrome ist der direkte Standardweg: `.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome`. Werte ihn nur als bestanden, wenn die erwarteten Screenshot-Dateien tatsächlich erzeugt wurden.
-16. Prüfe den erzeugten Screenshot visuell: keine abgeschnittenen Inhalte, keine zerhackten Seiten, keine großen ungewollten Leerflächen, keine zweite Seite nur mit Restinhalt, formale CV-Stationen sichtbar.
+16. Prüfe den erzeugten Screenshot visuell: keine abgeschnittenen Inhalte, keine zerhackten Seiten, keine großen ungewollten Leerflächen, keine zweite Seite nur mit Restinhalt, formale CV-Stationen sichtbar. Bei mehrseitigen Lebensläufen muss jede Seite unten eine saubere Footer-Trennlinie mit Seitenangabe darunter haben.
 17. Wenn Chrome im Sandbox-Kontext keine Screenshot-Dateien erzeugt oder hängt, nicht weiter mit Firefox experimentieren. Beende oder verwerfe den Lauf, dokumentiere den Sandbox-Fehler und führe denselben Chrome-Layoutcheck außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut aus.
 18. Wenn Chrome oder Edge verfügbar ist, exportiere Lebenslauf und Anschreiben nach erfolgreichem statischem Check automatisch als PDF: `.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
 
@@ -131,7 +131,7 @@ Prüfe besonders:
 - Weiterbildungen, Zertifikate und Qualifikationen
 - Kenntnisse, Sprachen und Zusatzpraxis nur in passender Priorität
 
-Ziel ist eine DIN-A4-Seite mit fester, druckstabiler A4-Geometrie. Wenn die wichtigen formalen Stationen und die Stellenpassung nicht professionell auf eine Seite passen, erstelle bewusst zwei strukturierte DIN-A4-Seiten. Niemals Inhalt abschneiden, durch `overflow` verstecken oder Firefox zufällig umbrechen lassen.
+Ziel ist eine DIN-A4-Seite mit fester, druckstabiler A4-Geometrie. Wenn die wichtigen formalen Stationen und die Stellenpassung nicht professionell auf eine Seite passen, erstelle bewusst zwei strukturierte DIN-A4-Seiten. Mehrseitige Lebensläufe nutzen auf jeder Seite einen festen Footer mit dezenter Trennlinie und Seitenangabe unterhalb der Linie. Niemals Inhalt abschneiden, durch `overflow` verstecken oder Firefox zufällig umbrechen lassen.
 
 ## Finale Ausgabe
 

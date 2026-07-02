@@ -208,6 +208,9 @@ Wenn zwei Seiten fachlich sinnvoll sind:
 - Wenn Seite 1 deutlich zu wenig Inhalt trägt oder Seite 2 nur durch einzelne verschobene Rubriken entsteht, muss neu verteilt, fachlich gekürzt oder wieder ein kompakter Einseiten-Lebenslauf erstellt werden.
 - Schulbildung und berufliche Bildung dürfen bei einer zweiseitigen Fassung nicht erst so spät stehen, dass sie am Seitenende gefährdet oder abgeschnitten wirken.
 - Es gibt keinen zufälligen Browserumbruch und keinen abgeschnittenen Inhalt.
+- Jede Seite eines mehrseitigen Lebenslaufs erhält einen festen, dezenten Footer: unten eine feine horizontale Trennlinie über die Inhaltsbreite und darunter rechts die Seitenangabe, z. B. `Seite 1 von 2`.
+- Seitenangaben dürfen nicht als normaler Absatz nach dem Inhalt stehen. Sie müssen am unteren Rand der jeweiligen A4-Seite verankert sein und dürfen nicht zwischen zwei Seiten oder mitten im Inhaltsfluss wirken.
+- Der Seiteninhalt muss ausreichend unteren Innenabstand haben, damit Text, Listen und formale Stationen den Footer nicht berühren oder überdecken.
 
 Wenn eine Seite gewählt wird:
 

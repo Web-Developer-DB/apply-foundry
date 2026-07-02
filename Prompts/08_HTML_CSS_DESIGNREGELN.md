@@ -84,9 +84,11 @@ Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
 <body>
   <main class="page page-1">
     <!-- Seite 1 -->
+    <footer class="page-footer">Seite 1 von 2</footer>
   </main>
   <main class="page page-2">
     <!-- Seite 2 -->
+    <footer class="page-footer">Seite 2 von 2</footer>
   </main>
 </body>
 ```
@@ -96,9 +98,25 @@ Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
   width: 210mm;
   height: 297mm;
   margin: 0 auto;
+  padding-bottom: 17mm;
   overflow: hidden;
+  position: relative;
   background: #fff;
   box-sizing: border-box;
+}
+
+.page-footer {
+  position: absolute;
+  right: 13mm;
+  bottom: 7mm;
+  left: 13mm;
+  margin: 0;
+  padding-top: 1.6mm;
+  border-top: 1px solid #d5dee8;
+  color: #667085;
+  font-size: 9.8px;
+  line-height: 1.2;
+  text-align: right;
 }
 
 @media print {
@@ -116,9 +134,13 @@ Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
 }
 ```
 
+Für mehrseitige Lebensläufe ist dieser Footer Pflicht. Die Maße für `left`, `right` und `bottom` müssen zur jeweiligen Seitenpolsterung passen. Der Inhalt braucht genügend unteren Abstand, damit er die Trennlinie und Seitenangabe nicht berührt. Seitenzahlen dürfen nicht als normales `<p>` am Ende des Inhaltsflusses stehen.
+
 ## Firefox-Druck
 
 Browser-Kopf- und Fußzeilen wie Dateiname, URL, Datum und Seitenzahl kommen aus dem Druckdialog, nicht aus dem HTML.
+
+Eine Ausnahme gilt für bewusst gestaltete, mehrseitige Lebensläufe: Dort ist ein eigener, dezenter Dokument-Footer mit Trennlinie und Seitenangabe im HTML vorgeschrieben. Browser-Kopf- und Fußzeilen bleiben trotzdem im Druckdialog deaktiviert.
 
 Ein finaler Einseiten-Lebenslauf muss in der Firefox-Druckvorschau bei 100 Prozent Skalierung als genau eine Seite erscheinen. Wenn Firefox zwei Seiten erzeugt, ist das HTML nicht final. Dann muss der Inhalt gekürzt, die Abschnittsaufteilung verbessert oder ein bewusst zweiseitiger Lebenslauf mit zwei `.page`-Containern erstellt werden.
 
@@ -144,17 +166,26 @@ Für Einseiter gilt:
 Wenn zwei Seiten nötig sind, werden zwei klare Seitencontainer genutzt:
 
 ```html
-<main class="page">Seite 1</main>
-<main class="page">Seite 2</main>
+<main class="page">
+  <!-- Inhalt Seite 1 -->
+  <footer class="page-footer">Seite 1 von 2</footer>
+</main>
+<main class="page">
+  <!-- Inhalt Seite 2 -->
+  <footer class="page-footer">Seite 2 von 2</footer>
+</main>
 ```
 
 Kein zufälliger Umbruch mitten im Layout. Kein finaler Inhalt darf durch `overflow: hidden` nur optisch versteckt werden.
+Bei mehrseitigen Lebensläufen muss die Seitenangabe in einem festen Footer am unteren A4-Rand stehen: feine Trennlinie, darunter rechts die Seitenzahl. Der Footer ist Teil der Seitenarchitektur und darf nicht als nachlaufender Inhaltsabsatz umgesetzt werden.
 
 Vor der finalen Ausgabe eines zweiseitigen Lebenslaufs muss die Verteilung auf die Seiten geprüft werden:
 
 - Seite 1 muss wie eine vollständig genutzte CV-Seite wirken, nicht wie ein Kopfbereich mit etwas Inhalt und großer leerer Fläche.
 - Seite 2 muss bewusst strukturiert sein und darf nicht nur aus ausgelagerten Restabschnitten bestehen.
 - Formale Stationen wie Ausbildung, berufliche Bildung und Schulbildung dürfen nicht am unteren Seitenrand abgeschnitten oder optisch gefährdet sein.
+- Die Footer-Trennlinie und Seitenangabe müssen auf jeder Seite sichtbar, dezent und gleich positioniert sein.
+- Der Footer darf keine Inhalte überdecken und darf nicht wie ein zufälliger Restabsatz zwischen den Seiten erscheinen.
 - Wenn die Verteilung nicht stimmt, ist das Layout nicht final; Inhalte müssen neu verteilt, gekürzt oder wieder auf einen kompakten Einseiten-Lebenslauf gebracht werden.
 
 ## Lebenslauf-Designstandard

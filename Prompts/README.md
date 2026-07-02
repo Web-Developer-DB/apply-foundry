@@ -8,5 +8,5 @@ Private Bewerberdaten stehen nicht in diesem Ordner. Sie gehören lokal nach `Pr
 
 Wichtiger Standard:
 
-- Lebensläufe sollen wie ruhige deutsche tabellarische CVs wirken, nicht wie Portfolioseiten oder Skill-Dashboards.
-- Finale HTML-Dokumente müssen druckstabil sein. Ein Einseiten-Dokument darf in Firefox bei 100 Prozent Skalierung nicht automatisch auf zwei Seiten umbrechen.
+- Lebensläufe sollen wie ruhige deutsche tabellarische CVs wirken, nicht wie Portfolio-Seiten oder Skill-Dashboards.
+- Finale HTML-Dokumente müssen für den Druck geeignet sein. Ein Einseiten-Dokument darf in Firefox bei 100 Prozent Skalierung nicht automatisch auf zwei Seiten umbrechen.

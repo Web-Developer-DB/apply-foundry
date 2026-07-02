@@ -68,6 +68,9 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Wirkt Seite 2 bewusst strukturiert und nicht wie ein abgeschnittener Rest?
 - Wirkt Seite 1 bei einem zweiseitigen Lebenslauf ausreichend gefüllt und nicht wie ein Einstieg mit zu viel Leeraum?
 - Sind Schulbildung, berufliche Bildung und Weiterbildung sichtbar und nicht an den unteren Seitenrand gedrückt?
+- Hat jede Seite eines mehrseitigen Lebenslaufs einen festen Footer mit dezenter Trennlinie und Seitenangabe unterhalb der Linie?
+- Stehen Seitenangaben nicht als normaler Absatz im Inhaltsfluss und nicht frei zwischen zwei A4-Seiten?
+- Berührt oder überdeckt kein Inhalt den Footer?
 - Wurde ein zweiseitiges Layout bei schlechter Verteilung auf die Seiten wieder zu einem besseren Einseiten-Layout oder zu einer neu verteilten Zwei-Seiten-Fassung überarbeitet?
 
 ## Anschreiben
@@ -102,6 +105,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Der Print-Modus verkleinert Schrift, Spaltenbreiten oder Abstände nicht heimlich gegenüber der Browseransicht.
 - Bei Einseiten-Lebenslauf oder Einseiten-Anschreiben erzeugt Firefox keine erste Seite nur mit Kopfbereich und keine zweite Seite nur mit Hauptinhalt.
 - Bei bewusst zweiseitigem Lebenslauf existieren zwei explizite A4-Seitencontainer statt eines automatisch umbrechenden langen Containers.
+- Bei mehrseitigen Lebensläufen ist die Seitenangabe als fester Footer am unteren Rand jeder A4-Seite umgesetzt: Trennlinie, darunter rechts `Seite X von Y`.
 - `@page` ist widerspruchsfrei und nutzt in finalen Dateien `margin: 0`.
 - `html`, `body` und `.page` haben im Print-Modus die A4-Geometrie `210mm x 297mm`.
 - Für Einseiter hat `.page` auch außerhalb des Print-Modus eine feste Höhe von `297mm`, damit Bildschirm- und Druckansicht dieselbe Seitenlogik zeigen.
