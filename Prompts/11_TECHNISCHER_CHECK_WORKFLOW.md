@@ -95,6 +95,8 @@ Visuelle Bewertung des Screenshots:
 - Ein zweiseitiger Lebenslauf wirkt bewusst verteilt; Seite 1 ist nicht halb leer und Seite 2 nicht nur ein ausgelagerter Rest.
 - Überschriften, Zeiträume und Kontaktdaten überlappen nicht.
 - Am unteren Seitenrand ist kein Inhalt abgeschnitten.
+- Bei mehrseitigen Lebensläufen hat jede Seite einen festen Footer mit feiner Trennlinie und Seitenangabe darunter rechts.
+- Die Seitenangabe steht nicht als normaler Absatz im Inhalt und wirkt nicht wie ein Rest zwischen zwei Seiten.
 - Formale Stationen wie Berufserfahrung, Weiterbildung, berufliche Bildung und Schulbildung sind sichtbar.
 - Schriftgröße, Zeilenabstand und Weißraum wirken professionell lesbar.
 - Der Screenshot enthält keine Browser-Kopfzeilen, Dateipfade, URLs oder Druckdialog-Reste.
