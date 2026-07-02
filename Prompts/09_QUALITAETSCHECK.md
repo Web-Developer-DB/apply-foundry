@@ -7,6 +7,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Ist die Bewerbung klar auf die Stellenbeschreibung zugeschnitten?
 - Wurde das Bewerbungsprofil aus Stellenbeschreibung und privaten Daten abgeleitet, nicht aus öffentlichen Beispielprompts?
 - Wurden die Datenquellen sauber getrennt: Datei `01` nur für Identität/Kontakt, Datei `02` für fachliche CV-Daten?
+- Wurden Belegarten aus Datei `02` ausgewertet und korrekt in die Formulierung übertragen?
 - Gibt es keine stillschweigend vermischten Dopplungen oder Widersprüche zwischen Datei `01` und Datei `02`?
 - Sind die wichtigsten Anforderungen der Stelle sichtbar?
 - Sind irrelevante Profilteile für die konkrete Zielrolle entfernt oder reduziert?
@@ -46,6 +47,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Sind vorhandene Erfahrung, Grundlagen und Entwicklungsfelder sprachlich klar getrennt?
 - Ist bei Quereinstieg klar erkennbar, welche Erfahrung beruflich, welche privat, welche aus Weiterbildung und welche nur Einarbeitungsfeld ist?
 - Suggerieren Abschnittstitel wie `Kompetenzen` oder `Kernkompetenzen` keine berufliche Rollenpraxis mit Systemen, die nur als Grundlagen, private Praxis oder Lernziele belegt sind?
+- Werden Inhalte aus `NICHT BEHAUPTEN` nicht als Erfahrung, Verantwortung oder sichere Kompetenz verwendet?
 - Sind auffällige Lücken, Rollenwechsel oder aktuelle Phasen nachvollziehbar behandelt oder in `Offene_Fragen.md` dokumentiert?
 - Sind Kontaktdaten korrekt?
 - Sind Vorname und Nachname für die finalen Dateinamen eindeutig aus `Private/Daten/01_PERSOENLICHE_DATEN.md` übernommen?

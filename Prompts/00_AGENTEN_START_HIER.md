@@ -40,12 +40,13 @@ Wenn `Private/Daten/` fehlt, nutze `Private.example/Daten/` nur als Strukturhinw
 Die privaten Daten sind bewusst getrennt:
 
 - `Private/Daten/01_PERSOENLICHE_DATEN.md` ist die einzige Quelle für Identität, Kontakt, Dateiname-Name, öffentliche Profile, Verfügbarkeit und Bewerbungslogistik.
-- `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ist die fachliche Quelle für Zielrollen, Positionierung, Berufserfahrung, Ausbildung, Umschulung, Weiterbildung, Schulbildung, Kenntnisse, Projekte, private Praxis, Sprachen und Grenzen.
+- `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ist die fachliche Quelle für Zielrollen, Positionierung, Berufserfahrung, Ausbildung, Umschulung, Weiterbildung, Schulbildung, Kenntnisse, Projekte, private Praxis, Sprachen und Grenzen. Wenn diese Datei Belegarten wie `BERUFLICH BELEGT`, `ÜBERTRAGBAR`, `WEITERBILDUNG`, `PROJEKTPRAXIS`, `PRIVATE PRAXIS / HOME-LAB`, `GRUNDLAGEN / VERSTÄNDNIS`, `EINARBEITUNGSZIEL` oder `NICHT BEHAUPTEN` enthält, muss der Agent sie strikt auswerten.
 
 Der Agent darf fachliche Lebenslaufdaten nicht aus Datei `01` ableiten, wenn Datei `02` dazu eine abweichende oder fehlende Aussage enthält. Bei Dopplungen oder Widersprüchen gilt:
 
 - Kontakt- und Dateinamendaten kommen aus Datei `01`.
 - Fachliche CV-Daten kommen aus Datei `02`.
+- Belegarten in Datei `02` steuern die Wahrheitsebene: beruflich belegte Erfahrung, übertragbare Erfahrung, Weiterbildung, Projektpraxis, private Praxis, Grundlagen, Einarbeitungsziele und nicht zu behauptende Inhalte dürfen nicht vermischt werden.
 - Widersprüche werden in `Offene_Fragen.md` dokumentiert und nicht stillschweigend vermischt.
 
 ## Input
@@ -72,7 +73,7 @@ Frage nur nach, wenn eine fehlende Information die fachliche Korrektheit der fin
 
 1. Analysiere die Stellenbeschreibung.
 2. Erkenne Firma, Zielrolle, Anforderungen, Muss-Kriterien, Kann-Kriterien, Fachkenntnisse, Werkzeuge, Methoden und Soft Skills.
-3. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten.
+3. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten. Werte dabei die Belegarten aus Datei `02` ausdrücklich aus.
 4. Lege vor dem Schreiben eine kurze Lebenslauf-Strategie fest: deutscher Standard, Beweislogik für die Zielrolle, Umgang mit Quereinstieg/Lücken, Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`. Bei mehrseitigen Lebensläufen ist zusätzlich eine feste Footer-Strategie Pflicht: jede A4-Seite erhält unten eine dezente Trennlinie und darunter rechts die Seitenangabe.
 5. Erstelle einen neuen Bewerbungsordner nach `Prompts/10_DATEI_UND_ORDNER_REGELN.md`.
 6. Speichere die originale Stellenbeschreibung als `Stellenbeschreibung.md`.
@@ -110,6 +111,7 @@ Wichtig:
 - Keine unruhigen Skill-Wolken, dekorativen Kontaktkarten oder portfolioartigen Layouts, wenn ein seriöser Recruiter-CV gefragt ist.
 - Keine künstlich aufgeblähte Sprache.
 - Keine erfundenen Kenntnisse, Branchen, Rollen oder Verantwortlichkeiten.
+- Keine Hochstufung von `GRUNDLAGEN`, `PRIVATE PRAXIS / HOME-LAB`, `PROJEKTPRAXIS` oder `EINARBEITUNGSZIEL` zu beruflicher Erfahrung.
 - Keine Formulierungen, die nach generischer KI klingen.
 
 ## Lebenslauf-Standard

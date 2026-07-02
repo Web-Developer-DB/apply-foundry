@@ -4,29 +4,172 @@ Diese Datei ist die fachliche Quelle für Lebenslauf, Anschreiben und Rollenstra
 
 Persönliche Stammdaten wie Name, Adresse, Telefon, E-Mail, Links und Dateiname-Name gehören ausschließlich in `01_PERSOENLICHE_DATEN.md`.
 
-## Kurzprofil
+## Belegarten-Regel
 
-[Kurze, wahre berufliche Positionierung. Keine erfundenen Jahre, Arbeitgeber oder Zertifikate.]
+Jede fachliche Aussage soll einer Belegart zugeordnet werden. Das hilft dem Agenten, berufliche Erfahrung, private Praxis, Weiterbildung, Grundlagen und Lernziele nicht zu vermischen.
 
-## Zielrollen
+Belegarten:
 
-- [Zielrolle 1]
-- [Zielrolle 2]
+- `BERUFLICH BELEGT`: durch berufliche Stationen oder formale Tätigkeiten belegt.
+- `ÜBERTRAGBAR`: beruflich belegt, aber nicht direkt aus der Zielrolle; als Brücke nutzbar.
+- `WEITERBILDUNG`: durch Kurs, Umschulung, Studium, Zertifikat oder vergleichbare Lernkontexte belegt.
+- `PROJEKTPRAXIS`: durch Lern-, Portfolio-, Studien- oder Weiterbildungsprojekte belegt.
+- `PRIVATE PRAXIS / HOME-LAB`: private Systeme, eigene Praxis, Ehrenamt oder nicht berufliche Anwendung.
+- `GRUNDLAGEN / VERSTÄNDNIS`: Basiswissen oder Verständnis ohne professionelle Routine.
+- `EINARBEITUNGSZIEL`: Thema, das in der Zielrolle gelernt oder vertieft werden soll.
+- `NICHT BEHAUPTEN`: Sperrliste für nicht belegte Erfahrung, Verantwortung oder Seniorität.
+
+## Zielpositionierung
+
+**[Zielrichtung, z. B. Quereinstieg in IT-Support / Junior Systemadministration / Frontend-Entwicklung]**
+
+[Kurze, wahre Positionierung. Bei Quereinstieg ausdrücklich sagen, welche Erfahrung beruflich belegt ist und welche fachlichen Inhalte aus Weiterbildung, Projekten, privater Praxis oder Grundlagen stammen.]
+
+Sichere Kurzpositionierung:
+
+**[Ein Satz, der Berufsreife, Zielrichtung und Belegarten ehrlich verbindet.]**
+
+## Zielrollen nach Priorität
+
+### Primär passend
+
+- [Zielrolle mit realistischer Seniorität]
+- [Zielrolle mit realistischer Seniorität]
+
+### Passend bei Einarbeitung / Junior-Level / Lernkultur
+
+- [anspruchsvollere Zielrolle, nur mit Einschränkung]
+- [anspruchsvollere Zielrolle, nur mit Einschränkung]
+
+### Weitere Rollenfamilie
+
+- [z. B. Webentwicklung, Support, kaufmännisch, sozial, technisch]
 
 ## Profilvarianten nach Zielrolle
 
-### [Zielrolle oder Rollenfamilie]
+### [Rollenfamilie 1]
+
+[Kurze Positionierung für diese Rollenfamilie. Belegarten sichtbar machen: beruflich belegt, übertragbar, Weiterbildung, private Praxis, Grundlagen, Einarbeitung.]
+
+### [Rollenfamilie 2]
 
 [Kurze Positionierung für diese Rollenfamilie.]
 
-## Berufserfahrung / berufliche Stationen
+## Beruflich belegte Erfahrung
 
 ### [Rolle]
 
 [Arbeitgeber], [Zeitraum]
 
+Belegart: `BERUFLICH BELEGT`
+
 - [belegbare Tätigkeit]
 - [belegbarer Schwerpunkt]
+- [belegbares Ergebnis oder Arbeitsweise]
+
+## Übertragbare Erfahrung
+
+Belegart: `ÜBERTRAGBAR`
+
+[Beruflich belegte Stärken, die zur Zielrolle passen, aber nicht als direkte Rollenpraxis ausgegeben werden dürfen.]
+
+- [z. B. Fehlersuche, Dokumentation, Kundenkontakt, Sorgfalt]
+- [z. B. strukturierte Abläufe, Qualitätskontrolle, Organisation]
+
+## Weiterbildung / Qualifikation
+
+### [Weiterbildung oder Zertifikat]
+
+[Anbieter], [Zeitraum], [Ort optional]
+
+Belegart: `WEITERBILDUNG`
+
+- [Inhalt]
+- [Inhalt]
+- [Inhalt]
+
+Formulierungsregel:
+
+[Als Weiterbildung, Qualifikation oder Lernbasis darstellen; nicht als berufliche Erfahrung, wenn keine passende Anstellung vorhanden ist.]
+
+## Private Praxis / Home-Lab / Ehrenamt
+
+### [Private Praxis oder Home-Lab]
+
+[Kontext], [Zeitraum oder fortlaufend]
+
+Belegart: `PRIVATE PRAXIS / HOME-LAB`
+
+- [private Tätigkeit]
+- [private Tätigkeit]
+- [private Tätigkeit]
+
+Pflichtformulierung:
+
+[Diese Kenntnisse als private Praxis, Home-Lab, eigene Systeme oder ehrenamtliche Praxis darstellen. Nicht als professionelle Berufserfahrung ausgeben.]
+
+## Grundlagen und Verständnis
+
+Belegart: `GRUNDLAGEN / VERSTÄNDNIS`
+
+- [Grundlage]
+- [Grundlage]
+- [Verständnis]
+
+Nicht formulieren als:
+
+- [zu starke Behauptung]
+- [professionelle Verantwortung, falls nicht belegt]
+
+## Projektpraxis
+
+### [Projektname]
+
+Belegart: `PROJEKTPRAXIS`
+
+[Kurze Projektbeschreibung.]
+
+Technologien / Methoden: [Liste]
+
+Geeignet für: [Zielrollen oder Nutzen]
+
+## Tools, Methoden und fachliche Kenntnisse
+
+### [Kategorie]
+
+Belegart: `[passende Belegart]`
+
+- [Kenntnis]
+- [Kenntnis]
+
+### [Kategorie]
+
+Belegart: `[passende Belegart]`
+
+- [Kenntnis]
+- [Kenntnis]
+
+## Einarbeitungs- und Entwicklungsfelder
+
+Belegart: `EINARBEITUNGSZIEL`
+
+Diese Themen dürfen nur als Einarbeitung, Lernziel, Vertiefung oder Entwicklungsperspektive formuliert werden.
+
+- [Thema]
+- [Thema]
+- [Thema]
+
+Formulierungsbeispiele:
+
+- `gezielte Einarbeitung in ...`
+- `möchte ... im Team vertiefen`
+- `Entwicklungsperspektive in ...`
+
+Nicht formulieren als:
+
+- `Erfahrung mit ...`
+- `verantwortlich für ...`
+- `sicherer Umgang mit ...`
 
 ## Ausbildung / Studium / berufliche Bildung
 
@@ -34,14 +177,7 @@ Persönliche Stammdaten wie Name, Adresse, Telefon, E-Mail, Links und Dateiname-
 
 [Einrichtung], [Zeitraum], [Ort optional]
 
-## Weiterbildung / Zertifikate / Qualifikationen
-
-### [Weiterbildung/Zertifikat]
-
-[Anbieter], [Zeitraum], relevante Inhalte:
-
-- [Inhalt]
-- [Inhalt]
+Belegart: `[BERUFLICH BELEGT oder WEITERBILDUNG, je nach Kontext]`
 
 ## Schulbildung
 
@@ -49,41 +185,44 @@ Persönliche Stammdaten wie Name, Adresse, Telefon, E-Mail, Links und Dateiname-
 
 [Schule/Einrichtung optional], [Zeitraum oder Abschlussjahr]
 
-## Projekte und Praxis
-
-### [Projekt oder private Praxis]
-
-[Werkzeuge, Methoden, Aufgaben, Ergebnis. Private Praxis klar als private Praxis benennen.]
-
-## Kenntnisse und Kompetenzen
-
-### Fachlich
-
-- [Skill]
-- [Skill]
-
-### Tools/Systeme
-
-- [Tool/System]
-- [Tool/System]
-
-### Methoden und Arbeitsweise
-
-- [Stärke]
-- [Stärke]
-
 ## Sprachen
 
 - [Sprache]: [Niveau]
 
 ## Relevanz- und Kürzungshinweise
 
-- Besonders wichtig zeigen: [Inhalte, die fast immer relevant sind]
-- Nur bei passender Stelle zeigen: [Zusatzkenntnisse, Projekte, Nebenthemen]
-- Weglassen, wenn Platz knapp ist: [weniger wichtige Inhalte]
+Fast immer wichtig zeigen:
 
-## Grenzen
+- [Inhalt]
+- [Inhalt]
 
-- Nicht behaupten: [Kenntnisse, die nicht belegt sind]
-- Nur vorsichtig formulieren: [Grenzfälle]
-- Auslassen, falls nicht relevant: [Themen]
+Nur bei passender Stelle zeigen:
+
+- [Zusatzkenntnis]
+- [Projekt]
+
+Weglassen, wenn Platz knapp ist:
+
+- [weniger wichtiges Thema]
+- [weniger wichtiges Thema]
+
+## Grenzen / Nicht behaupten
+
+Belegart: `NICHT BEHAUPTEN`
+
+Nicht behaupten:
+
+- [nicht belegte Erfahrung]
+- [nicht belegte Verantwortung]
+- [nicht belegte Seniorität]
+
+Nur vorsichtig formulieren:
+
+- [Grenzfall]
+- [Grenzfall]
+
+Pflicht bei Quereinstiegsbewerbungen:
+
+- Quereinstieg oder Einstiegs-/Entwicklungsprofil früh sichtbar machen.
+- Beruflich belegte Erfahrung von Weiterbildung, privater Praxis, Grundlagen und Einarbeitungszielen trennen.
+- Keine Kompetenzrubrik wählen, die professionelle Rollenpraxis suggeriert, wenn nur Grundlagen oder private Praxis belegt sind.
