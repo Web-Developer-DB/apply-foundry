@@ -48,6 +48,7 @@ Pflichtlogik für formale Stationen:
 - Nicht-klassische Erfahrung, private Praxis, Quereinstieg oder Projektarbeit wird ehrlich als solche eingeordnet.
 - Projekte und Zusatzpraxis stehen hinter den formalen Stationen oder werden kompakt in passende Abschnitte integriert.
 - Zeiträume müssen für Recruiter nachvollziehbar sein. Auffällige Lücken oder aktuelle Phasen werden nicht erfunden, sondern mit vorhandenen Daten sauber eingeordnet oder in `Offene_Fragen.md` dokumentiert.
+- Bei Quereinstieg darf der Lebenslauf nicht den Eindruck erwecken, dass private IT-Praxis, Weiterbildung oder Grundlagen berufliche Administratorerfahrung seien. Abschnittstitel und Formulierungen müssen klar unterscheiden zwischen `übertragbarer technischer Erfahrung`, `IT-Grundlagen`, `privater Praxis / Home-Lab` und `Einarbeitungsfeldern`.
 
 Die Reihenfolge und Abschnittsnamen dürfen je nach Profil angepasst werden, aber die formalen CV-Stationen müssen erkennbar bleiben. Mögliche Abschnittsnamen:
 
@@ -119,6 +120,7 @@ Dieses Profil steuert Auswahl, Reihenfolge und Kürzung des Lebenslaufs.
 - Priorisiere Muss-Anforderungen der Stelle.
 - Nenne private, ehrenamtliche, schulische, akademische oder inoffizielle Praxis korrekt als solche, nicht als berufliche Verantwortung.
 - Trenne vorhandene Erfahrung, Grundlagen und Entwicklungsfelder sprachlich eindeutig.
+- Bei Quereinstiegsprofilen müssen Zielrolle und Einstiegssituation früh sichtbar sein, z. B. durch Formulierungen wie `Bewerbung als ... (Quereinstieg)`, `IT-Grundlagen aus Weiterbildung und Home-Lab` oder `gezielte Einarbeitung in ...`.
 - Erfinde keine Arbeitgeber, Zeiträume, Zertifikate, Tools, Systeme, Branchen oder Verantwortlichkeiten.
 - Lasse irrelevante Inhalte weg, auch wenn sie grundsätzlich vorhanden sind.
 
@@ -172,7 +174,7 @@ Grundregel:
 Richtwerte für eine A4-Seite:
 
 - Kurzprofil: maximal 3 bis 4 Zeilen
-- Kernkompetenzen: maximal 3 Gruppen
+- Kompetenz- oder Profilbasis: maximal 3 Gruppen; bei Quereinstieg keine Überschrift wählen, die berufliche Spezialistenpraxis suggeriert
 - Skill-/Kompetenz-Tags: nur ausnahmsweise und sparsam; bevorzugt gruppierte Kompetenzzeilen
 - Arbeitsweise: maximal 3 bis 4 Bulletpoints oder in andere Abschnitte integrieren
 - Berufserfahrung: kompakt, aber nicht auf Kosten der Verständlichkeit
@@ -201,7 +203,7 @@ Nicht gekürzt oder verdrängt werden dürfen:
 Wenn zwei Seiten fachlich sinnvoll sind:
 
 - Es werden zwei explizite A4-Seitencontainer erstellt.
-- Seite 1 enthält die wichtigsten Recruiter-Signale: Name, Zielrolle, Kurzprofil, Kontakt, Kernkompetenzen und relevante Berufserfahrung.
+- Seite 1 enthält die wichtigsten Recruiter-Signale: Name, Zielrolle, Kurzprofil, Kontakt, passend benannte Kompetenz- oder Profilbasis und relevante Berufserfahrung.
 - Seite 2 enthält sauber strukturierte formale Ergänzungen: Ausbildung/Studium/berufliche Bildung, Schulbildung, Weiterbildungen/Zertifikate, Sprachen und relevante Projekte/Zusatzpraxis.
 - Seite 2 darf nicht wie ein zufälliger Rest wirken.
 - Seite 1 darf nicht halb leer wirken; Seite 2 darf kein ausgelagerter Rest mit unten abgeschnittenen formalen Stationen sein.

@@ -44,6 +44,8 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Ist die Länge angemessen?
 - Sind zusätzliche oder nicht-klassische Kenntnisse professionell und korrekt eingeordnet?
 - Sind vorhandene Erfahrung, Grundlagen und Entwicklungsfelder sprachlich klar getrennt?
+- Ist bei Quereinstieg klar erkennbar, welche Erfahrung beruflich, welche privat, welche aus Weiterbildung und welche nur Einarbeitungsfeld ist?
+- Suggerieren Abschnittstitel wie `Kompetenzen` oder `Kernkompetenzen` keine berufliche Rollenpraxis mit Systemen, die nur als Grundlagen, private Praxis oder Lernziele belegt sind?
 - Sind auffällige Lücken, Rollenwechsel oder aktuelle Phasen nachvollziehbar behandelt oder in `Offene_Fragen.md` dokumentiert?
 - Sind Kontaktdaten korrekt?
 - Sind Vorname und Nachname für die finalen Dateinamen eindeutig aus `Private/Daten/01_PERSOENLICHE_DATEN.md` übernommen?
