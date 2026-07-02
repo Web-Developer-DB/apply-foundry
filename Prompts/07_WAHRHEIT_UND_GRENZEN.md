@@ -14,6 +14,7 @@ Der Agent darf keine fachliche Richtung aus den öffentlichen Prompts ableiten. 
 - Fehlende unwichtige Details neutral auslassen.
 - Zusatzkenntnisse nur dann aufnehmen, wenn sie für die konkrete Bewerbung einen Nutzen haben.
 - Entwicklungsfelder benennen, wenn die Stelle Lernbereitschaft verlangt, aber nur als Ziel, Einarbeitung oder Vertiefung.
+- Bei Quereinstieg private Praxis, Weiterbildung und Grundlagen ausdrücklich als solche kennzeichnen, damit keine berufliche Erfahrung in einer nicht belegten Zielrolle suggeriert wird.
 
 ## Nicht erlaubt
 
@@ -23,6 +24,7 @@ Der Agent darf keine fachliche Richtung aus den öffentlichen Prompts ableiten. 
 - Zertifikate, Abschlüsse, Tools, Systeme oder Methoden ergänzen, die nicht vorhanden sind.
 - Zeiträume glätten oder verschönern.
 - Lücken, Quereinstieg oder private Praxis so formulieren, als wären sie formale Berufserfahrung.
+- Kompetenzrubriken so benennen, dass Grundlagen oder Home-Lab-Praxis wie berufliche Administrator- oder Rollenverantwortung wirken.
 - Eine Branche oder Rolle behaupten, nur weil ein öffentlicher Prompt ein Beispiel nennt.
 
 ## Unsicherheit
@@ -39,6 +41,9 @@ Gute Formulierungen:
 
 - „Grundlagen in ...“
 - „praktische Erfahrung mit ...“
+- „private Praxis mit ...“
+- „IT-Grundlagen aus Weiterbildung und Home-Lab“
+- „Bewerbung als ... (Quereinstieg)“
 - „Einarbeitung in ...“
 - „gezielte Weiterentwicklung in ...“
 - „möchte ... im Team vertiefen“
@@ -51,4 +56,5 @@ Riskante Formulierungen vermeiden:
 - „umfangreiche Projekterfahrung“, wenn nur private oder kurze Praxis vorhanden ist
 - „verantwortlich für“, wenn keine Verantwortung belegt ist
 - „Administration von ...“, wenn nur Grundlagen oder Einarbeitungsinteresse vorhanden sind
+- „Kernkompetenzen“ für nicht beruflich belegte Systeme, wenn dadurch professionelle Rollenpraxis suggeriert wird
 - branchenspezifische Titel, die nicht aus den privaten Daten oder der Stellenbeschreibung gedeckt sind
