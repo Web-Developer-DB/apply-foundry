@@ -104,6 +104,7 @@ Die Stellenbeschreibung und die privaten Daten entscheiden, welche Informationen
 
 Wichtig:
 - Relevanz schlägt Vollständigkeit.
+- Ausnahme: Die deutsche CV-Chronologie ist keine frei kürzbare Detailinformation. Wenn formale Stationen in den privaten Daten vorhanden sind, dürfen Zeitraum, Stationstyp, Name/Institution/Arbeitgeber und Rollen- oder Bildungsbezeichnung nicht aus Platzgründen entfernt werden. Gekürzt werden dürfen zuerst Beschreibungen, Bulletpoints, Projekte, Tool-Listen und Zusatzpraxis; wenn die formale Chronologie nicht sauber auf eine Seite passt, ist ein bewusst zweiseitiger Lebenslauf zu erstellen.
 - Recruiter lesen schnell und selektiv.
 - Die wichtigsten Anforderungen der Stelle müssen innerhalb der ersten 10 bis 20 Sekunden sichtbar sein.
 - Der Lebenslauf muss auf den ersten Blick wie ein deutscher tabellarischer CV erkennbar sein.
@@ -132,6 +133,8 @@ Prüfe besonders:
 - Schulbildung, sofern vorhanden oder für den CV sinnvoll
 - Weiterbildungen, Zertifikate und Qualifikationen
 - Kenntnisse, Sprachen und Zusatzpraxis nur in passender Priorität
+
+Für den deutschen Recruiter-Standard sind formale Zeiträume besonders wichtig. Vor der finalen Speicherung muss geprüft werden, ob alle in Datei `02` vorhandenen beruflichen Stationen, Ausbildungs-/Umschulungsstationen, Weiterbildungen und Schulbildungsstationen mit Zeitraum im Lebenslauf erscheinen. Fehlende formale Zeiträume sind ein Fehler und dürfen nicht mit A4-Platzmangel begründet werden.
 
 Ziel ist eine DIN-A4-Seite mit fester, druckstabiler A4-Geometrie. Wenn die wichtigen formalen Stationen und die Stellenpassung nicht professionell auf eine Seite passen, erstelle bewusst zwei strukturierte DIN-A4-Seiten. Mehrseitige Lebensläufe nutzen auf jeder Seite einen festen Footer mit dezenter Trennlinie und Seitenangabe unterhalb der Linie. Niemals Inhalt abschneiden, durch `overflow` verstecken oder Firefox zufällig umbrechen lassen.
 
