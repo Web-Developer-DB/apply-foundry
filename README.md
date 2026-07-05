@@ -1,4 +1,4 @@
-<!-- cspell:words Layoutcheck MitLayoutcheck NurVorbereiten MinPdfBytes NichtUeberschreiben firefox Pruefe Qualitaetscheck Strg Headless Sandbox Sandboxfehler Browserfreigabe MediaBox -->
+<!-- cspell:words Layoutcheck MitLayoutcheck NurVorbereiten MinPdfBytes NichtUeberschreiben firefox Pruefe Qualitaetscheck Strg Headless Sandbox Browserfreigabe MediaBox -->
 
 # bewerbungs-agent
 
@@ -116,7 +116,7 @@ Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlic
 - Kenntnisse, Sprachen, Projekte und private Praxis
 - Grenzen und Hinweise, was nicht behauptet werden darf
 
-Eine Information soll nur an einer Stelle gepflegt werden. Kontakt-, Dateinamen- und Bewerbungslogistikdaten kommen aus Datei `01`; fachliche CV-Daten kommen aus Datei `02`.
+Eine Information soll nur an einer Stelle gepflegt werden. Kontakt-, Dateinamen- und Daten zur Bewerbungslogistik kommen aus Datei `01`; fachliche CV-Daten kommen aus Datei `02`.
 
 ## Bewerbung durch den Agenten erstellen lassen
 
@@ -237,7 +237,7 @@ Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
 
 Der Layout-Check gilt nur als erfolgreich, wenn die erwarteten Screenshot-Dateien wirklich erzeugt wurden und eine sinnvolle Größe haben.
 
-Bei Agenten mit Sandbox kann der Browserstart dort fehlschlagen, obwohl das HTML korrekt ist. Dann denselben Chrome-Befehl außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut ausführen und den Sandboxfehler dokumentieren. Nicht unnötig auf Firefox wechseln, wenn Chrome lokal verfügbar ist.
+Bei Agenten mit Sandbox kann der Start des Browsers dort fehlschlagen, obwohl das HTML korrekt ist. Dann denselben Chrome-Befehl außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut ausführen und den Sandbox-Fehler dokumentieren. Nicht unnötig auf Firefox wechseln, wenn Chrome lokal verfügbar ist.
 
 Der erzeugte Screenshot sollte danach visuell geprüft werden:
 
@@ -388,7 +388,7 @@ Wenn der Layout-Check fehlschlägt:
 - prüfen, ob die Ausgabedateien unter `_Arbeitsdateien` erzeugt wurden
 - den statischen Check trotzdem separat betrachten
 - unter Windows 11 zuerst `-Browser chrome` nutzen
-- bei Sandboxfehler denselben Chrome-Lauf außerhalb der Sandbox oder mit lokaler Browserfreigabe wiederholen
+- bei Sandbox-Fehler denselben Chrome-Lauf außerhalb der Sandbox oder mit lokaler Browserfreigabe wiederholen
 
 Wenn der PDF-Export fehlschlägt:
 
