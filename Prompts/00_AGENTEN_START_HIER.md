@@ -39,12 +39,13 @@ Wenn `Private/Daten/` fehlt, nutze `Private.example/Daten/` nur als Strukturhinw
 
 Die privaten Daten sind bewusst getrennt:
 
-- `Private/Daten/01_PERSOENLICHE_DATEN.md` ist die einzige Quelle für Identität, Kontakt, Dateiname-Name, öffentliche Profile, Verfügbarkeit und Bewerbungslogistik.
+- `Private/Daten/01_PERSOENLICHE_DATEN.md` ist die einzige Quelle für Identität, Kontakt, Dateiname-Name, öffentliche Profile, Verfügbarkeit, gewünschte Stellenart, Arbeitsmodell, Region, Eintrittstermin, Reisebereitschaft, Gehaltswunsch und Bewerbungslogistik.
 - `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ist die fachliche Quelle für Zielrollen, Positionierung, Berufserfahrung, Ausbildung, Umschulung, Weiterbildung, Schulbildung, Kenntnisse, Projekte, private Praxis, Sprachen und Grenzen. Wenn diese Datei Belegarten wie `BERUFLICH BELEGT`, `ÜBERTRAGBAR`, `WEITERBILDUNG`, `PROJEKTPRAXIS`, `PRIVATE PRAXIS / HOME-LAB`, `GRUNDLAGEN / VERSTÄNDNIS`, `EINARBEITUNGSZIEL` oder `NICHT BEHAUPTEN` enthält, muss der Agent sie strikt auswerten.
 
 Der Agent darf fachliche Lebenslaufdaten nicht aus Datei `01` ableiten, wenn Datei `02` dazu eine abweichende oder fehlende Aussage enthält. Bei Dopplungen oder Widersprüchen gilt:
 
 - Kontakt- und Dateinamendaten kommen aus Datei `01`.
+- Stellenart, Arbeitsmodell, Eintrittstermin, Region und Gehaltslogik kommen aus Datei `01`.
 - Fachliche CV-Daten kommen aus Datei `02`.
 - Belegarten in Datei `02` steuern die Wahrheitsebene: beruflich belegte Erfahrung, übertragbare Erfahrung, Weiterbildung, Projektpraxis, private Praxis, Grundlagen, Einarbeitungsziele und nicht zu behauptende Inhalte dürfen nicht vermischt werden.
 - Widersprüche werden in `Offene_Fragen.md` dokumentiert und nicht stillschweigend vermischt.
@@ -73,23 +74,25 @@ Frage nur nach, wenn eine fehlende Information die fachliche Korrektheit der fin
 
 1. Analysiere die Stellenbeschreibung.
 2. Erkenne Firma, Zielrolle, Anforderungen, Muss-Kriterien, Kann-Kriterien, Fachkenntnisse, Werkzeuge, Methoden und Soft Skills.
-3. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten. Werte dabei die Belegarten aus Datei `02` ausdrücklich aus.
-4. Lege vor dem Schreiben eine kurze Lebenslauf-Strategie fest: deutscher Standard, Beweislogik für die Zielrolle, Umgang mit Quereinstieg/Lücken, Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`. Bei mehrseitigen Lebensläufen ist zusätzlich eine feste Footer-Strategie Pflicht: jede A4-Seite erhält unten eine dezente Trennlinie und darunter rechts die Seitenangabe.
-5. Erstelle einen neuen Bewerbungsordner nach `Prompts/10_DATEI_UND_ORDNER_REGELN.md`.
-6. Speichere die originale Stellenbeschreibung als `Stellenbeschreibung.md`.
-7. Speichere eine kurze Analyse als `Analyse.md`.
-8. Erstelle den Lebenslauf als `Lebenslauf - NACHNAME.VORNAME.html`.
-9. Erstelle das Anschreiben als `Anschreiben - NACHNAME.VORNAME.html`.
-10. Erstelle die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
-11. Führe vor der technischen Prüfung einen fachlichen Abschlusstest aus: Lies `Stellenbeschreibung.md`, `Analyse.md`, Datei `01`, Datei `02`, Lebenslauf, Anschreiben und E-Mail-Nachricht erneut gegeneinander. Prüfe, ob die wichtigsten Anforderungen der Stelle sichtbar beantwortet sind, alle Aussagen durch private Daten gedeckt sind, keine erfundenen Angaben enthalten sind und fehlende Daten nur in `Offene_Fragen.md` dokumentiert werden.
-12. Wenn der fachliche Abschlusstest Unstimmigkeiten findet, korrigiere Lebenslauf, Anschreiben, E-Mail-Nachricht, Analyse oder `Offene_Fragen.md` und wiederhole den Abschlusstest. Speichere den finalen Qualitätscheck inklusive kurzem Anforderungsabgleich als `Qualitaetscheck.md`.
-13. Prüfe, dass finale HTML- und Markdown-Dateien keine sichtbaren Platzhalter enthalten.
-14. Prüfe besonders bei HTML-Dateien, dass Firefox nicht automatisch mitten im Dokument umbricht. Ein Einseiten-Dokument muss technisch eine feste A4-Seite sein; ein zweiseitiges Dokument muss zwei explizite A4-Seitencontainer haben. Bei mehrseitigen Lebensläufen müssen Seitenzahlen als fester Footer am unteren Seitenrand stehen, nicht als normaler Absatz im Inhaltsfluss.
-15. Führe, sofern PowerShell verfügbar ist, den statischen technischen Check aus: `.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
-16. Optional: Führe den Browser-Layoutcheck aus. Unter Windows 11 / VS Code / PowerShell mit installiertem Chrome ist der direkte Standardweg: `.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome`. Werte ihn nur als bestanden, wenn die erwarteten Screenshot-Dateien tatsächlich erzeugt wurden.
-17. Prüfe den erzeugten Screenshot visuell: keine abgeschnittenen Inhalte, keine zerhackten Seiten, keine großen ungewollten Leerflächen, keine zweite Seite nur mit Restinhalt, formale CV-Stationen sichtbar. Bei mehrseitigen Lebensläufen muss jede Seite unten eine saubere Footer-Trennlinie mit Seitenangabe darunter haben.
-18. Wenn Chrome im Sandbox-Kontext keine Screenshot-Dateien erzeugt oder hängt, nicht weiter mit Firefox experimentieren. Beende oder verwerfe den Lauf, dokumentiere den Sandbox-Fehler und führe denselben Chrome-Layoutcheck außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut aus.
-19. Wenn Chrome oder Edge verfügbar ist, exportiere Lebenslauf und Anschreiben nach erfolgreichem statischem Check automatisch als PDF: `.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
+3. Erkenne zusätzlich Stellenart, Arbeitsmodell, Standort/Region, Eintrittstermin, Reise- oder Schichtanforderungen und ob ein Gehaltswunsch verlangt wird.
+4. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten. Werte dabei die Belegarten aus Datei `02` ausdrücklich aus.
+5. Lege eine Bewerbungslogistik fest: gewünschte Stellenart aus Datei `01`, passende Stellenart aus der Anzeige, Arbeitsmodell, Region, Eintrittstermin und Gehaltsstrategie. Widersprüche werden in `Offene_Fragen.md` dokumentiert.
+6. Lege vor dem Schreiben eine kurze Lebenslauf-Strategie fest: deutscher Standard, Beweislogik für die Zielrolle, Umgang mit Quereinstieg/Lücken, Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`. Bei mehrseitigen Lebensläufen ist zusätzlich eine feste Footer-Strategie Pflicht: jede A4-Seite erhält unten eine dezente Trennlinie und darunter rechts die Seitenangabe.
+7. Erstelle einen neuen Bewerbungsordner nach `Prompts/10_DATEI_UND_ORDNER_REGELN.md`.
+8. Speichere die originale Stellenbeschreibung als `Stellenbeschreibung.md`.
+9. Speichere eine kurze Analyse als `Analyse.md`.
+10. Erstelle den Lebenslauf als `Lebenslauf - NACHNAME.VORNAME.html`.
+11. Erstelle das Anschreiben als `Anschreiben - NACHNAME.VORNAME.html`.
+12. Erstelle die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
+13. Führe vor der technischen Prüfung einen fachlichen Abschlusstest aus: Lies `Stellenbeschreibung.md`, `Analyse.md`, Datei `01`, Datei `02`, Lebenslauf, Anschreiben und E-Mail-Nachricht erneut gegeneinander. Prüfe, ob die wichtigsten Anforderungen der Stelle sichtbar beantwortet sind, alle Aussagen durch private Daten gedeckt sind, Stellenart und Gehaltsangaben konsistent sind, keine erfundenen Angaben enthalten sind und fehlende Daten nur in `Offene_Fragen.md` dokumentiert werden.
+14. Wenn der fachliche Abschlusstest Unstimmigkeiten findet, korrigiere Lebenslauf, Anschreiben, E-Mail-Nachricht, Analyse oder `Offene_Fragen.md` und wiederhole den Abschlusstest. Speichere den finalen Qualitätscheck inklusive kurzem Anforderungsabgleich als `Qualitaetscheck.md`.
+15. Prüfe, dass finale HTML- und Markdown-Dateien keine sichtbaren Platzhalter enthalten.
+16. Prüfe besonders bei HTML-Dateien, dass Firefox nicht automatisch mitten im Dokument umbricht. Ein Einseiten-Dokument muss technisch eine feste A4-Seite sein; ein zweiseitiges Dokument muss zwei explizite A4-Seitencontainer haben. Bei mehrseitigen Lebensläufen müssen Seitenzahlen als fester Footer am unteren Seitenrand stehen, nicht als normaler Absatz im Inhaltsfluss.
+17. Führe, sofern PowerShell verfügbar ist, den statischen technischen Check aus: `.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
+18. Optional: Führe den Browser-Layoutcheck aus. Unter Windows 11 / VS Code / PowerShell mit installiertem Chrome ist der direkte Standardweg: `.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome`. Werte ihn nur als bestanden, wenn die erwarteten Screenshot-Dateien tatsächlich erzeugt wurden.
+19. Prüfe den erzeugten Screenshot visuell: keine abgeschnittenen Inhalte, keine zerhackten Seiten, keine großen ungewollten Leerflächen, keine zweite Seite nur mit Restinhalt, formale CV-Stationen sichtbar. Bei mehrseitigen Lebensläufen muss jede Seite unten eine saubere Footer-Trennlinie mit Seitenangabe darunter haben.
+20. Wenn Chrome im Sandbox-Kontext keine Screenshot-Dateien erzeugt oder hängt, nicht weiter mit Firefox experimentieren. Beende oder verwerfe den Lauf, dokumentiere den Sandbox-Fehler und führe denselben Chrome-Layoutcheck außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut aus.
+21. Wenn Chrome oder Edge verfügbar ist, exportiere Lebenslauf und Anschreiben nach erfolgreichem statischem Check automatisch als PDF: `.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
 
 Temporäre Entwürfe, Zwischenschritte oder Arbeitsnotizen dürfen nicht direkt im Projektwurzelordner liegen. Sie gehören immer in den privaten Firmenordner unter:
 
@@ -113,6 +116,7 @@ Wichtig:
 - Keine unruhigen Skill-Wolken, dekorativen Kontaktkarten oder portfolioartigen Layouts, wenn ein seriöser Recruiter-CV gefragt ist.
 - Keine künstlich aufgeblähte Sprache.
 - Keine erfundenen Kenntnisse, Branchen, Rollen oder Verantwortlichkeiten.
+- Keine erfundenen Angaben zu Stellenart, Arbeitsmodell, Eintrittstermin oder Gehalt. Wenn eine Gehaltsschätzung nötig ist, muss sie aus Datei `01`, Stellenbeschreibung, Zielrolle, Seniorität, technischer Tiefe, Alter oder Berufserfahrung, Region und Stellenart plausibel abgeleitet und in `Analyse.md` kurz begründet werden.
 - Keine Hochstufung von `GRUNDLAGEN`, `PRIVATE PRAXIS / HOME-LAB`, `PROJEKTPRAXIS` oder `EINARBEITUNGSZIEL` zu beruflicher Erfahrung.
 - Keine Formulierungen, die nach generischer KI klingen.
 
@@ -187,7 +191,8 @@ Wenn wichtige Angaben fehlen:
 - `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlicht werden.
 - Öffentliche Dateien in `Prompts/`, `Vorlagen/`, `Tools/` und `Private.example/` dürfen keine echten Bewerberdaten enthalten.
 - Generierte Bewerbungen, Bewertungen, Universal-Lebensläufe und Archive gehören unter `Private/`.
-- Stammdaten und fachliche Lebenslaufdaten sollen nicht doppelt gepflegt werden: Datei `01` enthält Identität/Kontakt, Datei `02` enthält Profil und CV-Stationen.
+- Stammdaten, Bewerbungslogistik und fachliche Lebenslaufdaten sollen nicht doppelt gepflegt werden: Datei `01` enthält Identität/Kontakt und Bewerbungslogistik, Datei `02` enthält Profil und CV-Stationen.
+- Stellenart, Arbeitsmodell, Eintrittstermin, Region, Reisebereitschaft und Gehaltswunsch gehören als Bewerbungslogistik in Datei `01`, nicht in Datei `02`.
 
 ## Optionaler Ordner-Helfer
 

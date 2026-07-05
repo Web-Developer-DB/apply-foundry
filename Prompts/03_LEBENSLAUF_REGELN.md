@@ -16,7 +16,7 @@ Keine Branche, keine konkrete Fachrolle und kein Projekttyp darf aus den öffent
 
 Für den Lebenslauf gelten klare Zuständigkeiten:
 
-- Kontakt, Name, Dateiname-Name, Links und Verfügbarkeit kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`.
+- Kontakt, Name, Dateiname-Name, Links, Verfügbarkeit, Stellenart, Arbeitsmodell, Region und Eintrittstermin kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`.
 - Zielrollen, Kurzprofil, Berufserfahrung, Ausbildung, Studium, Umschulung, Weiterbildung, Schulbildung, Kompetenzen, Sprachen, Projekte und private Praxis kommen aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`.
 - Wenn Datei `02` fachliche Inhalte nach Belegarten strukturiert, sind diese Belegarten verbindlich. Inhalte aus `BERUFLICH BELEGT`, `ÜBERTRAGBAR`, `WEITERBILDUNG`, `PROJEKTPRAXIS`, `PRIVATE PRAXIS / HOME-LAB`, `GRUNDLAGEN / VERSTÄNDNIS`, `EINARBEITUNGSZIEL` und `NICHT BEHAUPTEN` dürfen nicht sprachlich gleichgesetzt werden.
 - Schulbildung gehört fachlich zu Datei `02`, nicht zu Datei `01`.
@@ -30,7 +30,7 @@ Der Standard ist ein ruhiger, tabellarisch wirkender deutscher Lebenslauf. Moder
 
 Empfohlene Grundstruktur:
 
-1. Kompakter Kopfbereich mit Name, Zielrolle und Kontakt
+1. Kompakter Kopfbereich mit Name, Zielrolle, Kontakt und passender Stellenart
 2. Kurzprofil mit maximal 3 bis 4 präzisen Zeilen oder 2 bis 3 starken Kurzpunkten
 3. Rollenrelevante Kompetenzen als klar gruppierte Zeilen
 4. Beruflicher Werdegang / Berufserfahrung, bevorzugt tabellarisch und chronologisch rückwärts
@@ -109,6 +109,8 @@ Vor dem Schreiben des Lebenslaufs muss der Agent ein kurzes Bewerbungsprofil bes
 - Branche oder Arbeitsfeld
 - Erfahrungsart
 - Seniorität oder Einstiegsniveau
+- Stellenart aus Datei `01` und Stellenart aus der Anzeige
+- Arbeitsmodell, Region und Eintrittstermin, falls relevant
 - vermutete Firmengröße, falls aus der Stellenbeschreibung ableitbar
 - Kernargumente für die Zielrolle
 - Zusatzkenntnisse mit Recruiter-Nutzen
@@ -122,6 +124,10 @@ Dieses Profil steuert Auswahl, Reihenfolge und Kürzung des Lebenslaufs.
 
 - Verwende nur Daten aus `Private/Daten/` und aus der konkreten Stellenbeschreibung.
 - Verwende Datei `01` nur für persönliche Stammdaten und Datei `02` für fachliche Lebenslaufdaten.
+- Nenne die Stellenart im Lebenslauf immer kompakt: `Vollzeit`, `Teilzeit` oder `Vollzeit/Teilzeit`, je nach Datei `01` und Stellenanzeige.
+- Wenn Datei `01` einen Stundenumfang nennt, darf er bei Teilzeit oder gemischten Modellen ergänzt werden, z. B. `Teilzeit, 30 Std./Woche`.
+- Wenn die Stellenanzeige eine andere Stellenart verlangt als Datei `01`, die Bewerbung nicht stillschweigend passend machen. Den Widerspruch in `Offene_Fragen.md` dokumentieren und im finalen Lebenslauf nur eine wahre, nicht widersprüchliche Formulierung verwenden.
+- Arbeitsmodell, Region, Pendeldistanz oder Eintrittstermin nur aufnehmen, wenn sie für die Bewerbung nützlich sind oder die Anzeige dazu klare Anforderungen enthält.
 - Formuliere kurz, konkret und ohne übertriebene Selbstdarstellung.
 - Priorisiere Muss-Anforderungen der Stelle.
 - Nenne private, ehrenamtliche, schulische, akademische oder inoffizielle Praxis korrekt als solche, nicht als berufliche Verantwortung.

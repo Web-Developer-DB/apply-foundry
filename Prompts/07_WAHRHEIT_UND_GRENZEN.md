@@ -2,7 +2,7 @@
 
 ## Grundregel
 
-Nichts erfinden. Keine Kenntnisse, Arbeitgeber, Zeiträume, Zertifikate, Projekte, Branchen, Systeme, Tools oder Verantwortlichkeiten behaupten, die nicht in den privaten Daten stehen oder aus der Stellenbeschreibung sicher hervorgehen.
+Nichts erfinden. Keine Kenntnisse, Arbeitgeber, Zeiträume, Zertifikate, Projekte, Branchen, Systeme, Tools, Verantwortlichkeiten, Stellenarten, Eintrittstermine, Arbeitsmodelle oder Gehaltsangaben behaupten, die nicht in den privaten Daten stehen, aus der Stellenbeschreibung sicher hervorgehen oder nach den Gehaltsregeln plausibel abgeleitet und dokumentiert wurden.
 
 Der Agent darf keine fachliche Richtung aus den öffentlichen Prompts ableiten. Fachrichtung, Rollenprofil und Schwerpunkt kommen aus `Private/Daten/` und aus der konkreten Stellenbeschreibung.
 
@@ -23,6 +23,7 @@ Der Agent darf keine fachliche Richtung aus den öffentlichen Prompts ableiten. 
 - Private, ehrenamtliche oder inoffizielle Praxis als berufliche Verantwortung ausgeben.
 - Unternehmenswissen erfinden.
 - Zertifikate, Abschlüsse, Tools, Systeme oder Methoden ergänzen, die nicht vorhanden sind.
+- Stellenart, Arbeitsmodell, Eintrittstermin oder Gehaltswunsch passend machen, wenn Datei `01` oder die Stellenanzeige das nicht hergeben.
 - Zeiträume glätten oder verschönern.
 - Lücken, Quereinstieg oder private Praxis so formulieren, als wären sie formale Berufserfahrung.
 - Kompetenzrubriken so benennen, dass Grundlagen oder Home-Lab-Praxis wie berufliche Administrator- oder Rollenverantwortung wirken.

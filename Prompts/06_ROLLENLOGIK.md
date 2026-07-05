@@ -13,14 +13,16 @@ Der Agent ist neutral. Er darf keine Branche, keine konkrete Fachrolle, keine Ve
 3. Muss-Anforderungen erkennen.
 4. Kann-Anforderungen erkennen.
 5. Gewünschte Arbeitsweise, Soft Skills, Tools, Methoden, Systeme oder Fachkenntnisse extrahieren.
-6. Seniorität oder Einstiegsniveau ableiten.
-7. Firmengröße oder Organisationsart ableiten, falls Hinweise vorhanden sind.
-8. Private Profildaten auf echte Belege prüfen.
-9. Belegarten aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` auswerten, falls vorhanden.
-10. Profilstrategie festlegen.
-11. Beweislogik festlegen: Welche Stationen, Weiterbildungen, Projekte oder Praxisbelege tragen die Zielrolle wirklich?
-12. Risiken, Lücken oder fehlende formale Anforderungen erkennen.
-13. Irrelevante Inhalte bewusst reduzieren.
+6. Stellenart, Arbeitsmodell, Standort/Region, Eintrittstermin, Reise- oder Schichtanforderungen und Gehaltsanforderung erkennen.
+7. Seniorität oder Einstiegsniveau ableiten.
+8. Firmengröße oder Organisationsart ableiten, falls Hinweise vorhanden sind.
+9. Private Profildaten auf echte Belege prüfen.
+10. Bewerbungslogistik aus `Private/Daten/01_PERSOENLICHE_DATEN.md` prüfen.
+11. Belegarten aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` auswerten, falls vorhanden.
+12. Profilstrategie festlegen.
+13. Beweislogik festlegen: Welche Stationen, Weiterbildungen, Projekte oder Praxisbelege tragen die Zielrolle wirklich?
+14. Risiken, Lücken oder fehlende formale Anforderungen erkennen.
+15. Irrelevante Inhalte bewusst reduzieren.
 
 ## Bewerbungsprofil
 
@@ -31,6 +33,9 @@ Vor Lebenslauf und Anschreiben wird eine kurze Profilstrategie erstellt:
 - Erfahrungsart
 - Seniorität oder Einstiegsniveau
 - Firmengröße oder Organisationsart, falls erkennbar
+- Stellenart der Anzeige und gewünschte Stellenart aus Datei `01`
+- Arbeitsmodell, Region, Eintrittstermin, Reise- oder Schichtanforderungen, falls relevant
+- Gehaltsstrategie: manuelle Angabe, automatische Schätzung, nur bei ausdrücklicher Anforderung oder keine Angabe
 - wichtigste Anforderungen der Stelle
 - stärkste belegbare Argumente aus den privaten Daten
 - Belegarten-Logik: beruflich belegte Erfahrung, übertragbare Erfahrung, Weiterbildung, Projektpraxis, private Praxis, Grundlagen, Einarbeitungsziele und nicht zu behauptende Inhalte
@@ -66,6 +71,18 @@ Wenn Datei `02` Belegarten enthält, gilt:
 - `NICHT BEHAUPTEN`: nicht als Erfahrung, Verantwortung, sichere Kompetenz oder Rollenpraxis verwenden.
 
 Bei Konflikten gilt die vorsichtigere Belegart. Beispiel: Eine Technologie, die sowohl in einer Wunschrolle als auch unter `EINARBEITUNGSZIEL` steht, darf nicht als vorhandene Erfahrung erscheinen.
+
+## Bewerbungslogistik und Gehalt
+
+Stellenart, Arbeitsmodell, Eintrittstermin, Region, Reisebereitschaft, Schichtbereitschaft, Befristung und Gehaltswunsch sind Bewerbungslogistik. Sie kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`.
+
+- Stellenart muss für Lebenslauf und Anschreiben ausgewertet werden: `Vollzeit`, `Teilzeit` oder `Vollzeit/Teilzeit`.
+- Die Stellenanzeige wird auf angebotene oder geforderte Stellenart geprüft. Bei Widerspruch zu Datei `01` wird der Punkt in `Offene_Fragen.md` dokumentiert.
+- Arbeitsmodell, Region, Pendeldistanz, Reisebereitschaft, Schicht- oder Wochenendbereitschaft und Befristung werden nur sichtbar gemacht, wenn sie für die konkrete Bewerbung relevant sind.
+- Eine manuelle Gehaltsangabe aus Datei `01` hat Vorrang.
+- Wenn automatische Gehaltsschätzung aktiviert ist, wird sie aus Zielrolle, Seniorität, technischer Tiefe, Alter oder Berufserfahrung, Region, Arbeitsmodell und Stellenart abgeleitet. Die Begründung wird kurz in `Analyse.md` festgehalten.
+- Wenn die Stellenanzeige eine Gehaltsvorstellung verlangt, muss der Agent prüfen, ob ein Gehalt genannt werden darf, automatisch geschätzt werden soll oder eine offene Frage entsteht.
+- Wenn die Datengrundlage nicht reicht, wird keine Scheingenauigkeit erzeugt. Dann wird `Offene_Fragen.md` genutzt.
 
 ## Formale CV-Stationen
 

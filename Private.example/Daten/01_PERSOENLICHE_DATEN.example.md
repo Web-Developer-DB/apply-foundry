@@ -27,8 +27,25 @@ Fachliche Lebenslaufdaten wie Berufserfahrung, Ausbildung, Weiterbildung, Schulb
 ## Verfügbarkeit und Bewerbungslogistik
 
 - Verfügbarkeit: [z. B. nach Vereinbarung]
-- Gewünschte Region / Remote: [optional]
+- Frühester Eintrittstermin: [optional, z. B. ab sofort / ab Datum / nach Kündigungsfrist]
+- Gewünschte Stellenart: [Vollzeit / Teilzeit / Vollzeit oder Teilzeit]
+- Gewünschter Stundenumfang: [optional, z. B. 30 Std./Woche]
+- Gewünschtes Arbeitsmodell: [vor Ort / hybrid / remote / egal]
+- Gewünschte Region: [optional, z. B. NRW / Berlin / Remote Deutschland]
+- Maximale Pendeldistanz: [optional, z. B. 30 km oder 45 Minuten]
+- Reisebereitschaft: [optional, z. B. keine / gelegentlich / regelmäßig]
+- Schicht- oder Wochenendbereitschaft: [optional]
+- Befristung: [optional, z. B. unbefristet bevorzugt / befristet möglich]
+- Umzugsbereitschaft: [optional]
 - Gewünschte Anrede: [optional]
+
+## Gehaltswunsch
+
+- Wunschgehalt verwenden: [ja / nein / nur wenn in der Stellenanzeige verlangt]
+- Wunschgehalt manuell: [optional, z. B. 42.000 EUR brutto/Jahr]
+- Gehaltsmodell: [Jahresbrutto / Monatsbrutto / Stundenlohn]
+- Gehaltsregion: [optional, z. B. NRW / Berlin / Remote Deutschland]
+- Gehaltslogik: [manuelle Angabe bevorzugen / automatisch schätzen]
 
 ## Optionale persönliche Angaben
 
