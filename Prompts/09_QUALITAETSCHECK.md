@@ -6,7 +6,8 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 
 - Ist die Bewerbung klar auf die Stellenbeschreibung zugeschnitten?
 - Wurde das Bewerbungsprofil aus Stellenbeschreibung und privaten Daten abgeleitet, nicht aus öffentlichen Beispielprompts?
-- Wurden die Datenquellen sauber getrennt: Datei `01` nur für Identität/Kontakt, Datei `02` für fachliche CV-Daten?
+- Wurden die Datenquellen sauber getrennt: Datei `01` nur für Identität/Kontakt/Bewerbungslogistik, Datei `02` für fachliche CV-Daten?
+- Wurden Stellenart, Arbeitsmodell, Eintrittstermin, Region und Gehaltslogik aus Datei `01` berücksichtigt?
 - Wurden Belegarten aus Datei `02` ausgewertet und korrekt in die Formulierung übertragen?
 - Gibt es keine stillschweigend vermischten Dopplungen oder Widersprüche zwischen Datei `01` und Datei `02`?
 - Sind die wichtigsten Anforderungen der Stelle sichtbar?
@@ -30,6 +31,7 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Sind alle Aussagen in Lebenslauf und Anschreiben durch Datei `01` oder Datei `02` gedeckt?
 - Wurden Anforderungen, zu denen keine private Datengrundlage existiert, nicht erfunden, sondern neutral ausgelassen oder in `Offene_Fragen.md` dokumentiert?
 - Stimmen Lebenslauf, Anschreiben, E-Mail-Nachricht, Dateinamen, Zielrolle, Firma und Ansprechpartner widerspruchsfrei überein?
+- Stimmen Stellenart, Arbeitsmodell, Eintrittstermin und Gehaltsangabe mit Datei `01`, Stellenanzeige, Lebenslauf und Anschreiben überein?
 - Sind fehlende Daten die einzigen offenen Punkte und werden sie nicht als sichtbare Platzhalter in finalen Dateien geführt?
 - Wurden bei gefundenen Unstimmigkeiten die finalen Dateien korrigiert und danach erneut geprüft?
 
@@ -39,6 +41,8 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Wurde die Firmengröße oder Organisationsart berücksichtigt, falls sie aus der Stellenbeschreibung ableitbar ist?
 - Sind bei großen oder standardisierten Arbeitgebern Rollenpassung und Muss-Anforderungen besonders schnell sichtbar?
 - Sind bei kleinen oder breiten Arbeitgebern nützliche Allrounder- und Zusatzkenntnisse sinnvoll, aber nicht ausufernd eingebunden?
+- Wurde die angebotene Stellenart aus der Anzeige mit der gewünschten Stellenart aus Datei `01` abgeglichen?
+- Wurde die Gehaltsstrategie in `Analyse.md` kurz dokumentiert, wenn ein Gehaltswunsch genannt oder automatisch geschätzt wurde?
 - Lenkt kein Abschnitt von der Zielrolle ab?
 - Sind bewusst weggelassene Inhalte in `Analyse.md` oder `Qualitaetscheck.md` kurz begründet?
 
@@ -66,6 +70,8 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Werden Inhalte aus `NICHT BEHAUPTEN` nicht als Erfahrung, Verantwortung oder sichere Kompetenz verwendet?
 - Sind auffällige Lücken, Rollenwechsel oder aktuelle Phasen nachvollziehbar behandelt oder in `Offene_Fragen.md` dokumentiert?
 - Sind Kontaktdaten korrekt?
+- Ist die Stellenart im Lebenslauf sichtbar und wahr formuliert?
+- Wurde ein Stundenumfang nur genannt, wenn er in Datei `01` vorhanden ist?
 - Sind Vorname und Nachname für die finalen Dateinamen eindeutig aus `Private/Daten/01_PERSOENLICHE_DATEN.md` übernommen?
 - Enthalten finale Versanddateien den Bewerbernamen statt des Firmennamens?
 - Sind finale sichtbare Platzhalter vollständig entfernt?
@@ -104,6 +110,11 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Enthält es keine Floskeln?
 - Enthält es keine Übertreibungen?
 - Werden keine Unternehmensdetails erfunden?
+- Ist die Stellenart im Anschreiben genannt?
+- Wurde ein Gehaltswunsch nur genannt, wenn Datei `01` oder die Stellenanzeige dies vorsieht?
+- Wurde ein manuell gepflegter Gehaltswunsch aus Datei `01` bevorzugt?
+- Ist eine automatische Gehaltsschätzung plausibel begründet und nicht scheingenau formuliert?
+- Wurde bei fehlender Grundlage für eine verlangte Gehaltsangabe `Offene_Fragen.md` genutzt?
 
 ## E-Mail-Nachricht
 
@@ -160,5 +171,6 @@ Am Ende von `Qualitaetscheck.md` kurz festhalten:
 - vermutete Recruiter-Strategie und ggf. Firmengröße
 - bewusst weggelassene Inhalte
 - offene Daten oder Risiken
+- Stellenart- und Gehaltsstrategie, falls relevant
 - Ergebnis des fachlichen Abschlusstests und ggf. vorgenommene Korrekturen
 - verwendete Designvorlage, falls vorhanden

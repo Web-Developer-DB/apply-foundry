@@ -90,7 +90,7 @@ Wenn `Private/Daten/` noch fehlt:
 1. Erstelle den Ordner `Private/Daten/`.
 2. Nutze die Dateien aus `Private.example/Daten/` als Strukturvorlage.
 3. Entferne Beispielplatzhalter.
-4. Trage persönliche Stammdaten nur in `01_PERSOENLICHE_DATEN.md` ein.
+4. Trage persönliche Stammdaten und Bewerbungslogistik nur in `01_PERSOENLICHE_DATEN.md` ein.
 5. Trage fachliche Lebenslaufdaten nur in `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ein.
 6. Nutze `Private/Daten/README.md` als lokale Pflegeanleitung, wenn du die Daten später erweiterst.
 
@@ -103,7 +103,10 @@ Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlic
 - Name, Vorname, Nachname und Dateiname-Name
 - Adresse, Telefon, E-Mail
 - GitHub, Portfolio und andere öffentliche Profile
-- Verfügbarkeit und optionale persönliche Angaben
+- Verfügbarkeit, Eintrittstermin und gewünschte Stellenart
+- Arbeitsmodell, Region, Pendeldistanz, Reisebereitschaft und ähnliche Bewerbungslogistik
+- Gehaltswunsch und Gehaltslogik
+- optionale persönliche Angaben
 
 `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` enthält:
 
@@ -113,7 +116,7 @@ Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlic
 - Kenntnisse, Sprachen, Projekte und private Praxis
 - Grenzen und Hinweise, was nicht behauptet werden darf
 
-Eine Information soll nur an einer Stelle gepflegt werden. Kontakt- und Angaben für Dateinamen kommen aus Datei `01`; fachliche CV-Daten kommen aus Datei `02`.
+Eine Information soll nur an einer Stelle gepflegt werden. Kontakt-, Dateinamen- und Bewerbungslogistikdaten kommen aus Datei `01`; fachliche CV-Daten kommen aus Datei `02`.
 
 ## Bewerbung durch den Agenten erstellen lassen
 
@@ -313,6 +316,8 @@ Typische offene Punkte:
 - Schulabschluss noch nicht bestätigt
 - Ansprechpartner fehlt
 - Eintrittstermin oder Kündigungsfrist unklar
+- gewünschte Stellenart passt nicht eindeutig zur Anzeige
+- Gehaltswunsch wird verlangt, aber es fehlt eine manuelle Angabe oder ausreichende Schätzgrundlage
 - eine in der Anzeige gewünschte Technologie ist nur als Lernfeld, nicht als Erfahrung belegt
 
 Offene Fragen blockieren die Bewerbung nur dann, wenn sie fachlich kritisch sind. Sonst werden sie dokumentiert und die Bewerbung neutral formuliert.
@@ -489,11 +494,11 @@ Die Spezialregeln sind getrennt:
 
 | Datei | Verantwortung |
 | --- | --- |
-| `03_LEBENSLAUF_REGELN.md` | Aufbau, Priorisierung, deutscher CV-Standard, A4-Seitenstrategie |
-| `04_ANSCHREIBEN_REGELN.md` | Struktur, Ton und Grenzen des Anschreibens |
+| `03_LEBENSLAUF_REGELN.md` | Aufbau, Stellenart, Priorisierung, deutscher CV-Standard, A4-Seitenstrategie |
+| `04_ANSCHREIBEN_REGELN.md` | Struktur, Ton, Stellenart, Gehaltswunsch und Grenzen des Anschreibens |
 | `05_EMAIL_NACHRICHT_REGELN.md` | kurze Versandnachricht |
-| `06_ROLLENLOGIK.md` | Ableitung von Zielrolle, Recruiter-Strategie und Profilgewichtung |
-| `07_WAHRHEIT_UND_GRENZEN.md` | keine erfundenen Angaben, ehrliche Einordnung von Grundlagen und Praxis |
+| `06_ROLLENLOGIK.md` | Ableitung von Zielrolle, Bewerbungslogistik, Recruiter-Strategie und Profilgewichtung |
+| `07_WAHRHEIT_UND_GRENZEN.md` | keine erfundenen Angaben, ehrliche Einordnung von Grundlagen, Praxis und Gehaltsangaben |
 | `08_HTML_CSS_DESIGNREGELN.md` | feste A4-Geometrie, Firefox-Druck, HTML/CSS-Regeln |
 | `09_QUALITAETSCHECK.md` | inhaltliche und technische Checkliste |
 | `10_DATEI_UND_ORDNER_REGELN.md` | private Ordner, Dateinamen, Slugs, Arbeitsdateien |
@@ -505,10 +510,10 @@ Die Spezialregeln sind getrennt:
 
 1. Stellenbeschreibung kommt vom Nutzer.
 2. Agent liest private Daten aus `Private/Daten/`.
-3. Agent trennt dabei Datei `01` als Quelle für Identität/Kontakt und Datei `02` als Quelle für fachliche CV-Daten.
+3. Agent trennt dabei Datei `01` als Quelle für Identität/Kontakt/Bewerbungslogistik und Datei `02` als Quelle für fachliche CV-Daten.
 4. Agent liest Prompt-Regeln aus `Prompts/`.
-5. Agent erkennt Firma, Rolle, Anforderungen, Muss-Kriterien, Kann-Kriterien und Risiken.
-6. Agent legt Rollenstrategie und Lebenslaufstrategie fest.
+5. Agent erkennt Firma, Rolle, Anforderungen, Muss-Kriterien, Kann-Kriterien, Stellenart, Arbeitsmodell, Gehaltsanforderung und Risiken.
+6. Agent legt Rollenstrategie, Bewerbungslogistik, Gehaltsstrategie und Lebenslaufstrategie fest.
 7. Ordner wird unter `Private/Bewerbungen/` erstellt.
 8. Originale Stellenbeschreibung wird als `Stellenbeschreibung.md` gesichert.
 9. Analyse wird als `Analyse.md` gespeichert.

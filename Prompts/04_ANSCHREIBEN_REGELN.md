@@ -10,7 +10,8 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 2. Direkter Einstieg mit Bezug zur Stelle
 3. Zwei bis drei konkrete Passungen aus Profil und Erfahrung
 4. Kurzer Nutzen für das Unternehmen
-5. Abschluss mit Gesprächsbereitschaft
+5. Stellenart immer; Eintritt und Gehaltswunsch nach Datei `01` und Stellenanzeige
+6. Abschluss mit Gesprächsbereitschaft
 
 ## Stil
 
@@ -25,6 +26,14 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 ## Inhaltliche Regeln
 
 - Nutze echte Belege aus `Private/Daten/`.
+- Nenne die gewünschte oder passende Stellenart im Anschreiben immer: `Vollzeit`, `Teilzeit` oder `Vollzeit/Teilzeit`. Bei Teilzeit darf der gewünschte Stundenumfang genannt werden, wenn Datei `01` ihn enthält.
+- Wenn Datei `01` und Stellenanzeige bei der Stellenart nicht zusammenpassen, erfinde keine Passung. Dokumentiere den Widerspruch in `Offene_Fragen.md` und formuliere nur wahr.
+- Nenne den Gehaltswunsch im Anschreiben, wenn `Wunschgehalt verwenden` in Datei `01` auf `ja` steht oder wenn die Stellenanzeige ausdrücklich eine Gehaltsvorstellung verlangt und Datei `01` dies nicht ausschließt.
+- Wenn `Wunschgehalt verwenden` auf `nur wenn in der Stellenanzeige verlangt` steht, nenne das Gehalt nur bei ausdrücklicher Aufforderung in der Anzeige.
+- Wenn ein manueller Gehaltswunsch in Datei `01` steht, verwende diese Angabe.
+- Wenn automatische Schätzung gewünscht ist, ermittle eine plausible Gehaltsangabe oder Gehaltsspanne aus Zielrolle, Seniorität, technischer Tiefe, Alter oder Berufserfahrung, Region, Arbeitsmodell und Stellenart. Dokumentiere die Kurzbegründung in `Analyse.md`.
+- Formuliere Gehalt sachlich, z. B. `Meine Gehaltsvorstellung liegt bei ... EUR brutto jährlich.` oder bei Teilzeit/Stundenlohn passend zum in Datei `01` gewählten Gehaltsmodell.
+- Wenn die Datengrundlage für eine seriöse Gehaltsschätzung fehlt, nicht raten. In `Offene_Fragen.md` dokumentieren und im Anschreiben neutral bleiben, sofern die Anzeige keinen Gehaltswunsch zwingend verlangt.
 - Sprich Lücken oder Grenzen nicht defensiv an, sondern fokussiere passende Stärken.
 - Bei Quereinstieg oder Entwicklungsrollen die Brücke zwischen vorhandener Erfahrung und Zielrolle konkret erklären.
 - Wenn Ansprechpartner fehlt, neutrale Anrede verwenden.

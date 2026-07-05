@@ -11,7 +11,9 @@ Dazu gehören:
 - Name, Vorname, Nachname und Dateiname-Name
 - Adresse, Telefon, E-Mail
 - GitHub, Portfolio und andere öffentliche Profile
-- Verfügbarkeit
+- Verfügbarkeit, frühester Eintrittstermin und gewünschte Stellenart
+- gewünschtes Arbeitsmodell, Region, Pendeldistanz und Reisebereitschaft
+- Gehaltswunsch und Gehaltslogik
 - optionale persönliche Angaben, wenn sie wirklich verwendet werden sollen
 
 Nicht hier eintragen:
@@ -19,6 +21,12 @@ Nicht hier eintragen:
 - Berufserfahrung
 - Ausbildung, Weiterbildung oder Schulbildung
 - Kenntnisse, Projekte, Zielrollen oder Kurzprofile
+
+Hinweis zum Gehaltswunsch:
+
+- Eine manuelle Gehaltsangabe in Datei `01` hat Vorrang.
+- Wenn automatische Schätzung gewünscht ist, nutzt der Agent Stellenbeschreibung, Zielrolle, Seniorität, technische Tiefe, Alter oder Berufserfahrung, Region, Arbeitsmodell und Stellenart.
+- Wenn die Stellenanzeige keinen Gehaltswunsch verlangt und `nur wenn in der Stellenanzeige verlangt` gesetzt ist, wird im Anschreiben kein Gehalt genannt.
 
 ## Datei 02: Bewerberprofil und Positionierung
 
