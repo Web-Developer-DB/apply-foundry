@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das Anschreiben.
+Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das Anschreiben. Sie enthält zusätzlich eine direkt nutzbare Betreffzeile für den E-Mail-Versand.
 
 ## Datei
 
@@ -10,6 +10,9 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 
 ## Inhalt
 
+- Die Datei beginnt immer mit einer Betreffzeile im Format `Betreff: ...`.
+- Der Betreff nennt Zielrolle und Bewerbername. Wenn vorhanden, nimmt er zusätzlich Kennziffer, Referenznummer oder Job-ID aus der Stellenanzeige auf.
+- Nach der Betreffzeile folgt eine Leerzeile, danach beginnt die eigentliche E-Mail-Nachricht.
 - Neutrale oder konkrete Anrede.
 - Kurzer Hinweis auf Bewerbung und Zielrolle.
 - Hinweis auf Anlagen.
@@ -22,11 +25,14 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 - Keine langen Motivationsabsätze.
 - Keine Platzhalter in finaler Datei.
 - Kein erfundener Ansprechpartner.
+- Keine erfundene Kennziffer, Referenznummer oder Job-ID im Betreff.
 - Keine Wiederholung des Anschreibens.
 
 ## Beispielstruktur
 
 ```text
+Betreff: Bewerbung als [Rolle] - [Kennziffer] - [Name]
+
 Sehr geehrte Damen und Herren,
 
 anbei sende ich Ihnen meine Bewerbungsunterlagen für die Position als [Rolle].
