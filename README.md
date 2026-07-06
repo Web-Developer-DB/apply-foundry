@@ -2,50 +2,64 @@
 
 # bewerbungs-agent
 
-`bewerbungs-agent` ist ein lokaler, modularer Bewerbungsassistent für deutsche Bewerbungsunterlagen. Aus einer konkreten Stellenbeschreibung und den privaten Profildaten erstellt der Agent eine passgenaue Bewerbung:
+`bewerbungs-agent` ist ein lokaler, modularer Bewerbungsassistent für deutsche Bewerbungsunterlagen. Aus einer konkreten Stellenbeschreibung und deinen privaten Profildaten erzeugt der Agent eine passgenaue Bewerbung:
 
-- Lebenslauf als für den Druck vorbereitete HTML-Datei
-- Anschreiben als für den Druck vorbereitete HTML-Datei
+- Lebenslauf als druckfertige HTML-Datei
+- Anschreiben als druckfertige HTML-Datei
 - kurze E-Mail-Nachricht
 - Stellenanalyse
 - Qualitätscheck
 - optional PDFs aus Lebenslauf und Anschreiben
 
-Das Projekt ist bewusst so aufgebaut, dass öffentliche Agentenlogik auf GitHub liegen kann, während echte persönliche Daten und generierte Bewerbungen lokal unter `Private/` bleiben.
+Das Projekt trennt öffentliche Agentenlogik und private Bewerberdaten bewusst voneinander. Prompts, Vorlagen, Tools und Beispielstrukturen können öffentlich versioniert werden. Echte persönliche Daten und generierte Bewerbungen bleiben lokal unter `Private/`.
 
 ## Inhalt
 
-- [Teil 1: Anleitung für Anwender](#teil-1-anleitung-für-anwender)
-- [Teil 2: Dokumentation für Entwickler](#teil-2-dokumentation-für-entwickler)
+- [Für wen ist das Projekt?](#für-wen-ist-das-projekt)
+- [Schnellstart: erste Bewerbung](#schnellstart-erste-bewerbung)
+- [Voraussetzungen](#voraussetzungen)
+- [Private Daten einrichten](#private-daten-einrichten)
+- [Bewerbung erstellen lassen](#bewerbung-erstellen-lassen)
+- [Ergebnisse und Versanddateien](#ergebnisse-und-versanddateien)
+- [Prüfen und exportieren](#prüfen-und-exportieren)
+- [Datenschutz und Git](#datenschutz-und-git)
+- [Häufige Probleme](#häufige-probleme)
+- [Entwicklerdokumentation](#entwicklerdokumentation)
 
-# Teil 1: Anleitung für Anwender
+## Für wen ist das Projekt?
 
-Dieser Teil erklärt, wie du mit dem Projekt Bewerbungsunterlagen erzeugst, prüfst und als PDF exportierst.
+Das Projekt ist für Nutzer gedacht, die Bewerbungen nicht jedes Mal von Grund auf schreiben wollen, aber trotzdem ehrliche, rollenbezogene und versandfertige Unterlagen brauchen.
 
-## Was du bekommst
+Der Agent erstellt keinen universellen Lebenslauf. Jede Bewerbung wird aus Stellenbeschreibung, privaten Profildaten und den Regeln unter `Prompts/` neu zusammengesetzt. Dabei sollen Recruiter schnell erkennen:
 
-Pro Bewerbung entsteht ein eigener privater Ordner:
+- welche Rolle beworben wird
+- welche Muss- und Kann-Anforderungen abgedeckt sind
+- welche Erfahrung belegbar ist
+- welche Punkte bewusst neutral oder vorsichtig formuliert werden müssen
+- dass keine Arbeitgeber, Zeiträume, Kenntnisse oder Zertifikate erfunden wurden
+
+Der Lebenslauf soll wie ein ruhiger deutscher tabellarischer CV wirken, nicht wie eine Portfolio-Seite oder reine Skill-Sammlung.
+
+## Schnellstart: erste Bewerbung
+
+Wenn du das Projekt zum ersten Mal nutzt, reicht dieser Ablauf:
+
+1. Repository lokal öffnen.
+2. Private Daten aus `Private.example/Daten/` nach `Private/Daten/` übertragen.
+3. Beispielplatzhalter entfernen und eigene Angaben in `Private/Daten/` pflegen.
+4. Dem Agenten eine konkrete Stellenbeschreibung geben.
+5. Erzeugte Bewerbung prüfen lassen.
+6. Optional PDFs exportieren und nur die finalen Versanddateien verwenden.
+
+Der wichtigste Agentenauftrag lautet:
 
 ```text
-Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
+Nutze Prompts/00_AGENTEN_START_HIER.md und erstelle eine Bewerbung für diese Stellenbeschreibung:
+
+<Stellenbeschreibung einfügen>
 ```
 
-Darin liegen am Ende typischerweise:
-
-```text
-Stellenbeschreibung.md
-Analyse.md
-Lebenslauf - NACHNAME.VORNAME.html
-Lebenslauf - NACHNAME.VORNAME.pdf
-Anschreiben - NACHNAME.VORNAME.html
-Anschreiben - NACHNAME.VORNAME.pdf
-Email-Nachricht--FIRMA.md
-Qualitaetscheck.md
-Druck-Hinweis.md
-Offene_Fragen.md
-```
-
-PDF-Dateien entstehen nur, wenn der automatische PDF-Export ausgeführt wurde und Chrome oder Edge verfügbar ist.
+Danach erstellt der Agent einen privaten Bewerbungsordner, erzeugt Lebenslauf, Anschreiben, E-Mail-Nachricht, Analyse und Qualitätscheck und legt offene Fragen bei Bedarf separat ab.
 
 ## Voraussetzungen
 
@@ -89,16 +103,17 @@ Wenn `Private/Daten/` noch fehlt:
 
 1. Erstelle den Ordner `Private/Daten/`.
 2. Nutze die Dateien aus `Private.example/Daten/` als Strukturvorlage.
-3. Entferne Beispielplatzhalter.
-4. Trage persönliche Stammdaten und Bewerbungslogistik nur in `01_PERSOENLICHE_DATEN.md` ein.
-5. Trage fachliche Lebenslaufdaten nur in `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ein.
-6. Nutze `Private/Daten/README.md` als lokale Pflegeanleitung, wenn du die Daten später erweiterst.
+3. Entferne `.example` aus den Dateinamen.
+4. Entferne Beispielplatzhalter.
+5. Trage persönliche Stammdaten und Bewerbungslogistik nur in `01_PERSOENLICHE_DATEN.md` ein.
+6. Trage fachliche Lebenslaufdaten nur in `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ein.
+7. Nutze `Private/Daten/README.md` als lokale Pflegeanleitung, wenn du die Daten später erweiterst.
 
 Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlicht werden.
 
-### Zuständigkeit der privaten Datenfiles
+### Datei `01_PERSOENLICHE_DATEN.md`
 
-`01_PERSOENLICHE_DATEN.md` enthält nur:
+Diese Datei enthält Identität, Kontakt und Bewerbungslogistik:
 
 - Name, Vorname, Nachname und Dateiname-Name
 - Adresse, Telefon, E-Mail
@@ -108,7 +123,9 @@ Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlic
 - Gehaltswunsch und Gehaltslogik
 - optionale persönliche Angaben
 
-`02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` enthält:
+### Datei `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`
+
+Diese Datei enthält die fachliche Grundlage für Lebenslauf und Argumentation:
 
 - Zielrollen und Positionierung
 - Berufserfahrung und übertragbare Erfahrung
@@ -118,7 +135,7 @@ Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlic
 
 Eine Information soll nur an einer Stelle gepflegt werden. Kontakt-, Dateinamen- und Daten zur Bewerbungslogistik kommen aus Datei `01`; fachliche CV-Daten kommen aus Datei `02`.
 
-## Bewerbung durch den Agenten erstellen lassen
+## Bewerbung erstellen lassen
 
 Gib dem Agenten diesen Auftrag:
 
@@ -137,11 +154,9 @@ Der Agent liest dann:
 
 Danach erstellt er einen privaten Bewerbungsordner und speichert dort die finalen Dateien.
 
-## Was der Agent fachlich macht
+### Was der Agent fachlich macht
 
-Der Agent erstellt keinen universellen Lebenslauf. Er erstellt eine auf die konkrete Bewerbung zugeschnittene Version.
-
-Dabei entscheidet die Stellenbeschreibung, welche Profilteile sichtbar werden:
+Die Stellenbeschreibung entscheidet, welche Profilteile sichtbar werden. Der Agent soll:
 
 - Zielrolle und Firma erkennen
 - Anforderungen, Muss-Kriterien und Kann-Kriterien analysieren
@@ -151,9 +166,7 @@ Dabei entscheidet die Stellenbeschreibung, welche Profilteile sichtbar werden:
 - Lebenslauf, Anschreiben und E-Mail passend zur Rolle formulieren
 - keine Kenntnisse, Arbeitgeber, Zeiträume oder Zertifikate erfinden
 
-Der Lebenslauf soll wie ein deutscher tabellarischer CV wirken, nicht wie eine Portfolio-Seite oder reine Skill-Sammlung.
-
-## Optional: Bewerbungsordner manuell vorbereiten
+### Bewerbungsordner manuell vorbereiten
 
 Normalerweise erstellt der Agent den Ordner selbst. Du kannst die Struktur aber auch manuell vorbereiten.
 
@@ -178,9 +191,76 @@ Private/Bewerbungen/Muster-GmbH/_Arbeitsdateien/YYYY-MM-DD--Junior-Webentwickler
 
 Entwürfe und Arbeitsnotizen liegen immer unter `_Arbeitsdateien`. Der finale Bewerbungsordner bleibt für Versanddateien sauber.
 
-## Bewerbung fachlich gegenprüfen
+## Ergebnisse und Versanddateien
 
-Vor der technischen Prüfung soll der Agent einen fachlichen Abschlusstest machen. Dabei werden Stellenbeschreibung, Analyse, private Daten, Lebenslauf, Anschreiben und E-Mail-Nachricht noch einmal gegeneinander geprüft.
+Pro Bewerbung entsteht ein eigener privater Ordner:
+
+```text
+Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
+```
+
+Darin liegen am Ende typischerweise:
+
+```text
+Stellenbeschreibung.md
+Analyse.md
+Lebenslauf - NACHNAME.VORNAME.html
+Lebenslauf - NACHNAME.VORNAME.pdf
+Anschreiben - NACHNAME.VORNAME.html
+Anschreiben - NACHNAME.VORNAME.pdf
+Email-Nachricht--FIRMA.md
+Qualitaetscheck.md
+Druck-Hinweis.md
+Offene_Fragen.md
+```
+
+PDF-Dateien entstehen nur, wenn der automatische PDF-Export ausgeführt wurde und Chrome oder Edge verfügbar ist.
+
+Für den Versand geeignet sind:
+
+- `Lebenslauf - NACHNAME.VORNAME.html`
+- `Lebenslauf - NACHNAME.VORNAME.pdf`
+- `Anschreiben - NACHNAME.VORNAME.html`
+- `Anschreiben - NACHNAME.VORNAME.pdf`
+- `Email-Nachricht--FIRMA.md`
+
+Nicht versenden:
+
+- Dateien aus `_Arbeitsdateien`
+- Entwürfe
+- Screenshots aus dem Layout-Check
+- interne Notizen
+- `Analyse.md`, falls sie nur für dich gedacht ist
+- `Qualitaetscheck.md`, falls er nicht ausdrücklich gewünscht ist
+
+### Offene Fragen
+
+Wenn wichtige Informationen fehlen, legt der Agent `Offene_Fragen.md` an oder ergänzt sie.
+
+Typische offene Punkte:
+
+- Schulabschluss noch nicht bestätigt
+- Ansprechpartner fehlt
+- Eintrittstermin oder Kündigungsfrist unklar
+- gewünschte Stellenart passt nicht eindeutig zur Anzeige
+- Gehaltswunsch wird verlangt, aber es fehlt eine manuelle Angabe oder ausreichende Schätzgrundlage
+- eine in der Anzeige gewünschte Technologie ist nur als Lernfeld, nicht als Erfahrung belegt
+
+Offene Fragen blockieren die Bewerbung nur dann, wenn sie fachlich kritisch sind. Sonst werden sie dokumentiert und die Bewerbung neutral formuliert.
+
+## Prüfen und exportieren
+
+Der empfohlene Abschlussablauf ist:
+
+1. Fachlichen Abschlusstest durch den Agenten ausführen lassen.
+2. Statischen technischen Check starten.
+3. Optional Layout-Check mit Screenshots erzeugen.
+4. Optional PDFs exportieren.
+5. Versanddateien manuell kurz öffnen und prüfen.
+
+### Fachlicher Abschlusstest
+
+Vor der technischen Prüfung soll der Agent Stellenbeschreibung, Analyse, private Daten, Lebenslauf, Anschreiben und E-Mail-Nachricht noch einmal gegeneinander prüfen.
 
 Der Abschlusstest kontrolliert:
 
@@ -193,7 +273,7 @@ Der Abschlusstest kontrolliert:
 
 Wenn der Abschlusstest Unstimmigkeiten findet, soll der Agent die betroffenen Dateien korrigieren und danach erneut prüfen. Das Ergebnis wird in `Qualitaetscheck.md` kurz dokumentiert, idealerweise mit einem knappen Anforderungsabgleich.
 
-## Bewerbung technisch prüfen
+### Statischer technischer Check
 
 Nach jeder Bewerbung sollte der statische Prüfer laufen:
 
@@ -215,7 +295,7 @@ Der Prüfer kontrolliert:
 
 Wenn der Prüfer rot ist, sollte die Bewerbung noch nicht versendet werden.
 
-## Optional: Visuelle Prüfung erzeugen
+### Visuelle Prüfung
 
 Der Layout-Check öffnet die finalen HTML-Dateien per Headless-Browser und erzeugt Screenshots im privaten Arbeitsordner:
 
@@ -253,7 +333,7 @@ Bei bewusst zweiseitigen Lebensläufen zusätzlich einen höheren Screenshot erz
 .\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome -Height 2300
 ```
 
-## PDFs automatisch exportieren
+### PDF-Export
 
 Wenn der statische Check grün ist und Chrome oder Edge verfügbar ist:
 
@@ -290,7 +370,7 @@ Anschreiben - NACHNAME.VORNAME.html
 Anschreiben - NACHNAME.VORNAME.pdf
 ```
 
-## Drucken und manueller PDF-Export
+### Manueller PDF-Export
 
 Die HTML-Dateien sind für A4 vorbereitet.
 
@@ -307,41 +387,7 @@ Empfohlene Firefox-Einstellungen:
 
 Bei einseitigen Dokumenten soll eine feste A4-Fläche von `210mm x 297mm` verwendet werden. Wenn ein Lebenslauf fachlich nicht sauber auf eine Seite passt, ist ein bewusst zweiseitiger Lebenslauf besser als ein gequetschtes oder abgeschnittenes einseitiges Dokument.
 
-## Offene Fragen in Bewerbungen
-
-Wenn wichtige Informationen fehlen, legt der Agent `Offene_Fragen.md` an oder ergänzt sie.
-
-Typische offene Punkte:
-
-- Schulabschluss noch nicht bestätigt
-- Ansprechpartner fehlt
-- Eintrittstermin oder Kündigungsfrist unklar
-- gewünschte Stellenart passt nicht eindeutig zur Anzeige
-- Gehaltswunsch wird verlangt, aber es fehlt eine manuelle Angabe oder ausreichende Schätzgrundlage
-- eine in der Anzeige gewünschte Technologie ist nur als Lernfeld, nicht als Erfahrung belegt
-
-Offene Fragen blockieren die Bewerbung nur dann, wenn sie fachlich kritisch sind. Sonst werden sie dokumentiert und die Bewerbung neutral formuliert.
-
-## Was darf versendet werden?
-
-Für den Versand geeignet sind:
-
-- `Lebenslauf - NACHNAME.VORNAME.html`
-- `Lebenslauf - NACHNAME.VORNAME.pdf`
-- `Anschreiben - NACHNAME.VORNAME.html`
-- `Anschreiben - NACHNAME.VORNAME.pdf`
-- `Email-Nachricht--FIRMA.md`
-
-Nicht versenden:
-
-- Dateien aus `_Arbeitsdateien`
-- Entwürfe
-- Screenshots aus dem Layout-Check
-- interne Notizen
-- `Analyse.md`, falls sie nur für dich gedacht ist
-- `Qualitaetscheck.md`, falls er nicht ausdrücklich gewünscht ist
-
-## Datenschutz
+## Datenschutz und Git
 
 Privat und nicht für GitHub:
 
@@ -372,7 +418,7 @@ Vor einem Commit:
 git status --short
 ```
 
-In dieser Ausgabe dürfen keine echten Dateien aus `Private/` erscheinen.
+In dieser Ausgabe dürfen keine echten Dateien aus `Private/` erscheinen. Wenn `git status --short --ignored` `!! Private/` zeigt, ist das normal.
 
 ## Häufige Probleme
 
@@ -402,9 +448,9 @@ Wenn Text im PDF abgeschnitten wirkt:
 - Lebenslauf kürzen oder bewusst auf zwei A4-Seiten umbauen
 - niemals Inhalt durch `overflow` verstecken
 
-# Teil 2: Dokumentation für Entwickler
+# Entwicklerdokumentation
 
-Dieser Teil beschreibt Projektstruktur, Datenfluss, Tool-Verantwortlichkeiten und Erweiterungspunkte.
+Dieser Abschnitt ist für Entwickler gedacht. Er beschreibt Projektstruktur, Datenfluss, Tool-Verantwortlichkeiten und Erweiterungspunkte.
 
 ## Projektprinzipien
 
@@ -671,7 +717,7 @@ Ein Einseiten-Dokument darf nicht nur `min-height: 297mm` verwenden. Wenn Inhalt
 
 ## Qualitätsstrategie
 
-Es gibt zwei Arten von Qualität:
+Es gibt zwei Arten von Qualität.
 
 Fachliche Qualität:
 
