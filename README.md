@@ -16,6 +16,7 @@ Das Projekt trennt öffentliche Agentenlogik und private Bewerberdaten bewusst v
 ## Inhalt
 
 - [Für wen ist das Projekt?](#für-wen-ist-das-projekt)
+- [Getestete Umgebung](#getestete-umgebung)
 - [Schnellstart: erste Bewerbung](#schnellstart-erste-bewerbung)
 - [Voraussetzungen](#voraussetzungen)
 - [Private Daten einrichten](#private-daten-einrichten)
@@ -39,6 +40,22 @@ Der Agent erstellt keinen universellen Lebenslauf. Jede Bewerbung wird aus Stell
 - dass keine Arbeitgeber, Zeiträume, Kenntnisse oder Zertifikate erfunden wurden
 
 Der Lebenslauf soll wie ein ruhiger deutscher tabellarischer CV wirken, nicht wie eine Portfolio-Seite oder reine Skill-Sammlung.
+
+## Getestete Umgebung
+
+Wichtig für neue Nutzer: Das Projekt wurde praktisch auf Windows mit PowerShell getestet. Das ist aktuell die empfohlene und verlässlich unterstützte Arbeitsumgebung.
+
+Getestet und empfohlen:
+
+- Windows-PC
+- PowerShell als Shell für die Skripte
+- OpenAI Codex Agent als KI-Agent
+- Visual Studio Code mit Codex-Extension oder eine lokal installierte Codex-Anwendung unter Windows
+- Chrome oder Edge für automatischen PDF-Export und Layout-Checks
+
+Die PowerShell-Skripte unter `Tools/` sind die stabile Referenz. Prüfung, Layoutcheck und PDF-Export funktionieren nur in dieser Windows-/PowerShell-Umgebung als vollständig getesteter Workflow.
+
+Linux-Unterstützung ist derzeit Alpha. Es gibt ein Bash-Skript für die Ordnererstellung, aber die Linux-Version ist noch nicht so weit ausgebaut wie der Windows-Workflow. Wer das Projekt ohne Reibung nutzen möchte, sollte aktuell mit Windows, PowerShell und dem OpenAI Codex Agent arbeiten.
 
 ## Schnellstart: erste Bewerbung
 
@@ -66,17 +83,18 @@ Danach erstellt der Agent einen privaten Bewerbungsordner, erzeugt Lebenslauf, A
 Für die normale Nutzung brauchst du:
 
 - dieses Repository lokal auf deinem Rechner
-- einen KI-Agenten, der lokale Projektdateien lesen und schreiben kann, zum Beispiel Codex in VS Code
+- einen KI-Agenten, der lokale Projektdateien lesen und schreiben kann
+- empfohlen und getestet: OpenAI Codex Agent in Visual Studio Code oder als lokal installierte Anwendung unter Windows
 - private Profildaten unter `Private/Daten/`
 - eine konkrete Stellenbeschreibung
 
-Für die technischen Hilfsskripte unter Windows:
+Für den vollständig getesteten Workflow brauchst du unter Windows:
 
 - PowerShell
 - optional Chrome oder Edge für automatischen PDF-Export
 - optional Chrome, Edge oder Firefox für die visuelle Prüfung im Browser
 
-Unter Linux gibt es aktuell ein Bash-Skript für die Ordnererstellung. Die technischen Prüf- und Exporttools sind derzeit PowerShell-Skripte.
+Unter Linux gibt es aktuell nur ein Bash-Skript für die Ordnererstellung. Die Linux-Version ist Alpha; die technischen Prüf- und Exporttools sind derzeit PowerShell-Skripte und wurden als kompletter Workflow nur unter Windows getestet.
 
 ## Private Daten einrichten
 
@@ -858,7 +876,9 @@ foreach ($file in $files) {
 
 ## Bekannte Grenzen
 
-- Die technischen Prüf- und Exporttools sind aktuell PowerShell-basiert.
+- Der vollständig getestete Workflow ist Windows mit PowerShell.
+- Die technischen Prüf- und Exporttools sind aktuell PowerShell-basiert und nicht als gleichwertiger Linux-Workflow ausgebaut.
+- Die Linux-Unterstützung ist Alpha und beschränkt sich derzeit vor allem auf die Ordnererstellung per Bash-Skript.
 - Der automatische PDF-Export unterstützt Chrome und Edge, nicht Firefox.
 - Eine echte manuelle Sichtprüfung der finalen PDFs bleibt sinnvoll, besonders bei neuen Designs oder zweiseitigen Lebensläufen.
 - Die Qualität der Bewerbung hängt weiterhin von gepflegten privaten Profildaten ab.
