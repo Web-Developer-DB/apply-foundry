@@ -4,7 +4,7 @@ set -euo pipefail
 print_usage() {
   cat <<'EOF'
 Usage:
-  bash Tools/neue-bewerbung.sh --firma "Team System House GmbH" [options]
+  bash Tools/neue-bewerbung.sh --firma "Muster GmbH" [options]
 
 Options:
   --firma NAME                    Firmenname, Pflichtangabe

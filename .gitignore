@@ -5,6 +5,13 @@ Bewertungen/
 LebenslaufUniversal/
 Archiv/
 
+# Local agent/runtime configuration
+.agents/
+.codex/
+.env
+.env.*
+!.env.example
+
 # Generated documents and temporary exports
 *.pdf
 *.docx
