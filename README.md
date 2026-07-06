@@ -63,7 +63,7 @@ Wenn du das Projekt zum ersten Mal nutzt, reicht dieser Ablauf:
 
 1. Repository lokal öffnen.
 2. Private Daten aus `Private.example/Daten/` nach `Private/Daten/` übertragen.
-3. Beispielplatzhalter entfernen und eigene Angaben in `Private/Daten/` pflegen.
+3. Fiktive Beispieldaten durch eigene Angaben in `Private/Daten/` ersetzen.
 4. Dem Agenten eine konkrete Stellenbeschreibung geben.
 5. Erzeugte Bewerbung prüfen lassen.
 6. Optional PDFs exportieren und nur die finalen Versanddateien verwenden.
@@ -117,12 +117,63 @@ Optional, aber empfohlen:
 Private/Daten/README.md
 ```
 
+Die Dateien unter `Private.example/Daten/` sind bereits mit fiktiven Beispieldaten belegt. Sie enthalten eine erfundene Person, eine erfundene Adresse, erfundene Bewerbungslogistik, Beispielkenntnisse, Beispielprojekte und bewusst formulierte Grenzen. Dadurch sieht man schneller, wie die privaten Dateien später aussehen sollen.
+
+Du kannst die privaten Daten auch mit Hilfe des Agenten ausfüllen lassen. Gib ihm dafür Kontext zu deinen echten Daten, zum Beispiel bisherige Stationen, Ausbildung, Weiterbildung, Kenntnisse, gewünschte Rollen, Arbeitsmodell, Region und Gehaltslogik.
+
+Beispielauftrag:
+
+```text
+Nutze die Struktur aus Private.example/Daten/.
+Erstelle oder aktualisiere meine privaten Daten unter Private/Daten/.
+
+Fülle 01_PERSOENLICHE_DATEN.md nur mit Identität, Kontakt und Bewerbungslogistik.
+Fülle 02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md nur mit fachlichem Profil, Erfahrung, Kenntnissen, Projekten, Belegarten und Grenzen.
+Nutze keine erfundenen Angaben.
+Wenn Informationen fehlen oder unklar sind, dokumentiere sie als offene Fragen.
+
+Hier sind meine echten Informationen:
+
+<persönliche Daten und beruflicher Kontext einfügen>
+```
+
+Wichtig: Kontrolliere die erzeugten Dateien danach sorgfältig selbst. KI-Agenten können Angaben falsch einordnen, zu stark formulieren oder aus unklaren Informationen falsche Schlüsse ziehen.
+
+### Wofür ist `Private/Daten/README.md`?
+
+`Private/Daten/README.md` ist deine lokale Pflegeanleitung für die privaten Bewerberdaten. Sie hilft dir und dem Agenten zu verstehen, welche Datei wofür zuständig ist, wie neue Angaben einsortiert werden und welche Regeln beim Erweitern der Profildaten gelten.
+
+Die Datei ist nicht für Bewerbungsinhalte gedacht. Sie soll keine dritte Datenquelle für Lebenslaufdaten werden, sondern erklären, wie `01_PERSOENLICHE_DATEN.md` und `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` gepflegt werden.
+
+Empfohlene Struktur:
+
+```text
+# Datenstruktur
+
+## Zweck
+Kurze Erklärung, dass dieser Ordner private Bewerberdaten enthält.
+
+## Datei 01: Persönliche Daten
+Welche Informationen in 01 gehören und welche ausdrücklich nicht.
+
+## Datei 02: Bewerberprofil und Positionierung
+Welche fachlichen Informationen in 02 gehören und wie sie belegt werden.
+
+## Konfliktregel
+Was gilt, wenn Angaben doppelt, widersprüchlich oder unklar sind.
+
+## Pflegeprinzip
+Wie neue Informationen ergänzt werden sollen, ohne Daten doppelt zu pflegen.
+```
+
+Du kannst `Private.example/Daten/README.md` als fertige Startvorlage kopieren und danach lokal an deine eigene Datenpflege anpassen.
+
 Wenn `Private/Daten/` noch fehlt:
 
 1. Erstelle den Ordner `Private/Daten/`.
-2. Nutze die Dateien aus `Private.example/Daten/` als Strukturvorlage.
+2. Nutze die Dateien aus `Private.example/Daten/` als Struktur- und Ausfüllvorlage.
 3. Entferne `.example` aus den Dateinamen.
-4. Entferne Beispielplatzhalter.
+4. Ersetze alle fiktiven Beispieldaten durch deine echten lokalen Angaben.
 5. Trage persönliche Stammdaten und Bewerbungslogistik nur in `01_PERSOENLICHE_DATEN.md` ein.
 6. Trage fachliche Lebenslaufdaten nur in `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ein.
 7. Nutze `Private/Daten/README.md` als lokale Pflegeanleitung, wenn du die Daten später erweiterst.
