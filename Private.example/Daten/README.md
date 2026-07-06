@@ -1,6 +1,8 @@
 # Datenstruktur
 
-Dieser Ordner zeigt die empfohlene Struktur für private Bewerberdaten. Kopiere die Dateien lokal nach `Private/Daten/` und entferne bei den beiden Datendateien `.example` aus dem Dateinamen.
+Dieser Ordner zeigt die empfohlene Struktur für private Bewerberdaten. Die beiden `.example.md`-Dateien enthalten frei erfundene Beispieldaten, damit sichtbar wird, wie die Dateien ausgefüllt werden können.
+
+Kopiere die Dateien lokal nach `Private/Daten/`, entferne bei den beiden Datendateien `.example` aus dem Dateinamen und ersetze alle fiktiven Beispieldaten durch echte lokale Angaben.
 
 ## Datei 01: Persönliche Daten
 

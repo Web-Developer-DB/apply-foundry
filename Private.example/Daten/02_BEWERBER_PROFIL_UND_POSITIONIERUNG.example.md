@@ -1,5 +1,7 @@
 # Bewerberprofil und Positionierung
 
+Alle Angaben in dieser Beispieldatei sind frei erfunden. Sie zeigen nur, wie `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ausgefüllt werden kann.
+
 Diese Datei ist die fachliche Quelle für Lebenslauf, Anschreiben und Rollenstrategie.
 
 Persönliche Stammdaten wie Name, Adresse, Telefon, E-Mail, Links und Dateiname-Name gehören ausschließlich in `01_PERSOENLICHE_DATEN.md`.
@@ -21,133 +23,204 @@ Belegarten:
 
 ## Zielpositionierung
 
-**[Zielrichtung, z. B. Quereinstieg in IT-Support / Junior Systemadministration / Frontend-Entwicklung]**
+**Quereinstieg in IT-Support, Junior Systemadministration und technische Sachbearbeitung**
 
-[Kurze, wahre Positionierung. Bei Quereinstieg ausdrücklich sagen, welche Erfahrung beruflich belegt ist und welche fachlichen Inhalte aus Weiterbildung, Projekten, privater Praxis oder Grundlagen stammen.]
+Mara Beispiel bringt beruflich belegte Erfahrung aus Kundenservice, strukturierter Fehleraufnahme, Dokumentation und interner Prozesspflege mit. Die technische Zielrichtung entsteht aus Weiterbildung, Projektpraxis und privater IT-Praxis. Bewerbungen sollen deshalb als Einstiegs- oder Entwicklungsprofil formuliert werden, nicht als erfahrene Administratorinnenrolle.
 
 Sichere Kurzpositionierung:
 
-**[Ein Satz, der Berufsreife, Zielrichtung und Belegarten ehrlich verbindet.]**
+**Quereinsteigerin mit beruflich belegter Service- und Dokumentationserfahrung sowie solider Lern- und Projektpraxis in IT-Support, Windows-Arbeitsplätzen und Netzwerkgrundlagen.**
 
 ## Zielrollen nach Priorität
 
 ### Primär passend
 
-- [Zielrolle mit realistischer Seniorität]
-- [Zielrolle mit realistischer Seniorität]
+- Junior IT-Support Mitarbeiterin
+- Mitarbeiterin First-Level-Support
+- Technische Sachbearbeiterin mit IT-Bezug
 
 ### Passend bei Einarbeitung / Junior-Level / Lernkultur
 
-- [anspruchsvollere Zielrolle, nur mit Einschränkung]
-- [anspruchsvollere Zielrolle, nur mit Einschränkung]
+- Junior Systemadministratorin
+- IT-Servicedesk Mitarbeiterin mit Onboarding in Microsoft 365
+- Support Engineer Junior
 
 ### Weitere Rollenfamilie
 
-- [z. B. Webentwicklung, Support, kaufmännisch, sozial, technisch]
+- kaufmännische Sachbearbeitung mit Digitalisierungs- oder Prozessbezug
+- Web- und Tooling-nahe Junior-Rollen mit klarer Einarbeitung
 
 ## Profilvarianten nach Zielrolle
 
-### [Rollenfamilie 1]
+### IT-Support und Servicedesk
 
-[Kurze Positionierung für diese Rollenfamilie. Belegarten sichtbar machen: beruflich belegt, übertragbar, Weiterbildung, private Praxis, Grundlagen, Einarbeitung.]
+Positionierung über Kundenkontakt, strukturierte Problemerfassung, Dokumentation, Ticket-Denken, Windows-Grundlagen und private Fehleranalyse. Beruflich belegte Serviceerfahrung darf stark genutzt werden; technische Administration muss als Weiterbildung, Projektpraxis oder private Praxis eingeordnet werden.
 
-### [Rollenfamilie 2]
+### Junior Systemadministration
 
-[Kurze Positionierung für diese Rollenfamilie.]
+Positionierung als Entwicklungsprofil mit Grundlagen in Windows, Netzwerk, Benutzerverwaltung und Dokumentation. Keine alleinige Verantwortung für produktive Server, Microsoft-365-Tenants oder Firmennetzwerke behaupten.
+
+### Technische Sachbearbeitung
+
+Positionierung über Sorgfalt, Prozessverständnis, digitale Tools, Kundenkommunikation und technische Lernbereitschaft. IT-Inhalte ergänzen das kaufmännische Profil, ohne Seniorität zu suggerieren.
 
 ## Beruflich belegte Erfahrung
 
-### [Rolle]
+### Kundenservice und Sachbearbeitung
 
-[Arbeitgeber], [Zeitraum]
+Nordstern Handel GmbH, 03/2021 bis 05/2025
 
 Belegart: `BERUFLICH BELEGT`
 
-- [belegbare Tätigkeit]
-- [belegbarer Schwerpunkt]
-- [belegbares Ergebnis oder Arbeitsweise]
+- telefonische und schriftliche Betreuung von Bestandskunden
+- strukturierte Aufnahme, Priorisierung und Nachverfolgung von Anliegen
+- Pflege von Kundendaten und Vorgängen im CRM-System
+- Abstimmung mit Lager, Buchhaltung und Versand bei Klärfällen
+- Erstellung interner Kurzanleitungen für wiederkehrende Serviceprozesse
+
+### Büroassistenz
+
+Stadtblick Dienstleistungen UG, 08/2018 bis 02/2021
+
+Belegart: `BERUFLICH BELEGT`
+
+- Terminplanung, Dokumentenablage und vorbereitende Rechnungsprüfung
+- Pflege einfacher Excel-Listen für Auswertungen und Kontrollläufe
+- Unterstützung bei der Umstellung von Papierakten auf digitale Ablagestrukturen
 
 ## Übertragbare Erfahrung
 
 Belegart: `ÜBERTRAGBAR`
 
-[Beruflich belegte Stärken, die zur Zielrolle passen, aber nicht als direkte Rollenpraxis ausgegeben werden dürfen.]
-
-- [z. B. Fehlersuche, Dokumentation, Kundenkontakt, Sorgfalt]
-- [z. B. strukturierte Abläufe, Qualitätskontrolle, Organisation]
+- ruhige Kommunikation mit Nutzern oder Kunden bei unklaren Problemen
+- systematische Nachfrage, Eingrenzung und Dokumentation von Störungen
+- sorgfältige Pflege von Daten, Vorgängen und Statusinformationen
+- verständliche Formulierung von Arbeitsschritten für nicht technische Zielgruppen
+- Priorisierung von Aufgaben nach Dringlichkeit und Auswirkung
 
 ## Weiterbildung / Qualifikation
 
-### [Weiterbildung oder Zertifikat]
+### IT-Support und Netzwerkgrundlagen
 
-[Anbieter], [Zeitraum], [Ort optional]
+Lernwerk Digital Akademie, 01/2025 bis 06/2025, online
 
 Belegart: `WEITERBILDUNG`
 
-- [Inhalt]
-- [Inhalt]
-- [Inhalt]
+- Grundlagen Windows 10/11, Benutzerkonten und Systemeinstellungen
+- Netzwerkgrundlagen: IP-Adresse, DNS, DHCP, Router, WLAN, VPN-Grundverständnis
+- Grundlagen IT-Sicherheit: Passwörter, Updates, Phishing, Backup-Prinzipien
+- Einführung in Ticketbearbeitung, Dokumentation und Eskalation
 
 Formulierungsregel:
 
-[Als Weiterbildung, Qualifikation oder Lernbasis darstellen; nicht als berufliche Erfahrung, wenn keine passende Anstellung vorhanden ist.]
+Als Weiterbildung und Lernbasis darstellen. Nicht als berufliche IT-Administration formulieren.
+
+### Grundlagen Webentwicklung
+
+Volkshochschule Musterstadt, 09/2024 bis 12/2024
+
+Belegart: `WEITERBILDUNG`
+
+- HTML und CSS für einfache Webseiten
+- Grundlagen JavaScript
+- Git-Grundlagen und Arbeit mit kleinen Übungsprojekten
 
 ## Private Praxis / Home-Lab / Ehrenamt
 
-### [Private Praxis oder Home-Lab]
+### Privates Windows- und Netzwerk-Setup
 
-[Kontext], [Zeitraum oder fortlaufend]
+privat, fortlaufend seit 2024
 
 Belegart: `PRIVATE PRAXIS / HOME-LAB`
 
-- [private Tätigkeit]
-- [private Tätigkeit]
-- [private Tätigkeit]
+- Einrichtung und Pflege eines privaten Windows-11-Notebooks
+- Einrichtung von Benutzerkonten, Drucker, WLAN und Backup-Routinen im privaten Umfeld
+- Fehlersuche bei Netzwerk- und Druckerproblemen im Familienkreis
+- Dokumentation wiederkehrender Lösungswege in eigenen Notizen
 
 Pflichtformulierung:
 
-[Diese Kenntnisse als private Praxis, Home-Lab, eigene Systeme oder ehrenamtliche Praxis darstellen. Nicht als professionelle Berufserfahrung ausgeben.]
+Diese Kenntnisse als private Praxis, Home-Lab oder eigene Systeme darstellen. Nicht als professionelle Berufserfahrung ausgeben.
+
+### Ehrenamtliche Unterstützung im Verein
+
+Kulturverein Musterstadt e. V., seit 2025
+
+Belegart: `PRIVATE PRAXIS / HOME-LAB`
+
+- Unterstützung bei einfachen Fragen zu E-Mail, Dateiablage und Tabellen
+- Pflege einer kleinen Mitgliederliste nach Vorgabe des Vorstands
+- Erstellung kurzer Schritt-für-Schritt-Anleitungen für wiederkehrende Aufgaben
 
 ## Grundlagen und Verständnis
 
 Belegart: `GRUNDLAGEN / VERSTÄNDNIS`
 
-- [Grundlage]
-- [Grundlage]
-- [Verständnis]
+- Grundverständnis für Client-Support, Benutzerprobleme und saubere Dokumentation
+- Grundverständnis für Netzwerkbegriffe wie IP-Adresse, DNS, DHCP und VPN
+- erste Orientierung in Microsoft 365, ohne produktive Tenant-Administration
+- Grundkenntnisse in HTML, CSS und einfachem JavaScript
 
 Nicht formulieren als:
 
-- [zu starke Behauptung]
-- [professionelle Verantwortung, falls nicht belegt]
+- erfahrene Systemadministratorin
+- sichere Microsoft-365-Administration
+- professionelle Netzwerkadministration
+- produktive Verantwortung für Server oder Infrastruktur
 
 ## Projektpraxis
 
-### [Projektname]
+### Support-Wissenssammlung
 
 Belegart: `PROJEKTPRAXIS`
 
-[Kurze Projektbeschreibung.]
+Kleine Markdown-Wissenssammlung mit typischen Supportfällen, Prüfschritten und Lösungshinweisen für Windows-, Drucker- und Netzwerkprobleme.
 
-Technologien / Methoden: [Liste]
+Technologien / Methoden: Markdown, Git, strukturierte Checklisten
 
-Geeignet für: [Zielrollen oder Nutzen]
+Geeignet für: IT-Support, Servicedesk, technische Sachbearbeitung
+
+### Persönliche Portfolio-Seite
+
+Belegart: `PROJEKTPRAXIS`
+
+Einfache statische Website mit Kurzprofil, Lernprojekten und Kontaktbereich.
+
+Technologien / Methoden: HTML, CSS, JavaScript-Grundlagen, Git
+
+Geeignet für: Rollen mit Web-, Dokumentations- oder Digitalisierungsbezug
 
 ## Tools, Methoden und fachliche Kenntnisse
 
-### [Kategorie]
+### Kundenservice, Organisation und Dokumentation
 
-Belegart: `[passende Belegart]`
+Belegart: `BERUFLICH BELEGT`
 
-- [Kenntnis]
-- [Kenntnis]
+- CRM-Pflege
+- E-Mail-Kommunikation
+- Telefonische Klärung von Anliegen
+- Prozessnotizen und Kurzanleitungen
+- Excel-Grundlagen für Listen, Filter und einfache Auswertungen
 
-### [Kategorie]
+### IT-Support-Grundlagen
 
-Belegart: `[passende Belegart]`
+Belegart: `WEITERBILDUNG`
 
-- [Kenntnis]
-- [Kenntnis]
+- Windows 10/11 Grundlagen
+- Benutzerkonten und Berechtigungsverständnis
+- Ticketbearbeitung und Eskalation
+- Netzwerkgrundlagen
+- IT-Sicherheitsgrundlagen
+
+### Web- und Projektgrundlagen
+
+Belegart: `PROJEKTPRAXIS`
+
+- HTML
+- CSS
+- einfache JavaScript-Interaktionen
+- Git-Grundlagen
+- Markdown-Dokumentation
 
 ## Einarbeitungs- und Entwicklungsfelder
 
@@ -155,56 +228,65 @@ Belegart: `EINARBEITUNGSZIEL`
 
 Diese Themen dürfen nur als Einarbeitung, Lernziel, Vertiefung oder Entwicklungsperspektive formuliert werden.
 
-- [Thema]
-- [Thema]
-- [Thema]
+- Microsoft 365 Administration
+- Active Directory oder Entra ID Grundlagen
+- PowerShell für Support- und Administrationsaufgaben
+- professionelles Ticketsystem im Unternehmensumfeld
+- ITIL-Grundverständnis
 
 Formulierungsbeispiele:
 
-- `gezielte Einarbeitung in ...`
-- `möchte ... im Team vertiefen`
-- `Entwicklungsperspektive in ...`
+- `gezielte Einarbeitung in Microsoft 365 Administration`
+- `möchte PowerShell im Supportkontext vertiefen`
+- `Entwicklungsperspektive in Benutzerverwaltung und Endpoint-Support`
 
 Nicht formulieren als:
 
-- `Erfahrung mit ...`
-- `verantwortlich für ...`
-- `sicherer Umgang mit ...`
+- `Erfahrung mit Microsoft-365-Tenant-Administration`
+- `verantwortlich für Active Directory`
+- `sicherer Umgang mit PowerShell-Automatisierung`
 
 ## Ausbildung / Studium / berufliche Bildung
 
-### [Abschluss/Bildungsgang/Studium/Ausbildung]
+### Kauffrau für Büromanagement
 
-[Einrichtung], [Zeitraum], [Ort optional]
+Berufskolleg Musterstadt, 08/2015 bis 07/2018
 
-Belegart: `[BERUFLICH BELEGT oder WEITERBILDUNG, je nach Kontext]`
+Belegart: `BERUFLICH BELEGT`
+
+- Schwerpunkt Assistenz und Auftragsbearbeitung
+- Grundlagen Rechnungswesen, Büroorganisation und Kundenkommunikation
 
 ## Schulbildung
 
-### [höchster Schulabschluss oder Bildungsgang]
+### Fachoberschulreife
 
-[Schule/Einrichtung optional], [Zeitraum oder Abschlussjahr]
+Gesamtschule Musterstadt, Abschluss 2015
 
 ## Sprachen
 
-- [Sprache]: [Niveau]
+- Deutsch: Muttersprache
+- Englisch: gute Grundkenntnisse, vor allem schriftlich und für technische Dokumentation
 
 ## Relevanz- und Kürzungshinweise
 
 Fast immer wichtig zeigen:
 
-- [Inhalt]
-- [Inhalt]
+- Kundenservice und strukturierte Problemerfassung
+- Dokumentation und verständliche Kommunikation
+- Weiterbildung IT-Support und Netzwerkgrundlagen
+- private Windows- und Netzwerkpraxis
 
 Nur bei passender Stelle zeigen:
 
-- [Zusatzkenntnis]
-- [Projekt]
+- HTML, CSS und JavaScript-Grundlagen
+- Portfolio-Seite
+- Vereinsunterstützung
 
 Weglassen, wenn Platz knapp ist:
 
-- [weniger wichtiges Thema]
-- [weniger wichtiges Thema]
+- zu detaillierte kaufmännische Tätigkeiten ohne Bezug zur Zielrolle
+- ältere Büroassistenz-Aufgaben, wenn IT-Support im Vordergrund steht
 
 ## Grenzen / Nicht behaupten
 
@@ -212,14 +294,17 @@ Belegart: `NICHT BEHAUPTEN`
 
 Nicht behaupten:
 
-- [nicht belegte Erfahrung]
-- [nicht belegte Verantwortung]
-- [nicht belegte Seniorität]
+- professionelle Berufserfahrung als IT-Supporterin oder Systemadministratorin
+- Verantwortung für produktive Server, Firmennetzwerke oder Microsoft-365-Tenants
+- abgeschlossene IT-Ausbildung
+- sichere PowerShell-Automatisierung
+- mehrjährige Erfahrung in ITIL-Prozessen
 
 Nur vorsichtig formulieren:
 
-- [Grenzfall]
-- [Grenzfall]
+- Microsoft 365 nur als Orientierung oder Einarbeitungsziel
+- Netzwerkadministration nur als Grundlagenwissen und private Praxis
+- Webentwicklung nur als Grundlagen- und Projektpraxis
 
 Pflicht bei Quereinstiegsbewerbungen:
 
