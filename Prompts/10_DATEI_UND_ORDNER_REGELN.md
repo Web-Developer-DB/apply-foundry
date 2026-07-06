@@ -86,7 +86,7 @@ In jedem Bewerbungsordner sollen am Ende mindestens diese Dateien liegen:
 Optional:
 - `Offene_Fragen.md`
 - `Notizen.md`
-- `PDF/`, falls später PDFs erzeugt werden
+- PDF-Dateien mit demselben Namen wie die finalen HTML-Dateien, falls später PDFs erzeugt werden
 
 Wenn ein HTML-Dokument nachträglich wegen Drucklayout, A4-Fit oder Recruiter-Design überarbeitet wird, bleibt der finale Dateiname gleich. Alte Entwurfsvarianten gehören nur in den passenden `_Arbeitsdateien`-Ordner und nicht neben die finale Versanddatei.
 
