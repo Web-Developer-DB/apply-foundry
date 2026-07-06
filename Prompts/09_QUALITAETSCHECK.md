@@ -119,6 +119,8 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 ## E-Mail-Nachricht
 
 - Ist die Nachricht kurz und professionell?
+- Steht in der ersten Zeile ein konkreter Betreff im Format `Betreff: ...`?
+- Nennt der Betreff Zielrolle und Bewerbername sowie eine Kennziffer oder Referenznummer, falls diese in der Stellenanzeige vorhanden ist?
 - Wird die Stelle korrekt genannt?
 - Wird auf Anlagen hingewiesen?
 - Ist die Anrede passend oder neutral?
