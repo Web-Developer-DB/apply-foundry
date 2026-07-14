@@ -9,8 +9,13 @@ param(
 
   [string]$StellenbeschreibungPath,
 
-  [string]$BewerbungenRoot = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Bewerbungen")
+  [string]$BewerbungenRoot = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Bewerbungen"),
+
+  [switch]$Fortsetzen
 )
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
 
 function Convert-ToSlug {
   param(
@@ -44,28 +49,113 @@ function Convert-ToSlug {
   return $slug
 }
 
+function Stop-WithValidationError {
+  param([string]$Message)
+  Write-Host "[FEHLER] $Message" -ForegroundColor Red
+  exit 2
+}
+
+function Test-IsSafeChildPath {
+  param(
+    [string]$Candidate,
+    [string]$Root
+  )
+
+  $candidateFull = [System.IO.Path]::GetFullPath($Candidate).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+  $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+  return $candidateFull.StartsWith($rootFull + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+$Firma = $Firma.Trim()
+$Rolle = $Rolle.Trim()
+if ([string]::IsNullOrWhiteSpace($Firma)) {
+  Stop-WithValidationError -Message "Der Parameter -Firma darf nicht leer sein."
+}
+if ([string]::IsNullOrWhiteSpace($Rolle)) {
+  Stop-WithValidationError -Message "Der Parameter -Rolle darf nicht leer sein."
+}
+if (($Firma.Length -gt 120) -or ($Rolle.Length -gt 120)) {
+  Stop-WithValidationError -Message "Firma und Rolle dürfen jeweils höchstens 120 Zeichen lang sein."
+}
+if (($Firma -match '[\x00-\x1F\x7F]') -or ($Rolle -match '[\x00-\x1F\x7F]')) {
+  Stop-WithValidationError -Message "Firma und Rolle dürfen keine Steuerzeichen oder Zeilenumbrüche enthalten."
+}
+
+$parsedDate = [datetime]::MinValue
+$dateIsValid = [datetime]::TryParseExact(
+  $Datum,
+  "yyyy-MM-dd",
+  [System.Globalization.CultureInfo]::InvariantCulture,
+  [System.Globalization.DateTimeStyles]::None,
+  [ref]$parsedDate
+)
+if (-not $dateIsValid) {
+  Stop-WithValidationError -Message "Der Parameter -Datum muss ein echtes Kalenderdatum im Format YYYY-MM-DD sein."
+}
+
+if ($StellenbeschreibungPath) {
+  if (-not (Test-Path -LiteralPath $StellenbeschreibungPath -PathType Leaf)) {
+    Stop-WithValidationError -Message "StellenbeschreibungPath muss auf eine vorhandene Datei zeigen: $StellenbeschreibungPath"
+  }
+  $StellenbeschreibungPath = (Resolve-Path -LiteralPath $StellenbeschreibungPath).Path
+}
+
+$bewerbungenRootFull = [System.IO.Path]::GetFullPath($BewerbungenRoot)
+if ((Test-Path -LiteralPath $bewerbungenRootFull) -and -not (Test-Path -LiteralPath $bewerbungenRootFull -PathType Container)) {
+  Stop-WithValidationError -Message "BewerbungenRoot existiert, ist aber kein Ordner: $bewerbungenRootFull"
+}
+
 $firmaSlug = Convert-ToSlug -Value $Firma
 $rolleSlug = Convert-ToSlug -Value $Rolle
 $firmaHtml = [System.Net.WebUtility]::HtmlEncode($Firma)
 $rolleHtml = [System.Net.WebUtility]::HtmlEncode($Rolle)
-$bewerbungenRootFull = [System.IO.Path]::GetFullPath($BewerbungenRoot)
-
-if ($Datum -notmatch '^\d{4}-\d{2}-\d{2}$') {
-  Write-Host "[FEHLER] Der Parameter -Datum muss im Format YYYY-MM-DD angegeben werden." -ForegroundColor Red
-  exit 2
-}
-
-if ($StellenbeschreibungPath -and -not (Test-Path -LiteralPath $StellenbeschreibungPath)) {
-  Write-Host "[FEHLER] StellenbeschreibungPath existiert nicht: $StellenbeschreibungPath" -ForegroundColor Red
-  exit 2
-}
 
 $firmaDir = Join-Path -Path $bewerbungenRootFull -ChildPath $firmaSlug
 $zielDir = Join-Path -Path $firmaDir -ChildPath "$Datum--$rolleSlug"
 $arbeitsDir = Join-Path -Path (Join-Path -Path $firmaDir -ChildPath "_Arbeitsdateien") -ChildPath "$Datum--$rolleSlug"
 
-New-Item -Path $zielDir -ItemType Directory -Force | Out-Null
-New-Item -Path $arbeitsDir -ItemType Directory -Force | Out-Null
+if (-not (Test-IsSafeChildPath -Candidate $zielDir -Root $bewerbungenRootFull) -or -not (Test-IsSafeChildPath -Candidate $arbeitsDir -Root $bewerbungenRootFull)) {
+  Stop-WithValidationError -Message "Berechneter Zielpfad liegt außerhalb von BewerbungenRoot."
+}
+
+foreach ($path in @($zielDir, $arbeitsDir)) {
+  if ((Test-Path -LiteralPath $path) -and -not (Test-Path -LiteralPath $path -PathType Container)) {
+    Stop-WithValidationError -Message "Bewerbungspfad existiert, ist aber kein Ordner: $path"
+  }
+}
+
+$zielExisted = Test-Path -LiteralPath $zielDir -PathType Container
+$arbeitsExisted = Test-Path -LiteralPath $arbeitsDir -PathType Container
+if (($zielExisted -or $arbeitsExisted) -and -not $Fortsetzen) {
+  Stop-WithValidationError -Message "Die Bewerbung existiert bereits. Verwende -Fortsetzen nur für exakt dieselbe Bewerbung oder wähle Datum/Rolle eindeutig."
+}
+
+if ($Fortsetzen -and ($zielExisted -xor $arbeitsExisted)) {
+  Stop-WithValidationError -Message "Die vorhandene Bewerbung ist unvollständig: Ziel- und Arbeitsordner müssen beide existieren. Fortsetzen wurde verweigert."
+}
+
+if ($Fortsetzen -and $arbeitsExisted) {
+  $existingNotes = Join-Path -Path $arbeitsDir -ChildPath "Arbeitsnotizen.md"
+  if (-not (Test-Path -LiteralPath $existingNotes -PathType Leaf)) {
+    Stop-WithValidationError -Message "Der vorhandene Arbeitsordner enthält keine prüfbaren Arbeitsnotizen. Fortsetzen wurde verweigert."
+  }
+
+  $noteLines = @(Get-Content -LiteralPath $existingNotes -Encoding UTF8)
+  if (($noteLines -notcontains "- Firma: $Firma") -or ($noteLines -notcontains "- Zielrolle: $Rolle")) {
+    Stop-WithValidationError -Message "Der vorhandene Arbeitsordner gehört zu einer anderen Firma oder Rolle. Fortsetzen wurde verweigert."
+  }
+}
+
+$zielCreated = -not $zielExisted
+$arbeitsCreated = -not $arbeitsExisted
+
+try {
+  if ($zielCreated) {
+    New-Item -Path $zielDir -ItemType Directory | Out-Null
+  }
+  if ($arbeitsCreated) {
+    New-Item -Path $arbeitsDir -ItemType Directory | Out-Null
+  }
 
 $stellenbeschreibungFinalFile = Join-Path -Path $zielDir -ChildPath "Stellenbeschreibung.md"
 $stellenbeschreibungEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Stellenbeschreibung--ENTWURF.md"
@@ -78,9 +168,21 @@ $qualitaetscheckEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Qualitaets
 $offeneFragenEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Offene_Fragen--ENTWURF.md"
 $druckHinweisFile = Join-Path -Path $zielDir -ChildPath "Druck-Hinweis.md"
 
+if ((Test-Path -LiteralPath $stellenbeschreibungFinalFile) -and -not (Test-Path -LiteralPath $stellenbeschreibungFinalFile -PathType Leaf)) {
+  throw "Stellenbeschreibung.md existiert, ist aber keine reguläre Datei."
+}
+
 if ($StellenbeschreibungPath) {
-  Copy-Item -LiteralPath $StellenbeschreibungPath -Destination $stellenbeschreibungFinalFile -Force
-} elseif (-not (Test-Path -LiteralPath $stellenbeschreibungEntwurfFile)) {
+  if (Test-Path -LiteralPath $stellenbeschreibungFinalFile -PathType Leaf) {
+    $sourceHash = (Get-FileHash -LiteralPath $StellenbeschreibungPath -Algorithm SHA256).Hash
+    $targetHash = (Get-FileHash -LiteralPath $stellenbeschreibungFinalFile -Algorithm SHA256).Hash
+    if ($sourceHash -ne $targetHash) {
+      throw "Eine andere Stellenbeschreibung liegt bereits im Zielordner. Überschreiben wurde verweigert."
+    }
+  } else {
+    Copy-Item -LiteralPath $StellenbeschreibungPath -Destination $stellenbeschreibungFinalFile
+  }
+} elseif (-not (Test-Path -LiteralPath $stellenbeschreibungFinalFile) -and -not (Test-Path -LiteralPath $stellenbeschreibungEntwurfFile)) {
   Set-Content -LiteralPath $stellenbeschreibungEntwurfFile -Encoding UTF8 -Value @"
 # Stellenbeschreibung
 
@@ -178,7 +280,7 @@ Finale Dateien gehören erst nach vollständiger Agentenprüfung in den finalen 
 
 if (-not (Test-Path -LiteralPath $emailEntwurfFile)) {
   Set-Content -LiteralPath $emailEntwurfFile -Encoding UTF8 -Value @"
-# E-Mail-Nachricht
+Betreff: Bewerbung als $Rolle - [Name aus Private/Daten/01_PERSOENLICHE_DATEN.md]
 
 Sehr geehrte Damen und Herren,
 
@@ -237,3 +339,13 @@ Ziel: Die sichtbare A4-Seite im Browser soll ohne Firefox-Dateipfad, URL, Datum 
 
 Write-Output "Bewerbungsordner: $zielDir"
 Write-Output "Arbeitsdateien: $arbeitsDir"
+} catch {
+  if ($arbeitsCreated -and (Test-Path -LiteralPath $arbeitsDir -PathType Container) -and (Test-IsSafeChildPath -Candidate $arbeitsDir -Root $bewerbungenRootFull)) {
+    Remove-Item -LiteralPath $arbeitsDir -Recurse -Force -ErrorAction SilentlyContinue
+  }
+  if ($zielCreated -and (Test-Path -LiteralPath $zielDir -PathType Container) -and (Test-IsSafeChildPath -Candidate $zielDir -Root $bewerbungenRootFull)) {
+    Remove-Item -LiteralPath $zielDir -Recurse -Force -ErrorAction SilentlyContinue
+  }
+  Write-Host "[FEHLER] Bewerbungsstruktur konnte nicht vollständig erstellt werden: $($_.Exception.Message)" -ForegroundColor Red
+  exit 1
+}

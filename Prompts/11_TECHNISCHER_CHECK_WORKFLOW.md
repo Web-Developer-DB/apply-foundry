@@ -15,7 +15,7 @@ Er ergänzt den inhaltlichen Qualitätscheck. Er ersetzt nicht die fachliche Pr�
 rg -g "*.html" "SUCHMUSTER" "ORDNER"
 ```
 
-- Browser- oder Headless-Checks nur als bestanden werten, wenn die erwartete Ausgabe wirklich existiert und eine sinnvolle Dateigröße hat.
+- Browser- oder Headless-Checks nur als bestanden werten, wenn die erwartete Ausgabe im aktuellen Lauf frisch erzeugt wurde, die korrekte Dateisignatur und die erwarteten Abmessungen besitzt.
 - Wenn ein Browser-Layoutcheck keine Datei erzeugt, ist das kein bestandener Layoutcheck. Dann muss der Fehler klar dokumentiert werden.
 - Finale Bewerbungsdateien dürfen erst gemeldet werden, nachdem mindestens der statische Check erfolgreich war.
 - PDFs dürfen erst erzeugt werden, nachdem der statische Check erfolgreich war.
@@ -30,14 +30,15 @@ Nach dem Erstellen der finalen Bewerbungsdateien soll, sofern eine PowerShell-Um
 
 Der Prüfer kontrolliert:
 
-- Pflichtdateien im finalen Bewerbungsordner
+- nichtleere Pflichtdateien im finalen Bewerbungsordner; Verzeichnisse mit Dateinamen zählen nicht
 - korrekte Versanddateien für Lebenslauf und Anschreiben
 - keine sichtbaren Platzhalter oder Entwurfsmarker
 - keine Entwurfsdateien im finalen Bewerbungsordner
-- feste A4-Grundstruktur in HTML-Dateien
-- eingebettetes CSS ohne externe Skripte, Fonts oder CDNs
+- exakte A4-Grundstruktur mit `width: 210mm` und `height: 297mm`
+- exakt eine Anschreibenseite sowie ein oder zwei explizite Lebenslaufseiten mit konsistenten Seiten-Footern
+- eingebettetes CSS ohne automatisch geladene externe oder lokale Ressourcen, Skripte, Fonts, Medien oder CDNs
 - `overflow: hidden` nur auf der äußeren A4-Seite
-- kurze, platzhalterfreie E-Mail-Nachricht
+- kurze, platzhalterfreie E-Mail-Nachricht mit konkretem `Betreff:` in der ersten Zeile
 
 Nur wenn der Prüfer mit `OK` endet, darf der technische Abschlusscheck als bestanden gelten.
 
@@ -55,6 +56,9 @@ Der Layoutcheck:
 - erzeugt Screenshots im passenden privaten Arbeitsordner unter `_Arbeitsdateien`
 - schreibt keine Kontrollbilder in den finalen Bewerbungsordner
 - prüft nach jedem Browserlauf, ob die Ausgabedatei wirklich erzeugt wurde
+- entfernt alte erwartete Ausgaben vor dem Lauf und akzeptiert keine veralteten Dateien
+- validiert PNG-Signatur, Aktualität und exakte Bildabmessungen
+- beendet hängende Browser nach dem konfigurierten Timeout
 - meldet Fehler sichtbar, statt stille Browserfehler zu übergehen
 
 Der Browser-Layoutcheck ist hilfreich, aber optional. Wenn er wegen lokaler Browser- oder Sandbox-Einschränkungen nicht läuft, muss der statische Check trotzdem erfolgreich sein und der nicht ausgeführte Layoutcheck offen benannt werden.
@@ -124,7 +128,10 @@ Der PDF-Export:
 - nutzt dieselben Dateinamen wie die HTML-Dateien, nur mit `.pdf`
 - prüft, ob jede PDF-Datei existiert, nicht leer ist und einen PDF-Header enthält
 - prüft, ob die PDF-MediaBox DIN A4 entspricht, sofern das Exporttool dies unterstützt
-- nutzt einen privaten Arbeitsordner unter `_Arbeitsdateien/.../PDF-Export` für Browserprofile
+- prüft, ob jede PDF frisch erzeugt wurde, korrekt endet und genauso viele Seiten wie das HTML explizite A4-Seitencontainer enthält
+- exportiert und validiert zunächst beide PDFs in einem eindeutigen privaten Arbeitslauf
+- ersetzt bestehende finale PDFs erst danach gemeinsam und stellt sie bei einem Veröffentlichungsfehler wieder her
+- nutzt einen privaten Arbeitsordner unter `_Arbeitsdateien/.../PDF-Export` für Browserprofile und Zwischenexporte
 
 Beispielausgabe:
 
@@ -163,4 +170,4 @@ Wenn kein Chrome oder Edge verfügbar ist, wird kein PDF-Export als bestanden ge
 
 Ein technischer Check gilt nur als erfolgreich, wenn das Tool mit Exitcode `0` endet und eine klare OK-Meldung ausgibt.
 
-Stille Browserprozesse, fehlende Screenshot-Dateien, fehlende oder leere PDFs, PDFs ohne PDF-Header oder durch Shell-Syntax fehlgeschlagene Suchläufe dürfen nicht als bestandene Prüfung behandelt werden.
+Stille Browserprozesse, veraltete oder ungültige Screenshots, fehlende oder leere PDFs, PDFs ohne gültige Struktur, zusätzliche Druckseiten oder durch Shell-Syntax fehlgeschlagene Suchläufe dürfen nicht als bestandene Prüfung behandelt werden.

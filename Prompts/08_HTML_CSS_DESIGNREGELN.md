@@ -7,7 +7,7 @@ Lebenslauf und Anschreiben werden als eigenständige HTML-Dateien erzeugt. Sie m
 ## Grundregeln
 
 - CSS immer direkt im HTML einbetten.
-- Keine externen Fonts, Skripte oder CDNs.
+- Keine automatisch geladenen externen oder lokalen Ressourcen, Fonts, Stylesheets, Bilder, Medien, Skripte oder CDNs. Vollständig eingebettete `data:`-Ressourcen sind zulässig, wenn sie keine privaten Zusatzdaten offenlegen.
 - Keine Dateipfade im Dokument anzeigen.
 - Keine sichtbaren Platzhalter in finalen Dateien.
 - A4 als feste Seitenfläche verwenden.
