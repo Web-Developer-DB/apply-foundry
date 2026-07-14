@@ -1,13 +1,9 @@
 # Private local data
-Private/
-Bewerbungen/
-Bewertungen/
-LebenslaufUniversal/
-Archiv/
+/Private/
 
 # Local agent/runtime configuration
-.agents/
-.codex/
+/.agents/
+/.codex/
 .env
 .env.*
 !.env.example
@@ -22,3 +18,7 @@ Archiv/
 # OS/editor noise
 .DS_Store
 Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
