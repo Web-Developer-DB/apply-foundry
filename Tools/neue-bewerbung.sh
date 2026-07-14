@@ -12,6 +12,7 @@ Options:
   --datum YYYY-MM-DD              Datum, Standard: heute
   --stellenbeschreibung-path PATH Pfad zu vorhandener Stellenbeschreibung
   --bewerbungen-root PATH         Ausgabeordner, Standard: ./Private/Bewerbungen
+  --fortsetzen                    Nur exakt dieselbe vorhandene Bewerbung ergänzen
   -h, --help                      Hilfe anzeigen
 EOF
 }
@@ -42,12 +43,47 @@ convert_to_slug() {
 
 html_escape() {
   local value="$1"
-  value="${value//&/&amp;}"
-  value="${value//</&lt;}"
-  value="${value//>/&gt;}"
-  value="${value//\"/&quot;}"
-  value="${value//\'/&#39;}"
-  printf '%s' "$value"
+  local escaped=""
+  local char
+  local index
+
+  for ((index = 0; index < ${#value}; index++)); do
+    char="${value:index:1}"
+    case "$char" in
+      '&') escaped+='&amp;' ;;
+      '<') escaped+='&lt;' ;;
+      '>') escaped+='&gt;' ;;
+      '"') escaped+='&quot;' ;;
+      "'") escaped+='&#39;' ;;
+      *) escaped+="$char" ;;
+    esac
+  done
+
+  printf '%s' "$escaped"
+}
+
+validate_date() {
+  local value="$1"
+  [[ "$value" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})$ ]] || return 1
+
+  local year=$((10#${BASH_REMATCH[1]}))
+  local month=$((10#${BASH_REMATCH[2]}))
+  local day=$((10#${BASH_REMATCH[3]}))
+  local max_day
+
+  case "$month" in
+    1|3|5|7|8|10|12) max_day=31 ;;
+    4|6|9|11) max_day=30 ;;
+    2)
+      max_day=28
+      if (( (year % 400 == 0) || (year % 4 == 0 && year % 100 != 0) )); then
+        max_day=29
+      fi
+      ;;
+    *) return 1 ;;
+  esac
+
+  ((day >= 1 && day <= max_day))
 }
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -58,6 +94,7 @@ rolle="Bewerbung"
 datum="$(date +%F)"
 stellenbeschreibung_path=""
 bewerbungen_root="$project_root/Private/Bewerbungen"
+fortsetzen=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -86,6 +123,10 @@ while [[ $# -gt 0 ]]; do
       bewerbungen_root="$2"
       shift 2
       ;;
+    --fortsetzen)
+      fortsetzen=1
+      shift
+      ;;
     -h|--help)
       print_usage
       exit 0
@@ -104,13 +145,38 @@ if [[ -z "$firma" ]]; then
   exit 2
 fi
 
-if [[ ! "$datum" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-  echo "Fehler: --datum muss im Format YYYY-MM-DD angegeben werden." >&2
+firma="${firma#"${firma%%[![:space:]]*}"}"
+firma="${firma%"${firma##*[![:space:]]}"}"
+rolle="${rolle#"${rolle%%[![:space:]]*}"}"
+rolle="${rolle%"${rolle##*[![:space:]]}"}"
+
+if [[ -z "$firma" || -z "$rolle" ]]; then
+  echo "Fehler: --firma und --rolle dürfen nicht leer sein." >&2
   exit 2
 fi
 
-if [[ -n "$stellenbeschreibung_path" && ! -e "$stellenbeschreibung_path" ]]; then
-  echo "Fehler: --stellenbeschreibung-path existiert nicht: $stellenbeschreibung_path" >&2
+if (( ${#firma} > 120 || ${#rolle} > 120 )); then
+  echo "Fehler: Firma und Rolle dürfen jeweils höchstens 120 Zeichen lang sein." >&2
+  exit 2
+fi
+
+if [[ "$firma" =~ [[:cntrl:]] || "$rolle" =~ [[:cntrl:]] ]]; then
+  echo "Fehler: Firma und Rolle dürfen keine Steuerzeichen oder Zeilenumbrüche enthalten." >&2
+  exit 2
+fi
+
+if ! validate_date "$datum"; then
+  echo "Fehler: --datum muss ein echtes Kalenderdatum im Format YYYY-MM-DD sein." >&2
+  exit 2
+fi
+
+if [[ -n "$stellenbeschreibung_path" && ! -f "$stellenbeschreibung_path" ]]; then
+  echo "Fehler: --stellenbeschreibung-path muss auf eine vorhandene Datei zeigen: $stellenbeschreibung_path" >&2
+  exit 2
+fi
+
+if [[ -e "$bewerbungen_root" && ! -d "$bewerbungen_root" ]]; then
+  echo "Fehler: --bewerbungen-root existiert, ist aber kein Ordner: $bewerbungen_root" >&2
   exit 2
 fi
 
@@ -124,7 +190,62 @@ firma_dir="$bewerbungen_root_full/$firma_slug"
 ziel_dir="$firma_dir/$datum--$rolle_slug"
 arbeits_dir="$firma_dir/_Arbeitsdateien/$datum--$rolle_slug"
 
-mkdir -p "$ziel_dir" "$arbeits_dir"
+for path in "$ziel_dir" "$arbeits_dir"; do
+  if [[ -e "$path" && ! -d "$path" ]]; then
+    echo "Fehler: Bewerbungspfad existiert, ist aber kein Ordner: $path" >&2
+    exit 2
+  fi
+done
+
+ziel_existed=0
+arbeits_existed=0
+[[ -d "$ziel_dir" ]] && ziel_existed=1
+[[ -d "$arbeits_dir" ]] && arbeits_existed=1
+
+if (( (ziel_existed || arbeits_existed) && !fortsetzen )); then
+  echo "Fehler: Die Bewerbung existiert bereits. Verwende --fortsetzen nur für exakt dieselbe Bewerbung oder wähle Datum/Rolle eindeutig." >&2
+  exit 2
+fi
+
+if (( fortsetzen && (ziel_existed != arbeits_existed) )); then
+  echo "Fehler: Die vorhandene Bewerbung ist unvollständig; Ziel- und Arbeitsordner müssen beide existieren." >&2
+  exit 2
+fi
+
+if (( fortsetzen && arbeits_existed )); then
+  existing_notes="$arbeits_dir/Arbeitsnotizen.md"
+  if [[ ! -f "$existing_notes" ]] || ! grep -Fqx -- "- Firma: $firma" "$existing_notes" || ! grep -Fqx -- "- Zielrolle: $rolle" "$existing_notes"; then
+    echo "Fehler: Der vorhandene Arbeitsordner gehört nicht nachweislich zu derselben Firma und Rolle." >&2
+    exit 2
+  fi
+fi
+
+ziel_created=0
+arbeits_created=0
+success=0
+
+cleanup_on_exit() {
+  local code="$1"
+  if ((code != 0 && !success)); then
+    if ((arbeits_created)) && [[ "$arbeits_dir" == "$bewerbungen_root_full"/* ]]; then
+      rm -rf -- "$arbeits_dir"
+    fi
+    if ((ziel_created)) && [[ "$ziel_dir" == "$bewerbungen_root_full"/* ]]; then
+      rm -rf -- "$ziel_dir"
+    fi
+  fi
+  return "$code"
+}
+trap 'cleanup_on_exit $?' EXIT
+
+if (( !ziel_existed )); then
+  mkdir -p "$ziel_dir"
+  ziel_created=1
+fi
+if (( !arbeits_existed )); then
+  mkdir -p "$arbeits_dir"
+  arbeits_created=1
+fi
 
 stellenbeschreibung_final_file="$ziel_dir/Stellenbeschreibung.md"
 stellenbeschreibung_entwurf_file="$arbeits_dir/Stellenbeschreibung--ENTWURF.md"
@@ -138,8 +259,18 @@ offene_fragen_entwurf_file="$arbeits_dir/Offene_Fragen--ENTWURF.md"
 druck_hinweis_file="$ziel_dir/Druck-Hinweis.md"
 
 if [[ -n "$stellenbeschreibung_path" ]]; then
-  cp "$stellenbeschreibung_path" "$stellenbeschreibung_final_file"
-elif [[ ! -e "$stellenbeschreibung_entwurf_file" ]]; then
+  if [[ -f "$stellenbeschreibung_final_file" ]]; then
+    if ! cmp -s -- "$stellenbeschreibung_path" "$stellenbeschreibung_final_file"; then
+      echo "Fehler: Eine andere Stellenbeschreibung liegt bereits im Zielordner. Überschreiben wurde verweigert." >&2
+      exit 1
+    fi
+  elif [[ -e "$stellenbeschreibung_final_file" ]]; then
+    echo "Fehler: Stellenbeschreibung.md existiert, ist aber keine Datei." >&2
+    exit 1
+  else
+    cp "$stellenbeschreibung_path" "$stellenbeschreibung_final_file"
+  fi
+elif [[ ! -e "$stellenbeschreibung_final_file" && ! -e "$stellenbeschreibung_entwurf_file" ]]; then
   cat > "$stellenbeschreibung_entwurf_file" <<'EOF'
 # Stellenbeschreibung
 
@@ -237,7 +368,7 @@ fi
 
 if [[ ! -e "$email_entwurf_file" ]]; then
   cat > "$email_entwurf_file" <<EOF
-# E-Mail-Nachricht
+Betreff: Bewerbung als $rolle - [Name aus Private/Daten/01_PERSOENLICHE_DATEN.md]
 
 Sehr geehrte Damen und Herren,
 
@@ -296,3 +427,4 @@ fi
 
 printf 'Bewerbungsordner: %s\n' "$ziel_dir"
 printf 'Arbeitsdateien: %s\n' "$arbeits_dir"
+success=1

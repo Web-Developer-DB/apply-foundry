@@ -80,9 +80,9 @@ Stellenart, Arbeitsmodell, Eintrittstermin, Region, Reisebereitschaft, Schichtbe
 - Die Stellenanzeige wird auf angebotene oder geforderte Stellenart geprüft. Bei Widerspruch zu Datei `01` wird der Punkt in `Offene_Fragen.md` dokumentiert.
 - Arbeitsmodell, Region, Pendeldistanz, Reisebereitschaft, Schicht- oder Wochenendbereitschaft und Befristung werden nur sichtbar gemacht, wenn sie für die konkrete Bewerbung relevant sind.
 - Eine manuelle Gehaltsangabe aus Datei `01` hat Vorrang.
-- Wenn automatische Gehaltsschätzung aktiviert ist, wird sie aus Zielrolle, Seniorität, technischer Tiefe, Alter oder Berufserfahrung, Region, Arbeitsmodell und Stellenart abgeleitet. Die Begründung wird kurz in `Analyse.md` festgehalten.
+- Eine automatische Gehaltsschätzung ist nur zulässig, wenn sie in Datei `01` ausdrücklich aktiviert ist. Sie wird aus einer aktuellen, nachvollziehbaren Quelle sowie Zielrolle, Seniorität, einschlägiger Berufserfahrung, Region, Arbeitsmodell und Stellenart abgeleitet. Alter, Geschlecht und andere geschützte persönliche Merkmale bleiben unberücksichtigt. Quelle, Stand und Begründung werden kurz in `Analyse.md` festgehalten.
 - Wenn die Stellenanzeige eine Gehaltsvorstellung verlangt, muss der Agent prüfen, ob ein Gehalt genannt werden darf, automatisch geschätzt werden soll oder eine offene Frage entsteht.
-- Wenn die Datengrundlage nicht reicht, wird keine Scheingenauigkeit erzeugt. Dann wird `Offene_Fragen.md` genutzt.
+- Wenn die Datengrundlage nicht reicht oder keine aktuelle Quelle geprüft werden kann, wird keine Scheingenauigkeit erzeugt. Dann wird `Offene_Fragen.md` genutzt.
 
 ## Formale CV-Stationen
 

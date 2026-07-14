@@ -31,9 +31,9 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 - Nenne den Gehaltswunsch im Anschreiben, wenn `Wunschgehalt verwenden` in Datei `01` auf `ja` steht oder wenn die Stellenanzeige ausdrücklich eine Gehaltsvorstellung verlangt und Datei `01` dies nicht ausschließt.
 - Wenn `Wunschgehalt verwenden` auf `nur wenn in der Stellenanzeige verlangt` steht, nenne das Gehalt nur bei ausdrücklicher Aufforderung in der Anzeige.
 - Wenn ein manueller Gehaltswunsch in Datei `01` steht, verwende diese Angabe.
-- Wenn automatische Schätzung gewünscht ist, ermittle eine plausible Gehaltsangabe oder Gehaltsspanne aus Zielrolle, Seniorität, technischer Tiefe, Alter oder Berufserfahrung, Region, Arbeitsmodell und Stellenart. Dokumentiere die Kurzbegründung in `Analyse.md`.
+- Wenn automatische Schätzung in Datei `01` ausdrücklich aktiviert ist, ermittle eine plausible Gehaltsangabe oder Gehaltsspanne aus einer aktuellen, nachvollziehbaren Quelle sowie Zielrolle, Seniorität, einschlägiger Berufserfahrung, Region, Arbeitsmodell und Stellenart. Alter, Geschlecht und andere geschützte persönliche Merkmale dürfen die Schätzung nicht beeinflussen. Dokumentiere Quelle, Stand und Kurzbegründung in `Analyse.md`.
 - Formuliere Gehalt sachlich, z. B. `Meine Gehaltsvorstellung liegt bei ... EUR brutto jährlich.` oder bei Teilzeit/Stundenlohn passend zum in Datei `01` gewählten Gehaltsmodell.
-- Wenn die Datengrundlage für eine seriöse Gehaltsschätzung fehlt, nicht raten. In `Offene_Fragen.md` dokumentieren und im Anschreiben neutral bleiben, sofern die Anzeige keinen Gehaltswunsch zwingend verlangt.
+- Wenn die Datengrundlage für eine seriöse Gehaltsschätzung fehlt oder keine aktuelle Quelle geprüft werden kann, nicht raten. In `Offene_Fragen.md` dokumentieren und im Anschreiben neutral bleiben, sofern die Anzeige keinen Gehaltswunsch zwingend verlangt.
 - Sprich Lücken oder Grenzen nicht defensiv an, sondern fokussiere passende Stärken.
 - Bei Quereinstieg oder Entwicklungsrollen die Brücke zwischen vorhandener Erfahrung und Zielrolle konkret erklären.
 - Wenn Ansprechpartner fehlt, neutrale Anrede verwenden.

@@ -27,7 +27,8 @@ Nicht hier eintragen:
 Hinweis zum Gehaltswunsch:
 
 - Eine manuelle Gehaltsangabe in Datei `01` hat Vorrang.
-- Wenn automatische Schätzung gewünscht ist, nutzt der Agent Stellenbeschreibung, Zielrolle, Seniorität, technische Tiefe, Alter oder Berufserfahrung, Region, Arbeitsmodell und Stellenart.
+- Eine automatische Schätzung erfolgt nur bei ausdrücklicher Aktivierung und nutzt eine aktuelle, nachvollziehbare Quelle sowie Stellenbeschreibung, Zielrolle, Seniorität, einschlägige Berufserfahrung, Region, Arbeitsmodell und Stellenart. Alter, Geschlecht und andere geschützte persönliche Merkmale bleiben unberücksichtigt.
+- Wenn keine belastbare aktuelle Datengrundlage verfügbar ist, wird keine Zahl geraten, sondern eine offene Frage dokumentiert.
 - Wenn die Stellenanzeige keinen Gehaltswunsch verlangt und `nur wenn in der Stellenanzeige verlangt` gesetzt ist, wird im Anschreiben kein Gehalt genannt.
 
 ## Datei 02: Bewerberprofil und Positionierung
