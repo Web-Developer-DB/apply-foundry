@@ -43,6 +43,10 @@ Version 1.1 basiert auf einem vollständigen technischen und logischen Audit des
 - Vorhandene Ziel- oder Arbeitsordner werden standardmäßig nicht mehr still weiterverwendet.
 - Fortsetzen ist nur möglich, wenn Ziel- und Arbeitsordner vollständig vorhanden sind und `Arbeitsnotizen.md` dieselbe Firma und Rolle bestätigt.
 - Eine vorhandene abweichende `Stellenbeschreibung.md` wird niemals überschrieben.
+- `.gitignore` verwendet eine einzige, am Projektwurzelverzeichnis verankerte Regel `/Private/` für den vollständigen privaten Verzeichnisbaum.
+- Lokale Agentenkonfigurationen werden mit `/.agents/` und `/.codex/` gezielt nur an der Projektwurzel ignoriert.
+- Typische lokale Dateien wie `Desktop.ini`, Vim-Auslagerungsdateien und Sicherungsdateien mit `~` werden ignoriert.
+- `.gitattributes` erzwingt LF-Zeilenenden zusätzlich für `.gitignore` und YAML-Dateien.
 - Automatische Gehaltsschätzungen benötigen eine ausdrückliche Aktivierung und eine aktuelle, nachvollziehbare Quelle.
 - Gehaltsschätzungen richten sich nach Rolle, Seniorität, einschlägiger Erfahrung, Region, Arbeitsmodell und Stellenart.
 - README, Prompt-Regeln und Beispiel-Datendokumentation wurden an die Version 1.1 angeglichen.
@@ -64,6 +68,7 @@ Version 1.1 basiert auf einem vollständigen technischen und logischen Audit des
 - PowerShell-Listenübergaben konnten im PDF-Export den Laufzeitfehler `Argument types do not match` erzeugen.
 - Unmögliche Datumswerte wie `2026-99-99` wurden von beiden Ordnerhelfern akzeptiert.
 - Unterschiedliche Firma-/Rollenwerte mit demselben bereinigten Slug konnten vorhandene Bewerbungen vermischen oder überschreiben.
+- Unverankerte Regeln wie `Bewerbungen/` oder `Archiv/` konnten gleichnamige Test- und Dokumentationsordner außerhalb von `Private/` unbeabsichtigt ignorieren.
 - Die Bash-HTML-Kodierung war unter aktuellen Bash-Versionen nicht zuverlässig.
 - Dateisystemfehler konnten vom PowerShell-Helfer mit einem irreführenden erfolgreichen Exitcode beendet werden.
 - Ein Verzeichnis konnte beim Fortsetzen als `Stellenbeschreibung.md` oder beim Export als PDF-Zielpfad missverstanden werden.
@@ -100,6 +105,7 @@ Version 1.1 basiert auf einem vollständigen technischen und logischen Audit des
 
 ### Betroffene Projektdateien
 
+- Repository-Konfiguration: `.gitignore`, `.gitattributes`.
 - Dokumentation: `README.md`, `CHANGELOG.md`, `Private.example/Daten/README.md`.
 - Hauptablauf und Regeln: `Prompts/00_AGENTEN_START_HIER.md`, `Prompts/04_ANSCHREIBEN_REGELN.md`, `Prompts/06_ROLLENLOGIK.md`, `Prompts/07_WAHRHEIT_UND_GRENZEN.md`, `Prompts/08_HTML_CSS_DESIGNREGELN.md`, `Prompts/09_QUALITAETSCHECK.md`, `Prompts/10_DATEI_UND_ORDNER_REGELN.md`, `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`.
 - PowerShell-Werkzeuge: `Tools/Neue-Bewerbung.ps1`, `Tools/Pruefe-Bewerbung.ps1`, `Tools/Layoutcheck-Bewerbung.ps1`, `Tools/Exportiere-PDF.ps1`.
