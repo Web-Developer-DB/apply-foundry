@@ -21,6 +21,7 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - PDFs dürfen erst erzeugt werden, nachdem der statische Check erfolgreich war.
 - Versandfertige Dateien werden zunächst im privaten `Kandidat`-Ordner geprüft. Der finale Zielordner bleibt bis zur atomaren Veröffentlichung leer.
 - Eine Änderung an einer HTML-Datei nach dem Layoutcheck macht den bisherigen Screenshot- und PDF-Nachweis ungültig. Maßgeblich sind die SHA-256-Werte in den Prüfberichten.
+- Kandidatendateien einzeln und vollständig schreiben und danach unmittelbar validieren. Insbesondere JSON-Dateien nach jeder Änderung parsen; keine unübersichtliche Sammeländerung darf bei einem Teilfehler mehrere fertige Dokumente halb aktualisiert zurücklassen.
 - In einer als verwaltete Sandbox bekannten Umgebung den ersten browsergestützten Lauf direkt mit lokaler Browserfreigabe ausführen, statt einen erwartbaren Chrome-Fehlerlauf zu provozieren.
 
 ## Verbindlicher Finalisierungsworkflow
@@ -40,7 +41,8 @@ Dieser Lauf:
 - führt Stammdaten-, Inhalts- und statischen HTML-Check aus
 - erzeugt frische Layoutscreenshots samt Dichtehinweisen
 - exportiert und validiert beide PDFs
-- schreibt Hash- und Artefaktnachweise
+- prüft die PDF-Textschicht und Lesbarkeit für ATS
+- schreibt Hashnachweise für Quellen, sämtliche Kandidatendateien, PDFs und Seitenscreenshots
 - veröffentlicht noch keine Datei
 
 Nach der tatsächlichen Sichtprüfung:
@@ -49,7 +51,9 @@ Nach der tatsächlichen Sichtprüfung:
 .\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft
 ```
 
-Die Veröffentlichung wird verweigert, wenn HTML, PDF oder Screenshot nach der Vorbereitung verändert wurde. Sie kopiert nicht dateiweise in den Zielordner, sondern veröffentlicht das validierte Set über einen privaten Staging-Ordner gemeinsam.
+Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbewertung angegeben werden, zum Beispiel `-VisuelleFreigabeNotiz "Alle markierten Seiten geprüft; kein Beschnitt und keine Überlappung."`.
+
+Die Veröffentlichung wird verweigert, wenn Quellen, Kandidatendateien oder Screenshots nach der Vorbereitung verändert wurden. Sie kopiert nicht dateiweise in den Zielordner, sondern veröffentlicht das validierte Set über einen privaten Staging-Ordner gemeinsam. Das Ergebnis trennt `Versand/` mit genau zwei PDF-Anlagen und E-Mail-Text von `Intern/` mit HTML-Quellen und Nachweisen. `Manifest.json` bindet jede veröffentlichte Datei an ihren SHA-256-Wert.
 
 Die nachfolgenden Einzelwerkzeuge bleiben für Diagnose, Entwicklung und gezielte Wiederholungen verfügbar. Für neue Bewerbungen ersetzt ihre manuelle Verkettung nicht den verbindlichen Finalisierungsworkflow.
 
@@ -72,6 +76,7 @@ Der Prüfer kontrolliert:
 - eingebettetes CSS ohne automatisch geladene externe oder lokale Ressourcen, Skripte, Fonts, Medien oder CDNs
 - `overflow: hidden` nur auf der äußeren A4-Seite
 - kurze, platzhalterfreie E-Mail-Nachricht mit konkretem `Betreff:` in der ersten Zeile
+- bei strukturierten Veröffentlichungen: korrekte `Versand/`-/`Intern/`-Trennung und vollständiges Hash-Manifest
 
 Nur wenn der Prüfer mit `OK` endet, darf der technische Abschlusscheck als bestanden gelten.
 
@@ -94,7 +99,7 @@ Der Layoutcheck:
 - beendet hängende Browser nach dem konfigurierten Timeout
 - meldet Fehler sichtbar, statt stille Browserfehler zu übergehen
 
-Der Browser-Layoutcheck ist hilfreich, aber optional. Wenn er wegen lokaler Browser- oder Sandbox-Einschränkungen nicht läuft, muss der statische Check trotzdem erfolgreich sein und der nicht ausgeführte Layoutcheck offen benannt werden.
+Als Einzelwerkzeug ist der Browser-Layoutcheck für Diagnose optional. Im verbindlichen Finalisierungsworkflow ist er Voraussetzung für die Veröffentlichung. Wenn er wegen lokaler Browser- oder Sandbox-Einschränkungen nicht läuft, darf der statische Check zwar separat ausgewertet, die Bewerbung aber nicht als vollständig finalisiert veröffentlicht werden.
 
 ## Standardweg unter Windows 11 / VS Code / PowerShell
 
@@ -120,11 +125,12 @@ Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
 Typische Dateinamen:
 
 ```text
-Lebenslauf---NACHNAME.VORNAME--chrome.png
-Anschreiben---NACHNAME.VORNAME--chrome.png
+Lebenslauf---NACHNAME.VORNAME--seite-1-von-2--chrome.png
+Lebenslauf---NACHNAME.VORNAME--seite-2-von-2--chrome.png
+Anschreiben---NACHNAME.VORNAME--seite-1-von-1--chrome.png
 ```
 
-Wenn ein Bildbetrachter oder ein Agentenwerkzeug für lokale Bilder verfügbar ist, muss mindestens der Lebenslauf-Screenshot geöffnet und visuell geprüft werden. Bei einer Layoutkorrektur ist danach erneut ein Screenshot zu erzeugen.
+Wenn ein Bildbetrachter oder ein Agentenwerkzeug für lokale Bilder verfügbar ist, muss jeder erwartete Seitenscreenshot geöffnet und visuell geprüft werden. Bei einer Layoutkorrektur sind danach alle Nachweise erneut zu erzeugen.
 
 Visuelle Bewertung des Screenshots:
 
@@ -138,11 +144,7 @@ Visuelle Bewertung des Screenshots:
 - Schriftgröße, Zeilenabstand und Weißraum wirken professionell lesbar.
 - Der Screenshot enthält keine Browser-Kopfzeilen, Dateipfade, URLs oder Druckdialog-Reste.
 
-Für bewusst zweiseitige Lebensläufe reicht ein Screenshot der ersten A4-Höhe nicht aus. Dann zusätzlich einen höheren Screenshot erzeugen oder die PDF-Ausgabe mit allen Seiten prüfen:
-
-```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome -Height 2300
-```
+Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären A4-Ansicht. Dadurch wird keine Seite von einer festen Screenshot-Höhe abgeschnitten oder übersehen. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; ihre Warnung muss fachlich bewertet werden und rechtfertigt kein blindes Auffüllen oder Komprimieren.
 
 ## Automatischer PDF-Export
 
@@ -157,7 +159,7 @@ Der PDF-Export:
 - führt zuerst `Tools/Pruefe-Bewerbung.ps1` aus
 - bricht ab, wenn der statische Check fehlschlägt
 - nutzt Chrome oder Edge Headless für den PDF-Export
-- speichert die PDFs im finalen Bewerbungsordner
+- speichert die PDFs beim Einzellauf im geprüften HTML-/Kandidatenordner; die Finalisierung übernimmt sie anschließend ausschließlich nach `Versand/`
 - nutzt dieselben Dateinamen wie die HTML-Dateien, nur mit `.pdf`
 - prüft, ob jede PDF-Datei existiert, nicht leer ist und einen PDF-Header enthält
 - prüft, ob die PDF-MediaBox DIN A4 entspricht, sofern das Exporttool dies unterstützt
@@ -189,15 +191,27 @@ Unter Windows 11 / VS Code / PowerShell mit Chrome kann der Export gezielt mit C
 
 Wenn kein Chrome oder Edge verfügbar ist, wird kein PDF-Export als bestanden gemeldet. Dann bleibt der manuelle PDF-Export über Firefox oder einen anderen Browser möglich, muss aber offen dokumentiert werden.
 
+## ATS-Prüfung der PDFs
+
+Der verbindliche Finalisierungsworkflow führt nach dem PDF-Export `Tools/Pruefe-ATS.ps1` aus. Das Werkzeug extrahiert die Unicode-Textschicht ohne externes PDF-Paket und prüft:
+
+- Pflichttexte wie Bewerbername, Firma und Zielrolle
+- formale Zeiträume im Lebenslauf
+- Textabdeckung zwischen HTML und PDF
+- eine grundlegende, nachvollziehbare Lesereihenfolge
+
+Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versandfertig. Die ATS-Prüfung ersetzt weiterhin nicht die Sichtprüfung. Lebenslauf und Anschreiben bleiben zwei getrennte PDFs; eine Formatforderung „PDF“ wird nicht als Gesamt-PDF interpretiert.
+
 ## Reihenfolge im Abschluss
 
 1. Stammdaten prüfen und `Anforderungsmatrix.json` vervollständigen.
 2. Versandfertig benannte Dateien im privaten Kandidatenordner erzeugen.
 3. Finalisierung ohne Veröffentlichung vorbereiten.
-4. Beide Screenshots visuell öffnen und prüfen.
+4. Jeden Seitenscreenshot visuell öffnen und prüfen.
 5. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.
-6. Erst nach erfolgreicher Sichtprüfung mit `-Veroeffentlichen -VisuellGeprueft` atomar veröffentlichen.
-7. Bei Fehlern nicht final melden; der finale Zielordner muss unverändert bleiben.
+6. Bei Dichte- oder Layoutwarnungen die Sichtbewertung als Freigabenotiz dokumentieren.
+7. Erst nach erfolgreicher Sichtprüfung mit `-Veroeffentlichen -VisuellGeprueft` atomar veröffentlichen.
+8. Bei Fehlern nicht final melden; der finale Zielordner muss unverändert bleiben.
 
 ## Keine stillen Erfolge
 

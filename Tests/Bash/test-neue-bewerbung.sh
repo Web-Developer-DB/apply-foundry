@@ -40,6 +40,25 @@ grep -Fq 'A&amp;B &lt;X&gt;' "$html" || fail "Firmenname wurde nicht korrekt HTM
 grep -Fq 'R &quot;Q&quot;' "$html" || fail "Rollenname wurde nicht korrekt HTML-kodiert."
 [[ -f "$test_root/escaping/AundB-X/_Arbeitsdateien/2026-07-14--R-Q/Bewerbungsauftrag.json" ]] || fail "Bewerbungsauftrag wurde nicht erzeugt."
 [[ -d "$test_root/escaping/AundB-X/_Arbeitsdateien/2026-07-14--R-Q/Kandidat" ]] || fail "Kandidatenordner wurde nicht erzeugt."
+auftrag="$test_root/escaping/AundB-X/_Arbeitsdateien/2026-07-14--R-Q/Bewerbungsauftrag.json"
+matrix="$test_root/escaping/AundB-X/_Arbeitsdateien/2026-07-14--R-Q/Anforderungsmatrix--ENTWURF.json"
+grep -Fq '"schemaVersion": 2' "$auftrag" || fail "Bewerbungsauftrag verwendet nicht Schema 2."
+grep -Fq '"bewerbungsentscheidung": "noch_festzulegen"' "$auftrag" || fail "Bewerbungsentscheidung fehlt im Auftrag."
+grep -Fq '"profillinksModus": "noch_festzulegen"' "$auftrag" || fail "Profillink-Modus fehlt im Auftrag."
+grep -Fq '"gewichtung": "hoch"' "$matrix" || fail "Matrixentwurf enthält keine Gewichtung."
+
+printf '%s\n' \
+  '- Dateiname-Name: TEST.PERSON' \
+  '- Gewünschte Stellenart: Vollzeit' \
+  '- Gewünschtes Arbeitsmodell: hybrid' \
+  '- Wunschgehalt verwenden: nein' \
+  '- Gehaltslogik: manuelle Angabe bevorzugen' > "$test_root/personal.md"
+printf '%s\n' '# Testprofil' > "$test_root/profile.md"
+bash "$tool" --firma "Snapshot Firma" --rolle "Snapshot Rolle" --datum "2026-07-14" --stammdaten-path "$test_root/personal.md" --profil-path "$test_root/profile.md" --bewerbungen-root "$test_root/snapshot" >/dev/null
+snapshot="$test_root/snapshot/Snapshot-Firma/_Arbeitsdateien/2026-07-14--Snapshot-Rolle/Bewerbungsauftrag.json"
+grep -Fq '"bewerberDateiname": "TEST.PERSON"' "$snapshot" || fail "Dateiname-Name wurde nicht übernommen."
+grep -Fq '"stellenart": "Vollzeit"' "$snapshot" || fail "Stellenart wurde nicht in den Snapshot übernommen."
+grep -Fq '"arbeitsmodell": "hybrid"' "$snapshot" || fail "Arbeitsmodell wurde nicht in den Snapshot übernommen."
 
 printf 'JOB-ONE\n' > "$test_root/job-one.md"
 printf 'JOB-TWO\n' > "$test_root/job-two.md"

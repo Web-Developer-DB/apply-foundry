@@ -11,6 +11,8 @@ Options:
   --rolle NAME                    Zielrolle, Standard: Bewerbung
   --datum YYYY-MM-DD              Datum, Standard: heute
   --stellenbeschreibung-path PATH Pfad zu vorhandener Stellenbeschreibung
+  --stammdaten-path PATH           Stammdaten für den Logistik-Snapshot
+  --profil-path PATH               Profil für den Quellhash
   --bewerbungen-root PATH         Ausgabeordner, Standard: ./Private/Bewerbungen
   --fortsetzen                    Nur exakt dieselbe vorhandene Bewerbung ergänzen
   -h, --help                      Hilfe anzeigen
@@ -69,6 +71,23 @@ json_escape() {
   printf '%s' "$value"
 }
 
+markdown_field() {
+  local path="$1"
+  local field="$2"
+  [[ -f "$path" ]] || return 0
+  sed -n -E "s/^[[:space:]]*-[[:space:]]*${field}:[[:space:]]*(.*)$/\\1/p" "$path" | head -n 1
+}
+
+file_sha256() {
+  local path="$1"
+  [[ -f "$path" ]] || return 0
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum -- "$path" | awk '{print toupper($1)}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 -- "$path" | awk '{print toupper($1)}'
+  fi
+}
+
 validate_date() {
   local value="$1"
   [[ "$value" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})$ ]] || return 1
@@ -100,6 +119,8 @@ firma=""
 rolle="Bewerbung"
 datum="$(date +%F)"
 stellenbeschreibung_path=""
+stammdaten_path="$project_root/Private/Daten/01_PERSOENLICHE_DATEN.md"
+profil_path="$project_root/Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"
 bewerbungen_root="$project_root/Private/Bewerbungen"
 fortsetzen=0
 
@@ -123,6 +144,16 @@ while [[ $# -gt 0 ]]; do
     --stellenbeschreibung-path)
       [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --stellenbeschreibung-path" >&2; exit 2; }
       stellenbeschreibung_path="$2"
+      shift 2
+      ;;
+    --stammdaten-path)
+      [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --stammdaten-path" >&2; exit 2; }
+      stammdaten_path="$2"
+      shift 2
+      ;;
+    --profil-path)
+      [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --profil-path" >&2; exit 2; }
+      profil_path="$2"
       shift 2
       ;;
     --bewerbungen-root)
@@ -295,20 +326,67 @@ if [[ ! -e "$auftrag_file" ]]; then
   ziel_json="$(json_escape "$ziel_dir")"
   arbeits_json="$(json_escape "$arbeits_dir")"
   kandidat_json="$(json_escape "$kandidat_dir")"
+  bewerber_dateiname_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Dateiname-Name')")"
+  verfuegbarkeit_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Verfügbarkeit')")"
+  eintritt_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Frühester Eintrittstermin')")"
+  stellenart_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gewünschte Stellenart')")"
+  stundenumfang_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gewünschter Stundenumfang')")"
+  arbeitsmodell_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gewünschtes Arbeitsmodell')")"
+  region_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gewünschte Region')")"
+  pendeldistanz_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Maximale Pendeldistanz')")"
+  reisebereitschaft_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Reisebereitschaft')")"
+  schicht_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Schicht- oder Wochenendbereitschaft')")"
+  befristung_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Befristung')")"
+  umzug_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Umzugsbereitschaft')")"
+  gehalt_verwenden_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Wunschgehalt verwenden')")"
+  gehalt_manuell_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Wunschgehalt manuell')")"
+  gehaltsmodell_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gehaltsmodell')")"
+  gehaltsregion_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gehaltsregion')")"
+  gehaltslogik_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gehaltslogik')")"
+  stammdaten_hash="$(file_sha256 "$stammdaten_path")"
+  profil_hash="$(file_sha256 "$profil_path")"
   created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   cat > "$auftrag_file" <<EOF
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "firma": "$firma_json",
   "firmaSlug": "$firma_slug",
   "rolle": "$rolle_json",
   "rolleSlug": "$rolle_slug",
   "datum": "$datum",
-  "bewerberDateiname": "",
+  "bewerberDateiname": "$bewerber_dateiname_json",
   "zielOrdner": "$ziel_json",
   "arbeitsOrdner": "$arbeits_json",
   "kandidatOrdner": "$kandidat_json",
   "seitenstrategie": "noch_festzulegen",
+  "bewerbungslogistik": {
+    "verfuegbarkeit": "$verfuegbarkeit_json",
+    "fruehesterEintrittstermin": "$eintritt_json",
+    "stellenart": "$stellenart_json",
+    "stundenumfang": "$stundenumfang_json",
+    "arbeitsmodell": "$arbeitsmodell_json",
+    "region": "$region_json",
+    "maximalePendeldistanz": "$pendeldistanz_json",
+    "reisebereitschaft": "$reisebereitschaft_json",
+    "schichtOderWochenendbereitschaft": "$schicht_json",
+    "befristung": "$befristung_json",
+    "umzugsbereitschaft": "$umzug_json",
+    "wunschgehaltVerwenden": "$gehalt_verwenden_json",
+    "wunschgehaltManuell": "$gehalt_manuell_json",
+    "gehaltsmodell": "$gehaltsmodell_json",
+    "gehaltsregion": "$gehaltsregion_json",
+    "gehaltslogik": "$gehaltslogik_json"
+  },
+  "bewerbungsentscheidung": "noch_festzulegen",
+  "darstellungsoptionen": {
+    "schulbildungsmodus": "noch_festzulegen",
+    "profillinksModus": "noch_festzulegen",
+    "profillinksAuswahl": []
+  },
+  "quellnachweise": {
+    "stammdatenSha256BeiAnlage": "$stammdaten_hash",
+    "profilSha256BeiAnlage": "$profil_hash"
+  },
   "createdAtUtc": "$created_at"
 }
 EOF
@@ -317,12 +395,14 @@ fi
 if [[ ! -e "$anforderungsmatrix_entwurf_file" ]]; then
   cat > "$anforderungsmatrix_entwurf_file" <<'EOF'
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "requirements": [
     {
       "id": "muss-1",
       "anforderung": "durch den Agenten aus der Stellenbeschreibung zu extrahieren",
       "typ": "muss",
+      "kategorie": "fachlich",
+      "gewichtung": "hoch",
       "status": "unklar",
       "belegart": "",
       "beleg": "",

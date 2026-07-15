@@ -213,17 +213,69 @@ function Test-BasicPdfFile {
   return $null
 }
 
+function Get-HtmlPageMatches {
+  param([string]$Html)
+
+  return [regex]::Matches(
+    $Html,
+    '(?is)<main\b(?=[^>]*\bclass\s*=\s*["''][^"'']*\bpage\b[^"'']*["''])[^>]*>(?<body>.*?)</main\s*>'
+  )
+}
+
+function New-PageCaptureHtml {
+  param(
+    [System.IO.FileInfo]$HtmlFile,
+    [int]$PageNumber,
+    [string]$TargetPath
+  )
+
+  $html = Get-Content -LiteralPath $HtmlFile.FullName -Raw -Encoding UTF8
+  $captureCss = @"
+<style id="layoutcheck-page-capture">
+  html, body {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #fff !important;
+  }
+  body > main.page { display: none !important; }
+  body > main.page:nth-of-type($PageNumber) {
+    display: block !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+</style>
+"@
+
+  if ($html -notmatch '(?is)</head\s*>') {
+    throw "HTML enthält kein schließendes head-Element: $($HtmlFile.Name)"
+  }
+  $captureHtml = [regex]::Replace($html, '(?is)</head\s*>', $captureCss + "`r`n</head>", 1)
+  Set-Content -LiteralPath $TargetPath -Encoding UTF8 -Value $captureHtml
+}
+
 function Get-LayoutDensity {
   param(
     [string]$Path,
     [string]$DocumentName,
-    [int]$ExpectedHeight
+    [int]$ExpectedHeight,
+    [int]$PageNumber,
+    [int]$PageCount,
+    [double]$BottomReserveMm
   )
 
   $result = [ordered]@{
     available = $false
     bottomWhitespacePx = $null
     bottomWhitespaceMm = $null
+    pageNumber = $PageNumber
+    pageCount = $PageCount
+    scanBottomReserveMm = $BottomReserveMm
     warning = $null
   }
   try {
@@ -233,7 +285,9 @@ function Get-LayoutDensity {
       $lastInkRow = -1
       $left = [math]::Max(8, [int]($bitmap.Width * 0.03))
       $right = [math]::Min($bitmap.Width - 9, [int]($bitmap.Width * 0.97))
-      for ($y = $bitmap.Height - 1; $y -ge 0; $y--) {
+      $reservePx = [math]::Max(2, [int][math]::Round(($BottomReserveMm * $ExpectedHeight) / 297.0))
+      $scanBottom = [math]::Max(0, ($bitmap.Height - 1) - $reservePx)
+      for ($y = $scanBottom; $y -ge 0; $y--) {
         $inkSamples = 0
         for ($x = $left; $x -le $right; $x += 2) {
           $pixel = $bitmap.GetPixel($x, $y)
@@ -249,18 +303,20 @@ function Get-LayoutDensity {
       }
 
       if ($lastInkRow -ge 0) {
-        $whitespacePx = ($bitmap.Height - 1) - $lastInkRow
+        $whitespacePx = $scanBottom - $lastInkRow
         $whitespaceMm = [math]::Round(($whitespacePx * 297.0) / $ExpectedHeight, 1)
         $result.available = $true
         $result.bottomWhitespacePx = $whitespacePx
         $result.bottomWhitespaceMm = $whitespaceMm
         $isCv = $DocumentName -like "Lebenslauf -*"
-        $maxWhitespaceMm = if ($isCv) { 45.0 } else { 70.0 }
+        $maxWhitespaceMm = if ($isCv) { 55.0 } else { 70.0 }
         if ($whitespaceMm -gt $maxWhitespaceMm) {
-          $result.warning = "Ungewöhnlich große freie Fläche am Seitenende: $whitespaceMm mm."
-        } elseif ($whitespaceMm -lt 6.0) {
-          $result.warning = "Inhalt liegt mit nur $whitespaceMm mm Abstand sehr nah am unteren Seitenrand."
+          $result.warning = "Seite $PageNumber von $PageCount hat ungewöhnlich viel freie Fläche im nutzbaren Inhaltsbereich: $whitespaceMm mm."
+        } elseif ($whitespaceMm -lt 4.0) {
+          $result.warning = "Inhalt auf Seite $PageNumber von $PageCount liegt mit nur $whitespaceMm mm Abstand nahe an der unteren Inhaltsgrenze."
         }
+      } else {
+        $result.warning = "Auf Seite $PageNumber von $PageCount wurde im nutzbaren Inhaltsbereich kein auswertbarer Inhalt erkannt."
       }
     } finally {
       $bitmap.Dispose()
@@ -286,12 +342,14 @@ function Write-LayoutReport {
     New-Item -Path $parent -ItemType Directory -Force | Out-Null
   }
   $report = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     browser = $BrowserName
     sourceFolder = $resolvedFolder
-    width = $ExpectedWidth
-    height = $ExpectedHeight
+    captureMode = "eine_png_pro_a4_seite"
+    pageWidth = $ExpectedWidth
+    pageHeight = $ExpectedHeight
+    expectedScreenshots = @($Results).Count
     results = $Results
   }
   Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 8)
@@ -300,7 +358,11 @@ function Write-LayoutReport {
 function Invoke-BrowserScreenshot {
   param(
     [pscustomobject]$BrowserInfo,
-    [System.IO.FileInfo]$HtmlFile,
+    [System.IO.FileInfo]$SourceHtmlFile,
+    [System.IO.FileInfo]$CaptureHtmlFile,
+    [string]$OutputBaseName,
+    [int]$PageNumber,
+    [int]$PageCount,
     [string]$TargetDir,
     [string]$RunId,
     [int]$Width,
@@ -309,16 +371,19 @@ function Invoke-BrowserScreenshot {
     [switch]$Pdf
   )
 
-  $safeBase = Convert-ToSafeFilePart -Value $HtmlFile.BaseName
-  $pngPath = Join-Path -Path $TargetDir -ChildPath "$safeBase--$($BrowserInfo.Name).png"
-  $pdfPath = Join-Path -Path $TargetDir -ChildPath "$safeBase--$($BrowserInfo.Name).pdf"
+  $safeBase = Convert-ToSafeFilePart -Value $OutputBaseName
+  $pagePart = "seite-$PageNumber-von-$PageCount"
+  $pngPath = Join-Path -Path $TargetDir -ChildPath "$safeBase--$pagePart--$($BrowserInfo.Name).png"
+  $pdfPath = Join-Path -Path $TargetDir -ChildPath "$safeBase--$pagePart--$($BrowserInfo.Name).pdf"
   # Chrome verwendet für das Profildatenverzeichnis teilweise noch APIs mit
   # enger Windows-Pfadgrenze. Der interne Name bleibt deshalb bewusst kurz.
   $profilePath = Join-Path -Path $TargetDir -ChildPath ("P-" + $RunId.Substring(0, 8))
 
   $result = [pscustomobject]@{
     Browser = $BrowserInfo.Name
-    File = $HtmlFile.Name
+    File = $SourceHtmlFile.Name
+    PageNumber = $PageNumber
+    PageCount = $PageCount
     ExitCode = $null
     TimedOut = $false
     ErrorMessage = $null
@@ -339,7 +404,7 @@ function Invoke-BrowserScreenshot {
     }
 
     New-Item -Path $profilePath -ItemType Directory -Force | Out-Null
-    $uri = [System.Uri]::new($HtmlFile.FullName).AbsoluteUri
+    $uri = [System.Uri]::new($CaptureHtmlFile.FullName).AbsoluteUri
 
     if ($BrowserInfo.Type -eq "chromium") {
       $arguments = @(
@@ -348,6 +413,7 @@ function Invoke-BrowserScreenshot {
         "--no-first-run",
         "--disable-background-networking",
         "--disable-extensions",
+        "--hide-scrollbars",
         "--user-data-dir=$profilePath",
         "--window-size=$Width,$Height",
         "--screenshot=$pngPath"
@@ -460,8 +526,33 @@ New-Item -Path $layoutDir -ItemType Directory -Force | Out-Null
 if ([string]::IsNullOrWhiteSpace($BerichtPath)) {
   $BerichtPath = Join-Path -Path $layoutDir -ChildPath "Layoutcheck-Bericht.json"
 }
+
+$documents = @()
+foreach ($html in $htmlFiles) {
+  $htmlText = Get-Content -LiteralPath $html.FullName -Raw -Encoding UTF8
+  $pageMatches = @(Get-HtmlPageMatches -Html $htmlText)
+  if ($pageMatches.Count -eq 0) {
+    Add-Fail "HTML enthält keine expliziten A4-Seitencontainer: $($html.Name)"
+    exit 1
+  }
+  $safeBase = Convert-ToSafeFilePart -Value $html.BaseName
+  foreach ($oldOutput in @(Get-ChildItem -LiteralPath $layoutDir -File | Where-Object {
+    $_.Name -like "$safeBase--*.png" -or $_.Name -like "$safeBase--*.pdf" -or $_.Name -like ".capture-$safeBase--*.html"
+  })) {
+    Remove-Item -LiteralPath $oldOutput.FullName -Force
+  }
+  $documents += [pscustomobject]@{
+    HtmlFile = $html
+    HtmlText = $htmlText
+    PageMatches = $pageMatches
+    PageCount = $pageMatches.Count
+    SafeBase = $safeBase
+  }
+}
+
 if ($NurVorbereiten) {
-  Add-Ok "Vorbereitung erfolgreich. Es wurde kein Browser gestartet."
+  $expectedPages = (@($documents | ForEach-Object { $_.PageCount }) | Measure-Object -Sum).Sum
+  Add-Ok "Vorbereitung erfolgreich. $expectedPages A4-Seitenscreenshot(s) sind vorgesehen; es wurde kein Browser gestartet."
   exit 0
 }
 
@@ -479,44 +570,64 @@ foreach ($candidate in $browserCandidates) {
   Add-Info "Teste Browser: $($candidate.Name) ($($candidate.Path))"
   $candidateOk = $true
   $candidateResults = @()
-  foreach ($html in $htmlFiles) {
-    $runId = [guid]::NewGuid().ToString("N")
-    $result = Invoke-BrowserScreenshot -BrowserInfo $candidate -HtmlFile $html -TargetDir $layoutDir -RunId $runId -Width $Width -Height $Height -TimeoutSeconds $TimeoutSeconds -Pdf:$Pdf
-    if ($result.ScreenshotOk) {
-      Add-Ok "$($result.Browser): frischen, gültigen Screenshot erzeugt für $($result.File)"
-      $density = if ($DichtepruefungDeaktivieren) {
-        [pscustomobject]@{ available = $false; bottomWhitespacePx = $null; bottomWhitespaceMm = $null; warning = $null }
-      } else {
-        Get-LayoutDensity -Path $result.Screenshot -DocumentName $result.File -ExpectedHeight $Height
+  foreach ($document in $documents) {
+    for ($pageIndex = 0; $pageIndex -lt $document.PageCount; $pageIndex++) {
+      $pageNumber = $pageIndex + 1
+      $runId = [guid]::NewGuid().ToString("N")
+      $capturePath = Join-Path -Path $layoutDir -ChildPath ".capture-$($document.SafeBase)--$runId.html"
+      try {
+        New-PageCaptureHtml -HtmlFile $document.HtmlFile -PageNumber $pageNumber -TargetPath $capturePath
+        $captureFile = Get-Item -LiteralPath $capturePath
+        $result = Invoke-BrowserScreenshot -BrowserInfo $candidate -SourceHtmlFile $document.HtmlFile -CaptureHtmlFile $captureFile -OutputBaseName $document.HtmlFile.BaseName -PageNumber $pageNumber -PageCount $document.PageCount -TargetDir $layoutDir -RunId $runId -Width $Width -Height $Height -TimeoutSeconds $TimeoutSeconds -Pdf:$Pdf
+      } finally {
+        if (Test-Path -LiteralPath $capturePath -PathType Leaf) {
+          Remove-Item -LiteralPath $capturePath -Force -ErrorAction SilentlyContinue
+        }
       }
-      if ($density.warning) {
-        Add-Warn "$($result.File): $($density.warning)"
-      } elseif ($density.available) {
-        Add-Ok "$($result.File): Seitenende mit $($density.bottomWhitespaceMm) mm freier Fläche plausibel."
-      }
-      $screenshotInfo = Get-Item -LiteralPath $result.Screenshot
-      $candidateResults += [ordered]@{
-        htmlFile = $html.Name
-        htmlSha256 = (Get-FileHash -LiteralPath $html.FullName -Algorithm SHA256).Hash
-        screenshot = $result.Screenshot
-        screenshotSha256 = (Get-FileHash -LiteralPath $result.Screenshot -Algorithm SHA256).Hash
-        screenshotBytes = $screenshotInfo.Length
-        bottomWhitespacePx = $density.bottomWhitespacePx
-        bottomWhitespaceMm = $density.bottomWhitespaceMm
-        densityWarning = $density.warning
-      }
-    } else {
-      $candidateOk = $false
-      $browserErrors.Add("$($result.Browser): Screenshot-Prüfung fehlgeschlagen für $($result.File): $($result.ErrorMessage)") | Out-Null
-    }
 
-    if ($Pdf -and -not $result.PdfOk) {
-      $candidateOk = $false
       if ($result.ScreenshotOk) {
-        $browserErrors.Add("$($result.Browser): PDF-Prüfung fehlgeschlagen für $($result.File): $($result.ErrorMessage)") | Out-Null
+        Add-Ok "$($result.Browser): frischen A4-Screenshot erzeugt für $($result.File), Seite $pageNumber von $($document.PageCount)"
+        $pageBody = $document.PageMatches[$pageIndex].Groups["body"].Value
+        $hasDocumentFooter = $pageBody -match '(?is)<footer\b[^>]*class\s*=\s*["''][^"'']*\bpage-footer\b'
+        $bottomReserveMm = if ($hasDocumentFooter) { 17.0 } else { 3.0 }
+        $density = if ($DichtepruefungDeaktivieren) {
+          [pscustomobject]@{ available = $false; bottomWhitespacePx = $null; bottomWhitespaceMm = $null; pageNumber = $pageNumber; pageCount = $document.PageCount; scanBottomReserveMm = $bottomReserveMm; warning = $null }
+        } else {
+          Get-LayoutDensity -Path $result.Screenshot -DocumentName $result.File -ExpectedHeight $Height -PageNumber $pageNumber -PageCount $document.PageCount -BottomReserveMm $bottomReserveMm
+        }
+        if ($density.warning) {
+          Add-Warn "$($result.File): $($density.warning)"
+        } elseif ($density.available) {
+          Add-Ok "$($result.File), Seite ${pageNumber}: $($density.bottomWhitespaceMm) mm freie Fläche innerhalb der unteren Inhaltsgrenze."
+        }
+        $screenshotInfo = Get-Item -LiteralPath $result.Screenshot
+        $candidateResults += [ordered]@{
+          htmlFile = $document.HtmlFile.Name
+          htmlSha256 = (Get-FileHash -LiteralPath $document.HtmlFile.FullName -Algorithm SHA256).Hash
+          pageNumber = $pageNumber
+          pageCount = $document.PageCount
+          hasDocumentFooter = $hasDocumentFooter
+          screenshot = $result.Screenshot
+          screenshotSha256 = (Get-FileHash -LiteralPath $result.Screenshot -Algorithm SHA256).Hash
+          screenshotBytes = $screenshotInfo.Length
+          bottomWhitespacePx = $density.bottomWhitespacePx
+          bottomWhitespaceMm = $density.bottomWhitespaceMm
+          scanBottomReserveMm = $density.scanBottomReserveMm
+          densityWarning = $density.warning
+        }
+      } else {
+        $candidateOk = $false
+        $browserErrors.Add("$($result.Browser): Screenshot-Prüfung fehlgeschlagen für $($result.File), Seite ${pageNumber}: $($result.ErrorMessage)") | Out-Null
       }
-    } elseif ($Pdf -and $result.PdfOk) {
-      Add-Ok "$($result.Browser): frische PDF erzeugt für $($result.File)"
+
+      if ($Pdf -and -not $result.PdfOk) {
+        $candidateOk = $false
+        if ($result.ScreenshotOk) {
+          $browserErrors.Add("$($result.Browser): PDF-Prüfung fehlgeschlagen für $($result.File), Seite ${pageNumber}: $($result.ErrorMessage)") | Out-Null
+        }
+      } elseif ($Pdf -and $result.PdfOk) {
+        Add-Ok "$($result.Browser): frische Seiten-PDF erzeugt für $($result.File), Seite $pageNumber"
+      }
     }
   }
 

@@ -42,13 +42,13 @@ Wenn `Private/Daten/` fehlt, nutze `Private.example/Daten/` nur als Strukturhinw
 
 Die privaten Daten sind bewusst getrennt:
 
-- `Private/Daten/01_PERSOENLICHE_DATEN.md` ist die einzige Quelle für Identität, Kontakt, Dateiname-Name, öffentliche Profile, Verfügbarkeit, gewünschte Stellenart, Arbeitsmodell, Region, Eintrittstermin, Reisebereitschaft, Gehaltswunsch und Bewerbungslogistik.
+- `Private/Daten/01_PERSOENLICHE_DATEN.md` ist die einzige Stammquelle für Identität, Kontakt, Dateiname-Name, öffentliche Profile und den initialen Stand der Bewerbungslogistik. Der Ordnerhelfer übernimmt diese Logistik in den bewerbungsspezifischen `Bewerbungsauftrag.json`; danach ist dessen Snapshot für die konkrete Bewerbung maßgeblich.
 - `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ist die fachliche Quelle für Zielrollen, Positionierung, Berufserfahrung, Ausbildung, Umschulung, Weiterbildung, Schulbildung, Kenntnisse, Projekte, private Praxis, Sprachen und Grenzen. Wenn diese Datei Belegarten wie `BERUFLICH BELEGT`, `ÜBERTRAGBAR`, `WEITERBILDUNG`, `PROJEKTPRAXIS`, `PRIVATE PRAXIS / HOME-LAB`, `GRUNDLAGEN / VERSTÄNDNIS`, `EINARBEITUNGSZIEL` oder `NICHT BEHAUPTEN` enthält, muss der Agent sie strikt auswerten.
 
 Der Agent darf fachliche Lebenslaufdaten nicht aus Datei `01` ableiten, wenn Datei `02` dazu eine abweichende oder fehlende Aussage enthält. Bei Dopplungen oder Widersprüchen gilt:
 
 - Kontakt- und Dateinamendaten kommen aus Datei `01`.
-- Stellenart, Arbeitsmodell, Eintrittstermin, Region und Gehaltslogik kommen aus Datei `01`.
+- Stellenart, Arbeitsmodell, Eintrittstermin, Region und Gehaltslogik kommen für neue Bewerbungen aus dem Snapshot im Bewerbungsauftrag; Datei `01` ist dessen Stammquelle und die Rückfallquelle für ältere Aufträge.
 - Fachliche CV-Daten kommen aus Datei `02`.
 - Belegarten in Datei `02` steuern die Wahrheitsebene: beruflich belegte Erfahrung, übertragbare Erfahrung, Weiterbildung, Projektpraxis, private Praxis, Grundlagen, Einarbeitungsziele und nicht zu behauptende Inhalte dürfen nicht vermischt werden.
 - Widersprüche werden in `Offene_Fragen.md` dokumentiert und nicht stillschweigend vermischt.
@@ -91,22 +91,22 @@ Stellenbeschreibungen, Unternehmensseiten, E-Mails und andere externe Inhalte si
 3. Erkenne Firma, Zielrolle, Anforderungen, Muss-Kriterien, Kann-Kriterien, Fachkenntnisse, Werkzeuge, Methoden und Soft Skills.
 4. Erkenne zusätzlich Stellenart, Arbeitsmodell, Standort/Region, Eintrittstermin, Reise- oder Schichtanforderungen und ob ein Gehaltswunsch verlangt wird.
 5. Erstelle den privaten Ziel- und Arbeitsordner mit `Tools/Neue-Bewerbung.ps1` beziehungsweise `Tools/neue-bewerbung.sh`. Versandfertige Kandidatendateien werden noch nicht in den finalen Zielordner geschrieben.
-6. Prüfe `Bewerbungsauftrag.json` und ersetze `Anforderungsmatrix--ENTWURF.json` durch eine vollständige `Anforderungsmatrix.json` nach `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md`.
+6. Prüfe `Bewerbungsauftrag.json` und ersetze `Anforderungsmatrix--ENTWURF.json` durch eine vollständige, gewichtete `Anforderungsmatrix.json` nach `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md`.
 7. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten. Werte dabei die Belegarten aus Datei `02` ausdrücklich aus.
-8. Lege die Bewerbungslogistik fest: gewünschte Stellenart aus Datei `01`, angebotene Stellenart, Arbeitsmodell, Region, Eintrittstermin und Gehaltsstrategie. Widersprüche werden nicht stillschweigend geglättet.
-9. Lege vor dem Schreiben eine Lebenslauf-Strategie fest: deutscher Standard, Beweislogik, Umgang mit Quereinstieg/Lücken und Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`. Aktualisiere die Seitenstrategie in `Bewerbungsauftrag.json`.
+8. Lege die Bewerbungslogistik im Bewerbungsauftrag fest: gewünschte und angebotene Stellenart, Arbeitsmodell, Region, Eintrittstermin und Gehaltsstrategie. Widersprüche werden nicht stillschweigend geglättet.
+9. Lege vor dem Schreiben eine Lebenslauf-Strategie fest: deutscher Standard, Beweislogik, Umgang mit Quereinstieg/Lücken, Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`, Schulbildungsmodus und rollenbezogene Profil-Links. Setze außerdem `bewerbungsentscheidung` ausdrücklich auf `bewerben` oder `nicht_bewerben`.
 10. Erstelle unter `_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/` die Stellenbeschreibung als `Stellenbeschreibung.md` und die Analyse als `Analyse.md`.
 11. Erstelle im Kandidatenordner den Lebenslauf als `Lebenslauf - NACHNAME.VORNAME.html`, das Anschreiben als `Anschreiben - NACHNAME.VORNAME.html` und die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
-12. Erstelle dort außerdem `Qualitaetscheck.md`, `Druck-Hinweis.md` und bei offenen Punkten `Offene_Fragen.md`.
+12. Erstelle dort außerdem `Qualitaetscheck.md`, `Druck-Hinweis.md` und bei offenen Punkten `Offene_Fragen.md`. Erzeuge und validiere jede Kandidatendatei einzeln; ein Fehler in einer großen Sammeländerung darf nicht mehrere fertige Dokumente unbemerkt teilweise schreiben.
 13. Führe einen fachlichen Abschlusstest aus: Lies Stellenbeschreibung, Analyse, Datei `01`, Datei `02`, Anforderungsmatrix, Lebenslauf, Anschreiben und E-Mail-Nachricht erneut gegeneinander.
 14. Korrigiere gefundene Unstimmigkeiten im Kandidatenordner und wiederhole den fachlichen Test. Risiken gehören vorrangig in Analyse, Qualitätscheck und offene Fragen; vermeide defensive Metaformulierungen im Anschreiben.
 15. Führe `Tools/Pruefe-Bewerbungsinhalt.ps1` und `Tools/Pruefe-Bewerbung.ps1` gegen den Kandidatenordner aus.
 16. Bereite die technische Finalisierung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome` vor. Dieser Lauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt frische Screenshots und PDFs und schreibt Hashnachweise. Er veröffentlicht noch nichts.
 17. Wenn die Ausführungsumgebung als verwaltete Sandbox bekannt ist, starte den browsergestützten Finalisierungslauf direkt mit lokaler Browserfreigabe. Provoziere nicht zuerst einen erwartbaren Chrome-Sandboxfehler.
-18. Prüfe beide erzeugten Screenshots visuell: keine abgeschnittenen Inhalte, keine Überlappungen, keine problematischen Leerflächen, keine ungewollte Restseite und alle formalen CV-Stationen sichtbar.
+18. Prüfe jeden erzeugten Seitenscreenshot visuell: keine abgeschnittenen Inhalte, keine Überlappungen, keine problematischen Leerflächen, keine ungewollte Restseite und alle erforderlichen formalen CV-Stationen sichtbar.
 19. Bei Layoutkorrekturen ändere die HTML-Dateien im Kandidatenordner und führe die Vorbereitung erneut aus. Alte Screenshots und PDFs gelten wegen der HTML-Hashprüfung danach nicht mehr als Freigabenachweis.
 20. Veröffentliche erst nach tatsächlicher Sichtprüfung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft`.
-21. Die Finalisierung aktualisiert den technischen Abschnitt des Qualitätschecks und veröffentlicht HTML, Markdown und PDFs gemeinsam. Bei einem Fehler bleibt der finale Zielordner unverändert.
+21. Die Finalisierung aktualisiert den technischen Abschnitt des Qualitätschecks und veröffentlicht das geprüfte Set in `Versand/` und `Intern/` mit `Manifest.json`. Bei einem Fehler bleibt der finale Zielordner unverändert.
 
 Temporäre Entwürfe, Zwischenschritte oder Arbeitsnotizen dürfen nicht direkt im Projektwurzelordner liegen. Sie gehören immer in den privaten Firmenordner unter:
 
@@ -122,7 +122,7 @@ Die Stellenbeschreibung und die privaten Daten entscheiden, welche Informationen
 
 Wichtig:
 - Relevanz schlägt Vollständigkeit.
-- Ausnahme: Die deutsche CV-Chronologie ist keine frei kürzbare Detailinformation. Wenn formale Stationen in den privaten Daten vorhanden sind, dürfen Zeitraum, Stationstyp, Name/Institution/Arbeitgeber und Rollen- oder Bildungsbezeichnung nicht aus Platzgründen entfernt werden. Gekürzt werden dürfen zuerst Beschreibungen, Bulletpoints, Projekte, Tool-Listen und Zusatzpraxis; wenn die formale Chronologie nicht sauber auf eine Seite passt, ist ein bewusst zweiseitiger Lebenslauf zu erstellen.
+- Ausnahme: Die deutsche CV-Chronologie ist grundsätzlich keine frei kürzbare Detailinformation. Berufliche Stationen, berufliche Bildung, Studium/Umschulung und formale Weiterbildungen dürfen nicht aus Platzgründen entfernt werden. Nur wenn `schulbildungsmodus` ausdrücklich auf `recruiter_kompakt` steht, darf die Schulchronologie zu einer sichtbaren Abschlussangabe verdichtet werden. Ansonsten wird zuerst fachlich gekürzt und bei Bedarf ein bewusst zweiseitiger Lebenslauf erstellt.
 - Recruiter lesen schnell und selektiv.
 - Die wichtigsten Anforderungen der Stelle müssen innerhalb der ersten 10 bis 20 Sekunden sichtbar sein.
 - Der Lebenslauf muss auf den ersten Blick wie ein deutscher tabellarischer CV erkennbar sein.
@@ -130,7 +130,7 @@ Wichtig:
 - Keine unruhigen Skill-Wolken, dekorativen Kontaktkarten oder portfolioartigen Layouts, wenn ein seriöser Recruiter-CV gefragt ist.
 - Keine künstlich aufgeblähte Sprache.
 - Keine erfundenen Kenntnisse, Branchen, Rollen oder Verantwortlichkeiten.
-- Keine erfundenen Angaben zu Stellenart, Arbeitsmodell, Eintrittstermin oder Gehalt. Eine automatische Gehaltsschätzung ist nur bei ausdrücklicher Aktivierung in Datei `01` zulässig und muss auf einer aktuellen, nachvollziehbaren Datengrundlage beruhen. Maßgeblich sind Zielrolle, Seniorität, einschlägige Berufserfahrung, Region, Arbeitsmodell und Stellenart; Alter, Geschlecht und andere geschützte persönliche Merkmale dürfen die Schätzung nicht beeinflussen. Fehlt eine belastbare Grundlage, entsteht eine offene Frage statt einer Zahl.
+- Keine erfundenen Angaben zu Stellenart, Arbeitsmodell, Eintrittstermin oder Gehalt. Eine automatische Gehaltsschätzung ist nur bei ausdrücklicher Aktivierung im Bewerbungsauftrag zulässig und muss auf einer aktuellen, nachvollziehbaren Datengrundlage beruhen; Datei `01` liefert lediglich den initialen Standard. Maßgeblich sind Zielrolle, Seniorität, einschlägige Berufserfahrung, Region, Arbeitsmodell und Stellenart; Alter, Geschlecht und andere geschützte persönliche Merkmale dürfen die Schätzung nicht beeinflussen. Fehlt eine belastbare Grundlage, entsteht eine offene Frage statt einer Zahl.
 - Keine Hochstufung von `GRUNDLAGEN`, `PRIVATE PRAXIS / HOME-LAB`, `PROJEKTPRAXIS` oder `EINARBEITUNGSZIEL` zu beruflicher Erfahrung.
 - Keine Formulierungen, die nach generischer KI klingen.
 
@@ -153,21 +153,27 @@ Prüfe besonders:
 - Weiterbildungen, Zertifikate und Qualifikationen
 - Kenntnisse, Sprachen und Zusatzpraxis nur in passender Priorität
 
-Für den deutschen Recruiter-Standard sind formale Zeiträume besonders wichtig. Vor der finalen Speicherung muss geprüft werden, ob alle in Datei `02` vorhandenen beruflichen Stationen, Ausbildungs-/Umschulungsstationen, Weiterbildungen und Schulbildungsstationen mit Zeitraum im Lebenslauf erscheinen. Fehlende formale Zeiträume sind ein Fehler und dürfen nicht mit A4-Platzmangel begründet werden.
+Für den deutschen Recruiter-Standard sind formale Zeiträume besonders wichtig. Vor der finalen Speicherung muss geprüft werden, ob alle in Datei `02` vorhandenen beruflichen Stationen, Ausbildungs-/Umschulungsstationen und Weiterbildungen mit Zeitraum im Lebenslauf erscheinen. Schulbildungszeiträume sind im Modus `vollstaendig` ebenfalls Pflicht; `recruiter_kompakt` verlangt stattdessen eine sichtbare, wahre Abschlusszusammenfassung. Fehlende Pflichtzeiträume dürfen nicht mit A4-Platzmangel begründet werden.
 
 Ziel ist eine DIN-A4-Seite mit fester, druckstabiler A4-Geometrie. Wenn die wichtigen formalen Stationen und die Stellenpassung nicht professionell auf eine Seite passen, erstelle bewusst zwei strukturierte DIN-A4-Seiten. Mehrseitige Lebensläufe nutzen auf jeder Seite einen festen Footer mit dezenter Trennlinie und Seitenangabe unterhalb der Linie. Niemals Inhalt abschneiden, durch `overflow` verstecken oder Firefox zufällig umbrechen lassen.
 
 ## Finale Ausgabe
 
-Am Ende sollen im Bewerbungsordner mindestens diese Dateien liegen:
+Am Ende liegt im Bewerbungsordner folgende klare Struktur:
 
-- `Stellenbeschreibung.md`
-- `Analyse.md`
-- `Lebenslauf - NACHNAME.VORNAME.html`
-- `Anschreiben - NACHNAME.VORNAME.html`
-- `Email-Nachricht--FIRMA.md`
-- `Qualitaetscheck.md`
-- `Druck-Hinweis.md`
+- `Versand/Lebenslauf - NACHNAME.VORNAME.pdf`
+- `Versand/Anschreiben - NACHNAME.VORNAME.pdf`
+- `Versand/Email-Nachricht--FIRMA.md`
+- `Intern/Stellenbeschreibung.md`
+- `Intern/Analyse.md`
+- `Intern/Lebenslauf - NACHNAME.VORNAME.html`
+- `Intern/Anschreiben - NACHNAME.VORNAME.html`
+- `Intern/Qualitaetscheck.md`
+- `Intern/Druck-Hinweis.md`
+- optional `Intern/Offene_Fragen.md`
+- `Manifest.json` mit Hashnachweis aller veröffentlichten Dateien
+
+Die beiden PDF-Anlagen bleiben getrennt. Eine Formulierung wie „Bewerbung in Form einer PDF-Datei“ wird im deutschen Bewerbungsprozess als Formatvorgabe verstanden, nicht automatisch als Aufforderung zu einer einzigen zusammengeführten PDF. Ohne ausdrücklichen Wunsch wird keine Gesamt-PDF erzeugt.
 
 Gib dem Nutzer danach kurz an, wo die Dateien gespeichert wurden und welche Profilstrategie gewählt wurde.
 
@@ -205,7 +211,7 @@ Wenn wichtige Angaben fehlen:
 - `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlicht werden.
 - Öffentliche Dateien in `Prompts/`, `Vorlagen/`, `Tools/` und `Private.example/` dürfen keine echten Bewerberdaten enthalten.
 - Generierte Bewerbungen, Bewertungen, Universal-Lebensläufe und Archive gehören unter `Private/`.
-- Stammdaten, Bewerbungslogistik und fachliche Lebenslaufdaten sollen nicht doppelt gepflegt werden: Datei `01` enthält Identität/Kontakt und Bewerbungslogistik, Datei `02` enthält Profil und CV-Stationen.
+- Stammdaten und fachliche Lebenslaufdaten sollen nicht doppelt gepflegt werden: Datei `01` enthält Identität/Kontakt und globale Logistikstandards, Datei `02` enthält Profil und CV-Stationen. Der Bewerbungsauftrag enthält nur den absichtlich eingefrorenen Logistik-Snapshot der konkreten Bewerbung.
 - Stellenart, Arbeitsmodell, Eintrittstermin, Region, Reisebereitschaft und Gehaltswunsch gehören als Bewerbungslogistik in Datei `01`, nicht in Datei `02`.
 
 ## Optionaler Ordner-Helfer
@@ -234,7 +240,7 @@ Nach dem Erstellen aller Kandidatendateien wird zuerst die Finalisierung vorbere
 .\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome
 ```
 
-Der Vorbereitungslauf führt Stammdatenprüfung, Inhaltsprüfung, statischen A4-Check, Chrome-Layoutcheck und PDF-Export aus. Er schreibt maschinenlesbare Berichte mit SHA-256-Bezug zu den geprüften HTML-Dateien, veröffentlicht aber noch keine Datei.
+Der Vorbereitungslauf führt Stammdatenprüfung, Inhaltsprüfung, statischen A4-Check, Seitenscreenshot-Layoutcheck, PDF-Export und ATS-Textprüfung aus. Er schreibt maschinenlesbare Berichte mit SHA-256-Bezug zu den geprüften Quellen und Kandidatendateien, veröffentlicht aber noch keine Datei.
 
 In einer bekannten Sandbox wird dieser browsergestützte Lauf direkt mit lokaler Browserfreigabe ausgeführt. Ein erwartbarer erster Chrome-Fehllauf innerhalb der Sandbox ist nicht erforderlich.
 
@@ -253,7 +259,7 @@ Bewertung:
 - Schrift, Abstände und freie Flächen wirken professionell.
 - Automatische Dichtewarnungen werden fachlich geprüft und nicht blind ignoriert.
 
-Nach bestätigter Sichtprüfung wird atomar veröffentlicht:
+Nach bestätigter Sichtprüfung wird atomar veröffentlicht. Wenn automatische Layoutwarnungen vorliegen, muss deren Sichtbewertung zusätzlich mit `-VisuelleFreigabeNotiz "..."` nachvollziehbar festgehalten werden:
 
 ```powershell
 .\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft

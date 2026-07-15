@@ -14,7 +14,9 @@ Unter PowerShell zuerst ausführen:
 
 Pflichtangaben zu Identität und Kontakt dürfen keine Beispielplatzhalter enthalten. Die zentralen Entscheidungen zu gewünschter Stellenart, gewünschtem Arbeitsmodell, Verwendung eines Gehaltswunschs und Gehaltslogik müssen vor der finalen Freigabe eindeutig gepflegt sein.
 
-Ungeklärte zentrale Bewerbungslogistik wird bei der Finalisierung zum Blocker. Optionale Angaben dürfen offen bleiben, müssen aber als Warnung sichtbar sein und dürfen nicht erfunden werden.
+Der Ordnerhelfer kopiert die Bewerbungslogistik aus Datei `01` als Snapshot in `Bewerbungsauftrag.json`. Ab diesem Zeitpunkt ist dieser bewerbungsspezifische Snapshot für die konkrete Bewerbung maßgeblich; Datei `01` bleibt nur die Rückfallquelle für ältere Aufträge. So kann eine Bewerbung beispielsweise bewusst `Vollzeit` und `hybrid` verwenden, ohne globale Stammdaten für andere Bewerbungen umzuschreiben.
+
+Ungeklärte zentrale Bewerbungslogistik im Bewerbungsauftrag wird bei der Finalisierung zum Blocker. Optionale Angaben dürfen offen bleiben, müssen aber als Warnung sichtbar sein und dürfen nicht erfunden werden.
 
 ## Bewerbungsauftrag
 
@@ -30,8 +32,20 @@ Sie enthält mindestens:
 - privaten Arbeitsordner
 - Kandidatenordner
 - geplante Seitenstrategie
+- Snapshot der Bewerbungslogistik
+- ausdrückliche Bewerbungsentscheidung
+- Darstellungsoptionen für Schulbildung und Profil-Links
+- Hashnachweise der Stammdaten- und Profildatei zum Anlagezeitpunkt
 
-Vor der Inhaltsprüfung muss `seitenstrategie` auf `eine_seite` oder `zwei_seiten` gesetzt werden. Der Wert `noch_festzulegen` ist nur im initialen Arbeitsauftrag erlaubt und blockiert die Finalisierung.
+Vor der Inhaltsprüfung müssen folgende Werte endgültig gesetzt sein:
+
+- `seitenstrategie`: `eine_seite` oder `zwei_seiten`
+- `bewerbungsentscheidung`: `bewerben` oder `nicht_bewerben`
+- `darstellungsoptionen.schulbildungsmodus`: `vollstaendig` oder `recruiter_kompakt`
+- `darstellungsoptionen.profillinksModus`: `alle`, `rollenrelevant` oder `keine`
+- bei `rollenrelevant`: `profillinksAuswahl` mit den tatsächlich verwendeten Feldnamen aus Datei `01`
+
+Die Werte `noch_festzulegen` sind nur im initialen Arbeitsauftrag erlaubt und blockieren die Finalisierung. `nicht_bewerben` dokumentiert einen bewussten Abbruch und darf nicht veröffentlicht werden.
 
 Firma, Rolle und Pfade in dieser Datei dürfen nach der Dokumenterstellung nicht stillschweigend geändert werden.
 
@@ -44,6 +58,8 @@ Jede relevante Anforderung erhält:
 - `id`: stabile technische Kennung
 - `anforderung`: konkrete Anforderung aus der Anzeige
 - `typ`: `muss` oder `kann`
+- `kategorie`: `fachlich`, `erfahrung`, `formal`, `arbeitsweise` oder `logistik`
+- `gewichtung`: `kritisch`, `hoch`, `mittel` oder `niedrig`
 - `status`: `erfuellt`, `teilweise`, `nicht_belegt`, `unklar` oder `nicht_relevant`
 - `belegart`: passende Belegart aus der fachlichen Profildatei
 - `beleg`: kurze, konkrete Datengrundlage
@@ -56,6 +72,8 @@ Beispiel:
   "id": "muss-berufserfahrung",
   "anforderung": "mindestens fünf Jahre Berufserfahrung",
   "typ": "muss",
+  "kategorie": "erfahrung",
+  "gewichtung": "kritisch",
   "status": "teilweise",
   "belegart": "ÜBERTRAGBAR",
   "beleg": "mehr als 20 Jahre technische Berufserfahrung, jedoch keine fünf Jahre berufliche Webentwicklung",
@@ -65,6 +83,9 @@ Beispiel:
 
 ## Entscheidungslogik
 
+- Der Inhaltsprüfer berechnet eine gewichtete Eignungsbewertung. `erfuellt` zählt vollständig, `teilweise` zur Hälfte und `nicht_belegt`/`unklar` nicht; `nicht_relevant` wird aus der Berechnung entfernt.
+- `stark` bedeutet mindestens 80 Prozent ohne kritische Lücke. `vertretbar_mit_risiken` bedeutet mindestens 55 Prozent und höchstens eine kritische Lücke. Alles darunter wird als `stretch` ausgewiesen.
+- Die Kennzahl ersetzt kein fachliches Urteil. Sie erzwingt eine ausdrückliche Entscheidung im Bewerbungsauftrag und macht Risiken sichtbar; sie darf keine belegbaren Stärken wegfiltern und keine fehlenden Belege schönrechnen.
 - Nicht belegte fachliche Anforderungen verhindern eine ausdrücklich gewünschte Bewerbung nicht automatisch.
 - Nicht oder nur teilweise belegte Muss-Anforderungen müssen eine dokumentierte Behandlung besitzen.
 - Identitätsfehler, widersprüchliche Bewerbungslogistik und ungeklärte zentrale persönliche Entscheidungen blockieren die finale Veröffentlichung.

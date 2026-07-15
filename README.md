@@ -3,7 +3,7 @@
 
 # bewerbungs-agent
 
-**Aktuelle Version: 1.1**<br>
+**Aktuelle Version: 1.3**<br>
 **Projektstatus:** stabiler Referenzworkflow für Windows und PowerShell; Linux-Ordnerhelfer weiterhin Alpha
 
 `bewerbungs-agent` ist ein lokaler, modularer Bewerbungsassistent für deutsche Bewerbungsunterlagen. Aus einer konkreten Stellenbeschreibung und deinen privaten Profildaten erzeugt der Agent eine passgenaue Bewerbung:
@@ -13,7 +13,7 @@
 - kurze E-Mail-Nachricht
 - Stellenanalyse
 - Qualitätscheck
-- optional PDFs aus Lebenslauf und Anschreiben
+- zwei getrennte PDF-Anlagen aus Lebenslauf und Anschreiben
 
 Das Projekt trennt öffentliche Agentenlogik und private Bewerberdaten bewusst voneinander. Prompts, Vorlagen, Tools, Tests und Beispielstrukturen können öffentlich versioniert werden. Echte persönliche Daten und generierte Bewerbungen werden ausschließlich unter `Private/` abgelegt und von Git ignoriert.
 
@@ -219,7 +219,7 @@ Diese Datei enthält Identität, Kontakt und Bewerbungslogistik:
 - Gehaltswunsch und Gehaltslogik
 - optionale persönliche Angaben
 
-Eine automatische Gehaltsschätzung wird nur verwendet, wenn sie in Datei `01` ausdrücklich aktiviert ist und eine aktuelle, nachvollziehbare Datengrundlage verfügbar ist. Maßgeblich sind Zielrolle, Seniorität, einschlägige Berufserfahrung, Region, Arbeitsmodell und Stellenart. Alter, Geschlecht und andere geschützte persönliche Merkmale werden nicht berücksichtigt. Ohne belastbare Grundlage bleibt die Gehaltsfrage offen, statt eine Zahl zu raten.
+Eine automatische Gehaltsschätzung wird nur verwendet, wenn sie im bewerbungsspezifischen Auftrag ausdrücklich aktiviert ist und eine aktuelle, nachvollziehbare Datengrundlage verfügbar ist. Datei `01` liefert dafür den initialen Standard. Maßgeblich sind Zielrolle, Seniorität, einschlägige Berufserfahrung, Region, Arbeitsmodell und Stellenart. Alter, Geschlecht und andere geschützte persönliche Merkmale werden nicht berücksichtigt. Ohne belastbare Grundlage bleibt die Gehaltsfrage offen, statt eine Zahl zu raten.
 
 ### Datei `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`
 
@@ -231,7 +231,7 @@ Diese Datei enthält die fachliche Grundlage für Lebenslauf und Argumentation:
 - Kenntnisse, Sprachen, Projekte und private Praxis
 - Grenzen und Hinweise, was nicht behauptet werden darf
 
-Eine Information soll nur an einer Stelle gepflegt werden. Kontakt-, Dateinamen- und Daten zur Bewerbungslogistik kommen aus Datei `01`; fachliche CV-Daten kommen aus Datei `02`.
+Eine Information soll nur an ihrer Stammquelle gepflegt werden. Kontakt-, Dateinamen- und Standardwerte zur Bewerbungslogistik kommen aus Datei `01`; fachliche CV-Daten kommen aus Datei `02`. Der Bewerbungsauftrag speichert bewusst einen Snapshot der Logistik, damit spätere globale Änderungen eine bereits vorbereitete Bewerbung nicht unbemerkt verändern.
 
 ## Bewerbung erstellen lassen
 
@@ -300,30 +300,29 @@ Pro Bewerbung entsteht ein eigener privater Ordner:
 Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
 ```
 
-Darin liegen am Ende typischerweise:
+Darin liegt am Ende eine klare Trennung zwischen Versand und internen Nachweisen:
 
 ```text
-Stellenbeschreibung.md
-Analyse.md
-Lebenslauf - NACHNAME.VORNAME.html
-Lebenslauf - NACHNAME.VORNAME.pdf
-Anschreiben - NACHNAME.VORNAME.html
-Anschreiben - NACHNAME.VORNAME.pdf
-Email-Nachricht--FIRMA.md
-Qualitaetscheck.md
-Druck-Hinweis.md
-Offene_Fragen.md
+Versand/
+├─ Lebenslauf - NACHNAME.VORNAME.pdf
+├─ Anschreiben - NACHNAME.VORNAME.pdf
+└─ Email-Nachricht--FIRMA.md
+Intern/
+├─ Stellenbeschreibung.md
+├─ Analyse.md
+├─ Lebenslauf - NACHNAME.VORNAME.html
+├─ Anschreiben - NACHNAME.VORNAME.html
+├─ Qualitaetscheck.md
+├─ Druck-Hinweis.md
+└─ optional Offene_Fragen.md
+Manifest.json
 ```
 
-PDF-Dateien entstehen nur, wenn der automatische PDF-Export ausgeführt wurde und Chrome oder Edge verfügbar ist.
+PDF-Dateien entstehen im verbindlichen Finalisierungsworkflow nur, wenn Chrome oder Edge verfügbar ist und Struktur-, Seiten- und ATS-Prüfung bestehen.
 
 Für den Versand geeignet sind:
 
-- `Lebenslauf - NACHNAME.VORNAME.html`
-- `Lebenslauf - NACHNAME.VORNAME.pdf`
-- `Anschreiben - NACHNAME.VORNAME.html`
-- `Anschreiben - NACHNAME.VORNAME.pdf`
-- `Email-Nachricht--FIRMA.md`
+- die drei Dateien unter `Versand/`: zwei getrennte PDFs und der vorbereitete E-Mail-Text
 
 Nicht versenden:
 
@@ -333,6 +332,8 @@ Nicht versenden:
 - interne Notizen
 - `Analyse.md`, falls sie nur für dich gedacht ist
 - `Qualitaetscheck.md`, falls er nicht ausdrücklich gewünscht ist
+
+Eine Stellenanzeige mit der Bitte um eine Bewerbung „als PDF“ beschreibt üblicherweise das Datenformat. Sie verlangt nicht automatisch eine einzige Gesamt-PDF. Lebenslauf und Anschreiben bleiben daher standardmäßig zwei getrennte Anlagen; zusammengeführt wird nur bei einer ausdrücklichen Vorgabe.
 
 ### Offene Fragen
 
@@ -356,7 +357,7 @@ Der empfohlene Abschlussablauf ist:
 1. Stammdaten und zentrale Bewerbungslogistik prüfen.
 2. Anforderungsmatrix und fachlichen Abschlusstest fertigstellen.
 3. Kandidatendateien mit der Finalisierung technisch vorbereiten.
-4. Beide Screenshots tatsächlich visuell prüfen.
+4. Jeden erzeugten A4-Seitenscreenshot tatsächlich visuell prüfen.
 5. Erst danach den vollständigen Satz atomar veröffentlichen.
 
 ### Verbindliche Finalisierung
@@ -372,6 +373,8 @@ Nach der Sichtprüfung:
 ```powershell
 .\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft
 ```
+
+Wenn der Vorbereitungslauf Layoutwarnungen meldet, verlangt die Veröffentlichung zusätzlich eine kurze nachvollziehbare Bewertung über `-VisuelleFreigabeNotiz "..."`.
 
 Die folgenden Einzelprüfer bleiben für Diagnose und Entwicklung nützlich. Bei neuen Bewerbungen ersetzt ihre manuelle Ausführung nicht das zweistufige Finalisierungsgate.
 
@@ -443,7 +446,7 @@ Der Layout-Check gilt nur als erfolgreich, wenn die erwarteten Screenshot-Dateie
 
 Ist die Agentenumgebung bereits als verwaltete Sandbox bekannt, sollte der browsergestützte Finalisierungslauf direkt mit lokaler Browserfreigabe gestartet werden. Ein erwartbarer erster Fehlversuch innerhalb der Sandbox liefert keinen zusätzlichen Qualitätsnachweis.
 
-Der erzeugte Screenshot sollte danach visuell geprüft werden:
+Jeder erzeugte Seitenscreenshot sollte danach visuell geprüft werden:
 
 - Einseiten-Dokumente zeigen eine vollständige A4-Seite.
 - Keine Inhalte sind unten abgeschnitten.
@@ -451,11 +454,7 @@ Der erzeugte Screenshot sollte danach visuell geprüft werden:
 - Schulbildung, berufliche Bildung und Weiterbildung bleiben sichtbar.
 - Schriftgröße, Zeilenabstand und Spalten wirken professionell lesbar.
 
-Bei bewusst zweiseitigen Lebensläufen zusätzlich einen höheren Screenshot erzeugen oder die PDF-Ausgabe mit allen Seiten prüfen:
-
-```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome -Height 2300
-```
+Der Layoutcheck isoliert jeden expliziten `.page`-Container und erzeugt Dateien wie `...--seite-1-von-2--chrome.png` und `...--seite-2-von-2--chrome.png`. Ein zweiseitiger Lebenslauf benötigt daher keine manuell erhöhte Screenshot-Höhe mehr. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; eine Warnung muss fachlich bewertet werden und darf nicht zu blindem Auffüllen oder Komprimieren führen.
 
 ### PDF-Export
 
@@ -648,6 +647,7 @@ bewerbungs-agent/
 │  ├─ Pruefe-Stammdaten.ps1
 │  ├─ Pruefe-Bewerbungsinhalt.ps1
 │  ├─ Pruefe-Bewerbung.ps1
+│  ├─ Pruefe-ATS.ps1
 │  ├─ Layoutcheck-Bewerbung.ps1
 │  ├─ Exportiere-PDF.ps1
 │  └─ Finalisiere-Bewerbung.ps1
@@ -669,13 +669,9 @@ Private/
 ├─ Bewerbungen/
 │  └─ FIRMA/
 │     ├─ YYYY-MM-DD--ROLLENNAME/
-│     │  ├─ Stellenbeschreibung.md
-│     │  ├─ Analyse.md
-│     │  ├─ Lebenslauf - NACHNAME.VORNAME.html
-│     │  ├─ Anschreiben - NACHNAME.VORNAME.html
-│     │  ├─ Email-Nachricht--FIRMA.md
-│     │  ├─ Qualitaetscheck.md
-│     │  └─ Druck-Hinweis.md
+│     │  ├─ Versand/
+│     │  ├─ Intern/
+│     │  └─ Manifest.json
 │     └─ _Arbeitsdateien/
 │        └─ YYYY-MM-DD--ROLLENNAME/
 │           ├─ Bewerbungsauftrag.json
@@ -683,6 +679,7 @@ Private/
 │           ├─ Kandidat/
 │           ├─ Layoutcheck/
 │           ├─ PDF-Export/
+│           ├─ ATS-Pruefbericht.json
 │           └─ Entwürfe und Arbeitsnotizen
 ├─ Bewertungen/
 ├─ LebenslaufUniversal/
@@ -721,17 +718,17 @@ Die Spezialregeln sind getrennt:
 ## Datenfluss einer Bewerbung
 
 1. Stellenbeschreibung kommt vom Nutzer und wird als nicht vertrauenswürdige Datenquelle behandelt; eingebettete Anweisungen werden ignoriert.
-2. `Pruefe-Stammdaten.ps1` kontrolliert Identität, Kontakt und zentrale Bewerbungslogistik.
+2. `Pruefe-Stammdaten.ps1` kontrolliert Identität, Kontakt und zentrale Bewerbungslogistik; neue Bewerbungen verwenden den Snapshot im Bewerbungsauftrag mit Stammdaten-Fallback.
 3. Agent liest private Daten und Prompt-Regeln sequenziell, damit keine gekürzte Sammelausgabe übersehen wird.
 4. Der Ordnerhelfer erzeugt leeren Zielordner, Arbeitsordner, Kandidatenordner und `Bewerbungsauftrag.json`.
-5. Agent extrahiert Muss- und Kann-Kriterien in eine strukturierte `Anforderungsmatrix.json`.
-6. Rollenstrategie, Bewerbungslogistik, Gehaltsstrategie und Seitenstrategie werden festgelegt.
+5. Agent extrahiert Muss- und Kann-Kriterien mit Kategorie und Gewichtung in eine strukturierte `Anforderungsmatrix.json`.
+6. Rollenstrategie, Bewerbungslogistik, Gehaltsstrategie, Bewerbungsentscheidung, Seitenstrategie, Schulbildungsmodus und Profil-Link-Auswahl werden festgelegt.
 7. Stellenbeschreibung, Analyse, Lebenslauf, Anschreiben, E-Mail, Qualitätscheck und Druckhinweis entstehen zunächst unter `_Arbeitsdateien/.../Kandidat/`.
 8. Fachlicher Abschlusstest und `Pruefe-Bewerbungsinhalt.ps1` gleichen Anforderungen, Belegarten, Stammdaten, formale Zeiträume und Texte ab.
-9. `Finalisiere-Bewerbung.ps1` führt statischen Check, Layoutcheck, Dichtehinweise und PDF-Export aus und schreibt Hashnachweise.
-10. Lebenslauf und Anschreiben werden anhand der frischen Screenshots tatsächlich visuell geprüft.
-11. Jede spätere HTML-Änderung macht alte Screenshot- und PDF-Nachweise ungültig.
-12. Erst nach Sichtbestätigung wird der vollständige Satz atomar in den finalen Zielordner veröffentlicht.
+9. `Finalisiere-Bewerbung.ps1` führt statischen Check, Seitenscreenshot-Layoutcheck, Dichtehinweise, PDF-Export und ATS-Textprüfung aus und schreibt Hashnachweise.
+10. Jede A4-Seite wird anhand ihres frischen Screenshots tatsächlich visuell geprüft.
+11. Jede spätere Änderung an Quellen oder Kandidatendateien macht die Nachweise ungültig.
+12. Erst nach Sichtbestätigung wird der vollständige Satz atomar als `Versand/`, `Intern/` und `Manifest.json` veröffentlicht.
 
 ## Finale Dateinamen
 
@@ -782,10 +779,12 @@ Wichtige Parameter:
 - `-Rolle`
 - `-Datum`
 - `-StellenbeschreibungPath`
+- `-StammdatenPath`
+- `-ProfilPath`
 - `-BewerbungenRoot`
 - `-Fortsetzen`
 
-Das Skript erstellt finale Ordner und Arbeitsordner. Entwürfe werden nur unter `_Arbeitsdateien` abgelegt. Vorhandene Zielpfade werden standardmäßig nicht weiterverwendet; `-Fortsetzen` ist nur für eine anhand der Arbeitsnotizen bestätigte identische Bewerbung vorgesehen.
+Das Skript erstellt finale Ordner und Arbeitsordner. Entwürfe werden nur unter `_Arbeitsdateien` abgelegt. Der Schema-2-Auftrag friert die Logistik für die konkrete Bewerbung ein und protokolliert Quellhashes. Vorhandene Zielpfade werden standardmäßig nicht weiterverwendet; `-Fortsetzen` ist nur für eine anhand der Arbeitsnotizen bestätigte identische Bewerbung vorgesehen.
 
 ### `Tools/neue-bewerbung.sh`
 
@@ -797,6 +796,8 @@ Wichtige Parameter:
 - `--rolle`
 - `--datum`
 - `--stellenbeschreibung-path`
+- `--stammdaten-path`
+- `--profil-path`
 - `--bewerbungen-root`
 - `--fortsetzen`
 
@@ -810,11 +811,11 @@ Vorprüfung für Identität, Kontakt und Bewerbungslogistik:
 .\Tools\Pruefe-Stammdaten.ps1
 ```
 
-Mit `-UngeklaerteLogistikAlsFehler` werden nicht festgelegte Kernentscheidungen zu Stellenart, Arbeitsmodell und Gehaltsstrategie zu Blockern. `-BerichtPath` schreibt einen maschinenlesbaren JSON-Bericht.
+Mit `-BewerbungsauftragPath` priorisiert der Prüfer den bewerbungsspezifischen Logistik-Snapshot; nicht im Auftrag gepflegte Werte fallen auf Datei `01` zurück. Mit `-UngeklaerteLogistikAlsFehler` werden nicht festgelegte Kernentscheidungen zu Stellenart, Arbeitsmodell und Gehaltsstrategie zu Blockern. `-BerichtPath` schreibt Quelle und aufgelöste Werte in einen maschinenlesbaren JSON-Bericht.
 
 ### `Tools/Pruefe-Bewerbungsinhalt.ps1`
 
-Fachlicher Konsistenzcheck für den Kandidatenordner. Das Werkzeug gleicht Bewerbername, Dateinamen, Firma, Zielrolle, Verfügbarkeit, formale Zeiträume und die Statuswerte der Anforderungsmatrix ab. Nicht vollständig belegte Muss-Anforderungen und defensive Anschreibenformulierungen werden sichtbar gemeldet.
+Fachlicher Konsistenzcheck für den Kandidatenordner. Das Werkzeug gleicht Bewerbername, Dateinamen, Firma, Zielrolle, Verfügbarkeit, formale Zeiträume, Schulbildungsmodus, Profil-Link-Auswahl und die Statuswerte der Anforderungsmatrix ab. Schema 2 verlangt Kategorien und Gewichtungen und weist die Passung als `stark`, `vertretbar_mit_risiken` oder `stretch` aus. Nicht vollständig belegte Muss-Anforderungen und defensive Anschreibenformulierungen werden sichtbar gemeldet.
 
 ### `Tools/Finalisiere-Bewerbung.ps1`
 
@@ -830,7 +831,7 @@ Nach tatsächlicher Sichtprüfung:
 .\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE" -Veroeffentlichen -VisuellGeprueft
 ```
 
-Der erste Lauf erzeugt Prüfberichte, Screenshots und PDFs im privaten Arbeitslauf. Der zweite Lauf vergleicht HTML-, Screenshot- und PDF-Hashes, aktualisiert den technischen Qualitätsabschnitt und veröffentlicht das vollständige Set über einen temporären Staging-Ordner. Ohne Sichtbestätigung oder bei veralteten Nachweisen bleibt der finale Ordner unverändert.
+Der erste Lauf erzeugt Seitenscreenshots, zwei PDFs sowie Stammdaten-, Inhalts-, Layout-, PDF- und ATS-Berichte im privaten Arbeitslauf. Der zweite Lauf vergleicht Quellen, sämtliche Kandidatendateien und Screenshots per Hash, aktualisiert den technischen Qualitätsabschnitt und veröffentlicht über einen temporären Staging-Ordner. Das Ergebnis enthält `Versand/`, `Intern/` und ein vollständiges `Manifest.json`. Ohne Sichtbestätigung oder bei veralteten Nachweisen bleibt der finale Ordner unverändert.
 
 ### `Tools/Pruefe-Bewerbung.ps1`
 
@@ -880,7 +881,7 @@ Nützliche Parameter:
 - `-TimeoutSeconds`
 - `-ErlaubeFirefoxFallback`
 
-Screenshots und Browser-Profile müssen unter `_Arbeitsdateien` landen, nicht im finalen Bewerbungsordner. Ein Erfolg erfordert frisch erzeugte PNG-Dateien mit gültiger Signatur und exakt angeforderten Abmessungen. Zusätzlich entstehen HTML-/Screenshot-Hashes und ein heuristischer Hinweis zur freien Fläche am Seitenende. Im automatischen Modus wird Firefox nicht still als Ersatz für einen fehlgeschlagenen Chromium-Lauf verwendet.
+Screenshots und Browser-Profile müssen unter `_Arbeitsdateien` landen, nicht im finalen Bewerbungsordner. Für jeden expliziten A4-Seitencontainer entsteht ein eigenes PNG mit Seitenindex. Ein Erfolg erfordert alle erwarteten Dateien frisch, mit gültiger Signatur und exakt angeforderten Abmessungen. Zusätzlich entstehen HTML-/Screenshot-Hashes und eine Dichteheuristik für den nutzbaren Bereich oberhalb von Footer und Sicherheitsabstand. Im automatischen Modus wird Firefox nicht still als Ersatz für einen fehlgeschlagenen Chromium-Lauf verwendet.
 
 ### `Tools/Exportiere-PDF.ps1`
 
@@ -906,9 +907,13 @@ Nützliche Parameter:
 
 Das Skript nutzt Chrome oder Edge Headless, validiert beide Exporte zunächst in einem eindeutigen Arbeitslauf und veröffentlicht sie anschließend gemeinsam im angegebenen HTML- beziehungsweise Kandidatenordner. Geprüft werden Aktualität, Größe, PDF-Struktur, DIN-A4-MediaBox und die Seitenzahl im Vergleich zu den expliziten HTML-Seiten. Der JSON-Bericht bindet jedes PDF an den SHA-256-Wert seines HTML-Dokuments.
 
+### `Tools/Pruefe-ATS.ps1`
+
+Prüft die von Chrome/Edge erzeugten PDFs auf eine extrahierbare Unicode-Textschicht, Pflichttexte, formale Zeiträume, Textabdeckung gegenüber dem HTML und grundlegende Lesereihenfolge. Das Werkzeug benötigt kein externes PDF-Paket und ist Bestandteil der verbindlichen Finalisierung. Es ersetzt die visuelle Prüfung nicht.
+
 ## Tests und CI
 
-Die dependency-freie Testsuite unter `Tests/` prüft Syntax, Stammdaten-Gates, Inhalts- und Zeitraumabgleich, statische Regeln, Staging und atomare Veröffentlichung, Fehlerszenarien beider Ordnerhelfer und – optional – echte Chrome-Screenshots und PDF-Exporte:
+Die dependency-freie Testsuite unter `Tests/` prüft Syntax, Logistik-Snapshots, gewichtete Matrix, Link- und Schulbildungsmodi, Stammdaten-Gates, Inhalts- und Zeitraumabgleich, Manifest, Staging und atomare Veröffentlichung, Fehlerszenarien beider Ordnerhelfer und – optional – echte mehrseitige Chrome-Screenshots, PDF-Exporte und ATS-Textprüfung:
 
 ```powershell
 .\Tests\Run-RegressionTests.ps1
@@ -970,8 +975,10 @@ Technische Qualität:
 - A4-Geometrie korrekt
 - keine automatisch geladenen externen oder lokalen Abhängigkeiten
 - PDF-Export nur nach erfolgreicher Prüfung
-- vollständige Anforderungsmatrix und formale Zeiträume
-- unveränderte HTML-Hashes zwischen Layoutcheck und Veröffentlichung
+- gewichtete Anforderungsmatrix, explizite Darstellungsoptionen und verpflichtende formale Zeiträume
+- ATS-lesbare PDF-Textschicht
+- unveränderte Quell-, Kandidaten- und Screenshot-Hashes zwischen Vorbereitung und Veröffentlichung
+- vollständiges Manifest und klare Trennung von `Versand/` und `Intern/`
 - atomare Veröffentlichung erst nach Sichtbestätigung
 
 Fachliche Regeln stehen vor allem in `Prompts/03` bis `Prompts/09`. Technische Regeln stehen vor allem in `Prompts/08`, `Prompts/10` und `Prompts/11`.
@@ -983,12 +990,13 @@ Der automatische PDF-Export nutzt Chrome oder Edge Headless. Firefox bleibt für
 Wichtig:
 
 - Ein Browser-Prozess gilt nur als Erfolg, wenn er innerhalb des Timeouts mit Exitcode `0` endet und alle erwarteten Dateien im aktuellen Lauf erzeugt wurden.
-- Screenshots benötigen eine gültige PNG-Signatur, eine sinnvolle Größe und exakt die angeforderten Abmessungen.
+- Für jede explizite A4-Seite wird ein eigener Screenshot erwartet; alle benötigen gültige PNG-Signatur, sinnvolle Größe und exakt angeforderte Abmessungen.
 - Alte erwartete Layout-Ausgaben werden vor dem Browserlauf entfernt und können einen Fehler nicht als Erfolg verdecken.
-- Layoutberichte speichern HTML- und Screenshot-Hashes sowie einen Dichtehinweis zur freien Fläche am Seitenende.
+- Layoutberichte speichern Seitenindex, HTML- und Screenshot-Hashes sowie einen Dichtehinweis für den Bereich oberhalb von Footer und unterem Sicherheitsabstand.
 - PDFs benötigen eine sinnvolle Größe, `%PDF-`-Header, EOF-Marker und eine DIN-A4-MediaBox.
 - Die PDF-Seitenzahl muss der Anzahl expliziter A4-Seitencontainer im zugehörigen HTML entsprechen.
-- Lebenslauf, Anschreiben, Markdown-Dateien und PDFs werden zunächst vollständig im Kandidatenordner validiert und erst danach gemeinsam in den finalen Ordner übernommen.
+- Die PDF-Textschicht muss die ATS-Prüfung auf Pflichttexte, formale Zeiträume, Abdeckung und grundlegende Lesereihenfolge bestehen.
+- Lebenslauf, Anschreiben, Markdown-Dateien und PDFs werden zunächst vollständig im Kandidatenordner validiert und erst danach strukturiert nach `Versand/` und `Intern/` übernommen.
 - Bei einem Veröffentlichungsfehler werden vorhandene finale PDFs wiederhergestellt.
 - Hängende Browserprozesse und ihre Kindprozesse werden nach dem Timeout beendet.
 
@@ -1109,6 +1117,6 @@ foreach ($file in $files) {
 - Die technischen Prüf- und Exporttools sind aktuell PowerShell-basiert und nicht als gleichwertiger Linux-Workflow ausgebaut.
 - Die Linux-Unterstützung ist Alpha und beschränkt sich derzeit vor allem auf die Ordnererstellung per Bash-Skript.
 - Der automatische PDF-Export unterstützt Chrome und Edge, nicht Firefox.
-- HTML- und PDF-Struktur werden ohne vollständigen DOM- beziehungsweise PDF-Parser konservativ geprüft; neue ungewöhnliche Designs benötigen deshalb passende Regressionstests.
+- HTML- und PDF-Struktur werden ohne vollständigen DOM- beziehungsweise Universal-PDF-Parser konservativ geprüft; die ATS-Extraktion ist auf die vom unterstützten Chromium-Export erzeugten Font-/ToUnicode-Strukturen ausgelegt. Neue ungewöhnliche Designs oder andere PDF-Erzeuger benötigen passende Regressionstests.
 - Eine echte manuelle Sichtprüfung der finalen PDFs bleibt sinnvoll, besonders bei neuen Designs oder zweiseitigen Lebensläufen.
 - Die Qualität der Bewerbung hängt weiterhin von gepflegten privaten Profildaten ab.
