@@ -59,6 +59,7 @@ function Get-MarkdownFields {
 
 function Get-JsonProperty {
   param([object]$Object, [string]$Name)
+  if ($null -eq $Object) { return $null }
   $property = $Object.PSObject.Properties[$Name]
   if ($null -eq $property) {
     return $null
@@ -88,7 +89,15 @@ function Test-ContainsText {
 }
 
 function Write-JsonReport {
-  param([string]$Path, [array]$Periods)
+  param(
+    [string]$Path,
+    [array]$Periods,
+    [array]$RequiredPeriods,
+    [array]$CompactSchoolPeriods,
+    [object]$FitAssessment,
+    [string]$SchoolMode,
+    [string]$ProfileLinksMode
+  )
   if ([string]::IsNullOrWhiteSpace($Path)) { return }
   $fullPath = [System.IO.Path]::GetFullPath($Path)
   $parent = Split-Path -Path $fullPath -Parent
@@ -96,7 +105,7 @@ function Write-JsonReport {
     New-Item -Path $parent -ItemType Directory -Force | Out-Null
   }
   $report = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     applicationFolder = [System.IO.Path]::GetFullPath($Ordner)
     status = if ($errors.Count -gt 0) { "fehler" } elseif ($warnings.Count -gt 0) { "warnung" } else { "ok" }
@@ -104,6 +113,11 @@ function Write-JsonReport {
     warnings = @($warnings)
     oks = @($oks)
     checkedFormalPeriods = $Periods
+    requiredFormalPeriods = $RequiredPeriods
+    compactedSchoolPeriods = $CompactSchoolPeriods
+    schoolMode = $SchoolMode
+    profileLinksMode = $ProfileLinksMode
+    fitAssessment = $FitAssessment
   }
   Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 6)
 }
@@ -120,9 +134,14 @@ if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
 }
 
 $resolvedFolder = (Resolve-Path -LiteralPath $Ordner).Path
-$cvFiles = @(Get-ChildItem -LiteralPath $resolvedFolder -File -Filter "Lebenslauf - *.html")
-$letterFiles = @(Get-ChildItem -LiteralPath $resolvedFolder -File -Filter "Anschreiben - *.html")
-$emailFiles = @(Get-ChildItem -LiteralPath $resolvedFolder -File -Filter "Email-Nachricht--*.md")
+$internalFolder = Join-Path -Path $resolvedFolder -ChildPath "Intern"
+$shippingFolder = Join-Path -Path $resolvedFolder -ChildPath "Versand"
+$isStructuredPublication = (Test-Path -LiteralPath $internalFolder -PathType Container) -and (Test-Path -LiteralPath $shippingFolder -PathType Container)
+$documentFolder = if ($isStructuredPublication) { $internalFolder } else { $resolvedFolder }
+$emailFolder = if ($isStructuredPublication) { $shippingFolder } else { $resolvedFolder }
+$cvFiles = @(Get-ChildItem -LiteralPath $documentFolder -File -Filter "Lebenslauf - *.html")
+$letterFiles = @(Get-ChildItem -LiteralPath $documentFolder -File -Filter "Anschreiben - *.html")
+$emailFiles = @(Get-ChildItem -LiteralPath $emailFolder -File -Filter "Email-Nachricht--*.md")
 if ($cvFiles.Count -ne 1 -or $letterFiles.Count -ne 1 -or $emailFiles.Count -ne 1) {
   Write-Host "[FEHLER] Inhaltsprüfung erwartet genau einen Lebenslauf, ein Anschreiben und eine E-Mail-Nachricht." -ForegroundColor Red
   exit 1
@@ -145,6 +164,32 @@ $fileNamePerson = if ($fields.Contains("Dateiname-Name")) { [string]$fields["Dat
 $firma = [string](Get-JsonProperty -Object $auftrag -Name "firma")
 $rolle = [string](Get-JsonProperty -Object $auftrag -Name "rolle")
 $pageStrategy = [string](Get-JsonProperty -Object $auftrag -Name "seitenstrategie")
+$auftragSchema = [int](Get-JsonProperty -Object $auftrag -Name "schemaVersion")
+$applicationLogistics = Get-JsonProperty -Object $auftrag -Name "bewerbungslogistik"
+$displayOptions = Get-JsonProperty -Object $auftrag -Name "darstellungsoptionen"
+$schoolMode = [string](Get-JsonProperty -Object $displayOptions -Name "schulbildungsmodus")
+$profileLinksMode = [string](Get-JsonProperty -Object $displayOptions -Name "profillinksModus")
+$profileLinksSelection = @((Get-JsonProperty -Object $displayOptions -Name "profillinksAuswahl"))
+$applicationDecision = [string](Get-JsonProperty -Object $auftrag -Name "bewerbungsentscheidung")
+
+if ($auftragSchema -ge 2) {
+  if ($applicationDecision -notin @("bewerben", "nicht_bewerben")) {
+    Add-ErrorMessage "Bewerbungsauftrag enthält keine endgültige Bewerbungsentscheidung. Erlaubt: bewerben oder nicht_bewerben."
+  } elseif ($applicationDecision -eq "nicht_bewerben") {
+    Add-ErrorMessage "Bewerbungsauftrag ist auf nicht_bewerben gesetzt und darf nicht finalisiert werden."
+  } else {
+    Add-OkMessage "Bewerbungsentscheidung ist ausdrücklich auf bewerben gesetzt."
+  }
+  if ($schoolMode -notin @("vollstaendig", "recruiter_kompakt")) {
+    Add-ErrorMessage "Schulbildungsmodus ist nicht endgültig festgelegt. Erlaubt: vollstaendig oder recruiter_kompakt."
+  }
+  if ($profileLinksMode -notin @("alle", "rollenrelevant", "keine")) {
+    Add-ErrorMessage "Profillinks-Modus ist nicht endgültig festgelegt. Erlaubt: alle, rollenrelevant oder keine."
+  }
+} else {
+  if ([string]::IsNullOrWhiteSpace($schoolMode)) { $schoolMode = "vollstaendig" }
+  if ([string]::IsNullOrWhiteSpace($profileLinksMode)) { $profileLinksMode = "legacy_ungeprueft" }
+}
 
 $cvPageCount = [regex]::Matches($cvHtml, '(?is)<main\b[^>]*class\s*=\s*["''][^"'']*\bpage\b[^"'']*["'']').Count
 if ($pageStrategy -eq "eine_seite" -and $cvPageCount -eq 1) {
@@ -195,32 +240,84 @@ foreach ($document in @(
 
 $periodMatches = [regex]::Matches($profileText, '(?im)\b(?:0[1-9]|1[0-2])/\d{4}\s*[-–—]\s*(?:(?:0[1-9]|1[0-2])/\d{4}|fortlaufend)\b')
 $periods = @($periodMatches | ForEach-Object { Normalize-Text -Text $_.Value } | Sort-Object -Unique)
+$schoolSectionMatch = [regex]::Match($profileText, '(?ims)^##\s+Schulbildung\s*$\s*(?<body>.*?)(?=^##\s+|\z)')
+$schoolPeriods = if ($schoolSectionMatch.Success) {
+  @([regex]::Matches($schoolSectionMatch.Groups["body"].Value, '(?im)\b(?:0[1-9]|1[0-2])/\d{4}\s*[-–—]\s*(?:(?:0[1-9]|1[0-2])/\d{4}|fortlaufend)\b') | ForEach-Object { Normalize-Text -Text $_.Value } | Sort-Object -Unique)
+} else {
+  @()
+}
+$requiredPeriods = if ($schoolMode -eq "recruiter_kompakt") {
+  @($periods | Where-Object { $_ -notin $schoolPeriods })
+} else {
+  @($periods)
+}
+$compactedSchoolPeriods = if ($schoolMode -eq "recruiter_kompakt") { @($schoolPeriods) } else { @() }
 $normalizedCv = Normalize-Text -Text $cvText
-foreach ($period in $periods) {
+foreach ($period in $requiredPeriods) {
   if ($normalizedCv.Contains($period)) {
     Add-OkMessage "Formaler Zeitraum im Lebenslauf gefunden: $period"
   } else {
     Add-ErrorMessage "Formaler Zeitraum aus dem Profil fehlt im Lebenslauf: $period"
   }
 }
+if ($schoolMode -eq "recruiter_kompakt") {
+  if ($cvText -match '(?i)Schulbildung|Schule|Hochschulzugangsberechtigung') {
+    Add-OkMessage "Recruiter-kompakter Schulbildungsmodus ist gewählt und eine zusammengefasste Schulbildungsangabe bleibt sichtbar."
+  } else {
+    Add-ErrorMessage "Recruiter-kompakter Schulbildungsmodus erfordert weiterhin eine sichtbare zusammengefasste Schulbildungsangabe."
+  }
+}
 
 $requirements = @((Get-JsonProperty -Object $matrix -Name "requirements"))
+$matrixSchema = [int](Get-JsonProperty -Object $matrix -Name "schemaVersion")
+$weightPoints = @{ kritisch = 4.0; hoch = 3.0; mittel = 2.0; niedrig = 1.0 }
+$statusFactors = @{ erfuellt = 1.0; teilweise = 0.5; nicht_belegt = 0.0; unklar = 0.0 }
+$fitMaximum = 0.0
+$fitAchieved = 0.0
+$criticalGaps = New-Object System.Collections.Generic.List[string]
+$weightedRequirements = @()
 if ($requirements.Count -eq 0 -or $null -eq $requirements[0]) {
   Add-ErrorMessage "Anforderungsmatrix enthält keine Anforderungen."
 } else {
   $allowedStatuses = @("erfuellt", "teilweise", "nicht_belegt", "unklar", "nicht_relevant")
+  $allowedCategories = @("fachlich", "erfahrung", "formal", "arbeitsweise", "logistik")
   foreach ($requirement in $requirements) {
     $description = [string](Get-JsonProperty -Object $requirement -Name "anforderung")
     $kind = [string](Get-JsonProperty -Object $requirement -Name "typ")
     $status = [string](Get-JsonProperty -Object $requirement -Name "status")
     $handling = [string](Get-JsonProperty -Object $requirement -Name "behandlung")
+    $weight = [string](Get-JsonProperty -Object $requirement -Name "gewichtung")
+    $category = [string](Get-JsonProperty -Object $requirement -Name "kategorie")
+    $evidenceType = [string](Get-JsonProperty -Object $requirement -Name "belegart")
+    $evidence = [string](Get-JsonProperty -Object $requirement -Name "beleg")
     if ([string]::IsNullOrWhiteSpace($description) -or [string]::IsNullOrWhiteSpace($kind)) {
       Add-ErrorMessage "Anforderungsmatrix enthält einen Eintrag ohne Anforderung oder Typ."
       continue
     }
+    if ($kind -notin @("muss", "kann")) {
+      Add-ErrorMessage "Anforderung '$description' enthält einen ungültigen Typ: $kind"
+    }
     if ($status -notin $allowedStatuses) {
       Add-ErrorMessage "Ungültiger Matrixstatus bei '$description': $status"
       continue
+    }
+    if ([string]::IsNullOrWhiteSpace($weight)) {
+      $weight = if ($kind -eq "muss") { "hoch" } else { "niedrig" }
+      if ($matrixSchema -ge 2) {
+        Add-ErrorMessage "Anforderung '$description' enthält keine Gewichtung."
+      }
+    } elseif (-not $weightPoints.ContainsKey($weight)) {
+      Add-ErrorMessage "Anforderung '$description' enthält eine ungültige Gewichtung: $weight"
+      continue
+    }
+    if ($matrixSchema -ge 2 -and [string]::IsNullOrWhiteSpace($category)) {
+      Add-ErrorMessage "Anforderung '$description' enthält keine Kategorie."
+    } elseif ($matrixSchema -ge 2 -and $category -notin $allowedCategories) {
+      Add-ErrorMessage "Anforderung '$description' enthält eine ungültige Kategorie: $category"
+    }
+    if ($matrixSchema -ge 2 -and $status -in @("erfuellt", "teilweise") -and
+        ([string]::IsNullOrWhiteSpace($evidenceType) -or [string]::IsNullOrWhiteSpace($evidence))) {
+      Add-ErrorMessage "Belegte oder teilweise belegte Anforderung benötigt Belegart und konkreten Beleg: $description"
     }
     if (($status -ne "erfuellt") -and [string]::IsNullOrWhiteSpace($handling)) {
       Add-ErrorMessage "Nicht vollständig erfüllte Anforderung hat keine dokumentierte Behandlung: $description"
@@ -230,11 +327,65 @@ if ($requirements.Count -eq 0 -or $null -eq $requirements[0]) {
     } else {
       Add-OkMessage "Anforderung ist klassifiziert: $description ($status)"
     }
+
+    if ($status -ne "nicht_relevant" -and $weightPoints.ContainsKey($weight)) {
+      $points = [double]$weightPoints[$weight]
+      $factor = if ($statusFactors.ContainsKey($status)) { [double]$statusFactors[$status] } else { 0.0 }
+      $fitMaximum += $points
+      $fitAchieved += ($points * $factor)
+      if ($weight -eq "kritisch" -and $status -ne "erfuellt") {
+        $criticalGaps.Add($description) | Out-Null
+      }
+      $weightedRequirements += [ordered]@{
+        id = [string](Get-JsonProperty -Object $requirement -Name "id")
+        anforderung = $description
+        typ = $kind
+        kategorie = $category
+        gewichtung = $weight
+        status = $status
+        beitrag = [math]::Round(($points * $factor), 2)
+        maximum = $points
+      }
+    }
   }
 }
 
-if ($fields.Contains("Verfügbarkeit")) {
-  $availability = [string]$fields["Verfügbarkeit"]
+$fitPercent = if ($fitMaximum -gt 0) { [math]::Round(($fitAchieved / $fitMaximum) * 100.0, 1) } else { 0.0 }
+$fitClassification = if ($criticalGaps.Count -eq 0 -and $fitPercent -ge 80) {
+  "stark"
+} elseif ($criticalGaps.Count -le 1 -and $fitPercent -ge 55) {
+  "vertretbar_mit_risiken"
+} else {
+  "stretch"
+}
+$fitAssessment = [ordered]@{
+  scorePercent = $fitPercent
+  classification = $fitClassification
+  achievedPoints = [math]::Round($fitAchieved, 2)
+  maximumPoints = [math]::Round($fitMaximum, 2)
+  criticalGaps = @($criticalGaps)
+  requirements = $weightedRequirements
+}
+if ($fitClassification -eq "stretch") {
+  Add-WarningMessage "Gewichtete Eignungsbewertung: Stretch-Bewerbung ($fitPercent %, kritische Lücken: $($criticalGaps.Count))."
+} else {
+  Add-OkMessage "Gewichtete Eignungsbewertung: $fitClassification ($fitPercent %)."
+}
+
+function Get-EffectiveLogisticsValue {
+  param([string]$ApplicationProperty, [string]$MasterField)
+  $applicationValue = [string](Get-JsonProperty -Object $applicationLogistics -Name $ApplicationProperty)
+  if (-not [string]::IsNullOrWhiteSpace($applicationValue) -and $applicationValue -notmatch '^(?i:nicht festgelegt|offen|noch offen|unbekannt)$') {
+    return $applicationValue
+  }
+  if ($fields.Contains($MasterField)) {
+    return [string]$fields[$MasterField]
+  }
+  return ""
+}
+
+$availability = Get-EffectiveLogisticsValue -ApplicationProperty "verfuegbarkeit" -MasterField "Verfügbarkeit"
+if (-not [string]::IsNullOrWhiteSpace($availability)) {
   if ((Test-ContainsText -Haystack $cvText -Needle $availability) -or (Test-ContainsText -Haystack $letterText -Needle $availability)) {
     Add-OkMessage "Verfügbarkeit ist konsistent sichtbar."
   } else {
@@ -242,8 +393,8 @@ if ($fields.Contains("Verfügbarkeit")) {
   }
 }
 
-if ($fields.Contains("Gewünschte Stellenart")) {
-  $employmentType = [string]$fields["Gewünschte Stellenart"]
+$employmentType = Get-EffectiveLogisticsValue -ApplicationProperty "stellenart" -MasterField "Gewünschte Stellenart"
+if (-not [string]::IsNullOrWhiteSpace($employmentType)) {
   if ($employmentType -notmatch '(?i)^\s*(\[|nicht festgelegt|offen|unbekannt)') {
     if ((Test-ContainsText -Haystack $cvText -Needle $employmentType) -or (Test-ContainsText -Haystack $letterText -Needle $employmentType)) {
       Add-OkMessage "Gewünschte Stellenart ist in den Unterlagen berücksichtigt."
@@ -251,6 +402,41 @@ if ($fields.Contains("Gewünschte Stellenart")) {
       Add-WarningMessage "Gewünschte Stellenart ist nicht in Lebenslauf oder Anschreiben erkennbar."
     }
   }
+}
+
+$profileFieldNames = @("GitHub", "Portfolio", "LinkedIn", "Xing")
+$availableProfileLinks = [ordered]@{}
+foreach ($profileFieldName in $profileFieldNames) {
+  if ($fields.Contains($profileFieldName)) {
+    $profileValue = [string]$fields[$profileFieldName]
+    if (-not [string]::IsNullOrWhiteSpace($profileValue) -and $profileValue -notmatch '^(?i:nicht angegeben|nicht festgelegt|offen|unbekannt)$') {
+      $availableProfileLinks[$profileFieldName] = $profileValue
+    }
+  }
+}
+if ($auftragSchema -ge 2 -and $profileLinksMode -in @("alle", "rollenrelevant", "keine")) {
+  $selectedNames = @($profileLinksSelection | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+  if ($profileLinksMode -eq "alle") {
+    $selectedNames = @($availableProfileLinks.Keys)
+  } elseif ($profileLinksMode -eq "keine" -and $selectedNames.Count -gt 0) {
+    Add-ErrorMessage "Profillinks-Modus 'keine' darf keine profillinksAuswahl enthalten."
+  }
+  foreach ($selectedName in $selectedNames) {
+    if (-not $availableProfileLinks.Contains($selectedName)) {
+      Add-ErrorMessage "Ausgewählter Profillink ist in den Stammdaten nicht gepflegt: $selectedName"
+      continue
+    }
+    if (-not (Test-ContainsText -Haystack $cvText -Needle ([string]$availableProfileLinks[$selectedName]))) {
+      Add-ErrorMessage "Ausgewählter Profillink fehlt im Lebenslauf: $selectedName"
+    }
+  }
+  foreach ($profileName in $availableProfileLinks.Keys) {
+    $linkIsVisible = Test-ContainsText -Haystack $cvText -Needle ([string]$availableProfileLinks[$profileName])
+    if ($linkIsVisible -and $profileName -notin $selectedNames) {
+      Add-ErrorMessage "Nicht ausgewählter Profillink ist im Lebenslauf sichtbar: $profileName"
+    }
+  }
+  Add-OkMessage "Rollenabhängige Profillink-Regel wurde geprüft: $profileLinksMode."
 }
 
 $defensivePatterns = @(
@@ -266,7 +452,7 @@ foreach ($pattern in $defensivePatterns) {
   }
 }
 
-Write-JsonReport -Path $BerichtPath -Periods $periods
+Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode
 
 Write-Host ""
 Write-Host "Zusammenfassung:"

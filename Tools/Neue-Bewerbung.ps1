@@ -11,6 +11,8 @@ param(
 
   [string]$StammdatenPath = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Daten\01_PERSOENLICHE_DATEN.md"),
 
+  [string]$ProfilPath = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Daten\02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"),
+
   [string]$BewerbungenRoot = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Bewerbungen"),
 
   [switch]$Fortsetzen,
@@ -235,8 +237,30 @@ if ($StellenbeschreibungPath) {
 
 if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
   $applicantFileName = Get-MarkdownField -Path $StammdatenPath -Name "Dateiname-Name"
+  $bewerbungslogistik = [ordered]@{
+    verfuegbarkeit = Get-MarkdownField -Path $StammdatenPath -Name "Verfügbarkeit"
+    fruehesterEintrittstermin = Get-MarkdownField -Path $StammdatenPath -Name "Frühester Eintrittstermin"
+    stellenart = Get-MarkdownField -Path $StammdatenPath -Name "Gewünschte Stellenart"
+    stundenumfang = Get-MarkdownField -Path $StammdatenPath -Name "Gewünschter Stundenumfang"
+    arbeitsmodell = Get-MarkdownField -Path $StammdatenPath -Name "Gewünschtes Arbeitsmodell"
+    region = Get-MarkdownField -Path $StammdatenPath -Name "Gewünschte Region"
+    maximalePendeldistanz = Get-MarkdownField -Path $StammdatenPath -Name "Maximale Pendeldistanz"
+    reisebereitschaft = Get-MarkdownField -Path $StammdatenPath -Name "Reisebereitschaft"
+    schichtOderWochenendbereitschaft = Get-MarkdownField -Path $StammdatenPath -Name "Schicht- oder Wochenendbereitschaft"
+    befristung = Get-MarkdownField -Path $StammdatenPath -Name "Befristung"
+    umzugsbereitschaft = Get-MarkdownField -Path $StammdatenPath -Name "Umzugsbereitschaft"
+    wunschgehaltVerwenden = Get-MarkdownField -Path $StammdatenPath -Name "Wunschgehalt verwenden"
+    wunschgehaltManuell = Get-MarkdownField -Path $StammdatenPath -Name "Wunschgehalt manuell"
+    gehaltsmodell = Get-MarkdownField -Path $StammdatenPath -Name "Gehaltsmodell"
+    gehaltsregion = Get-MarkdownField -Path $StammdatenPath -Name "Gehaltsregion"
+    gehaltslogik = Get-MarkdownField -Path $StammdatenPath -Name "Gehaltslogik"
+  }
+  $sourceEvidence = [ordered]@{
+    stammdatenSha256BeiAnlage = if (Test-Path -LiteralPath $StammdatenPath -PathType Leaf) { (Get-FileHash -LiteralPath $StammdatenPath -Algorithm SHA256).Hash } else { "" }
+    profilSha256BeiAnlage = if (Test-Path -LiteralPath $ProfilPath -PathType Leaf) { (Get-FileHash -LiteralPath $ProfilPath -Algorithm SHA256).Hash } else { "" }
+  }
   $auftrag = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     firma = $Firma
     firmaSlug = $firmaSlug
     rolle = $Rolle
@@ -247,20 +271,30 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
     arbeitsOrdner = $arbeitsDir
     kandidatOrdner = $kandidatDir
     seitenstrategie = "noch_festzulegen"
+    bewerbungslogistik = $bewerbungslogistik
+    bewerbungsentscheidung = "noch_festzulegen"
+    darstellungsoptionen = [ordered]@{
+      schulbildungsmodus = "noch_festzulegen"
+      profillinksModus = "noch_festzulegen"
+      profillinksAuswahl = @()
+    }
+    quellnachweise = $sourceEvidence
     createdAtUtc = [datetime]::UtcNow.ToString("o")
   }
-  Set-Content -LiteralPath $auftragFile -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 5)
+  Set-Content -LiteralPath $auftragFile -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 8)
 }
 
 if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
   Set-Content -LiteralPath $anforderungsmatrixEntwurfFile -Encoding UTF8 -Value @"
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "requirements": [
     {
       "id": "muss-1",
       "anforderung": "durch den Agenten aus der Stellenbeschreibung zu extrahieren",
       "typ": "muss",
+      "kategorie": "fachlich",
+      "gewichtung": "hoch",
       "status": "unklar",
       "belegart": "",
       "beleg": "",

@@ -188,6 +188,10 @@ Vor der finalen Ausgabe eines zweiseitigen Lebenslaufs muss die Verteilung auf d
 - Der Footer darf keine Inhalte überdecken und darf nicht wie ein zufälliger Restabsatz zwischen den Seiten erscheinen.
 - Wenn die Verteilung nicht stimmt, ist das Layout nicht final; Inhalte müssen neu verteilt, gekürzt oder wieder auf einen kompakten Einseiten-Lebenslauf gebracht werden.
 
+Der automatische Layoutcheck erzeugt für jeden expliziten `.page`-Container ein eigenes PNG im Format `...--seite-X-von-Y--chrome.png`. Bei einem zweiseitigen Lebenslauf müssen daher beide Seiten einzeln geöffnet und bewertet werden; ein hoher Gesamtscreenshot oder nur die erste Bildschirmhöhe ist kein vollständiger Freigabenachweis.
+
+Die automatische Dichteprüfung wertet ausschließlich den nutzbaren Inhaltsbereich oberhalb von Footer und unterem Sicherheitsabstand. Seitenkante, Scrollbar und fester Footer dürfen nicht als Inhalt gelten. Ein Dichtehinweis ist eine Aufforderung zur Sichtprüfung, kein Auftrag zum blinden Auffüllen, Verkleinern oder Entfernen hochwertiger Inhalte. Recruiter-Lesbarkeit und inhaltliche Priorität bleiben maßgeblich.
+
 ## Lebenslauf-Designstandard
 
 Für deutsche Bewerbungen ist der bevorzugte Lebenslaufstil:

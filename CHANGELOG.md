@@ -4,6 +4,45 @@
 
 Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Die Struktur orientiert sich an „Keep a Changelog“ und verwendet die im Projekt geführten Versionsnummern.
 
+## Version 1.3 – 2026-07-15
+
+### Hinzugefügt
+
+- Bewerbungsspezifischer Logistik-Snapshot in `Bewerbungsauftrag.json` mit Quellhashes, ausdrücklicher Bewerbungsentscheidung sowie Optionen für Schulbildung und Profil-Links.
+- Gewichtete Anforderungsmatrix mit Kategorien, Prioritäten und maschinenlesbarer Eignungsklasse `stark`, `vertretbar_mit_risiken` oder `stretch`.
+- Rollenbezogene Auswahl von GitHub-, Portfolio-, LinkedIn- und Xing-Links mit Prüfung gegen die Stammdaten und den finalen Lebenslauf.
+- Optionaler Modus `recruiter_kompakt`, der Schulbildung bei erfahrenen Profilen auf eine sichtbare Abschlussangabe verdichtet, ohne berufliche oder akademische Chronologie zu kürzen.
+- Dependency-freier ATS-Prüfer für Unicode-Textschicht, Pflichttexte, formale Zeiträume, HTML-zu-PDF-Textabdeckung und grundlegende Lesereihenfolge.
+- Strukturierte Veröffentlichung mit `Versand/`, `Intern/` und `Manifest.json` samt Pfad-, Größen- und SHA-256-Nachweisen.
+- Hashschutz für alle Kandidatendateien sowie Stammdaten, Profil, Bewerbungsauftrag und Anforderungsmatrix zwischen Vorbereitung und Veröffentlichung.
+- Verpflichtende `-VisuelleFreigabeNotiz`, wenn der Layoutcheck automatische Dichte- oder Randwarnungen meldet.
+
+### Geändert
+
+- Der Layoutcheck erzeugt jetzt für jeden expliziten A4-Seitencontainer ein eigenes PNG mit `seite-X-von-Y` im Dateinamen. Zweiseitige Lebensläufe werden vollständig statt nur in der ersten Bildschirmhöhe erfasst.
+- Die Dichteheuristik misst nur den nutzbaren Inhaltsbereich und ignoriert festen Footer sowie unteren Sicherheitsabstand.
+- PowerShell- und Bash-Ordnerhelfer erzeugen Schema-2-Aufträge und Schema-2-Matrixentwürfe.
+- Die bewerbungsspezifische Logistik hat Vorrang vor globalen Standardwerten; ältere Aufträge bleiben über den Stammdaten-Fallback kompatibel.
+- Der Inhaltsprüfer validiert Entscheidung, Darstellungsoptionen, Kategorien, Gewichtungen und Profil-Link-Policy und weist verdichtete Schulzeiträume im Bericht aus.
+- Die Finalisierung wiederholt die ATS-Prüfung vor der Veröffentlichung und veröffentlicht atomar eine versandfreundliche Auswahl ohne interne PDF-Dubletten.
+- Agenten- und Qualitätsregeln verlangen dateiweises Schreiben und unmittelbare Validierung statt fehleranfälliger großer Sammeländerungen.
+- README und Prompts stellen klar: Eine Bitte um Bewerbung im PDF-Format verlangt nicht automatisch eine einzige zusammengeführte PDF. Standard bleiben zwei getrennte Anlagen für Lebenslauf und Anschreiben.
+
+### Behoben
+
+- Bei zweiseitigen Lebensläufen konnte die zweite A4-Seite außerhalb des festen Screenshots liegen und dadurch ungeprüft bleiben.
+- Scrollbar, Seitenkante oder Footer konnten Dichtewarnungen verfälschen.
+- Änderungen an Markdown-Kandidaten, Profil, Stammdaten oder Matrix konnten nach der technischen Vorbereitung unbemerkt bleiben.
+- Globale Logistikwerte mussten für einzelne Bewerbungen geändert werden und konnten dadurch andere Bewerbungen beeinflussen.
+- Optisch gültige PDFs konnten ohne ausreichende maschinenlesbare Textschicht als versandfertig gelten.
+- Versanddateien, HTML-Quellen und interne Prüfdokumente lagen ohne klare Trennung im selben Ordner.
+
+### Tests und Verifikation
+
+- 31 dependency-freie Regressionstests ohne Browser bestanden.
+- Vollständige lokale Chrome-Matrix mit 37 Tests bestanden.
+- Neue Regressionsfälle für Schema-2-Snapshot, Logistik-Override, Gewichtung, Link-Policy, kompakte Schulbildung, vollständige Kandidaten-/Quellhashes, Freigabenotiz, Manifest-Manipulation, Mehrseiten-Screenshots und ATS-Bericht.
+
 ## Version 1.2 – 2026-07-14
 
 ### Hinzugefügt

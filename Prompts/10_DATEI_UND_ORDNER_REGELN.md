@@ -73,20 +73,28 @@ Private/Bewerbungen/FIRMA/YYYY-MM-DD--Bewerbung/
 
 ## Pflichtdateien pro Bewerbung
 
-In jedem Bewerbungsordner sollen am Ende mindestens diese Dateien liegen:
+Jeder veröffentlichte Bewerbungsordner trennt Versand und interne Nachweise:
 
-- `Stellenbeschreibung.md`
-- `Analyse.md`
-- `Lebenslauf - NACHNAME.VORNAME.html`
-- `Anschreiben - NACHNAME.VORNAME.html`
-- `Email-Nachricht--FIRMA.md`
-- `Qualitaetscheck.md`
-- `Druck-Hinweis.md`
+```text
+YYYY-MM-DD--ROLLENNAME/
+├─ Versand/
+│  ├─ Lebenslauf - NACHNAME.VORNAME.pdf
+│  ├─ Anschreiben - NACHNAME.VORNAME.pdf
+│  └─ Email-Nachricht--FIRMA.md
+├─ Intern/
+│  ├─ Stellenbeschreibung.md
+│  ├─ Analyse.md
+│  ├─ Lebenslauf - NACHNAME.VORNAME.html
+│  ├─ Anschreiben - NACHNAME.VORNAME.html
+│  ├─ Qualitaetscheck.md
+│  ├─ Druck-Hinweis.md
+│  └─ optional Offene_Fragen.md
+└─ Manifest.json
+```
 
-Optional:
-- `Offene_Fragen.md`
-- `Notizen.md`
-- PDF-Dateien mit demselben Namen wie die finalen HTML-Dateien, falls später PDFs erzeugt werden
+`Versand/` ist die unmittelbar nutzbare Auswahl und enthält genau zwei getrennte PDF-Anlagen plus E-Mail-Text. `Intern/` enthält die bearbeitbaren HTML-Quellen und Nachweise, aber keine PDF-Dubletten. `Manifest.json` weist alle Dateien außer sich selbst mit relativem Pfad, Größe und SHA-256 nach.
+
+Eine Stellenanzeige, die eine Bewerbung „in Form einer PDF-Datei“ verlangt, legt das Datenformat fest. Sie ändert diese Zwei-Anlagen-Struktur nur, wenn ausdrücklich eine einzige zusammengeführte Datei gefordert wird.
 
 Wenn ein HTML-Kandidat wegen Drucklayout, A4-Fit oder Recruiter-Design überarbeitet wird, bleibt der geplante finale Dateiname gleich. Die Änderung macht vorhandene Layout- und PDF-Nachweise ungültig und erfordert eine neue Finalisierungsvorbereitung. Bereits veröffentlichte Bewerbungen dürfen nur über einen erneut vollständig geprüften Kandidatensatz ersetzt werden.
 
@@ -170,7 +178,7 @@ Platzhalter, Warnhinweise und Entwürfe der Hilfsskripte gehören ausschließlic
 ## Finale-Dateien
 
 Das Hilfsskript darf Arbeitsdateien mit Warnhinweisen nur unter `_Arbeitsdateien` erzeugen.
-Der finale Bewerbungsordner darf erst nach Stammdatenprüfung, Inhaltsprüfung, statischem Check, Browser-Layoutcheck, visueller Bestätigung und PDF-Validierung veröffentlicht werden. Die Veröffentlichung erfolgt als vollständiges Set und nicht durch einzelne Kopiervorgänge des Agenten.
+Der finale Bewerbungsordner darf erst nach Stammdatenprüfung, Inhaltsprüfung, statischem Check, Browser-Layoutcheck, visueller Bestätigung, PDF- und ATS-Validierung veröffentlicht werden. Die Veröffentlichung erfolgt als vollständiges strukturiertes Set und nicht durch einzelne Kopiervorgänge des Agenten.
 
 Finale HTML-Dateien müssen außerdem druckstabil sein:
 

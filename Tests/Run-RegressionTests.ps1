@@ -216,6 +216,56 @@ function New-ValidContentFixture {
   }
 }
 
+function Convert-ToSchema2Fixture {
+  param(
+    [object]$Fixture,
+    [ValidateSet("vollstaendig", "recruiter_kompakt")]
+    [string]$SchoolMode = "vollstaendig",
+    [ValidateSet("alle", "rollenrelevant", "keine")]
+    [string]$ProfileLinksMode = "keine",
+    [string[]]$ProfileLinksSelection = @(),
+    [ValidateSet("bewerben", "nicht_bewerben")]
+    [string]$Decision = "bewerben"
+  )
+
+  $auftrag = Get-Content -LiteralPath $Fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+  $auftrag.schemaVersion = 2
+  $auftrag | Add-Member -NotePropertyName bewerbungslogistik -NotePropertyValue ([ordered]@{
+    verfuegbarkeit = "nach Vereinbarung"
+    fruehesterEintrittstermin = "nach Vereinbarung"
+    stellenart = "Vollzeit"
+    stundenumfang = "40 Std./Woche"
+    arbeitsmodell = "hybrid"
+    region = "Deutschland"
+    maximalePendeldistanz = "60 Minuten"
+    reisebereitschaft = "gelegentlich"
+    schichtOderWochenendbereitschaft = "nein"
+    befristung = "unbefristet bevorzugt"
+    umzugsbereitschaft = "nein"
+    wunschgehaltVerwenden = "nein"
+    wunschgehaltManuell = "nicht angegeben"
+    gehaltsmodell = "Jahresbrutto"
+    gehaltsregion = "Deutschland"
+    gehaltslogik = "manuelle Angabe bevorzugen"
+  }) -Force
+  $auftrag | Add-Member -NotePropertyName bewerbungsentscheidung -NotePropertyValue $Decision -Force
+  $auftrag | Add-Member -NotePropertyName darstellungsoptionen -NotePropertyValue ([ordered]@{
+    schulbildungsmodus = $SchoolMode
+    profillinksModus = $ProfileLinksMode
+    profillinksAuswahl = @($ProfileLinksSelection)
+  }) -Force
+  Set-Content -LiteralPath $Fixture.Auftrag -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 8)
+
+  $matrix = Get-Content -LiteralPath $Fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+  $matrix.schemaVersion = 2
+  foreach ($requirement in $matrix.requirements) {
+    $requirement | Add-Member -NotePropertyName kategorie -NotePropertyValue "fachlich" -Force
+    $requirement | Add-Member -NotePropertyName gewichtung -NotePropertyValue "hoch" -Force
+  }
+  Set-Content -LiteralPath $Fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 8)
+  return $Fixture
+}
+
 function New-StagedFinalizationFixture {
   param([string]$Root)
 
@@ -254,10 +304,18 @@ function New-StagedFinalizationFixture {
     targetFolder = $fixture.Folder
     layoutReport = (Join-Path $layoutDir "Layoutcheck-Bericht.json")
     pdfReport = (Join-Path $fixture.Work "PDF-Export/PDF-Export-Bericht.json")
+    layoutWarnings = @()
+    sourceInputs = [ordered]@{
+      stammdaten = & $record (Get-Item -LiteralPath $fixture.Personal)
+      profil = & $record (Get-Item -LiteralPath $fixture.Profile)
+      bewerbungsauftrag = & $record (Get-Item -LiteralPath $fixture.Auftrag)
+      anforderungsmatrix = & $record (Get-Item -LiteralPath $fixture.Matrix)
+    }
     artifacts = [ordered]@{
       html = @(Get-ChildItem -LiteralPath $candidate -File -Filter "*.html" | Sort-Object Name | ForEach-Object { & $record $_ })
       pdf = @(Get-ChildItem -LiteralPath $candidate -File -Filter "*.pdf" | Sort-Object Name | ForEach-Object { & $record $_ })
       screenshots = @(Get-ChildItem -LiteralPath $layoutDir -File -Filter "*.png" | Sort-Object Name | ForEach-Object { & $record $_ })
+      candidate = @(Get-ChildItem -LiteralPath $candidate -File | Sort-Object Name | ForEach-Object { & $record $_ })
     }
   }
   $finalReport = Join-Path $fixture.Work "Finalisierungsbericht.json"
@@ -321,10 +379,86 @@ try {
     Assert-True -Condition ($result.ExitCode -ne 0) -Message "Ungeklärte zentrale Bewerbungslogistik wurde im strikten Modus akzeptiert."
   }
 
+  Invoke-Test -Name "Ordnerhelfer legt Schema-2-Auftrag mit Logistik-Snapshot an" -Body {
+    $root = Join-Path $testRoot "schema2-order"
+    $data = New-ValidPrivateDataFixture -Root $root
+    $applicationsRoot = Join-Path $root "Private/Bewerbungen"
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
+      "-Firma", "Audit Firma",
+      "-Rolle", "Audit Rolle",
+      "-Datum", "2026-07-14",
+      "-StammdatenPath", $data.Personal,
+      "-ProfilPath", $data.Profile,
+      "-BewerbungenRoot", $applicationsRoot
+    )
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Ordnerhelfer schlug fehl: $($result.Output -join ' | ')"
+    $auftragPath = Join-Path $applicationsRoot "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle/Bewerbungsauftrag.json"
+    $auftrag = Get-Content -LiteralPath $auftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($auftrag.schemaVersion -eq 2) -Message "Bewerbungsauftrag verwendet nicht Schema 2."
+    Assert-True -Condition ($auftrag.bewerbungslogistik.stellenart -eq "Vollzeit" -and $auftrag.bewerbungslogistik.arbeitsmodell -eq "hybrid") -Message "Logistik-Snapshot ist unvollständig."
+    Assert-True -Condition ($auftrag.bewerbungsentscheidung -eq "noch_festzulegen") -Message "Initiale Bewerbungsentscheidung ist nicht offen markiert."
+    Assert-True -Condition ($auftrag.quellnachweise.stammdatenSha256BeiAnlage -eq (Get-FileHash -LiteralPath $data.Personal -Algorithm SHA256).Hash) -Message "Stammdaten-Quellhash fehlt oder stimmt nicht."
+  }
+
+  Invoke-Test -Name "Bewerbungsspezifische Logistik überschreibt ungeklärte globale Kernwerte" -Body {
+    $fixture = Convert-ToSchema2Fixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "application-logistics"))
+    $text = Get-Content -LiteralPath $fixture.Personal -Raw -Encoding UTF8
+    $text = $text.Replace("- Gewünschte Stellenart: Vollzeit", "- Gewünschte Stellenart: [Vollzeit / Teilzeit]")
+    $text = $text.Replace("- Gewünschtes Arbeitsmodell: hybrid", "- Gewünschtes Arbeitsmodell: [vor Ort / hybrid / remote]")
+    $text = $text.Replace("- Wunschgehalt verwenden: nein", "- Wunschgehalt verwenden: [ja / nein]")
+    $text = $text.Replace("- Gehaltslogik: manuelle Angabe bevorzugen", "- Gehaltslogik: [noch festlegen]")
+    Set-Content -LiteralPath $fixture.Personal -Encoding UTF8 -Value $text
+    $reportPath = Join-Path $fixture.Work "Stammdaten-Schema2.json"
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Stammdaten.ps1") -Arguments @("-StammdatenPath", $fixture.Personal, "-BewerbungsauftragPath", $fixture.Auftrag, "-UngeklaerteLogistikAlsFehler", "-BerichtPath", $reportPath)
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Bewerbungsspezifische Logistik wurde nicht priorisiert: $($result.Output -join ' | ')"
+    $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($report.logisticsSource -eq "bewerbungsauftrag_mit_stammdaten_fallback") -Message "Logistikquelle wurde im Bericht nicht ausgewiesen."
+  }
+
   Invoke-Test -Name "Inhaltsprüfer akzeptiert vollständigen Anforderungs- und Zeitraumabgleich" -Body {
     $fixture = New-ValidContentFixture -Root (Join-Path $testRoot "valid-content")
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
     Assert-True -Condition ($result.ExitCode -eq 0) -Message "Vollständiger Inhaltsabgleich wurde abgelehnt: $($result.Output -join ' | ')"
+  }
+
+  Invoke-Test -Name "Schema-2-Inhaltsprüfung bewertet Gewichtung und rollenbezogene Links" -Body {
+    $fixture = New-ValidContentFixture -Root (Join-Path $testRoot "schema2-weighted-links")
+    Add-Content -LiteralPath $fixture.Personal -Encoding UTF8 -Value "`n- GitHub: https://github.com/test-person`n- Portfolio: https://portfolio.example/test-person"
+    $fixture = Convert-ToSchema2Fixture -Fixture $fixture -ProfileLinksMode "rollenrelevant" -ProfileLinksSelection @("GitHub")
+    $cvPath = Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.html"
+    $cv = (Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8).Replace("</main>", "<p>https://github.com/test-person</p></main>")
+    Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+    $reportPath = Join-Path $fixture.Work "Inhalt-Schema2.json"
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix, "-BerichtPath", $reportPath)
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Schema-2-Inhaltsprüfung wurde abgelehnt: $($result.Output -join ' | ')"
+    $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($report.fitAssessment.classification -eq "stark" -and $report.fitAssessment.scorePercent -eq 100) -Message "Gewichtete Eignungsbewertung ist unerwartet."
+    Assert-True -Condition ($report.profileLinksMode -eq "rollenrelevant") -Message "Profillink-Modus fehlt im Bericht."
+  }
+
+  Invoke-Test -Name "Nicht ausgewählter Profillink wird im Lebenslauf abgelehnt" -Body {
+    $fixture = New-ValidContentFixture -Root (Join-Path $testRoot "schema2-link-rejected")
+    Add-Content -LiteralPath $fixture.Personal -Encoding UTF8 -Value "`n- GitHub: https://github.com/test-person`n- Portfolio: https://portfolio.example/test-person"
+    $fixture = Convert-ToSchema2Fixture -Fixture $fixture -ProfileLinksMode "rollenrelevant" -ProfileLinksSelection @("GitHub")
+    $cvPath = Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.html"
+    $cv = (Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8).Replace("</main>", "<p>https://github.com/test-person https://portfolio.example/test-person</p></main>")
+    Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($result.ExitCode -ne 0) -Message "Nicht ausgewählter Portfolio-Link wurde akzeptiert."
+  }
+
+  Invoke-Test -Name "Recruiter-kompakte Schulbildung erlaubt Abschluss ohne Schulzeiträume" -Body {
+    $fixture = New-ValidContentFixture -Root (Join-Path $testRoot "compact-school")
+    Add-Content -LiteralPath $fixture.Profile -Encoding UTF8 -Value "`n## Schulbildung`n`nFachhochschulreife, Testschule, 08/2000 - 06/2003"
+    $fixture = Convert-ToSchema2Fixture -Fixture $fixture -SchoolMode "recruiter_kompakt"
+    $cvPath = Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.html"
+    $cv = (Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8).Replace("</main>", "<p>Schulbildung: Fachhochschulreife</p></main>")
+    Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+    $reportPath = Join-Path $fixture.Work "Inhalt-Kompakte-Schule.json"
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix, "-BerichtPath", $reportPath)
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Kompakte Schulbildungsangabe wurde abgelehnt: $($result.Output -join ' | ')"
+    $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition (@($report.compactedSchoolPeriods).Count -eq 1) -Message "Verdichteter Schulzeitraum wurde nicht im Bericht ausgewiesen."
   }
 
   Invoke-Test -Name "Inhaltsprüfer erkennt fehlenden formalen Zeitraum" -Body {
@@ -341,6 +475,16 @@ try {
     Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 6)
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
     Assert-True -Condition ($result.ExitCode -ne 0) -Message "Nicht belegte Muss-Anforderung ohne Behandlung wurde akzeptiert."
+  }
+
+  Invoke-Test -Name "Schema-2-Matrix verlangt Kategorie und Gewichtung" -Body {
+    $fixture = Convert-ToSchema2Fixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "missing-weight"))
+    $matrix = Get-Content -LiteralPath $fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrix.requirements[0].PSObject.Properties.Remove("gewichtung")
+    $matrix.requirements[0].PSObject.Properties.Remove("kategorie")
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 8)
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($result.ExitCode -ne 0) -Message "Schema-2-Matrix ohne Kategorie und Gewichtung wurde akzeptiert."
   }
 
   Invoke-Test -Name "Inhaltsprüfer verlangt eine endgültige Seitenstrategie" -Body {
@@ -368,14 +512,52 @@ try {
     Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Force).Count -eq 0) -Message "Finaler Ordner wurde trotz veraltetem Hashnachweis verändert."
   }
 
+  Invoke-Test -Name "Finalisierung schützt auch Markdown-Kandidaten und Quelldateien per Hash" -Body {
+    $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-stale-candidate")
+    Add-Content -LiteralPath (Join-Path $fixture.Candidate "Analyse.md") -Encoding UTF8 -Value "nach Vorbereitung geändert"
+    $candidateResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Veroeffentlichen", "-VisuellGeprueft")
+    Assert-True -Condition ($candidateResult.ExitCode -ne 0) -Message "Veränderte Markdown-Kandidatendatei wurde akzeptiert."
+    Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Force).Count -eq 0) -Message "Zielordner wurde trotz geändertem Kandidatenartefakt befüllt."
+
+    $sourceFixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-stale-source")
+    Add-Content -LiteralPath $sourceFixture.Profile -Encoding UTF8 -Value "nach Vorbereitung geändert"
+    $sourceResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $sourceFixture.Work, "-StammdatenPath", $sourceFixture.Personal, "-ProfilPath", $sourceFixture.Profile, "-Veroeffentlichen", "-VisuellGeprueft")
+    Assert-True -Condition ($sourceResult.ExitCode -ne 0) -Message "Veränderte Profildatei wurde akzeptiert."
+    Assert-True -Condition (@(Get-ChildItem -LiteralPath $sourceFixture.Folder -Force).Count -eq 0) -Message "Zielordner wurde trotz geändertem Quellnachweis befüllt."
+
+    $newFileFixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-added-candidate")
+    Set-Content -LiteralPath (Join-Path $newFileFixture.Candidate "Notizen.md") -Encoding UTF8 -Value "nach Vorbereitung hinzugefügt"
+    $newFileResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $newFileFixture.Work, "-StammdatenPath", $newFileFixture.Personal, "-ProfilPath", $newFileFixture.Profile, "-Veroeffentlichen", "-VisuellGeprueft")
+    Assert-True -Condition ($newFileResult.ExitCode -ne 0) -Message "Neu hinzugefügte ungeprüfte Kandidatendatei wurde akzeptiert."
+    Assert-True -Condition (@(Get-ChildItem -LiteralPath $newFileFixture.Folder -Force).Count -eq 0) -Message "Zielordner wurde trotz neuer ungeprüfter Datei befüllt."
+  }
+
+  Invoke-Test -Name "Layoutwarnung verlangt eine nachvollziehbare Freigabenotiz" -Body {
+    $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-warning-note")
+    $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
+    $report.layoutWarnings = @("Lebenslauf, Seite 1: ungewöhnlich viel freie Fläche")
+    Set-Content -LiteralPath $fixture.FinalReport -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 10)
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Veroeffentlichen", "-VisuellGeprueft")
+    Assert-True -Condition ($result.ExitCode -ne 0) -Message "Layoutwarnung wurde ohne Freigabenotiz akzeptiert."
+    Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Force).Count -eq 0) -Message "Zielordner wurde trotz unbegründeter Layoutwarnung befüllt."
+  }
+
   Invoke-Test -Name "Finalisierung veröffentlicht validiertes Set atomar" -Body {
     $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-valid")
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Veroeffentlichen", "-VisuellGeprueft")
     Assert-True -Condition ($result.ExitCode -eq 0) -Message "Gültige atomare Veröffentlichung schlug fehl: $($result.Output -join ' | ')"
-    Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.pdf") -PathType Leaf) -Message "Veröffentlichter Lebenslauf fehlt."
-    Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Anschreiben - TEST.PERSON.pdf") -PathType Leaf) -Message "Veröffentlichtes Anschreiben fehlt."
+    Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Versand/Lebenslauf - TEST.PERSON.pdf") -PathType Leaf) -Message "Veröffentlichter Lebenslauf fehlt im Versandordner."
+    Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Versand/Anschreiben - TEST.PERSON.pdf") -PathType Leaf) -Message "Veröffentlichtes Anschreiben fehlt im Versandordner."
+    Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Intern/Lebenslauf - TEST.PERSON.html") -PathType Leaf) -Message "Interne HTML-Quelle fehlt."
+    Assert-True -Condition (@(Get-ChildItem -LiteralPath (Join-Path $fixture.Folder "Intern") -Filter "*.pdf" -File).Count -eq 0) -Message "Interner Ordner enthält PDF-Dubletten."
+    Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Manifest.json") -PathType Leaf) -Message "Veröffentlichungsmanifest fehlt."
+    $staticResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder)
+    Assert-True -Condition ($staticResult.ExitCode -eq 0) -Message "Strukturierte Veröffentlichung wurde nachträglich abgelehnt: $($staticResult.Output -join ' | ')"
     $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ($report.status -eq "veroeffentlicht") -Message "Finalisierungsbericht wurde nicht auf veröffentlicht gesetzt."
+    Add-Content -LiteralPath (Join-Path $fixture.Folder "Versand/Email-Nachricht--Audit-Firma.md") -Encoding UTF8 -Value "Manipulation nach Veröffentlichung"
+    $tamperResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder)
+    Assert-True -Condition ($tamperResult.ExitCode -ne 0) -Message "Manifest erkannte eine nachträglich veränderte Versanddatei nicht."
   }
 
   Invoke-Test -Name "Initiativbewerbung gilt als konkreter E-Mail-Betreff" -Body {
@@ -527,8 +709,8 @@ Text vor dem Doctype
           $fake[$index] = 65
         }
         $fakePaths = @(
-          (Join-Path $layoutDir "Anschreiben---TEST.PERSON--chrome.png"),
-          (Join-Path $layoutDir "Lebenslauf---TEST.PERSON--chrome.png")
+          (Join-Path $layoutDir "Anschreiben---TEST.PERSON--seite-1-von-1--chrome.png"),
+          (Join-Path $layoutDir "Lebenslauf---TEST.PERSON--seite-1-von-1--chrome.png")
         )
         foreach ($path in $fakePaths) {
           [System.IO.File]::WriteAllBytes($path, $fake)
@@ -544,6 +726,31 @@ Text vor dem Doctype
         $layoutData = Get-Content -LiteralPath $layoutReport -Raw -Encoding UTF8 | ConvertFrom-Json
         Assert-True -Condition (@($layoutData.results).Count -eq 2) -Message "Layoutbericht enthält nicht genau zwei Dokumentnachweise."
         Assert-True -Condition (-not [string]::IsNullOrWhiteSpace($layoutData.results[0].htmlSha256)) -Message "Layoutbericht enthält keinen HTML-Hash."
+        Assert-True -Condition ($layoutData.captureMode -eq "eine_png_pro_a4_seite") -Message "Layoutbericht weist den Seitencapture-Modus nicht aus."
+      }
+
+      Invoke-Test -Name "Layoutcheck erfasst jede explizite A4-Seite einzeln" -Body {
+        $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "layout-multipage")
+        $cvPath = Join-Path $folder "Lebenslauf - TEST.PERSON.html"
+        $cv = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
+        $twoPages = @"
+<body>
+  <main class="page"><h1>Lebenslauf Seite 1</h1><footer class="page-footer">Seite 1 von 2</footer></main>
+  <main class="page"><h2>Lebenslauf Seite 2</h2><footer class="page-footer">Seite 2 von 2</footer></main>
+</body>
+"@
+        $cv = [regex]::Replace($cv, '(?is)<body>.*?</body>', $twoPages)
+        Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+        $companyDir = Split-Path -Path $folder -Parent
+        $roleDir = Split-Path -Path $folder -Leaf
+        $layoutDir = Join-Path $companyDir "_Arbeitsdateien/$roleDir/Layoutcheck"
+        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Layoutcheck-Bewerbung.ps1") -Arguments @("-Ordner", $folder, "-Browser", "chrome", "-TimeoutSeconds", "60")
+        Assert-True -Condition ($result.ExitCode -eq 0) -Message "Mehrseiten-Layoutcheck schlug fehl: $($result.Output -join ' | ')"
+        $pngs = @(Get-ChildItem -LiteralPath $layoutDir -Filter "*.png" -File)
+        Assert-True -Condition ($pngs.Count -eq 3) -Message "Erwartet wurden drei Seitenscreenshots, erzeugt wurden $($pngs.Count)."
+        Assert-True -Condition (Test-Path -LiteralPath (Join-Path $layoutDir "Lebenslauf---TEST.PERSON--seite-2-von-2--chrome.png") -PathType Leaf) -Message "Screenshot der zweiten Lebenslaufseite fehlt."
+        $layoutData = Get-Content -LiteralPath (Join-Path $layoutDir "Layoutcheck-Bericht.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+        Assert-True -Condition (@($layoutData.results).Count -eq 3 -and $layoutData.expectedScreenshots -eq 3) -Message "Layoutbericht bildet nicht alle A4-Seiten ab."
       }
 
       Invoke-Test -Name "Finalisierungs-Vorbereitung erzeugt gebundene Browser- und PDF-Nachweise" -Body {
@@ -556,7 +763,23 @@ Text vor dem Doctype
         Assert-True -Condition (@($report.artifacts.html).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei HTML-Nachweise."
         Assert-True -Condition (@($report.artifacts.pdf).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei PDF-Nachweise."
         Assert-True -Condition (@($report.artifacts.screenshots).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei Screenshot-Nachweise."
+        Assert-True -Condition (Test-Path -LiteralPath $report.atsReport -PathType Leaf) -Message "Finalisierung schrieb keinen ATS-Prüfbericht."
+        $ats = Get-Content -LiteralPath $report.atsReport -Raw -Encoding UTF8 | ConvertFrom-Json
+        Assert-True -Condition ($ats.status -eq "ok" -and @($ats.results).Count -eq 2) -Message "ATS-Prüfung bestätigte nicht beide PDFs."
         Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Force).Count -eq 0) -Message "Vorbereitung hat den finalen Zielordner befüllt."
+        $publish = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @(
+          "-Arbeitsordner", $fixture.Work,
+          "-StammdatenPath", $fixture.Personal,
+          "-ProfilPath", $fixture.Profile,
+          "-Veroeffentlichen",
+          "-VisuellGeprueft",
+          "-VisuelleFreigabeNotiz", "Alle erzeugten Testseiten geprüft; keine Überlappung oder abgeschnittener Inhalt."
+        )
+        Assert-True -Condition ($publish.ExitCode -eq 0) -Message "Veröffentlichung nach realer Browservorbereitung schlug fehl: $($publish.Output -join ' | ')"
+        Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Versand/Lebenslauf - TEST.PERSON.pdf") -PathType Leaf) -Message "Realer Versand-Lebenslauf fehlt."
+        Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Manifest.json") -PathType Leaf) -Message "Manifest der realen Veröffentlichung fehlt."
+        $publishedStatic = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder)
+        Assert-True -Condition ($publishedStatic.ExitCode -eq 0) -Message "Reale strukturierte Veröffentlichung wurde abgelehnt: $($publishedStatic.Output -join ' | ')"
       }
 
       Invoke-Test -Name "PDF-Export lehnt zusätzliche Druckseiten ab" -Body {

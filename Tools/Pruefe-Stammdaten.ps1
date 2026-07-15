@@ -6,6 +6,8 @@ param(
 
   [switch]$UngeklaerteLogistikAlsFehler,
 
+  [string]$BewerbungsauftragPath,
+
   [string]$BerichtPath
 )
 
@@ -63,8 +65,16 @@ function Test-IsUnresolvedChoice {
   return $Value.Trim() -match '^(?i:nicht festgelegt|offen|noch offen|unbekannt)$'
 }
 
+function Get-JsonProperty {
+  param([object]$Object, [string]$Name)
+  if ($null -eq $Object) { return $null }
+  $property = $Object.PSObject.Properties[$Name]
+  if ($null -eq $property) { return $null }
+  return $property.Value
+}
+
 function Write-JsonReport {
-  param([string]$Path, [hashtable]$Fields)
+  param([string]$Path, [hashtable]$Fields, [string]$LogisticsSource, [object]$ResolvedLogistics)
 
   if ([string]::IsNullOrWhiteSpace($Path)) {
     return
@@ -89,9 +99,12 @@ function Write-JsonReport {
   }
 
   $report = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     source = [System.IO.Path]::GetFullPath($StammdatenPath)
+    applicationOrder = if ([string]::IsNullOrWhiteSpace($BewerbungsauftragPath)) { $null } else { [System.IO.Path]::GetFullPath($BewerbungsauftragPath) }
+    logisticsSource = $LogisticsSource
+    resolvedCoreLogistics = $ResolvedLogistics
     status = if ($errors.Count -gt 0) { "fehler" } elseif ($warnings.Count -gt 0) { "warnung" } else { "ok" }
     errors = @($errors)
     warnings = @($warnings)
@@ -115,6 +128,21 @@ foreach ($line in $lines) {
     $value = $Matches.value.Trim()
     if (-not $fields.Contains($key)) {
       $fields[$key] = $value
+    }
+  }
+}
+
+$auftrag = $null
+$applicationLogistics = $null
+if (-not [string]::IsNullOrWhiteSpace($BewerbungsauftragPath)) {
+  if (-not (Test-Path -LiteralPath $BewerbungsauftragPath -PathType Leaf)) {
+    Add-ErrorMessage "Bewerbungsauftrag fehlt oder ist keine Datei: $BewerbungsauftragPath"
+  } else {
+    try {
+      $auftrag = Get-Content -LiteralPath $BewerbungsauftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      $applicationLogistics = Get-JsonProperty -Object $auftrag -Name "bewerbungslogistik"
+    } catch {
+      Add-ErrorMessage "Bewerbungsauftrag ist kein gültiges JSON: $($_.Exception.Message)"
     }
   }
 }
@@ -158,22 +186,37 @@ if ($fields.Contains("Dateiname-Name") -and -not (Test-IsPlaceholderValue -Value
 }
 
 $coreChoices = @(
-  "Gewünschte Stellenart",
-  "Gewünschtes Arbeitsmodell",
-  "Wunschgehalt verwenden",
-  "Gehaltslogik"
+  [pscustomobject]@{ Field = "Gewünschte Stellenart"; Property = "stellenart" },
+  [pscustomobject]@{ Field = "Gewünschtes Arbeitsmodell"; Property = "arbeitsmodell" },
+  [pscustomobject]@{ Field = "Wunschgehalt verwenden"; Property = "wunschgehaltVerwenden" },
+  [pscustomobject]@{ Field = "Gehaltslogik"; Property = "gehaltslogik" }
 )
-foreach ($fieldName in $coreChoices) {
-  if (-not $fields.Contains($fieldName)) {
+$resolvedCoreLogistics = [ordered]@{}
+$usedApplicationLogistics = $false
+foreach ($choice in $coreChoices) {
+  $fieldName = $choice.Field
+  $applicationValue = [string](Get-JsonProperty -Object $applicationLogistics -Name $choice.Property)
+  $masterValue = if ($fields.Contains($fieldName)) { [string]$fields[$fieldName] } else { "" }
+  $value = if (-not (Test-IsUnresolvedChoice -Value $applicationValue)) {
+    $usedApplicationLogistics = $true
+    $applicationValue
+  } else {
+    $masterValue
+  }
+  $resolvedCoreLogistics[$choice.Property] = $value
+
+  if ([string]::IsNullOrWhiteSpace($value)) {
     Add-LogisticsIssue "Zentrale Bewerbungslogistik fehlt: $fieldName"
     continue
   }
-  if (Test-IsUnresolvedChoice -Value ([string]$fields[$fieldName])) {
+  if (Test-IsUnresolvedChoice -Value $value) {
     Add-LogisticsIssue "Zentrale Bewerbungslogistik ist noch nicht eindeutig festgelegt: $fieldName"
   } else {
-    Add-OkMessage "Bewerbungslogistik ist gepflegt: $fieldName"
+    $sourceLabel = if (-not (Test-IsUnresolvedChoice -Value $applicationValue)) { "Bewerbungsauftrag" } else { "Stammdaten" }
+    Add-OkMessage "Bewerbungslogistik ist gepflegt: $fieldName ($sourceLabel)"
   }
 }
+$logisticsSource = if ($usedApplicationLogistics) { "bewerbungsauftrag_mit_stammdaten_fallback" } else { "stammdaten" }
 
 $optionalLogistics = @(
   "Frühester Eintrittstermin",
@@ -194,7 +237,7 @@ foreach ($fieldName in $optionalLogistics) {
   }
 }
 
-Write-JsonReport -Path $BerichtPath -Fields $fields
+Write-JsonReport -Path $BerichtPath -Fields $fields -LogisticsSource $logisticsSource -ResolvedLogistics $resolvedCoreLogistics
 
 Write-Host ""
 Write-Host "Zusammenfassung:"

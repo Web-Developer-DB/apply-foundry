@@ -237,6 +237,71 @@ function Test-HtmlFile {
   Test-NoExternalDependencies -Text $text -FileName $name
 }
 
+function Test-PublicationManifest {
+  param([string]$Root, [string]$ManifestPath)
+
+  if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
+    Add-ErrorMessage "Strukturierte Veröffentlichung enthält kein Manifest.json."
+    return
+  }
+  try {
+    $errorCountBeforeManifest = $errors.Count
+    $manifest = Get-Content -LiteralPath $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $records = @($manifest.files)
+    if ($records.Count -eq 0) {
+      Add-ErrorMessage "Manifest.json enthält keine Dateinachweise."
+      return
+    }
+    $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    $manifestFull = (Resolve-Path -LiteralPath $ManifestPath).Path
+    $actualFiles = @(Get-ChildItem -LiteralPath $Root -Recurse -File | Where-Object { $_.FullName -ne $manifestFull })
+    if ($records.Count -ne $actualFiles.Count) {
+      Add-ErrorMessage "Manifest-Dateizahl stimmt nicht mit der Veröffentlichung überein ($($records.Count) statt $($actualFiles.Count))."
+    }
+    $manifestPaths = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($record in $records) {
+      $relativePath = [string]$record.path
+      if ([string]::IsNullOrWhiteSpace($relativePath) -or [System.IO.Path]::IsPathRooted($relativePath) -or $relativePath -match '(^|[\\/])\.\.([\\/]|$)') {
+        Add-ErrorMessage "Manifest enthält einen ungültigen relativen Pfad: $relativePath"
+        continue
+      }
+      $normalizedRelative = ($relativePath -replace '\\', '/').TrimStart('/')
+      if (-not $manifestPaths.Add($normalizedRelative)) {
+        Add-ErrorMessage "Manifest enthält einen doppelten Dateipfad: $relativePath"
+        continue
+      }
+      $filePath = [System.IO.Path]::GetFullPath((Join-Path -Path $Root -ChildPath ($normalizedRelative -replace '/', [System.IO.Path]::DirectorySeparatorChar)))
+      if (-not $filePath.StartsWith($rootFull + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+        Add-ErrorMessage "Manifestpfad liegt außerhalb des Veröffentlichungsordners: $relativePath"
+        continue
+      }
+      if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
+        Add-ErrorMessage "Manifest-Datei fehlt: $relativePath"
+        continue
+      }
+      $fileInfo = Get-Item -LiteralPath $filePath
+      if ($null -ne $record.PSObject.Properties["bytes"] -and [long]$record.bytes -ne $fileInfo.Length) {
+        Add-ErrorMessage "Manifest-Dateigröße stimmt nicht: $relativePath"
+      }
+      $actualHash = (Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash
+      if ($actualHash -ne [string]$record.sha256) {
+        Add-ErrorMessage "Manifest-Hash stimmt nicht: $relativePath"
+      }
+    }
+    foreach ($actualFile in $actualFiles) {
+      $actualRelative = [System.IO.Path]::GetRelativePath($Root, $actualFile.FullName).Replace([System.IO.Path]::DirectorySeparatorChar, '/')
+      if (-not $manifestPaths.Contains($actualRelative)) {
+        Add-ErrorMessage "Veröffentlichte Datei fehlt im Manifest: $actualRelative"
+      }
+    }
+    if ($errors.Count -eq $errorCountBeforeManifest) {
+      Add-OkMessage "Manifest der strukturierten Veröffentlichung wurde vollständig geprüft."
+    }
+  } catch {
+    Add-ErrorMessage "Manifest.json konnte nicht geprüft werden: $($_.Exception.Message)"
+  }
+}
+
 if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
   Write-Host "[FEHLER] Ordner existiert nicht oder ist kein Verzeichnis: $Ordner" -ForegroundColor Red
   exit 1
@@ -249,6 +314,12 @@ if ($resolvedFolder -notmatch '[\\/]+Private[\\/]+Bewerbungen[\\/]+' ) {
   Add-WarningMessage "Der Ordner liegt nicht unter `Private/Bewerbungen/`. Bitte prüfen, ob dies beabsichtigt ist."
 }
 
+$internalFolder = Join-Path -Path $resolvedFolder -ChildPath "Intern"
+$shippingFolder = Join-Path -Path $resolvedFolder -ChildPath "Versand"
+$isStructuredPublication = (Test-Path -LiteralPath $internalFolder -PathType Container) -and (Test-Path -LiteralPath $shippingFolder -PathType Container)
+$documentFolder = if ($isStructuredPublication) { $internalFolder } else { $resolvedFolder }
+$emailFolder = if ($isStructuredPublication) { $shippingFolder } else { $resolvedFolder }
+
 $fixedRequired = @(
   "Stellenbeschreibung.md",
   "Analyse.md",
@@ -257,7 +328,7 @@ $fixedRequired = @(
 )
 
 foreach ($fileName in $fixedRequired) {
-  $path = Join-Path -Path $resolvedFolder -ChildPath $fileName
+  $path = Join-Path -Path $documentFolder -ChildPath $fileName
   if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
     Add-ErrorMessage "Pflichtdatei fehlt oder ist keine Datei: $fileName"
     continue
@@ -271,8 +342,10 @@ foreach ($fileName in $fixedRequired) {
   }
 }
 
-$allFiles = @(Get-ChildItem -LiteralPath $resolvedFolder -File)
-$htmlFiles = @($allFiles | Where-Object { $_.Extension -ieq ".html" })
+$documentFiles = @(Get-ChildItem -LiteralPath $documentFolder -File)
+$emailAreaFiles = if ($isStructuredPublication) { @(Get-ChildItem -LiteralPath $emailFolder -File) } else { @() }
+$allFiles = @($documentFiles + $emailAreaFiles)
+$htmlFiles = @($documentFiles | Where-Object { $_.Extension -ieq ".html" })
 $markdownFiles = @($allFiles | Where-Object { $_.Extension -ieq ".md" })
 
 $draftFiles = @($allFiles | Where-Object { $_.Name -match 'ENTWURF|DOKUMENT NOCH NICHT FINAL' })
@@ -283,7 +356,7 @@ foreach ($draft in $draftFiles) {
 $personPattern = '[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z0-9][A-Za-z0-9.-]*'
 $cvFiles = @($htmlFiles | Where-Object { $_.Name -match "^Lebenslauf - $personPattern\.html$" })
 $letterFiles = @($htmlFiles | Where-Object { $_.Name -match "^Anschreiben - $personPattern\.html$" })
-$emailFiles = @($markdownFiles | Where-Object { $_.Name -match '^Email-Nachricht--[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$' })
+$emailFiles = @(Get-ChildItem -LiteralPath $emailFolder -File -Filter "Email-Nachricht--*.md" | Where-Object { $_.Name -match '^Email-Nachricht--[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$' })
 
 $unexpectedHtml = @($htmlFiles | Where-Object { ($_ -notin $cvFiles) -and ($_ -notin $letterFiles) })
 foreach ($html in $unexpectedHtml) {
@@ -322,6 +395,27 @@ if ($emailFiles.Count -eq 1) {
   Add-ErrorMessage "Keine E-Mail-Nachricht nach Schema `Email-Nachricht--FIRMA.md` gefunden."
 } else {
   Add-ErrorMessage "Mehrere E-Mail-Nachrichten gefunden: $($emailFiles.Name -join ', ')"
+}
+
+if ($isStructuredPublication) {
+  $shippingPdfs = @(Get-ChildItem -LiteralPath $shippingFolder -File -Filter "*.pdf")
+  $expectedShippingPdfs = @($shippingPdfs | Where-Object { $_.Name -match '^(Lebenslauf|Anschreiben) - .+\.pdf$' })
+  if ($shippingPdfs.Count -ne 2 -or $expectedShippingPdfs.Count -ne 2) {
+    Add-ErrorMessage "Versandordner muss genau Lebenslauf- und Anschreiben-PDF enthalten; gefunden: $($shippingPdfs.Name -join ', ')"
+  } else {
+    Add-OkMessage "Versandordner enthält genau die beiden vorgesehenen PDF-Anlagen."
+  }
+  $unexpectedShipping = @(Get-ChildItem -LiteralPath $shippingFolder -File | Where-Object {
+    $_.Extension -notin @(".pdf", ".md") -or ($_.Extension -eq ".md" -and $_.Name -notmatch '^Email-Nachricht--')
+  })
+  if ($unexpectedShipping.Count -gt 0) {
+    Add-ErrorMessage "Versandordner enthält interne oder unerwartete Dateien: $($unexpectedShipping.Name -join ', ')"
+  }
+  $internalPdfs = @(Get-ChildItem -LiteralPath $internalFolder -File -Filter "*.pdf")
+  if ($internalPdfs.Count -gt 0) {
+    Add-ErrorMessage "Interner Ordner enthält Versand-PDFs und erzeugt unnötige Dubletten: $($internalPdfs.Name -join ', ')"
+  }
+  Test-PublicationManifest -Root $resolvedFolder -ManifestPath (Join-Path $resolvedFolder "Manifest.json")
 }
 
 $markerPatterns = @(
