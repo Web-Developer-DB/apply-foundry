@@ -14,7 +14,11 @@ param(
   [int]$MinPdfBytes = 5000,
 
   [ValidateRange(1, 600)]
-  [int]$TimeoutSeconds = 60
+  [int]$TimeoutSeconds = 60,
+
+  [string]$OutputRoot,
+
+  [string]$BerichtPath
 )
 
 Set-StrictMode -Version Latest
@@ -72,6 +76,42 @@ function Convert-ToSafeFilePart {
   $safe = $Value -replace '[\\/:*?"<>|]+', '-'
   $safe = $safe -replace '\s+', '-'
   return $safe.Trim('-')
+}
+
+function Write-ExportReport {
+  param(
+    [string]$Path,
+    [string]$BrowserName,
+    [array]$PdfSet
+  )
+
+  $fullPath = [System.IO.Path]::GetFullPath($Path)
+  $parent = Split-Path -Path $fullPath -Parent
+  if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
+    New-Item -Path $parent -ItemType Directory -Force | Out-Null
+  }
+  $items = @()
+  foreach ($item in $PdfSet) {
+    $pdfInfo = Get-Item -LiteralPath $item.FinalPath
+    $items += [ordered]@{
+      htmlFile = $item.HtmlFile.Name
+      htmlSha256 = (Get-FileHash -LiteralPath $item.HtmlFile.FullName -Algorithm SHA256).Hash
+      pdfFile = [System.IO.Path]::GetFileName($item.FinalPath)
+      pdfPath = $item.FinalPath
+      pdfSha256 = (Get-FileHash -LiteralPath $item.FinalPath -Algorithm SHA256).Hash
+      pdfBytes = $pdfInfo.Length
+      pages = Get-PdfPageCount -Path $item.FinalPath
+      mediaBox = Format-PdfMediaBoxSummary -Path $item.FinalPath
+    }
+  }
+  $report = [ordered]@{
+    schemaVersion = 1
+    exportedAtUtc = [datetime]::UtcNow.ToString("o")
+    browser = $BrowserName
+    sourceFolder = $resolvedFolder
+    results = $items
+  }
+  Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 8)
 }
 
 function Get-PowerShellExecutable {
@@ -407,10 +447,21 @@ if ($companyName -eq "_Arbeitsdateien") {
   exit 1
 }
 
-$workDir = Join-Path -Path $companyDir -ChildPath "_Arbeitsdateien"
-$workDir = Join-Path -Path $workDir -ChildPath $roleDir
-$workDir = Join-Path -Path $workDir -ChildPath "PDF-Export"
+$workDir = if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
+  $defaultWorkDir = Join-Path -Path $companyDir -ChildPath "_Arbeitsdateien"
+  $defaultWorkDir = Join-Path -Path $defaultWorkDir -ChildPath $roleDir
+  Join-Path -Path $defaultWorkDir -ChildPath "PDF-Export"
+} else {
+  [System.IO.Path]::GetFullPath($OutputRoot)
+}
+if (($workDir -notmatch '[\\/]Private[\\/]Bewerbungen[\\/]+') -or ($workDir -notmatch '[\\/]_Arbeitsdateien(?:[\\/]|$)')) {
+  Add-Fail "PDF-Export-Arbeitsordner muss unter Private/Bewerbungen/.../_Arbeitsdateien liegen: $workDir"
+  exit 1
+}
 New-Item -Path $workDir -ItemType Directory -Force | Out-Null
+if ([string]::IsNullOrWhiteSpace($BerichtPath)) {
+  $BerichtPath = Join-Path -Path $workDir -ChildPath "PDF-Export-Bericht.json"
+}
 
 $finalPdfPaths = @($htmlFiles | ForEach-Object { [System.IO.Path]::ChangeExtension($_.FullName, ".pdf") })
 foreach ($finalPdfPath in $finalPdfPaths) {
@@ -475,6 +526,7 @@ foreach ($candidate in $browserCandidates) {
   if ($candidateOk -and ($pdfSet.Count -eq $htmlFiles.Count)) {
     try {
       Publish-PdfSet -PdfSet $pdfSet -RunDirectory $runDir
+      Write-ExportReport -Path $BerichtPath -BrowserName $candidate.Name -PdfSet $pdfSet
       Add-Ok "PDF-Export vollständig und atomar veröffentlicht mit Browser: $($candidate.Name)"
       Write-Host ""
       Write-Host "Erzeugte PDFs:"
@@ -484,6 +536,7 @@ foreach ($candidate in $browserCandidates) {
         Write-Host "- $($item.FinalPath) ($($pdfInfo.Length) Bytes, $(Get-PdfPageCount -Path $item.FinalPath) Seite(n), $mediaBoxSummary)"
       }
       Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
+      Add-Ok "PDF-Export-Bericht geschrieben: $BerichtPath"
       Write-Host ""
       Write-Host "ERGEBNIS: OK" -ForegroundColor Green
       exit 0

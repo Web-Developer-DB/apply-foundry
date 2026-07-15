@@ -35,6 +35,8 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 - Formuliere Gehalt sachlich, z. B. `Meine Gehaltsvorstellung liegt bei ... EUR brutto jährlich.` oder bei Teilzeit/Stundenlohn passend zum in Datei `01` gewählten Gehaltsmodell.
 - Wenn die Datengrundlage für eine seriöse Gehaltsschätzung fehlt oder keine aktuelle Quelle geprüft werden kann, nicht raten. In `Offene_Fragen.md` dokumentieren und im Anschreiben neutral bleiben, sofern die Anzeige keinen Gehaltswunsch zwingend verlangt.
 - Sprich Lücken oder Grenzen nicht defensiv an, sondern fokussiere passende Stärken.
+- Nicht oder nur teilweise belegte Anforderungen werden vorrangig in `Analyse.md`, `Anforderungsmatrix.json`, `Qualitaetscheck.md` oder `Offene_Fragen.md` dokumentiert. Im Anschreiben erscheinen sie nur, wenn eine Nichterwähnung irreführend wäre.
+- Vermeide Metaformulierungen wie `nicht belegt`, `noch keine Erfahrung`, `ich erfülle ... nicht` oder `ohne daraus Berufserfahrung abzuleiten`. Formuliere stattdessen positiv auf der belegten Erfahrungsebene.
 - Bei Quereinstieg oder Entwicklungsrollen die Brücke zwischen vorhandener Erfahrung und Zielrolle konkret erklären.
 - Wenn Ansprechpartner fehlt, neutrale Anrede verwenden.
 - Wenn Firmenadresse fehlt, kein Fantasie-Adressenblock.

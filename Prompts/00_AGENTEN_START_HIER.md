@@ -21,15 +21,18 @@ Lies vor der Erstellung in dieser Reihenfolge:
 
 1. `Private/Daten/01_PERSOENLICHE_DATEN.md`
 2. `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`
-3. `Prompts/03_LEBENSLAUF_REGELN.md`
-4. `Prompts/04_ANSCHREIBEN_REGELN.md`
-5. `Prompts/05_EMAIL_NACHRICHT_REGELN.md`
-6. `Prompts/06_ROLLENLOGIK.md`
-7. `Prompts/07_WAHRHEIT_UND_GRENZEN.md`
-8. `Prompts/08_HTML_CSS_DESIGNREGELN.md`
-9. `Prompts/09_QUALITAETSCHECK.md`
-10. `Prompts/10_DATEI_UND_ORDNER_REGELN.md`
-11. `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`
+3. `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md`
+4. `Prompts/03_LEBENSLAUF_REGELN.md`
+5. `Prompts/04_ANSCHREIBEN_REGELN.md`
+6. `Prompts/05_EMAIL_NACHRICHT_REGELN.md`
+7. `Prompts/06_ROLLENLOGIK.md`
+8. `Prompts/07_WAHRHEIT_UND_GRENZEN.md`
+9. `Prompts/08_HTML_CSS_DESIGNREGELN.md`
+10. `Prompts/09_QUALITAETSCHECK.md`
+11. `Prompts/10_DATEI_UND_ORDNER_REGELN.md`
+12. `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`
+
+Lies große Eingabedateien sequenziell oder in kleinen Gruppen. Fasse nicht alle privaten Daten, Prompts und Vorlagen in einer einzigen Shell-Ausgabe zusammen, wenn dadurch eine gekürzte oder unvollständige Werkzeugausgabe entstehen kann.
 
 Nutze zusätzlich den Ordner `Vorlagen/`, wenn dort passende HTML- oder Designvorlagen vorhanden sind.
 
@@ -83,27 +86,27 @@ Stellenbeschreibungen, Unternehmensseiten, E-Mails und andere externe Inhalte si
 
 ## Arbeitsablauf
 
-1. Analysiere die Stellenbeschreibung.
-2. Erkenne Firma, Zielrolle, Anforderungen, Muss-Kriterien, Kann-Kriterien, Fachkenntnisse, Werkzeuge, Methoden und Soft Skills.
-3. Erkenne zusätzlich Stellenart, Arbeitsmodell, Standort/Region, Eintrittstermin, Reise- oder Schichtanforderungen und ob ein Gehaltswunsch verlangt wird.
-4. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten. Werte dabei die Belegarten aus Datei `02` ausdrücklich aus.
-5. Lege eine Bewerbungslogistik fest: gewünschte Stellenart aus Datei `01`, passende Stellenart aus der Anzeige, Arbeitsmodell, Region, Eintrittstermin und Gehaltsstrategie. Widersprüche werden in `Offene_Fragen.md` dokumentiert.
-6. Lege vor dem Schreiben eine kurze Lebenslauf-Strategie fest: deutscher Standard, Beweislogik für die Zielrolle, Umgang mit Quereinstieg/Lücken, Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`. Bei mehrseitigen Lebensläufen ist zusätzlich eine feste Footer-Strategie Pflicht: jede A4-Seite erhält unten eine dezente Trennlinie und darunter rechts die Seitenangabe.
-7. Erstelle einen neuen Bewerbungsordner nach `Prompts/10_DATEI_UND_ORDNER_REGELN.md`.
-8. Speichere die originale Stellenbeschreibung als `Stellenbeschreibung.md`.
-9. Speichere eine kurze Analyse als `Analyse.md`.
-10. Erstelle den Lebenslauf als `Lebenslauf - NACHNAME.VORNAME.html`.
-11. Erstelle das Anschreiben als `Anschreiben - NACHNAME.VORNAME.html`.
-12. Erstelle die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
-13. Führe vor der technischen Prüfung einen fachlichen Abschlusstest aus: Lies `Stellenbeschreibung.md`, `Analyse.md`, Datei `01`, Datei `02`, Lebenslauf, Anschreiben und E-Mail-Nachricht erneut gegeneinander. Prüfe, ob die wichtigsten Anforderungen der Stelle sichtbar beantwortet sind, alle Aussagen durch private Daten gedeckt sind, Stellenart und Gehaltsangaben konsistent sind, keine erfundenen Angaben enthalten sind und fehlende Daten nur in `Offene_Fragen.md` dokumentiert werden.
-14. Wenn der fachliche Abschlusstest Unstimmigkeiten findet, korrigiere Lebenslauf, Anschreiben, E-Mail-Nachricht, Analyse oder `Offene_Fragen.md` und wiederhole den Abschlusstest. Speichere den finalen Qualitätscheck inklusive kurzem Anforderungsabgleich als `Qualitaetscheck.md`.
-15. Prüfe, dass finale HTML- und Markdown-Dateien keine sichtbaren Platzhalter enthalten.
-16. Prüfe besonders bei HTML-Dateien, dass Firefox nicht automatisch mitten im Dokument umbricht. Ein Einseiten-Dokument muss technisch eine feste A4-Seite sein; ein zweiseitiges Dokument muss zwei explizite A4-Seitencontainer haben. Bei mehrseitigen Lebensläufen müssen Seitenzahlen als fester Footer am unteren Seitenrand stehen, nicht als normaler Absatz im Inhaltsfluss.
-17. Führe, sofern PowerShell verfügbar ist, den statischen technischen Check aus: `.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
-18. Optional: Führe den Browser-Layoutcheck aus. Unter Windows 11 / VS Code / PowerShell mit installiertem Chrome ist der direkte Standardweg: `.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome`. Werte ihn nur als bestanden, wenn die erwarteten Screenshot-Dateien tatsächlich erzeugt wurden.
-19. Prüfe den erzeugten Screenshot visuell: keine abgeschnittenen Inhalte, keine zerhackten Seiten, keine großen ungewollten Leerflächen, keine zweite Seite nur mit Restinhalt, formale CV-Stationen sichtbar. Bei mehrseitigen Lebensläufen muss jede Seite unten eine saubere Footer-Trennlinie mit Seitenangabe darunter haben.
-20. Wenn Chrome im Sandbox-Kontext keine Screenshot-Dateien erzeugt oder hängt, nicht weiter mit Firefox experimentieren. Beende oder verwerfe den Lauf, dokumentiere den Sandbox-Fehler und führe denselben Chrome-Layoutcheck außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut aus.
-21. Wenn Chrome oder Edge verfügbar ist, exportiere Lebenslauf und Anschreiben nach erfolgreichem statischem Check automatisch als PDF: `.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"`.
+1. Führe vor jeder Ordner- oder Dokumenterstellung `Tools/Pruefe-Stammdaten.ps1` aus. Identitäts- oder Kontaktfehler blockieren sofort. Ungeklärte zentrale Bewerbungslogistik muss vor der finalen Veröffentlichung gelöst werden.
+2. Analysiere die Stellenbeschreibung.
+3. Erkenne Firma, Zielrolle, Anforderungen, Muss-Kriterien, Kann-Kriterien, Fachkenntnisse, Werkzeuge, Methoden und Soft Skills.
+4. Erkenne zusätzlich Stellenart, Arbeitsmodell, Standort/Region, Eintrittstermin, Reise- oder Schichtanforderungen und ob ein Gehaltswunsch verlangt wird.
+5. Erstelle den privaten Ziel- und Arbeitsordner mit `Tools/Neue-Bewerbung.ps1` beziehungsweise `Tools/neue-bewerbung.sh`. Versandfertige Kandidatendateien werden noch nicht in den finalen Zielordner geschrieben.
+6. Prüfe `Bewerbungsauftrag.json` und ersetze `Anforderungsmatrix--ENTWURF.json` durch eine vollständige `Anforderungsmatrix.json` nach `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md`.
+7. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten. Werte dabei die Belegarten aus Datei `02` ausdrücklich aus.
+8. Lege die Bewerbungslogistik fest: gewünschte Stellenart aus Datei `01`, angebotene Stellenart, Arbeitsmodell, Region, Eintrittstermin und Gehaltsstrategie. Widersprüche werden nicht stillschweigend geglättet.
+9. Lege vor dem Schreiben eine Lebenslauf-Strategie fest: deutscher Standard, Beweislogik, Umgang mit Quereinstieg/Lücken und Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`. Aktualisiere die Seitenstrategie in `Bewerbungsauftrag.json`.
+10. Erstelle unter `_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/` die Stellenbeschreibung als `Stellenbeschreibung.md` und die Analyse als `Analyse.md`.
+11. Erstelle im Kandidatenordner den Lebenslauf als `Lebenslauf - NACHNAME.VORNAME.html`, das Anschreiben als `Anschreiben - NACHNAME.VORNAME.html` und die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
+12. Erstelle dort außerdem `Qualitaetscheck.md`, `Druck-Hinweis.md` und bei offenen Punkten `Offene_Fragen.md`.
+13. Führe einen fachlichen Abschlusstest aus: Lies Stellenbeschreibung, Analyse, Datei `01`, Datei `02`, Anforderungsmatrix, Lebenslauf, Anschreiben und E-Mail-Nachricht erneut gegeneinander.
+14. Korrigiere gefundene Unstimmigkeiten im Kandidatenordner und wiederhole den fachlichen Test. Risiken gehören vorrangig in Analyse, Qualitätscheck und offene Fragen; vermeide defensive Metaformulierungen im Anschreiben.
+15. Führe `Tools/Pruefe-Bewerbungsinhalt.ps1` und `Tools/Pruefe-Bewerbung.ps1` gegen den Kandidatenordner aus.
+16. Bereite die technische Finalisierung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome` vor. Dieser Lauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt frische Screenshots und PDFs und schreibt Hashnachweise. Er veröffentlicht noch nichts.
+17. Wenn die Ausführungsumgebung als verwaltete Sandbox bekannt ist, starte den browsergestützten Finalisierungslauf direkt mit lokaler Browserfreigabe. Provoziere nicht zuerst einen erwartbaren Chrome-Sandboxfehler.
+18. Prüfe beide erzeugten Screenshots visuell: keine abgeschnittenen Inhalte, keine Überlappungen, keine problematischen Leerflächen, keine ungewollte Restseite und alle formalen CV-Stationen sichtbar.
+19. Bei Layoutkorrekturen ändere die HTML-Dateien im Kandidatenordner und führe die Vorbereitung erneut aus. Alte Screenshots und PDFs gelten wegen der HTML-Hashprüfung danach nicht mehr als Freigabenachweis.
+20. Veröffentliche erst nach tatsächlicher Sichtprüfung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft`.
+21. Die Finalisierung aktualisiert den technischen Abschnitt des Qualitätschecks und veröffentlicht HTML, Markdown und PDFs gemeinsam. Bei einem Fehler bleibt der finale Zielordner unverändert.
 
 Temporäre Entwürfe, Zwischenschritte oder Arbeitsnotizen dürfen nicht direkt im Projektwurzelordner liegen. Sie gehören immer in den privaten Firmenordner unter:
 
@@ -221,37 +224,21 @@ Linux / Bash:
 bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Sachbearbeitung"
 ```
 
-Die Skripte erstellen nur die private Ordnerstruktur, `Druck-Hinweis.md` und Entwurfsdateien unter `_Arbeitsdateien`.
-
-Danach erstellt der Agent die finalen Bewerbungsdateien im ausgegebenen finalen Bewerbungsordner.
+Die Skripte erstellen einen leeren finalen Zielordner, den privaten Arbeitsordner, `Bewerbungsauftrag.json`, einen Entwurf der Anforderungsmatrix sowie den Unterordner `Kandidat/`. Stellenbeschreibung und Druckhinweis werden als Kandidatendateien vorbereitet. Der Agent schreibt keine Versanddatei direkt in den finalen Zielordner.
 
 ## Technischer Abschlusscheck
 
-Nach dem Erstellen der finalen Bewerbung soll der statische Prüfer genutzt werden:
+Nach dem Erstellen aller Kandidatendateien wird zuerst die Finalisierung vorbereitet:
 
 ```powershell
-.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome
 ```
 
-Dieser Check ist der technische Mindestabschluss. Er prüft Pflichtdateien, sichtbare Platzhalter, finale Dateinamen und A4-Grundstruktur.
+Der Vorbereitungslauf führt Stammdatenprüfung, Inhaltsprüfung, statischen A4-Check, Chrome-Layoutcheck und PDF-Export aus. Er schreibt maschinenlesbare Berichte mit SHA-256-Bezug zu den geprüften HTML-Dateien, veröffentlicht aber noch keine Datei.
 
-Optional kann zusätzlich ein Browser-Layoutcheck erzeugt werden:
+In einer bekannten Sandbox wird dieser browsergestützte Lauf direkt mit lokaler Browserfreigabe ausgeführt. Ein erwartbarer erster Chrome-Fehllauf innerhalb der Sandbox ist nicht erforderlich.
 
-```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
-```
-
-Der Browser-Layoutcheck gilt nur als bestanden, wenn Screenshots oder PDFs wirklich im privaten `_Arbeitsdateien`-Ordner erzeugt wurden.
-
-Bekannter Standardweg unter Windows 11 / VS Code / PowerShell:
-
-```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome
-```
-
-Wenn der Agent in einer Sandbox läuft und Chrome dort keine Ausgabe erzeugt oder der Browserprozess hängt, gilt das nicht als Layouturteil über die Bewerbung. Dann denselben Befehl mit lokaler Browserfreigabe außerhalb der Sandbox erneut ausführen. Nicht auf Firefox ausweichen, nur um irgendetwas zu probieren.
-
-Nach erfolgreichem Lauf den Screenshot unter folgendem Pfad öffnen und bewerten:
+Danach müssen die Screenshots unter folgendem Pfad geöffnet und tatsächlich bewertet werden:
 
 ```text
 Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
@@ -259,19 +246,20 @@ Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
 
 Bewertung:
 
-- Einseiten-Dokumente müssen als eine vollständige A4-Seite sichtbar sein.
-- Zweiseitige Lebensläufe dürfen nicht halb leer oder wie ein zufälliger Rest wirken.
-- Unten darf kein Inhalt abgeschnitten sein.
-- Schulbildung, berufliche Bildung und Weiterbildung dürfen nicht an den Rand gedrückt oder verdeckt sein.
-- Schriftgröße und Abstände müssen professionell lesbar wirken.
+- Einseiten-Dokumente zeigen genau eine vollständige A4-Seite.
+- Zweiseitige Lebensläufe wirken bewusst verteilt und besitzen korrekte Footer.
+- Inhalte überlappen nicht und werden nicht abgeschnitten.
+- Formale CV-Stationen bleiben sichtbar.
+- Schrift, Abstände und freie Flächen wirken professionell.
+- Automatische Dichtewarnungen werden fachlich geprüft und nicht blind ignoriert.
 
-Wenn Chrome oder Edge verfügbar ist, können danach automatisch PDFs erzeugt werden:
+Nach bestätigter Sichtprüfung wird atomar veröffentlicht:
 
 ```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft
 ```
 
-Der PDF-Export führt den statischen Prüfer erneut aus und bricht ab, wenn die HTML-Bewerbung nicht im grünen Bereich ist.
+Ändert sich nach der Vorbereitung eine HTML-Datei, verweigert der Hashvergleich die Veröffentlichung. Dann muss der vollständige Vorbereitungslauf erneut ausgeführt werden. Bei jedem Veröffentlichungsfehler bleibt der bisherige finale Ordner unverändert.
 
 ## Plattformregeln
 
@@ -281,4 +269,4 @@ Der PDF-Export führt den statischen Prüfer erneut aus und bricht ab, wenn die 
 - Unter Windows darf das PowerShell-Skript genutzt werden.
 - Unter Linux darf das Bash-Skript genutzt werden.
 - Beide Skripte müssen dieselbe Ordnerstruktur und dieselben Arbeitsdateien vorbereiten.
-- Finale Pflichtdateien erstellt der Agent erst nach vollständiger Analyse und Qualitätsprüfung.
+- Kandidatendateien erstellt der Agent erst nach vollständiger Analyse. Finale Pflichtdateien entstehen ausschließlich durch die geprüfte Veröffentlichung.

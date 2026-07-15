@@ -19,6 +19,39 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Wenn ein Browser-Layoutcheck keine Datei erzeugt, ist das kein bestandener Layoutcheck. Dann muss der Fehler klar dokumentiert werden.
 - Finale Bewerbungsdateien dürfen erst gemeldet werden, nachdem mindestens der statische Check erfolgreich war.
 - PDFs dürfen erst erzeugt werden, nachdem der statische Check erfolgreich war.
+- Versandfertige Dateien werden zunächst im privaten `Kandidat`-Ordner geprüft. Der finale Zielordner bleibt bis zur atomaren Veröffentlichung leer.
+- Eine Änderung an einer HTML-Datei nach dem Layoutcheck macht den bisherigen Screenshot- und PDF-Nachweis ungültig. Maßgeblich sind die SHA-256-Werte in den Prüfberichten.
+- In einer als verwaltete Sandbox bekannten Umgebung den ersten browsergestützten Lauf direkt mit lokaler Browserfreigabe ausführen, statt einen erwartbaren Chrome-Fehlerlauf zu provozieren.
+
+## Verbindlicher Finalisierungsworkflow
+
+Der Standardweg verwendet `Tools/Finalisiere-Bewerbung.ps1` und den privaten Arbeitsordner.
+
+Vorbereitung mit allen maschinellen Prüfungen:
+
+```powershell
+.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome
+```
+
+Dieser Lauf:
+
+- verlangt eine vollständige `Anforderungsmatrix.json`
+- sperrt ungeklärte zentrale Bewerbungslogistik
+- führt Stammdaten-, Inhalts- und statischen HTML-Check aus
+- erzeugt frische Layoutscreenshots samt Dichtehinweisen
+- exportiert und validiert beide PDFs
+- schreibt Hash- und Artefaktnachweise
+- veröffentlicht noch keine Datei
+
+Nach der tatsächlichen Sichtprüfung:
+
+```powershell
+.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft
+```
+
+Die Veröffentlichung wird verweigert, wenn HTML, PDF oder Screenshot nach der Vorbereitung verändert wurde. Sie kopiert nicht dateiweise in den Zielordner, sondern veröffentlicht das validierte Set über einen privaten Staging-Ordner gemeinsam.
+
+Die nachfolgenden Einzelwerkzeuge bleiben für Diagnose, Entwicklung und gezielte Wiederholungen verfügbar. Für neue Bewerbungen ersetzt ihre manuelle Verkettung nicht den verbindlichen Finalisierungsworkflow.
 
 ## Pflichtprüfung nach jeder Bewerbung
 
@@ -158,13 +191,13 @@ Wenn kein Chrome oder Edge verfügbar ist, wird kein PDF-Export als bestanden ge
 
 ## Reihenfolge im Abschluss
 
-1. Finale Dateien erzeugen.
-2. `Tools/Pruefe-Bewerbung.ps1` ausführen.
-3. Optional `Tools/Layoutcheck-Bewerbung.ps1` ausführen, unter Windows 11 bevorzugt mit `-Browser chrome`.
-4. Erzeugten Screenshot visuell prüfen und bei Layoutproblemen die HTML-Datei korrigieren.
-5. Wenn PDF-Dateien gewünscht sind oder ein Browser verfügbar ist: `Tools/Exportiere-PDF.ps1` ausführen.
-6. Ergebnis in `Qualitaetscheck.md` oder in der Abschlussnachricht knapp dokumentieren.
-7. Bei Fehlern nicht final melden, sondern Dateien korrigieren und den Check erneut ausführen.
+1. Stammdaten prüfen und `Anforderungsmatrix.json` vervollständigen.
+2. Versandfertig benannte Dateien im privaten Kandidatenordner erzeugen.
+3. Finalisierung ohne Veröffentlichung vorbereiten.
+4. Beide Screenshots visuell öffnen und prüfen.
+5. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.
+6. Erst nach erfolgreicher Sichtprüfung mit `-Veroeffentlichen -VisuellGeprueft` atomar veröffentlichen.
+7. Bei Fehlern nicht final melden; der finale Zielordner muss unverändert bleiben.
 
 ## Keine stillen Erfolge
 

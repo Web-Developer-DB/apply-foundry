@@ -9,9 +9,13 @@ param(
 
   [string]$StellenbeschreibungPath,
 
+  [string]$StammdatenPath = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Daten\01_PERSOENLICHE_DATEN.md"),
+
   [string]$BewerbungenRoot = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Bewerbungen"),
 
-  [switch]$Fortsetzen
+  [switch]$Fortsetzen,
+
+  [switch]$StammdatenpruefungUeberspringen
 )
 
 Set-StrictMode -Version Latest
@@ -66,6 +70,30 @@ function Test-IsSafeChildPath {
   return $candidateFull.StartsWith($rootFull + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)
 }
 
+function Get-MarkdownField {
+  param([string]$Path, [string]$Name)
+
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    return ""
+  }
+  foreach ($line in Get-Content -LiteralPath $Path -Encoding UTF8) {
+    if ($line -match '^\s*-\s*(?<key>[^:]+):\s*(?<value>.*)$' -and $Matches.key.Trim() -eq $Name) {
+      return $Matches.value.Trim()
+    }
+  }
+  return ""
+}
+
+function Invoke-RequiredTool {
+  param([string]$ScriptPath, [string[]]$Arguments)
+
+  $powerShellExe = (Get-Process -Id $PID).Path
+  & $powerShellExe -NoProfile -File $ScriptPath @Arguments
+  if ($LASTEXITCODE -ne 0) {
+    Stop-WithValidationError -Message "Vorprüfung fehlgeschlagen: $ScriptPath"
+  }
+}
+
 $Firma = $Firma.Trim()
 $Rolle = $Rolle.Trim()
 if ([string]::IsNullOrWhiteSpace($Firma)) {
@@ -100,6 +128,14 @@ if ($StellenbeschreibungPath) {
   $StellenbeschreibungPath = (Resolve-Path -LiteralPath $StellenbeschreibungPath).Path
 }
 
+if (-not $StammdatenpruefungUeberspringen) {
+  $stammdatenChecker = Join-Path -Path $PSScriptRoot -ChildPath "Pruefe-Stammdaten.ps1"
+  if (-not (Test-Path -LiteralPath $stammdatenChecker -PathType Leaf)) {
+    Stop-WithValidationError -Message "Stammdatenprüfer fehlt: $stammdatenChecker"
+  }
+  Invoke-RequiredTool -ScriptPath $stammdatenChecker -Arguments @("-StammdatenPath", $StammdatenPath)
+}
+
 $bewerbungenRootFull = [System.IO.Path]::GetFullPath($BewerbungenRoot)
 if ((Test-Path -LiteralPath $bewerbungenRootFull) -and -not (Test-Path -LiteralPath $bewerbungenRootFull -PathType Container)) {
   Stop-WithValidationError -Message "BewerbungenRoot existiert, ist aber kein Ordner: $bewerbungenRootFull"
@@ -113,8 +149,9 @@ $rolleHtml = [System.Net.WebUtility]::HtmlEncode($Rolle)
 $firmaDir = Join-Path -Path $bewerbungenRootFull -ChildPath $firmaSlug
 $zielDir = Join-Path -Path $firmaDir -ChildPath "$Datum--$rolleSlug"
 $arbeitsDir = Join-Path -Path (Join-Path -Path $firmaDir -ChildPath "_Arbeitsdateien") -ChildPath "$Datum--$rolleSlug"
+$kandidatDir = Join-Path -Path $arbeitsDir -ChildPath "Kandidat"
 
-if (-not (Test-IsSafeChildPath -Candidate $zielDir -Root $bewerbungenRootFull) -or -not (Test-IsSafeChildPath -Candidate $arbeitsDir -Root $bewerbungenRootFull)) {
+if (-not (Test-IsSafeChildPath -Candidate $zielDir -Root $bewerbungenRootFull) -or -not (Test-IsSafeChildPath -Candidate $arbeitsDir -Root $bewerbungenRootFull) -or -not (Test-IsSafeChildPath -Candidate $kandidatDir -Root $arbeitsDir)) {
   Stop-WithValidationError -Message "Berechneter Zielpfad liegt außerhalb von BewerbungenRoot."
 }
 
@@ -148,6 +185,7 @@ if ($Fortsetzen -and $arbeitsExisted) {
 
 $zielCreated = -not $zielExisted
 $arbeitsCreated = -not $arbeitsExisted
+$kandidatCreated = -not (Test-Path -LiteralPath $kandidatDir -PathType Container)
 
 try {
   if ($zielCreated) {
@@ -156,8 +194,11 @@ try {
   if ($arbeitsCreated) {
     New-Item -Path $arbeitsDir -ItemType Directory | Out-Null
   }
+  if ($kandidatCreated) {
+    New-Item -Path $kandidatDir -ItemType Directory | Out-Null
+  }
 
-$stellenbeschreibungFinalFile = Join-Path -Path $zielDir -ChildPath "Stellenbeschreibung.md"
+$stellenbeschreibungKandidatFile = Join-Path -Path $kandidatDir -ChildPath "Stellenbeschreibung.md"
 $stellenbeschreibungEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Stellenbeschreibung--ENTWURF.md"
 $analyseEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Analyse--ENTWURF.md"
 $lebenslaufEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Lebenslauf--$firmaSlug--ENTWURF.html"
@@ -166,27 +207,67 @@ $arbeitsnotizenFile = Join-Path -Path $arbeitsDir -ChildPath "Arbeitsnotizen.md"
 $emailEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Email-Nachricht--$firmaSlug--ENTWURF.md"
 $qualitaetscheckEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Qualitaetscheck--ENTWURF.md"
 $offeneFragenEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Offene_Fragen--ENTWURF.md"
-$druckHinweisFile = Join-Path -Path $zielDir -ChildPath "Druck-Hinweis.md"
+$anforderungsmatrixEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Anforderungsmatrix--ENTWURF.json"
+$auftragFile = Join-Path -Path $arbeitsDir -ChildPath "Bewerbungsauftrag.json"
+$druckHinweisFile = Join-Path -Path $kandidatDir -ChildPath "Druck-Hinweis.md"
 
-if ((Test-Path -LiteralPath $stellenbeschreibungFinalFile) -and -not (Test-Path -LiteralPath $stellenbeschreibungFinalFile -PathType Leaf)) {
+if ((Test-Path -LiteralPath $stellenbeschreibungKandidatFile) -and -not (Test-Path -LiteralPath $stellenbeschreibungKandidatFile -PathType Leaf)) {
   throw "Stellenbeschreibung.md existiert, ist aber keine reguläre Datei."
 }
 
 if ($StellenbeschreibungPath) {
-  if (Test-Path -LiteralPath $stellenbeschreibungFinalFile -PathType Leaf) {
+  if (Test-Path -LiteralPath $stellenbeschreibungKandidatFile -PathType Leaf) {
     $sourceHash = (Get-FileHash -LiteralPath $StellenbeschreibungPath -Algorithm SHA256).Hash
-    $targetHash = (Get-FileHash -LiteralPath $stellenbeschreibungFinalFile -Algorithm SHA256).Hash
+    $targetHash = (Get-FileHash -LiteralPath $stellenbeschreibungKandidatFile -Algorithm SHA256).Hash
     if ($sourceHash -ne $targetHash) {
-      throw "Eine andere Stellenbeschreibung liegt bereits im Zielordner. Überschreiben wurde verweigert."
+      throw "Eine andere Stellenbeschreibung liegt bereits im Kandidatenordner. Überschreiben wurde verweigert."
     }
   } else {
-    Copy-Item -LiteralPath $StellenbeschreibungPath -Destination $stellenbeschreibungFinalFile
+    Copy-Item -LiteralPath $StellenbeschreibungPath -Destination $stellenbeschreibungKandidatFile
   }
-} elseif (-not (Test-Path -LiteralPath $stellenbeschreibungFinalFile) -and -not (Test-Path -LiteralPath $stellenbeschreibungEntwurfFile)) {
+} elseif (-not (Test-Path -LiteralPath $stellenbeschreibungKandidatFile) -and -not (Test-Path -LiteralPath $stellenbeschreibungEntwurfFile)) {
   Set-Content -LiteralPath $stellenbeschreibungEntwurfFile -Encoding UTF8 -Value @"
 # Stellenbeschreibung
 
 [Stellenbeschreibung hier einfügen]
+"@
+}
+
+if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
+  $applicantFileName = Get-MarkdownField -Path $StammdatenPath -Name "Dateiname-Name"
+  $auftrag = [ordered]@{
+    schemaVersion = 1
+    firma = $Firma
+    firmaSlug = $firmaSlug
+    rolle = $Rolle
+    rolleSlug = $rolleSlug
+    datum = $Datum
+    bewerberDateiname = $applicantFileName
+    zielOrdner = $zielDir
+    arbeitsOrdner = $arbeitsDir
+    kandidatOrdner = $kandidatDir
+    seitenstrategie = "noch_festzulegen"
+    createdAtUtc = [datetime]::UtcNow.ToString("o")
+  }
+  Set-Content -LiteralPath $auftragFile -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 5)
+}
+
+if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
+  Set-Content -LiteralPath $anforderungsmatrixEntwurfFile -Encoding UTF8 -Value @"
+{
+  "schemaVersion": 1,
+  "requirements": [
+    {
+      "id": "muss-1",
+      "anforderung": "durch den Agenten aus der Stellenbeschreibung zu extrahieren",
+      "typ": "muss",
+      "status": "unklar",
+      "belegart": "",
+      "beleg": "",
+      "behandlung": "vor Erstellung der Kandidatendateien klären"
+    }
+  ]
+}
 "@
 }
 
@@ -272,9 +353,11 @@ if (-not (Test-Path -LiteralPath $arbeitsnotizenFile)) {
 - Zielrolle: $Rolle
 - Finaler Bewerbungsordner: $zielDir
 - Entwurfs-/Arbeitsdateien: $arbeitsDir
+- Kandidatendateien vor Freigabe: $kandidatDir
 
 Dieser Ordner ist nur für temporäre Entwürfe und Arbeitsnotizen gedacht.
-Finale Dateien gehören erst nach vollständiger Agentenprüfung in den finalen Bewerbungsordner.
+Versandfertig benannte Kandidatendateien gehören zunächst in den Kandidatenordner.
+Der finale Bewerbungsordner bleibt bis zur erfolgreichen atomaren Veröffentlichung leer.
 "@
 }
 
@@ -339,7 +422,11 @@ Ziel: Die sichtbare A4-Seite im Browser soll ohne Firefox-Dateipfad, URL, Datum 
 
 Write-Output "Bewerbungsordner: $zielDir"
 Write-Output "Arbeitsdateien: $arbeitsDir"
+Write-Output "Kandidatendateien: $kandidatDir"
 } catch {
+  if ($kandidatCreated -and -not $arbeitsCreated -and (Test-Path -LiteralPath $kandidatDir -PathType Container) -and (Test-IsSafeChildPath -Candidate $kandidatDir -Root $arbeitsDir)) {
+    Remove-Item -LiteralPath $kandidatDir -Recurse -Force -ErrorAction SilentlyContinue
+  }
   if ($arbeitsCreated -and (Test-Path -LiteralPath $arbeitsDir -PathType Container) -and (Test-IsSafeChildPath -Candidate $arbeitsDir -Root $bewerbungenRootFull)) {
     Remove-Item -LiteralPath $arbeitsDir -Recurse -Force -ErrorAction SilentlyContinue
   }
