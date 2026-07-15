@@ -62,6 +62,13 @@ html_escape() {
   printf '%s' "$escaped"
 }
 
+json_escape() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  printf '%s' "$value"
+}
+
 validate_date() {
   local value="$1"
   [[ "$value" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})$ ]] || return 1
@@ -189,6 +196,7 @@ bewerbungen_root_full="$(mkdir -p "$bewerbungen_root" && cd -- "$bewerbungen_roo
 firma_dir="$bewerbungen_root_full/$firma_slug"
 ziel_dir="$firma_dir/$datum--$rolle_slug"
 arbeits_dir="$firma_dir/_Arbeitsdateien/$datum--$rolle_slug"
+kandidat_dir="$arbeits_dir/Kandidat"
 
 for path in "$ziel_dir" "$arbeits_dir"; do
   if [[ -e "$path" && ! -d "$path" ]]; then
@@ -246,8 +254,9 @@ if (( !arbeits_existed )); then
   mkdir -p "$arbeits_dir"
   arbeits_created=1
 fi
+mkdir -p "$kandidat_dir"
 
-stellenbeschreibung_final_file="$ziel_dir/Stellenbeschreibung.md"
+stellenbeschreibung_kandidat_file="$kandidat_dir/Stellenbeschreibung.md"
 stellenbeschreibung_entwurf_file="$arbeits_dir/Stellenbeschreibung--ENTWURF.md"
 analyse_entwurf_file="$arbeits_dir/Analyse--ENTWURF.md"
 lebenslauf_entwurf_file="$arbeits_dir/Lebenslauf--$firma_slug--ENTWURF.html"
@@ -256,25 +265,71 @@ arbeitsnotizen_file="$arbeits_dir/Arbeitsnotizen.md"
 email_entwurf_file="$arbeits_dir/Email-Nachricht--$firma_slug--ENTWURF.md"
 qualitaetscheck_entwurf_file="$arbeits_dir/Qualitaetscheck--ENTWURF.md"
 offene_fragen_entwurf_file="$arbeits_dir/Offene_Fragen--ENTWURF.md"
-druck_hinweis_file="$ziel_dir/Druck-Hinweis.md"
+anforderungsmatrix_entwurf_file="$arbeits_dir/Anforderungsmatrix--ENTWURF.json"
+auftrag_file="$arbeits_dir/Bewerbungsauftrag.json"
+druck_hinweis_file="$kandidat_dir/Druck-Hinweis.md"
 
 if [[ -n "$stellenbeschreibung_path" ]]; then
-  if [[ -f "$stellenbeschreibung_final_file" ]]; then
-    if ! cmp -s -- "$stellenbeschreibung_path" "$stellenbeschreibung_final_file"; then
-      echo "Fehler: Eine andere Stellenbeschreibung liegt bereits im Zielordner. Überschreiben wurde verweigert." >&2
+  if [[ -f "$stellenbeschreibung_kandidat_file" ]]; then
+    if ! cmp -s -- "$stellenbeschreibung_path" "$stellenbeschreibung_kandidat_file"; then
+      echo "Fehler: Eine andere Stellenbeschreibung liegt bereits im Kandidatenordner. Überschreiben wurde verweigert." >&2
       exit 1
     fi
-  elif [[ -e "$stellenbeschreibung_final_file" ]]; then
+  elif [[ -e "$stellenbeschreibung_kandidat_file" ]]; then
     echo "Fehler: Stellenbeschreibung.md existiert, ist aber keine Datei." >&2
     exit 1
   else
-    cp "$stellenbeschreibung_path" "$stellenbeschreibung_final_file"
+    cp "$stellenbeschreibung_path" "$stellenbeschreibung_kandidat_file"
   fi
-elif [[ ! -e "$stellenbeschreibung_final_file" && ! -e "$stellenbeschreibung_entwurf_file" ]]; then
+elif [[ ! -e "$stellenbeschreibung_kandidat_file" && ! -e "$stellenbeschreibung_entwurf_file" ]]; then
   cat > "$stellenbeschreibung_entwurf_file" <<'EOF'
 # Stellenbeschreibung
 
 [Stellenbeschreibung hier einfügen]
+EOF
+fi
+
+if [[ ! -e "$auftrag_file" ]]; then
+  firma_json="$(json_escape "$firma")"
+  rolle_json="$(json_escape "$rolle")"
+  ziel_json="$(json_escape "$ziel_dir")"
+  arbeits_json="$(json_escape "$arbeits_dir")"
+  kandidat_json="$(json_escape "$kandidat_dir")"
+  created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  cat > "$auftrag_file" <<EOF
+{
+  "schemaVersion": 1,
+  "firma": "$firma_json",
+  "firmaSlug": "$firma_slug",
+  "rolle": "$rolle_json",
+  "rolleSlug": "$rolle_slug",
+  "datum": "$datum",
+  "bewerberDateiname": "",
+  "zielOrdner": "$ziel_json",
+  "arbeitsOrdner": "$arbeits_json",
+  "kandidatOrdner": "$kandidat_json",
+  "seitenstrategie": "noch_festzulegen",
+  "createdAtUtc": "$created_at"
+}
+EOF
+fi
+
+if [[ ! -e "$anforderungsmatrix_entwurf_file" ]]; then
+  cat > "$anforderungsmatrix_entwurf_file" <<'EOF'
+{
+  "schemaVersion": 1,
+  "requirements": [
+    {
+      "id": "muss-1",
+      "anforderung": "durch den Agenten aus der Stellenbeschreibung zu extrahieren",
+      "typ": "muss",
+      "status": "unklar",
+      "belegart": "",
+      "beleg": "",
+      "behandlung": "vor Erstellung der Kandidatendateien klären"
+    }
+  ]
+}
 EOF
 fi
 
@@ -360,9 +415,11 @@ if [[ ! -e "$arbeitsnotizen_file" ]]; then
 - Zielrolle: $rolle
 - Finaler Bewerbungsordner: $ziel_dir
 - Entwurfs-/Arbeitsdateien: $arbeits_dir
+- Kandidatendateien vor Freigabe: $kandidat_dir
 
 Dieser Ordner ist nur für temporäre Entwürfe und Arbeitsnotizen gedacht.
-Finale Dateien gehören erst nach vollständiger Agentenprüfung in den finalen Bewerbungsordner.
+Versandfertig benannte Kandidatendateien gehören zunächst in den Kandidatenordner.
+Der finale Bewerbungsordner bleibt bis zur erfolgreichen atomaren Veröffentlichung leer.
 EOF
 fi
 
@@ -427,4 +484,5 @@ fi
 
 printf 'Bewerbungsordner: %s\n' "$ziel_dir"
 printf 'Arbeitsdateien: %s\n' "$arbeits_dir"
+printf 'Kandidatendateien: %s\n' "$kandidat_dir"
 success=1

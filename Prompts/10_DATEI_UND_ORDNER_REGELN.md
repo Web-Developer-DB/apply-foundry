@@ -88,7 +88,7 @@ Optional:
 - `Notizen.md`
 - PDF-Dateien mit demselben Namen wie die finalen HTML-Dateien, falls später PDFs erzeugt werden
 
-Wenn ein HTML-Dokument nachträglich wegen Drucklayout, A4-Fit oder Recruiter-Design überarbeitet wird, bleibt der finale Dateiname gleich. Alte Entwurfsvarianten gehören nur in den passenden `_Arbeitsdateien`-Ordner und nicht neben die finale Versanddatei.
+Wenn ein HTML-Kandidat wegen Drucklayout, A4-Fit oder Recruiter-Design überarbeitet wird, bleibt der geplante finale Dateiname gleich. Die Änderung macht vorhandene Layout- und PDF-Nachweise ungültig und erfordert eine neue Finalisierungsvorbereitung. Bereits veröffentlichte Bewerbungen dürfen nur über einen erneut vollständig geprüften Kandidatensatz ersetzt werden.
 
 ## Temporäre Dateien / Arbeitsdateien
 
@@ -112,9 +112,17 @@ Der finale Bewerbungsordner bleibt:
 Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
 ```
 
+Versandfertig benannte, aber noch nicht freigegebene Kandidatendateien liegen unter:
+
+```text
+Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/
+```
+
+Der Kandidatenordner verwendet bereits die späteren finalen Dateinamen. Er ist trotzdem kein Versandordner. Der finale Zielordner bleibt bis zur atomaren Veröffentlichung leer.
+
 Regel:
-- finale Dateien in den finalen Bewerbungsordner
-- temporäre Dateien in `_Arbeitsdateien`
+- Entwürfe und Kandidatendateien in `_Arbeitsdateien`
+- finale Dateien ausschließlich durch `Tools/Finalisiere-Bewerbung.ps1` veröffentlichen
 - keine losen temporären Dateien direkt unter `Private/Bewerbungen/`
 - keine generierten Bewerbungsdateien in öffentlichen Projektordnern
 
@@ -132,11 +140,11 @@ Unter Linux mit Bash:
 bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Sachbearbeitung"
 ```
 
-Beide Skripte erstellen den Firmenordner, den finalen Bewerbungsordner sowie einen Arbeitsordner unter `_Arbeitsdateien`.
+Beide Skripte erstellen den Firmenordner, einen zunächst leeren finalen Bewerbungsordner, einen Arbeitsordner unter `_Arbeitsdateien`, den Unterordner `Kandidat/`, `Bewerbungsauftrag.json` und einen Entwurf der Anforderungsmatrix.
 
 Existiert die bereinigte Kombination aus Firma, Datum und Rolle bereits, müssen beide Skripte standardmäßig abbrechen. Eine vorhandene Bewerbung darf nur mit `-Fortsetzen` unter PowerShell beziehungsweise `--fortsetzen` unter Bash ergänzt werden, wenn Ziel- und Arbeitsordner vollständig vorhanden sind und `Arbeitsnotizen.md` exakt dieselbe Firma und Zielrolle bestätigt. Eine abweichende vorhandene `Stellenbeschreibung.md` darf nie überschrieben werden.
 
-Platzhalter, Warnhinweise und Entwürfe der Hilfsskripte gehören ausschließlich in `_Arbeitsdateien`. Der finale Bewerbungsordner darf durch das Hilfsskript keine unfertigen `Analyse.md`, `Email-Nachricht--FIRMA.md`, `Qualitaetscheck.md` oder `Offene_Fragen.md` Platzhalter erhalten.
+Platzhalter, Warnhinweise und Entwürfe der Hilfsskripte gehören ausschließlich in `_Arbeitsdateien`. Stellenbeschreibung und Druckhinweis dürfen bereits im Kandidatenordner liegen. Der finale Bewerbungsordner bleibt durch das Hilfsskript vollständig leer.
 
 ## Plattformregeln
 
@@ -162,13 +170,13 @@ Platzhalter, Warnhinweise und Entwürfe der Hilfsskripte gehören ausschließlic
 ## Finale-Dateien
 
 Das Hilfsskript darf Arbeitsdateien mit Warnhinweisen nur unter `_Arbeitsdateien` erzeugen.
-Der finale Bewerbungsordner darf erst nach Agentenprüfung finale Dateien ohne sichtbare Platzhalter enthalten.
+Der finale Bewerbungsordner darf erst nach Stammdatenprüfung, Inhaltsprüfung, statischem Check, Browser-Layoutcheck, visueller Bestätigung und PDF-Validierung veröffentlicht werden. Die Veröffentlichung erfolgt als vollständiges Set und nicht durch einzelne Kopiervorgänge des Agenten.
 
 Finale HTML-Dateien müssen außerdem druckstabil sein:
 
 - Einseiten-Dokumente dürfen in Firefox bei 100 Prozent Skalierung keine zweite Seite erzeugen.
 - Zweiseitige Dokumente müssen bewusst zwei A4-Seitencontainer enthalten.
-- Drucklayout-Korrekturen werden direkt an der finalen HTML-Datei vorgenommen und anschließend im `Qualitaetscheck.md` dokumentiert.
+- Drucklayout-Korrekturen werden an der HTML-Datei im Kandidatenordner vorgenommen. Danach müssen Layout- und PDF-Nachweise wegen der Hashbindung neu erzeugt werden.
 
 Finale Bewerbungsdateien dürfen keine sichtbaren Arbeitsmarker enthalten:
 - `[ergänzen]`

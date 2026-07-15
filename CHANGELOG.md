@@ -4,12 +4,33 @@
 
 Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Die Struktur orientiert sich an „Keep a Changelog“ und verwendet die im Projekt geführten Versionsnummern.
 
+## Version 1.2 – 2026-07-14
+
+### Hinzugefügt
+
+- Stammdaten-Vorprüfung mit getrennten Fehlern, Warnungen und strengem Gate für ungeklärte zentrale Bewerbungslogistik.
+- Strukturierte `Anforderungsmatrix.json` für Muss-/Kann-Kriterien, Belegarten, Status und Behandlung.
+- Fachlicher Inhaltsprüfer für Bewerbername, Firma, Rolle, Verfügbarkeit, Dateinamen und sämtliche formalen Zeiträume aus dem privaten Profil.
+- Privater `Kandidat`-Ordner und `Bewerbungsauftrag.json` als verbindliche Staging-Struktur.
+- Zweistufige Finalisierung mit tatsächlicher Sichtbestätigung, SHA-256-Nachweisen und atomarer Veröffentlichung des vollständigen Bewerbungssatzes.
+- Maschinenlesbare Berichte für Stammdaten-, Inhalts-, Layout- und PDF-Prüfung.
+- Heuristische Layoutdichte-Prüfung für ungewöhnlich große freie Flächen oder Inhalt zu nah am unteren Seitenrand.
+- Regressionstests für Stammdaten-Gates, Zeitraumvollständigkeit, Sichtprüfungszwang, veraltete HTML-Nachweise und atomare Veröffentlichung.
+
+### Geändert
+
+- Ordnerhelfer für PowerShell und Bash halten den finalen Zielordner bis zur Freigabe leer und legen Stellenbeschreibung sowie Druckhinweis im Kandidatenordner ab.
+- Browsergestützte Prüfungen binden Screenshots und PDFs per Hash an den geprüften HTML-Stand.
+- Agentenworkflow liest große Regeldateien in kleinen Gruppen und verwendet die neue Finalisierung statt direkter Schreibvorgänge in den Zielordner.
+- Risiken und nicht belegte Anforderungen werden aus defensiven Anschreibenformulierungen in Analyse, Matrix, Qualitätscheck oder offene Fragen verlagert.
+
 ## Version 1.1 – 2026-07-14
 
 Version 1.1 basiert auf einem vollständigen technischen und logischen Audit des Projekts.
 
 ### Hinzugefügt
 
+- Vollständiger Umsetzungsplan `frontend-project.md` für eine sichere Electron-Oberfläche mit Codex-Agentenrollen, OpenAI-/Ollama-Adaptern, Arbeitsphasen, Qualitätsgates und Definition of Done.
 - Dependency-freie PowerShell-Regressionssuite unter `Tests/Run-RegressionTests.ps1`.
 - Separate Bash-Regressionsfälle unter `Tests/Bash/test-neue-bewerbung.sh`.
 - Optionale echte Chrome-Testmatrix über `-MitBrowser`.
@@ -95,6 +116,7 @@ Version 1.1 basiert auf einem vollständigen technischen und logischen Audit des
 
 ### Dokumentation
 
+- README um einen neutralen Verweis auf den Frontend-Projektplan und die öffentliche Projektstruktur um `frontend-project.md` ergänzt.
 - README auf Projektstruktur und Funktionsstand von Version 1.1 aktualisiert.
 - Öffentliche Struktur um `Tests/`, `.github/workflows/tests.yml` und `CHANGELOG.md` ergänzt.
 - Technischen Abschlussworkflow an frische Artefakte, Timeouts, Seitenzahlprüfung und PDF-Veröffentlichung angepasst.
@@ -106,7 +128,7 @@ Version 1.1 basiert auf einem vollständigen technischen und logischen Audit des
 ### Betroffene Projektdateien
 
 - Repository-Konfiguration: `.gitignore`, `.gitattributes`.
-- Dokumentation: `README.md`, `CHANGELOG.md`, `Private.example/Daten/README.md`.
+- Dokumentation: `README.md`, `CHANGELOG.md`, `frontend-project.md`, `Private.example/Daten/README.md`.
 - Hauptablauf und Regeln: `Prompts/00_AGENTEN_START_HIER.md`, `Prompts/04_ANSCHREIBEN_REGELN.md`, `Prompts/06_ROLLENLOGIK.md`, `Prompts/07_WAHRHEIT_UND_GRENZEN.md`, `Prompts/08_HTML_CSS_DESIGNREGELN.md`, `Prompts/09_QUALITAETSCHECK.md`, `Prompts/10_DATEI_UND_ORDNER_REGELN.md`, `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`.
 - PowerShell-Werkzeuge: `Tools/Neue-Bewerbung.ps1`, `Tools/Pruefe-Bewerbung.ps1`, `Tools/Layoutcheck-Bewerbung.ps1`, `Tools/Exportiere-PDF.ps1`.
 - Bash-Werkzeug: `Tools/neue-bewerbung.sh`.

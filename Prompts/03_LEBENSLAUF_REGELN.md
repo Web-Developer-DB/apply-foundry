@@ -118,6 +118,8 @@ Vor dem Schreiben des Lebenslaufs muss der Agent ein kurzes Bewerbungsprofil bes
 - Beweislogik: welche Stationen oder Praxisbelege die Zielrolle tragen
 - Risiken oder Lücken, die neutral behandelt oder in `Offene_Fragen.md` dokumentiert werden
 
+Zusätzlich muss vor dem Lebenslauf eine strukturierte `Anforderungsmatrix.json` nach `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md` vorliegen. Jede früh platzierte Rollenbehauptung muss auf einen konkreten Beleg oder eine ausdrücklich vorsichtige Erfahrungsart in dieser Matrix zurückführbar sein.
+
 Dieses Profil steuert Auswahl, Reihenfolge und Kürzung des Lebenslaufs.
 
 ## Inhalt

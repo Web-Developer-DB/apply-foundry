@@ -38,6 +38,8 @@ bash "$tool" --firma 'A&B <X>' --rolle 'R "Q"' --datum '2026-07-14' --bewerbunge
 html="$test_root/escaping/AundB-X/_Arbeitsdateien/2026-07-14--R-Q/Lebenslauf--AundB-X--ENTWURF.html"
 grep -Fq 'A&amp;B &lt;X&gt;' "$html" || fail "Firmenname wurde nicht korrekt HTML-kodiert."
 grep -Fq 'R &quot;Q&quot;' "$html" || fail "Rollenname wurde nicht korrekt HTML-kodiert."
+[[ -f "$test_root/escaping/AundB-X/_Arbeitsdateien/2026-07-14--R-Q/Bewerbungsauftrag.json" ]] || fail "Bewerbungsauftrag wurde nicht erzeugt."
+[[ -d "$test_root/escaping/AundB-X/_Arbeitsdateien/2026-07-14--R-Q/Kandidat" ]] || fail "Kandidatenordner wurde nicht erzeugt."
 
 printf 'JOB-ONE\n' > "$test_root/job-one.md"
 printf 'JOB-TWO\n' > "$test_root/job-two.md"
@@ -47,7 +49,8 @@ bash "$tool" --firma "A B" --rolle "Audit" --datum "2026-07-14" --stellenbeschre
 code=$?
 set -e
 [[ $code -eq 2 ]] || fail "Slug-Kollision wurde nicht abgelehnt."
-grep -Fqx 'JOB-ONE' "$test_root/collision/A-B/2026-07-14--Audit/Stellenbeschreibung.md" || fail "Vorhandene Stellenbeschreibung wurde überschrieben."
+grep -Fqx 'JOB-ONE' "$test_root/collision/A-B/_Arbeitsdateien/2026-07-14--Audit/Kandidat/Stellenbeschreibung.md" || fail "Vorhandene Stellenbeschreibung wurde überschrieben."
+[[ -z "$(find "$test_root/collision/A-B/2026-07-14--Audit" -mindepth 1 -print -quit)" ]] || fail "Finaler Ordner wurde vor der Freigabe befüllt."
 
 bash "$tool" --firma "Fortsetzung Firma" --rolle "Fortsetzung Rolle" --datum "2026-07-14" --stellenbeschreibung-path "$test_root/job-one.md" --bewerbungen-root "$test_root/resume" >/dev/null
 bash "$tool" --firma "Fortsetzung Firma" --rolle "Fortsetzung Rolle" --datum "2026-07-14" --stellenbeschreibung-path "$test_root/job-one.md" --bewerbungen-root "$test_root/resume" --fortsetzen >/dev/null
@@ -60,7 +63,7 @@ set -e
 [[ $code -eq 2 ]] || fail "Unvollständige Bewerbung wurde blind fortgesetzt."
 
 bash "$tool" --firma "Verzeichnis Firma" --rolle "Verzeichnis Rolle" --datum "2026-07-14" --bewerbungen-root "$test_root/job-directory" >/dev/null
-job_path="$test_root/job-directory/Verzeichnis-Firma/2026-07-14--Verzeichnis-Rolle/Stellenbeschreibung.md"
+job_path="$test_root/job-directory/Verzeichnis-Firma/_Arbeitsdateien/2026-07-14--Verzeichnis-Rolle/Kandidat/Stellenbeschreibung.md"
 mkdir "$job_path"
 set +e
 bash "$tool" --firma "Verzeichnis Firma" --rolle "Verzeichnis Rolle" --datum "2026-07-14" --stellenbeschreibung-path "$test_root/job-one.md" --bewerbungen-root "$test_root/job-directory" --fortsetzen >/dev/null 2>&1

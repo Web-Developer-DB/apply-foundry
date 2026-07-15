@@ -11,6 +11,7 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Enthalten Analyse, Qualitätscheck und Arbeitsnotizen keine unnötigen privaten Daten oder Geheimnisse?
 - Wurden Stellenart, Arbeitsmodell, Eintrittstermin, Region und Gehaltslogik aus Datei `01` berücksichtigt?
 - Wurden Belegarten aus Datei `02` ausgewertet und korrekt in die Formulierung übertragen?
+- Wurde vor dem Schreiben eine vollständige `Anforderungsmatrix.json` mit Muss-/Kann-Typ, Status, Belegart, Beleg und Behandlung erstellt?
 - Gibt es keine stillschweigend vermischten Dopplungen oder Widersprüche zwischen Datei `01` und Datei `02`?
 - Sind die wichtigsten Anforderungen der Stelle sichtbar?
 - Sind irrelevante Profilteile für die konkrete Zielrolle entfernt oder reduziert?
@@ -32,6 +33,7 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Ist je Hauptanforderung erkennbar, ob sie im Lebenslauf sichtbar belegt, im Anschreiben sinnvoll aufgegriffen, nur indirekt passend oder als offene Frage/Risiko dokumentiert ist?
 - Sind alle Aussagen in Lebenslauf und Anschreiben durch Datei `01` oder Datei `02` gedeckt?
 - Wurden Anforderungen, zu denen keine private Datengrundlage existiert, nicht erfunden, sondern neutral ausgelassen oder in `Offene_Fragen.md` dokumentiert?
+- Besitzt jede nicht vollständig erfüllte Muss-Anforderung eine klare Behandlung in Analyse, offenen Fragen oder Positionierungsstrategie?
 - Stimmen Lebenslauf, Anschreiben, E-Mail-Nachricht, Dateinamen, Zielrolle, Firma und Ansprechpartner widerspruchsfrei überein?
 - Stimmen Stellenart, Arbeitsmodell, Eintrittstermin und Gehaltsangabe mit Datei `01`, Stellenanzeige, Lebenslauf und Anschreiben überein?
 - Sind fehlende Daten die einzigen offenen Punkte und werden sie nicht als sichtbare Platzhalter in finalen Dateien geführt?
@@ -111,6 +113,7 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Gibt es konkrete Belege?
 - Enthält es keine Floskeln?
 - Enthält es keine Übertreibungen?
+- Enthält es keine unnötig defensiven Metaformulierungen wie `nicht belegt`, `noch keine Erfahrung` oder `ohne daraus Berufserfahrung abzuleiten`?
 - Werden keine Unternehmensdetails erfunden?
 - Ist die Stellenart im Anschreiben genannt?
 - Wurde ein Gehaltswunsch nur genannt, wenn Datei `01` oder die Stellenanzeige dies vorsieht?
@@ -165,6 +168,9 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 ## Ablage
 
 - Finale Dateien liegen im finalen Bewerbungsordner `Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/`.
+- Versandfertig benannte Dateien lagen bis zur Freigabe ausschließlich im privaten Unterordner `_Arbeitsdateien/.../Kandidat/`.
+- Der finale Zielordner wurde erst nach Stammdaten-, Inhalts-, Struktur-, Layout-, Sicht- und PDF-Prüfung atomar veröffentlicht.
+- HTML-Hash, Screenshot-Hash und PDF-Hash stammen aus demselben Vorbereitungslauf; nachträgliche HTML-Änderungen haben eine erneute Vorbereitung ausgelöst.
 - Temporäre Dateien und Entwürfe liegen nur unter `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/`.
 - Es liegen keine losen temporären Dateien direkt unter `Private/Bewerbungen/`.
 - Es liegen keine echten persönlichen Daten in öffentlichen Ordnern wie `Prompts/`, `Vorlagen/`, `Tools/` oder `Private.example/`.
