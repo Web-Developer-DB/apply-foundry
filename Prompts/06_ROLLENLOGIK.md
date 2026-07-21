@@ -17,7 +17,7 @@ Der Agent ist neutral. Er darf keine Branche, keine konkrete Fachrolle, keine Ve
 7. Seniorität oder Einstiegsniveau ableiten.
 8. Firmengröße oder Organisationsart ableiten, falls Hinweise vorhanden sind.
 9. Private Profildaten auf echte Belege prüfen.
-10. Bewerbungslogistik aus `Private/Daten/01_PERSOENLICHE_DATEN.md` prüfen.
+10. Bewerbungslogistik aus dem Snapshot in `Bewerbungsauftrag.json` prüfen und mit der Anzeige abgleichen.
 11. Belegarten aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` auswerten, falls vorhanden.
 12. Profilstrategie festlegen.
 13. Beweislogik festlegen: Welche Stationen, Weiterbildungen, Projekte oder Praxisbelege tragen die Zielrolle wirklich?
@@ -33,7 +33,7 @@ Vor Lebenslauf und Anschreiben wird eine kurze Profilstrategie erstellt:
 - Erfahrungsart
 - Seniorität oder Einstiegsniveau
 - Firmengröße oder Organisationsart, falls erkennbar
-- Stellenart der Anzeige und gewünschte Stellenart aus Datei `01`
+- Stellenart der Anzeige und bewerbungsspezifische Stellenart aus `Bewerbungsauftrag.json`
 - Arbeitsmodell, Region, Eintrittstermin, Reise- oder Schichtanforderungen, falls relevant
 - Gehaltsstrategie: manuelle Angabe, automatische Schätzung, nur bei ausdrücklicher Anforderung oder keine Angabe
 - wichtigste Anforderungen der Stelle
@@ -43,6 +43,8 @@ Vor Lebenslauf und Anschreiben wird eine kurze Profilstrategie erstellt:
 - Beweislogik für Personalverantwortliche: welche Belege im Lebenslauf die Passung in 10 bis 20 Sekunden sichtbar machen
 - offene Risiken, Lücken oder fehlende formale Anforderungen
 - bewusst weggelassene Inhalte
+- gewichtete Eignungsklasse und ausdrückliche Bewerbungsentscheidung
+- Schulbildungsmodus und begründete Auswahl öffentlicher Profil-Links
 
 Diese Strategie wird in `Analyse.md` dokumentiert.
 
@@ -56,6 +58,8 @@ Für jede Information aus den privaten Daten gilt:
 4. Irrelevant oder ablenkend: weglassen.
 
 Zusatzkenntnisse dürfen nicht automatisch übernommen werden. Sie brauchen einen Nutzen für die konkrete Zielrolle.
+
+Die gewichtete Anforderungsmatrix macht aus dieser Priorisierung eine prüfbare Entscheidungshilfe. Ein hoher Score erlaubt keine Übertreibung; ein niedriger Score löscht keine echten Transferstärken. Die Einstufung `stark`, `vertretbar_mit_risiken` oder `stretch` wird in `Analyse.md` festgehalten und führt zu einer ausdrücklichen Entscheidung im Bewerbungsauftrag.
 
 ## Belegarten-Gewichtung
 
@@ -74,23 +78,27 @@ Bei Konflikten gilt die vorsichtigere Belegart. Beispiel: Eine Technologie, die 
 
 ## Bewerbungslogistik und Gehalt
 
-Stellenart, Arbeitsmodell, Eintrittstermin, Region, Reisebereitschaft, Schichtbereitschaft, Befristung und Gehaltswunsch sind Bewerbungslogistik. Sie kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`.
+Stellenart, Arbeitsmodell, Eintrittstermin, Region, Reisebereitschaft, Schichtbereitschaft, Befristung und Gehaltswunsch sind Bewerbungslogistik. Datei `01` ist die Stammquelle; der bei der Anlage erzeugte Snapshot in `Bewerbungsauftrag.json` ist für die konkrete Bewerbung maßgeblich.
 
 - Stellenart muss für Lebenslauf und Anschreiben ausgewertet werden: `Vollzeit`, `Teilzeit` oder `Vollzeit/Teilzeit`.
-- Die Stellenanzeige wird auf angebotene oder geforderte Stellenart geprüft. Bei Widerspruch zu Datei `01` wird der Punkt in `Offene_Fragen.md` dokumentiert.
+- Die Stellenanzeige wird auf angebotene oder geforderte Stellenart geprüft. Bei Widerspruch zum Bewerbungsauftrag wird der Punkt in `Offene_Fragen.md` dokumentiert.
 - Arbeitsmodell, Region, Pendeldistanz, Reisebereitschaft, Schicht- oder Wochenendbereitschaft und Befristung werden nur sichtbar gemacht, wenn sie für die konkrete Bewerbung relevant sind.
-- Eine manuelle Gehaltsangabe aus Datei `01` hat Vorrang.
-- Wenn automatische Gehaltsschätzung aktiviert ist, wird sie aus Zielrolle, Seniorität, technischer Tiefe, Alter oder Berufserfahrung, Region, Arbeitsmodell und Stellenart abgeleitet. Die Begründung wird kurz in `Analyse.md` festgehalten.
+- Eine manuelle Gehaltsangabe im Bewerbungsauftrag hat Vorrang.
+- Eine automatische Gehaltsschätzung ist nur zulässig, wenn sie im Bewerbungsauftrag ausdrücklich aktiviert ist. Sie wird aus einer aktuellen, nachvollziehbaren Quelle sowie Zielrolle, Seniorität, einschlägiger Berufserfahrung, Region, Arbeitsmodell und Stellenart abgeleitet. Alter, Geschlecht und andere geschützte persönliche Merkmale bleiben unberücksichtigt. Quelle, Stand und Begründung werden kurz in `Analyse.md` festgehalten.
 - Wenn die Stellenanzeige eine Gehaltsvorstellung verlangt, muss der Agent prüfen, ob ein Gehalt genannt werden darf, automatisch geschätzt werden soll oder eine offene Frage entsteht.
-- Wenn die Datengrundlage nicht reicht, wird keine Scheingenauigkeit erzeugt. Dann wird `Offene_Fragen.md` genutzt.
+- Wenn die Datengrundlage nicht reicht oder keine aktuelle Quelle geprüft werden kann, wird keine Scheingenauigkeit erzeugt. Dann wird `Offene_Fragen.md` genutzt.
+
+## Rollenbezogene Profil-Links
+
+GitHub-, Portfolio-, LinkedIn- oder Xing-Links werden nicht automatisch vollständig übernommen. Für jede Bewerbung wird `alle`, `rollenrelevant` oder `keine` gewählt. Im Modus `rollenrelevant` muss jeder ausgewählte Link die Zielrolle sichtbar stützen; nicht ausgewählte Links bleiben aus dem Lebenslauf entfernt. Die Auswahl ändert keine URL in den Stammdaten und wird in der Analyse knapp begründet.
 
 ## Formale CV-Stationen
 
 Die Rollenstrategie darf Inhalte gewichten, aber sie darf den deutschen Lebenslaufstandard nicht auflösen.
 
-- Berufserfahrung, Ausbildung/Studium/berufliche Bildung und Schulbildung bleiben als formale Stationen erkennbar, wenn entsprechende Daten vorhanden sind.
-- Rollenrelevanz entscheidet über Detailtiefe und Reihenfolge, aber nicht darüber, ob formale Stationen mit Zeitraum entfernt werden. Vorhandene berufliche Stationen, Ausbildung/Umschulung/Studium, formale Weiterbildungen und Schulbildung bleiben mit Zeitraum, Institution/Arbeitgeber und Rollen- oder Bildungsbezeichnung sichtbar.
-- Formale CV-Stationen werden fachlich aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` entnommen; `Private/Daten/01_PERSOENLICHE_DATEN.md` ist nur für Identität, Kontakt, Dateiname-Name und Bewerbungslogistik zuständig.
+- Berufserfahrung und Ausbildung/Studium/berufliche Bildung bleiben als formale Stationen erkennbar. Schulbildung bleibt mindestens als Abschlussangabe sichtbar.
+- Rollenrelevanz entscheidet über Detailtiefe und Reihenfolge, aber nicht darüber, ob berufliche Stationen, Ausbildung/Umschulung/Studium oder formale Weiterbildungen mit Zeitraum entfernt werden. Schulbildung bleibt im Modus `vollstaendig` mit Chronologie sichtbar und darf nur im ausdrücklich gesetzten Modus `recruiter_kompakt` auf eine wahre Abschlussangabe verdichtet werden.
+- Formale CV-Stationen werden fachlich aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` entnommen; `Private/Daten/01_PERSOENLICHE_DATEN.md` ist die Stammquelle für Identität, Kontakt, Dateiname-Name und den Logistik-Snapshot.
 - Für die Rolle relevante Projekte, private Praxis und Zusatzkenntnisse dürfen formale Stationen ergänzen, aber nicht ersetzen.
 - Bei Quereinstieg, Rollenwechsel oder wenig klassischer Berufserfahrung werden formale Stationen ehrlich dargestellt und durch passende Praxisbelege ergänzt.
 - Wenn formale Daten fehlen, werden sie nicht erfunden und nicht durch scheinbar berufliche Projektformulierungen kaschiert.

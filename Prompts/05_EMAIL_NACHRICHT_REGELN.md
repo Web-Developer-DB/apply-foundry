@@ -15,7 +15,7 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 - Nach der Betreffzeile folgt eine Leerzeile, danach beginnt die eigentliche E-Mail-Nachricht.
 - Neutrale oder konkrete Anrede.
 - Kurzer Hinweis auf Bewerbung und Zielrolle.
-- Hinweis auf Anlagen.
+- Hinweis auf die beiden getrennten PDF-Anlagen für Lebenslauf und Anschreiben.
 - Freundlicher Abschluss mit Name aus den privaten Daten.
 - Wenn die Stellenanzeige eine konkrete Bewerbungsfrage enthält, darf sie nur kurz und sachlich aufgegriffen werden, sofern die Antwort aus den Nutzerdaten oder der Stellenbeschreibung ableitbar ist.
 
@@ -27,6 +27,8 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 - Kein erfundener Ansprechpartner.
 - Keine erfundene Kennziffer, Referenznummer oder Job-ID im Betreff.
 - Keine Wiederholung des Anschreibens.
+
+Eine Bitte um Bewerbung „als PDF“ beschreibt ohne weitere Präzisierung das Dateiformat. Sie ist kein automatischer Auftrag, Lebenslauf und Anschreiben zu einer einzigen PDF zusammenzuführen. Die Standard-E-Mail verweist daher auf zwei PDF-Anlagen; eine Gesamt-PDF wird nur bei ausdrücklicher Forderung erstellt.
 
 ## Beispielstruktur
 

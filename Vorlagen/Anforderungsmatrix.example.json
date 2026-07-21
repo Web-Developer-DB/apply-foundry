@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "requirements": [
+    {
+      "id": "muss-1",
+      "anforderung": "konkrete Muss-Anforderung aus der Stellenbeschreibung",
+      "typ": "muss",
+      "kategorie": "fachlich",
+      "gewichtung": "kritisch",
+      "status": "erfuellt",
+      "belegart": "WEITERBILDUNG",
+      "beleg": "kurzer, überprüfbarer Beleg aus den privaten Profildaten",
+      "behandlung": "früh im Lebenslauf und sachlich im Anschreiben sichtbar machen"
+    },
+    {
+      "id": "kann-1",
+      "anforderung": "konkrete Kann-Anforderung aus der Stellenbeschreibung",
+      "typ": "kann",
+      "kategorie": "erfahrung",
+      "gewichtung": "niedrig",
+      "status": "unklar",
+      "belegart": "",
+      "beleg": "",
+      "behandlung": "nicht behaupten und bei hoher Relevanz in Offene_Fragen.md dokumentieren"
+    }
+  ]
+}

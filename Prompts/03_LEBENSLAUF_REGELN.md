@@ -16,7 +16,7 @@ Keine Branche, keine konkrete Fachrolle und kein Projekttyp darf aus den öffent
 
 Für den Lebenslauf gelten klare Zuständigkeiten:
 
-- Kontakt, Name, Dateiname-Name, Links, Verfügbarkeit, Stellenart, Arbeitsmodell, Region und Eintrittstermin kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`.
+- Kontakt, Name, Dateiname-Name und verfügbare Links kommen aus `Private/Daten/01_PERSOENLICHE_DATEN.md`. Welche Links erscheinen und welche Bewerbungslogistik für den Einzelfall gilt, steuert der bewerbungsspezifische `Bewerbungsauftrag.json`; Datei `01` ist die Quelle seines initialen Snapshots.
 - Zielrollen, Kurzprofil, Berufserfahrung, Ausbildung, Studium, Umschulung, Weiterbildung, Schulbildung, Kompetenzen, Sprachen, Projekte und private Praxis kommen aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`.
 - Wenn Datei `02` fachliche Inhalte nach Belegarten strukturiert, sind diese Belegarten verbindlich. Inhalte aus `BERUFLICH BELEGT`, `ÜBERTRAGBAR`, `WEITERBILDUNG`, `PROJEKTPRAXIS`, `PRIVATE PRAXIS / HOME-LAB`, `GRUNDLAGEN / VERSTÄNDNIS`, `EINARBEITUNGSZIEL` und `NICHT BEHAUPTEN` dürfen nicht sprachlich gleichgesetzt werden.
 - Schulbildung gehört fachlich zu Datei `02`, nicht zu Datei `01`.
@@ -37,7 +37,7 @@ Empfohlene Grundstruktur:
 5. Praktische Zusatzpraxis, Projekte oder Home-Lab nur mit klarer Rollenrelevanz
 6. Weiterbildung, Zertifikate und Qualifikationen
 7. Ausbildung, Studium oder berufliche Bildung
-8. Schulbildung, sofern vorhanden und für den deutschen CV sinnvoll
+8. Schulbildung nach dem im Bewerbungsauftrag gewählten Modus
 9. Sprachen
 10. Weitere Kenntnisse nur dann, wenn sie für diese Stelle erkennbaren Recruiter-Nutzen haben
 
@@ -45,8 +45,8 @@ Pflichtlogik für formale Stationen:
 
 - Berufserfahrung, Ausbildung/Studium/berufliche Bildung und Schulbildung dürfen nicht durch Projekte, Skill-Listen oder private Praxis verdrängt werden.
 - Wenn entsprechende Daten in `Private/Daten/` vorhanden sind, müssen sie im Lebenslauf berücksichtigt werden.
-- Formale Stationen mit Zeitraum sind im deutschen Lebenslauf nicht frei kürzbar. Wenn sie in Datei `02` vorhanden sind, müssen Zeitraum, Stationstyp, Name/Institution/Arbeitgeber und Rollen- oder Bildungsbezeichnung sichtbar bleiben.
-- Diese Nicht-Kürzungsregel gilt für berufliche Stationen, Ausbildung, Umschulung, Studium, Weiterbildung, Zertifikate mit Zeitraum und Schulbildung. Sie gilt unabhängig davon, ob die einzelne Station für die Zielrolle fachlich stark relevant ist.
+- Formale Stationen mit Zeitraum sind im deutschen Lebenslauf grundsätzlich nicht frei kürzbar. Wenn sie in Datei `02` vorhanden sind, müssen Zeitraum, Stationstyp, Name/Institution/Arbeitgeber und Rollen- oder Bildungsbezeichnung sichtbar bleiben.
+- Diese Nicht-Kürzungsregel gilt uneingeschränkt für berufliche Stationen, Ausbildung, Umschulung, Studium, Weiterbildung und Zertifikate mit Zeitraum. Für Schulbildung gilt die unten definierte, ausdrücklich zu dokumentierende Kompaktoption.
 - Bei Platzmangel dürfen zuerst Beschreibungen, Bulletpoints, Projektlisten, Tool-Details, Zusatzpraxis, Kurzprofil und Kompetenzlisten gekürzt werden. Formale Zeiträume und Stationsnamen dürfen nicht entfernt werden, nur um eine Seite zu halten.
 - Wenn die vollständige formale Chronologie nicht sauber und lesbar auf eine DIN-A4-Seite passt, muss bewusst ein zweiseitiger Lebenslauf mit zwei expliziten A4-Seitencontainern erstellt werden.
 - Wenn wichtige formale Daten fehlen, werden sie nicht erfunden, sondern in `Offene_Fragen.md` dokumentiert.
@@ -109,7 +109,7 @@ Vor dem Schreiben des Lebenslaufs muss der Agent ein kurzes Bewerbungsprofil bes
 - Branche oder Arbeitsfeld
 - Erfahrungsart
 - Seniorität oder Einstiegsniveau
-- Stellenart aus Datei `01` und Stellenart aus der Anzeige
+- Stellenart aus dem Bewerbungsauftrag und Stellenart aus der Anzeige
 - Arbeitsmodell, Region und Eintrittstermin, falls relevant
 - vermutete Firmengröße, falls aus der Stellenbeschreibung ableitbar
 - Kernargumente für die Zielrolle
@@ -118,15 +118,17 @@ Vor dem Schreiben des Lebenslaufs muss der Agent ein kurzes Bewerbungsprofil bes
 - Beweislogik: welche Stationen oder Praxisbelege die Zielrolle tragen
 - Risiken oder Lücken, die neutral behandelt oder in `Offene_Fragen.md` dokumentiert werden
 
+Zusätzlich muss vor dem Lebenslauf eine strukturierte `Anforderungsmatrix.json` nach `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md` vorliegen. Jede früh platzierte Rollenbehauptung muss auf einen konkreten Beleg oder eine ausdrücklich vorsichtige Erfahrungsart in dieser Matrix zurückführbar sein.
+
 Dieses Profil steuert Auswahl, Reihenfolge und Kürzung des Lebenslaufs.
 
 ## Inhalt
 
 - Verwende nur Daten aus `Private/Daten/` und aus der konkreten Stellenbeschreibung.
 - Verwende Datei `01` nur für persönliche Stammdaten und Datei `02` für fachliche Lebenslaufdaten.
-- Nenne die Stellenart im Lebenslauf immer kompakt: `Vollzeit`, `Teilzeit` oder `Vollzeit/Teilzeit`, je nach Datei `01` und Stellenanzeige.
-- Wenn Datei `01` einen Stundenumfang nennt, darf er bei Teilzeit oder gemischten Modellen ergänzt werden, z. B. `Teilzeit, 30 Std./Woche`.
-- Wenn die Stellenanzeige eine andere Stellenart verlangt als Datei `01`, die Bewerbung nicht stillschweigend passend machen. Den Widerspruch in `Offene_Fragen.md` dokumentieren und im finalen Lebenslauf nur eine wahre, nicht widersprüchliche Formulierung verwenden.
+- Nenne die Stellenart im Lebenslauf immer kompakt: `Vollzeit`, `Teilzeit` oder `Vollzeit/Teilzeit`, gemäß Bewerbungsauftrag und Stellenanzeige.
+- Wenn der Bewerbungsauftrag einen Stundenumfang nennt, darf er bei Teilzeit oder gemischten Modellen ergänzt werden, z. B. `Teilzeit, 30 Std./Woche`.
+- Wenn die Stellenanzeige eine andere Stellenart verlangt als der Bewerbungsauftrag, die Bewerbung nicht stillschweigend passend machen. Den Widerspruch in `Offene_Fragen.md` dokumentieren und im finalen Lebenslauf nur eine wahre, nicht widersprüchliche Formulierung verwenden.
 - Arbeitsmodell, Region, Pendeldistanz oder Eintrittstermin nur aufnehmen, wenn sie für die Bewerbung nützlich sind oder die Anzeige dazu klare Anforderungen enthält.
 - Formuliere kurz, konkret und ohne übertriebene Selbstdarstellung.
 - Priorisiere Muss-Anforderungen der Stelle.
@@ -150,6 +152,25 @@ Erlaubt sind Zusatzkenntnisse, wenn sie mindestens eine dieser Funktionen erfül
 - sie sind für die vermutete Firmengröße wahrscheinlich wertvoll
 
 Wenn eine Zusatzkenntnis nur zeigt, „was die Person noch kann“, aber keinen Nutzen für diese Bewerbung hat, wird sie gekürzt oder weggelassen.
+
+## Schulbildungsmodus
+
+Der Bewerbungsauftrag legt genau einen Modus fest:
+
+- `vollstaendig`: Alle in Datei `02` vorhandenen Schulstationen bleiben mit Zeitraum, Institution und Abschluss-/Bildungsbezeichnung sichtbar.
+- `recruiter_kompakt`: Für erfahrene Bewerber oder bei engem Inhaltsbudget darf die Schulchronologie auf eine gut erkennbare Zeile mit dem höchsten oder relevantesten Schulabschluss verdichtet werden. Einzelne Schulzeiträume dürfen dann entfallen.
+
+Auch im kompakten Modus darf Schulbildung nicht vollständig verschwinden. Der Abschluss muss wahr, eindeutig und als Schulbildung erkennbar bleiben. Berufserfahrung, berufliche Bildung, Studium, Umschulung und formale Weiterbildungen werden durch diesen Modus nicht kürzbar. Die Wahl wird in `Analyse.md` und `Qualitaetscheck.md` begründet; sie ist kein Mittel, um einen schlecht priorisierten Einseiter zu erzwingen.
+
+## Profil-Links
+
+Die Stammdaten definieren nur, welche öffentlichen Profile verfügbar sind. Der Bewerbungsauftrag entscheidet rollenbezogen, welche davon im Lebenslauf erscheinen:
+
+- `alle`: alle gepflegten Profil-Links verwenden, wenn sie professionell und aktuell sind.
+- `rollenrelevant`: ausschließlich die in `profillinksAuswahl` genannten Links verwenden. Jeder ausgewählte Link muss einen erkennbaren Recruiter-Nutzen für die Zielrolle haben.
+- `keine`: keine öffentlichen Profil-Links in den Lebenslauf aufnehmen.
+
+Nicht ausgewählte Links dürfen nicht beiläufig im Kontaktblock verbleiben. Ein Portfolio- oder Repository-Link wird nur ausgewählt, wenn die dort sichtbaren Inhalte die konkrete Rolle stützen und keine widersprüchliche Positionierung erzeugen. Die URL selbst wird niemals erfunden oder verändert.
 
 ## Recruiter-Strategie
 
@@ -191,7 +212,7 @@ Richtwerte für eine A4-Seite:
 - Skill-/Kompetenz-Tags: nur ausnahmsweise und sparsam; bevorzugt gruppierte Kompetenzzeilen
 - Arbeitsweise: maximal 3 bis 4 Bulletpoints oder in andere Abschnitte integrieren
 - Berufserfahrung: kompakt, aber mit allen vorhandenen formalen Stationen, Zeiträumen, Arbeitgebern und Rollenbezeichnungen
-- Ausbildung, Studium, berufliche Bildung und Schulbildung: kurz, aber vollständig als formale Chronologie mit Zeitraum und Stationsbezeichnung, wenn Daten vorhanden sind
+- Ausbildung, Studium und berufliche Bildung: kurz, aber vollständig als formale Chronologie mit Zeitraum und Stationsbezeichnung; Schulbildung entsprechend dem festgelegten Modus
 - Weiterbildung/Zertifikate: rollenrelevante Beschreibungen priorisieren; vorhandene formale Weiterbildungsstationen mit Zeitraum und Bezeichnung nicht aus Platzgründen entfernen
 - Praxis/Projekte/Zusatzkenntnisse: nur 1 bis 2 wirklich relevante Blöcke
 
@@ -212,7 +233,7 @@ Nicht gekürzt oder verdrängt werden dürfen:
 
 - alle belegbaren beruflichen Stationen mit Zeitraum, Arbeitgeber und Rollenbezeichnung
 - Ausbildung, Studium, Umschulung oder berufliche Bildung mit Zeitraum, Institution und Bildungsbezeichnung, wenn vorhanden
-- Schulbildung mit Zeitraum und Schul-/Bildungsbezeichnung, wenn sie in den privaten Daten enthalten ist
+- Schulbildung gemäß `vollstaendig` oder als sichtbare Abschlusszusammenfassung gemäß `recruiter_kompakt`
 - Weiterbildungen/Zertifikate mit Zeitraum, Institution und Bezeichnung, wenn sie in den privaten Daten als formale Qualifikation enthalten sind
 
 Nur die Detailtiefe innerhalb dieser Stationen ist kürzbar. Die Station selbst bleibt sichtbar.
