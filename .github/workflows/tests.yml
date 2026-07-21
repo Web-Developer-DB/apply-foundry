@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell-Regressionssuite
+        shell: pwsh
+        run: ./Tests/Run-RegressionTests.ps1
+
+  bash:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck
+        run: shellcheck Tools/neue-bewerbung.sh Tests/Bash/test-neue-bewerbung.sh
+      - name: Bash-Regressionssuite
+        run: bash Tests/Bash/test-neue-bewerbung.sh

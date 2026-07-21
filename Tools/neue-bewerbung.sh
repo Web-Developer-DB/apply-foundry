@@ -11,7 +11,10 @@ Options:
   --rolle NAME                    Zielrolle, Standard: Bewerbung
   --datum YYYY-MM-DD              Datum, Standard: heute
   --stellenbeschreibung-path PATH Pfad zu vorhandener Stellenbeschreibung
+  --stammdaten-path PATH           Stammdaten für den Logistik-Snapshot
+  --profil-path PATH               Profil für den Quellhash
   --bewerbungen-root PATH         Ausgabeordner, Standard: ./Private/Bewerbungen
+  --fortsetzen                    Nur exakt dieselbe vorhandene Bewerbung ergänzen
   -h, --help                      Hilfe anzeigen
 EOF
 }
@@ -42,12 +45,71 @@ convert_to_slug() {
 
 html_escape() {
   local value="$1"
-  value="${value//&/&amp;}"
-  value="${value//</&lt;}"
-  value="${value//>/&gt;}"
-  value="${value//\"/&quot;}"
-  value="${value//\'/&#39;}"
+  local escaped=""
+  local char
+  local index
+
+  for ((index = 0; index < ${#value}; index++)); do
+    char="${value:index:1}"
+    case "$char" in
+      '&') escaped+='&amp;' ;;
+      '<') escaped+='&lt;' ;;
+      '>') escaped+='&gt;' ;;
+      '"') escaped+='&quot;' ;;
+      "'") escaped+='&#39;' ;;
+      *) escaped+="$char" ;;
+    esac
+  done
+
+  printf '%s' "$escaped"
+}
+
+json_escape() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
   printf '%s' "$value"
+}
+
+markdown_field() {
+  local path="$1"
+  local field="$2"
+  [[ -f "$path" ]] || return 0
+  sed -n -E "s/^[[:space:]]*-[[:space:]]*${field}:[[:space:]]*(.*)$/\\1/p" "$path" | head -n 1
+}
+
+file_sha256() {
+  local path="$1"
+  [[ -f "$path" ]] || return 0
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum -- "$path" | awk '{print toupper($1)}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 -- "$path" | awk '{print toupper($1)}'
+  fi
+}
+
+validate_date() {
+  local value="$1"
+  [[ "$value" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})$ ]] || return 1
+
+  local year=$((10#${BASH_REMATCH[1]}))
+  local month=$((10#${BASH_REMATCH[2]}))
+  local day=$((10#${BASH_REMATCH[3]}))
+  local max_day
+
+  case "$month" in
+    1|3|5|7|8|10|12) max_day=31 ;;
+    4|6|9|11) max_day=30 ;;
+    2)
+      max_day=28
+      if (( (year % 400 == 0) || (year % 4 == 0 && year % 100 != 0) )); then
+        max_day=29
+      fi
+      ;;
+    *) return 1 ;;
+  esac
+
+  ((day >= 1 && day <= max_day))
 }
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -57,7 +119,10 @@ firma=""
 rolle="Bewerbung"
 datum="$(date +%F)"
 stellenbeschreibung_path=""
+stammdaten_path="$project_root/Private/Daten/01_PERSOENLICHE_DATEN.md"
+profil_path="$project_root/Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"
 bewerbungen_root="$project_root/Private/Bewerbungen"
+fortsetzen=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -81,10 +146,24 @@ while [[ $# -gt 0 ]]; do
       stellenbeschreibung_path="$2"
       shift 2
       ;;
+    --stammdaten-path)
+      [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --stammdaten-path" >&2; exit 2; }
+      stammdaten_path="$2"
+      shift 2
+      ;;
+    --profil-path)
+      [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --profil-path" >&2; exit 2; }
+      profil_path="$2"
+      shift 2
+      ;;
     --bewerbungen-root)
       [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --bewerbungen-root" >&2; exit 2; }
       bewerbungen_root="$2"
       shift 2
+      ;;
+    --fortsetzen)
+      fortsetzen=1
+      shift
       ;;
     -h|--help)
       print_usage
@@ -104,13 +183,38 @@ if [[ -z "$firma" ]]; then
   exit 2
 fi
 
-if [[ ! "$datum" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-  echo "Fehler: --datum muss im Format YYYY-MM-DD angegeben werden." >&2
+firma="${firma#"${firma%%[![:space:]]*}"}"
+firma="${firma%"${firma##*[![:space:]]}"}"
+rolle="${rolle#"${rolle%%[![:space:]]*}"}"
+rolle="${rolle%"${rolle##*[![:space:]]}"}"
+
+if [[ -z "$firma" || -z "$rolle" ]]; then
+  echo "Fehler: --firma und --rolle dürfen nicht leer sein." >&2
   exit 2
 fi
 
-if [[ -n "$stellenbeschreibung_path" && ! -e "$stellenbeschreibung_path" ]]; then
-  echo "Fehler: --stellenbeschreibung-path existiert nicht: $stellenbeschreibung_path" >&2
+if (( ${#firma} > 120 || ${#rolle} > 120 )); then
+  echo "Fehler: Firma und Rolle dürfen jeweils höchstens 120 Zeichen lang sein." >&2
+  exit 2
+fi
+
+if [[ "$firma" =~ [[:cntrl:]] || "$rolle" =~ [[:cntrl:]] ]]; then
+  echo "Fehler: Firma und Rolle dürfen keine Steuerzeichen oder Zeilenumbrüche enthalten." >&2
+  exit 2
+fi
+
+if ! validate_date "$datum"; then
+  echo "Fehler: --datum muss ein echtes Kalenderdatum im Format YYYY-MM-DD sein." >&2
+  exit 2
+fi
+
+if [[ -n "$stellenbeschreibung_path" && ! -f "$stellenbeschreibung_path" ]]; then
+  echo "Fehler: --stellenbeschreibung-path muss auf eine vorhandene Datei zeigen: $stellenbeschreibung_path" >&2
+  exit 2
+fi
+
+if [[ -e "$bewerbungen_root" && ! -d "$bewerbungen_root" ]]; then
+  echo "Fehler: --bewerbungen-root existiert, ist aber kein Ordner: $bewerbungen_root" >&2
   exit 2
 fi
 
@@ -123,10 +227,67 @@ bewerbungen_root_full="$(mkdir -p "$bewerbungen_root" && cd -- "$bewerbungen_roo
 firma_dir="$bewerbungen_root_full/$firma_slug"
 ziel_dir="$firma_dir/$datum--$rolle_slug"
 arbeits_dir="$firma_dir/_Arbeitsdateien/$datum--$rolle_slug"
+kandidat_dir="$arbeits_dir/Kandidat"
 
-mkdir -p "$ziel_dir" "$arbeits_dir"
+for path in "$ziel_dir" "$arbeits_dir"; do
+  if [[ -e "$path" && ! -d "$path" ]]; then
+    echo "Fehler: Bewerbungspfad existiert, ist aber kein Ordner: $path" >&2
+    exit 2
+  fi
+done
 
-stellenbeschreibung_final_file="$ziel_dir/Stellenbeschreibung.md"
+ziel_existed=0
+arbeits_existed=0
+[[ -d "$ziel_dir" ]] && ziel_existed=1
+[[ -d "$arbeits_dir" ]] && arbeits_existed=1
+
+if (( (ziel_existed || arbeits_existed) && !fortsetzen )); then
+  echo "Fehler: Die Bewerbung existiert bereits. Verwende --fortsetzen nur für exakt dieselbe Bewerbung oder wähle Datum/Rolle eindeutig." >&2
+  exit 2
+fi
+
+if (( fortsetzen && (ziel_existed != arbeits_existed) )); then
+  echo "Fehler: Die vorhandene Bewerbung ist unvollständig; Ziel- und Arbeitsordner müssen beide existieren." >&2
+  exit 2
+fi
+
+if (( fortsetzen && arbeits_existed )); then
+  existing_notes="$arbeits_dir/Arbeitsnotizen.md"
+  if [[ ! -f "$existing_notes" ]] || ! grep -Fqx -- "- Firma: $firma" "$existing_notes" || ! grep -Fqx -- "- Zielrolle: $rolle" "$existing_notes"; then
+    echo "Fehler: Der vorhandene Arbeitsordner gehört nicht nachweislich zu derselben Firma und Rolle." >&2
+    exit 2
+  fi
+fi
+
+ziel_created=0
+arbeits_created=0
+success=0
+
+cleanup_on_exit() {
+  local code="$1"
+  if ((code != 0 && !success)); then
+    if ((arbeits_created)) && [[ "$arbeits_dir" == "$bewerbungen_root_full"/* ]]; then
+      rm -rf -- "$arbeits_dir"
+    fi
+    if ((ziel_created)) && [[ "$ziel_dir" == "$bewerbungen_root_full"/* ]]; then
+      rm -rf -- "$ziel_dir"
+    fi
+  fi
+  return "$code"
+}
+trap 'cleanup_on_exit $?' EXIT
+
+if (( !ziel_existed )); then
+  mkdir -p "$ziel_dir"
+  ziel_created=1
+fi
+if (( !arbeits_existed )); then
+  mkdir -p "$arbeits_dir"
+  arbeits_created=1
+fi
+mkdir -p "$kandidat_dir"
+
+stellenbeschreibung_kandidat_file="$kandidat_dir/Stellenbeschreibung.md"
 stellenbeschreibung_entwurf_file="$arbeits_dir/Stellenbeschreibung--ENTWURF.md"
 analyse_entwurf_file="$arbeits_dir/Analyse--ENTWURF.md"
 lebenslauf_entwurf_file="$arbeits_dir/Lebenslauf--$firma_slug--ENTWURF.html"
@@ -135,15 +296,120 @@ arbeitsnotizen_file="$arbeits_dir/Arbeitsnotizen.md"
 email_entwurf_file="$arbeits_dir/Email-Nachricht--$firma_slug--ENTWURF.md"
 qualitaetscheck_entwurf_file="$arbeits_dir/Qualitaetscheck--ENTWURF.md"
 offene_fragen_entwurf_file="$arbeits_dir/Offene_Fragen--ENTWURF.md"
-druck_hinweis_file="$ziel_dir/Druck-Hinweis.md"
+anforderungsmatrix_entwurf_file="$arbeits_dir/Anforderungsmatrix--ENTWURF.json"
+auftrag_file="$arbeits_dir/Bewerbungsauftrag.json"
+druck_hinweis_file="$kandidat_dir/Druck-Hinweis.md"
 
 if [[ -n "$stellenbeschreibung_path" ]]; then
-  cp "$stellenbeschreibung_path" "$stellenbeschreibung_final_file"
-elif [[ ! -e "$stellenbeschreibung_entwurf_file" ]]; then
+  if [[ -f "$stellenbeschreibung_kandidat_file" ]]; then
+    if ! cmp -s -- "$stellenbeschreibung_path" "$stellenbeschreibung_kandidat_file"; then
+      echo "Fehler: Eine andere Stellenbeschreibung liegt bereits im Kandidatenordner. Überschreiben wurde verweigert." >&2
+      exit 1
+    fi
+  elif [[ -e "$stellenbeschreibung_kandidat_file" ]]; then
+    echo "Fehler: Stellenbeschreibung.md existiert, ist aber keine Datei." >&2
+    exit 1
+  else
+    cp "$stellenbeschreibung_path" "$stellenbeschreibung_kandidat_file"
+  fi
+elif [[ ! -e "$stellenbeschreibung_kandidat_file" && ! -e "$stellenbeschreibung_entwurf_file" ]]; then
   cat > "$stellenbeschreibung_entwurf_file" <<'EOF'
 # Stellenbeschreibung
 
 [Stellenbeschreibung hier einfügen]
+EOF
+fi
+
+if [[ ! -e "$auftrag_file" ]]; then
+  firma_json="$(json_escape "$firma")"
+  rolle_json="$(json_escape "$rolle")"
+  ziel_json="$(json_escape "$ziel_dir")"
+  arbeits_json="$(json_escape "$arbeits_dir")"
+  kandidat_json="$(json_escape "$kandidat_dir")"
+  bewerber_dateiname_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Dateiname-Name')")"
+  verfuegbarkeit_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Verfügbarkeit')")"
+  eintritt_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Frühester Eintrittstermin')")"
+  stellenart_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gewünschte Stellenart')")"
+  stundenumfang_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gewünschter Stundenumfang')")"
+  arbeitsmodell_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gewünschtes Arbeitsmodell')")"
+  region_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gewünschte Region')")"
+  pendeldistanz_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Maximale Pendeldistanz')")"
+  reisebereitschaft_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Reisebereitschaft')")"
+  schicht_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Schicht- oder Wochenendbereitschaft')")"
+  befristung_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Befristung')")"
+  umzug_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Umzugsbereitschaft')")"
+  gehalt_verwenden_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Wunschgehalt verwenden')")"
+  gehalt_manuell_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Wunschgehalt manuell')")"
+  gehaltsmodell_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gehaltsmodell')")"
+  gehaltsregion_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gehaltsregion')")"
+  gehaltslogik_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gehaltslogik')")"
+  stammdaten_hash="$(file_sha256 "$stammdaten_path")"
+  profil_hash="$(file_sha256 "$profil_path")"
+  created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  cat > "$auftrag_file" <<EOF
+{
+  "schemaVersion": 2,
+  "firma": "$firma_json",
+  "firmaSlug": "$firma_slug",
+  "rolle": "$rolle_json",
+  "rolleSlug": "$rolle_slug",
+  "datum": "$datum",
+  "bewerberDateiname": "$bewerber_dateiname_json",
+  "zielOrdner": "$ziel_json",
+  "arbeitsOrdner": "$arbeits_json",
+  "kandidatOrdner": "$kandidat_json",
+  "seitenstrategie": "noch_festzulegen",
+  "bewerbungslogistik": {
+    "verfuegbarkeit": "$verfuegbarkeit_json",
+    "fruehesterEintrittstermin": "$eintritt_json",
+    "stellenart": "$stellenart_json",
+    "stundenumfang": "$stundenumfang_json",
+    "arbeitsmodell": "$arbeitsmodell_json",
+    "region": "$region_json",
+    "maximalePendeldistanz": "$pendeldistanz_json",
+    "reisebereitschaft": "$reisebereitschaft_json",
+    "schichtOderWochenendbereitschaft": "$schicht_json",
+    "befristung": "$befristung_json",
+    "umzugsbereitschaft": "$umzug_json",
+    "wunschgehaltVerwenden": "$gehalt_verwenden_json",
+    "wunschgehaltManuell": "$gehalt_manuell_json",
+    "gehaltsmodell": "$gehaltsmodell_json",
+    "gehaltsregion": "$gehaltsregion_json",
+    "gehaltslogik": "$gehaltslogik_json"
+  },
+  "bewerbungsentscheidung": "noch_festzulegen",
+  "darstellungsoptionen": {
+    "schulbildungsmodus": "noch_festzulegen",
+    "profillinksModus": "noch_festzulegen",
+    "profillinksAuswahl": []
+  },
+  "quellnachweise": {
+    "stammdatenSha256BeiAnlage": "$stammdaten_hash",
+    "profilSha256BeiAnlage": "$profil_hash"
+  },
+  "createdAtUtc": "$created_at"
+}
+EOF
+fi
+
+if [[ ! -e "$anforderungsmatrix_entwurf_file" ]]; then
+  cat > "$anforderungsmatrix_entwurf_file" <<'EOF'
+{
+  "schemaVersion": 2,
+  "requirements": [
+    {
+      "id": "muss-1",
+      "anforderung": "durch den Agenten aus der Stellenbeschreibung zu extrahieren",
+      "typ": "muss",
+      "kategorie": "fachlich",
+      "gewichtung": "hoch",
+      "status": "unklar",
+      "belegart": "",
+      "beleg": "",
+      "behandlung": "vor Erstellung der Kandidatendateien klären"
+    }
+  ]
+}
 EOF
 fi
 
@@ -229,15 +495,17 @@ if [[ ! -e "$arbeitsnotizen_file" ]]; then
 - Zielrolle: $rolle
 - Finaler Bewerbungsordner: $ziel_dir
 - Entwurfs-/Arbeitsdateien: $arbeits_dir
+- Kandidatendateien vor Freigabe: $kandidat_dir
 
 Dieser Ordner ist nur für temporäre Entwürfe und Arbeitsnotizen gedacht.
-Finale Dateien gehören erst nach vollständiger Agentenprüfung in den finalen Bewerbungsordner.
+Versandfertig benannte Kandidatendateien gehören zunächst in den Kandidatenordner.
+Der finale Bewerbungsordner bleibt bis zur erfolgreichen atomaren Veröffentlichung leer.
 EOF
 fi
 
 if [[ ! -e "$email_entwurf_file" ]]; then
   cat > "$email_entwurf_file" <<EOF
-# E-Mail-Nachricht
+Betreff: Bewerbung als $rolle - [Name aus Private/Daten/01_PERSOENLICHE_DATEN.md]
 
 Sehr geehrte Damen und Herren,
 
@@ -296,3 +564,5 @@ fi
 
 printf 'Bewerbungsordner: %s\n' "$ziel_dir"
 printf 'Arbeitsdateien: %s\n' "$arbeits_dir"
+printf 'Kandidatendateien: %s\n' "$kandidat_dir"
+success=1
