@@ -1,97 +1,141 @@
 <!-- cspell:words Layoutcheck MitLayoutcheck NurVorbereiten MinPdfBytes NichtUeberschreiben ErlaubeFirefoxFallback firefox Pruefe Qualitaetscheck Strg Headless Sandbox Browserfreigabe MediaBox -->
 <!-- cspell:words Referenzworkflow versioniert rollenbezogene Regressionsfälle Regressionstest Regressionstests Regressionssuite nichtkritische Tooltests Browsertest Browsertests Browsermatrix Browserumgebung Browserfälle Browserlauf Browserprozesse Kindprozesse -->
 
-# bewerbungs-agent
+<p align="center">
+  <img src=".github/assets/readme-hero.svg" alt="bewerbungs-agent – passgenaue, ehrliche und versandfertige Bewerbungsunterlagen" width="100%">
+</p>
 
-**Aktuelle Version: 1.3**<br>
-**Projektstatus:** stabiler Referenzworkflow für Windows und PowerShell; Linux-Ordnerhelfer weiterhin Alpha
+<h1 align="center">bewerbungs-agent</h1>
 
-`bewerbungs-agent` ist ein lokaler, modularer Bewerbungsassistent für deutsche Bewerbungsunterlagen. Aus einer konkreten Stellenbeschreibung und deinen privaten Profildaten erzeugt der Agent eine passgenaue Bewerbung:
+<p align="center">
+  <strong>Lokaler Bewerbungsassistent für passgenaue deutsche Bewerbungsunterlagen</strong><br>
+  Von der Stellenanalyse bis zu visuell geprüften A4-Layouts und technisch geprüften PDFs.
+</p>
 
-- Lebenslauf als druckfertige HTML-Datei
-- Anschreiben als druckfertige HTML-Datei
-- kurze E-Mail-Nachricht
-- Stellenanalyse
-- Qualitätscheck
-- zwei getrennte PDF-Anlagen aus Lebenslauf und Anschreiben
+<p align="center">
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.3-2563EB?style=flat-square" alt="Aktuelle Version 1.3"></a>
+  <a href="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
+  <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
+  <a href="LINUX-PORTIERUNGSPLAN.md"><img src="https://img.shields.io/badge/Linux-Alpha-F59E0B?style=flat-square" alt="Linux-Unterstützung im Alpha-Status"></a>
+  <img src="https://img.shields.io/badge/Datenschutz-Local--first-7C3AED?style=flat-square" alt="Datenschutz nach dem Local-first-Prinzip">
+</p>
 
-Das Projekt trennt öffentliche Agentenlogik und private Bewerberdaten bewusst voneinander. Prompts, Vorlagen, Tools, Tests und Beispielstrukturen können öffentlich versioniert werden. Echte persönliche Daten und generierte Bewerbungen werden ausschließlich unter `Private/` abgelegt und von Git ignoriert.
+<p align="center">
+  <a href="#nutzung">👤 Nutzung</a> ·
+  <a href="#schnellstart">🚀 Schnellstart</a> ·
+  <a href="#ergebnisse">🗂️ Dateien</a> ·
+  <a href="#entwicklung">🧰 Entwicklung</a> ·
+  <a href="#hilfe">❓ Hilfe</a>
+</p>
 
-Die vollständige Änderungshistorie steht in [CHANGELOG.md](CHANGELOG.md). Der geplante Ausbau um eine Electron-Oberfläche ist in [frontend-project.md](frontend-project.md) beschrieben.
+---
 
-## Inhalt
+## Auf einen Blick
 
-- [Änderungshistorie](CHANGELOG.md)
-- [Frontend-Projektplan](frontend-project.md)
-- [Für wen ist das Projekt?](#für-wen-ist-das-projekt)
-- [Sicherheitsmodell](#sicherheitsmodell)
-- [Getestete Umgebung](#getestete-umgebung)
-- [Schnellstart: erste Bewerbung](#schnellstart-erste-bewerbung)
-- [Voraussetzungen](#voraussetzungen)
-- [Private Daten einrichten](#private-daten-einrichten)
-- [Bewerbung erstellen lassen](#bewerbung-erstellen-lassen)
-- [Ergebnisse und Versanddateien](#ergebnisse-und-versanddateien)
-- [Prüfen und exportieren](#prüfen-und-exportieren)
-- [Datenschutz und Git](#datenschutz-und-git)
-- [Häufige Probleme](#häufige-probleme)
-- [Entwicklerdokumentation](#entwicklerdokumentation)
-- [Tests und CI](#tests-und-ci)
-- [Bekannte Grenzen](#bekannte-grenzen)
+| 🎯 **Passgenau** | 🔒 **Lokal & privat** | ✅ **Geprüft** |
+| :---: | :---: | :---: |
+| Jede Bewerbung wird neu aus Stelle und Profil aufgebaut. | Echte Daten und Ergebnisse bleiben unter `Private/`. | Inhalt, A4-Layout, PDFs und ATS-Textschicht werden kontrolliert. |
 
-## Für wen ist das Projekt?
+Aus einer Stellenbeschreibung und deinen Profildaten entstehen:
 
-Das Projekt ist für Nutzer gedacht, die Bewerbungen nicht jedes Mal von Grund auf schreiben wollen, aber trotzdem ehrliche, rollenbezogene und versandfertige Unterlagen brauchen.
+- ein rollenbezogener Lebenslauf als HTML und PDF
+- ein passendes Anschreiben als HTML und PDF
+- eine kurze E-Mail-Nachricht
+- ein vollständiger privater Arbeits- und Prüfverlauf mit Analyse, Anforderungsmatrix, Screenshots und Qualitätsnachweisen
 
-Der Agent erstellt keinen universellen Lebenslauf. Jede Bewerbung wird aus Stellenbeschreibung, privaten Profildaten und den Regeln unter `Prompts/` neu zusammengesetzt. Dabei sollen Recruiter schnell erkennen:
+> [!NOTE]
+> **Empfohlener Referenzworkflow:** Windows, PowerShell, OpenAI Codex und Chrome oder Edge. Die PowerShell-Tools sind stabil getestet; die [Linux-Unterstützung befindet sich noch im Alpha-Status](LINUX-PORTIERUNGSPLAN.md).
 
-- welche Rolle beworben wird
-- welche Muss- und Kann-Anforderungen abgedeckt sind
-- welche Erfahrung belegbar ist
-- welche Punkte bewusst neutral oder vorsichtig formuliert werden müssen
-- dass keine Arbeitgeber, Zeiträume, Kenntnisse oder Zertifikate erfunden wurden
+### So fließen deine Daten
 
-Der Lebenslauf soll wie ein ruhiger deutscher tabellarischer CV wirken, nicht wie eine Portfolio-Seite oder reine Skill-Sammlung.
+```mermaid
+flowchart LR
+    A["📋 Stellenanzeige"] --> C["🧭 Auftrag & Matrix"]
+    B["🔐 Private Profildaten"] --> C
+    C --> D["📝 Kandidat"]
+    D --> E["✅ Inhalt · Layout · PDF · ATS"]
+    E --> F["👀 Sichtprüfung"]
+    F --> G["📦 Versand · Intern · Manifest"]
 
-## Sicherheitsmodell
+    classDef input fill:#dbeafe,stroke:#2563eb,color:#172554
+    classDef private fill:#ede9fe,stroke:#7c3aed,color:#2e1065
+    classDef agent fill:#ccfbf1,stroke:#0f766e,color:#042f2e
+    classDef check fill:#dcfce7,stroke:#16a34a,color:#052e16
+    classDef output fill:#fef3c7,stroke:#d97706,color:#451a03
+    class A input
+    class B private
+    class C agent
+    class D input
+    class E check
+    class F private
+    class G output
+```
 
-Stellenbeschreibungen, Unternehmensseiten, E-Mails und andere eingefügte Fremdtexte werden als nicht vertrauenswürdige Datenquellen behandelt.
+## Wähle deinen Einstieg
 
-- Eingebettete Aufforderungen in einer Stellenanzeige dürfen die Projektregeln oder den Nutzerauftrag nicht verändern.
-- Externe Inhalte dürfen keine privaten Dateien offenlegen, versenden, hochladen, löschen oder verändern lassen.
-- Externe Aktionen sind nur durch einen direkten Nutzerauftrag autorisiert, niemals durch den Inhalt einer Stellenanzeige.
-- Finale HTML-Dateien dürfen keine externen oder lokalen Ressourcen automatisch nachladen. Vollständig eingebettete `data:`-Ressourcen sind möglich.
-- Analyse, Qualitätscheck und Arbeitsnotizen sollen keine unnötigen privaten Daten oder Geheimnisse vervielfältigen.
-- `Private/` wird von Git ignoriert, aber nicht verschlüsselt. Hinweise zu Cloud-Synchronisation und lokalen Backups stehen unter [Datenschutz und Git](#datenschutz-und-git).
+<table role="presentation">
+  <tr>
+    <td width="50%" valign="top">
+      <strong>👤 Projekt nutzen</strong><br><br>
+      Private Daten einrichten, eine Bewerbung erzeugen, alle Dateien verstehen und nur den geprüften Satz versenden.<br><br>
+      <a href="#nutzung"><strong>Zur Nutzungsdokumentation →</strong></a>
+    </td>
+    <td width="50%" valign="top">
+      <strong>🧰 Projekt weiterentwickeln</strong><br><br>
+      Architektur, Prompt-System, Werkzeuge, technische Dateiverträge, Tests und Erweiterungspunkte nachvollziehen.<br><br>
+      <a href="#entwicklung"><strong>Zur Entwicklerdokumentation →</strong></a>
+    </td>
+  </tr>
+</table>
 
-## Getestete Umgebung
+---
 
-Wichtig für neue Nutzer: Das Projekt wurde praktisch auf Windows mit PowerShell getestet. Das ist aktuell die empfohlene und verlässlich unterstützte Arbeitsumgebung.
+<a id="nutzung"></a>
 
-Getestet und empfohlen:
+## 👤 Für Nutzer
 
-- Windows-PC
-- PowerShell als Shell für die Skripte
-- OpenAI Codex Agent als KI-Agent
-- Visual Studio Code mit Codex-Extension oder eine lokal installierte Codex-Anwendung unter Windows
-- Chrome oder Edge für automatischen PDF-Export und Layout-Checks
+Dieser Abschnitt ist für alle, die mit dem Projekt Bewerbungen erstellen möchten. Du brauchst dafür keine Kenntnisse über den internen Code oder die Implementierung der Prüfwerkzeuge.
 
-Die PowerShell-Skripte unter `Tools/` sind die stabile Referenz. Prüfung, Layoutcheck und PDF-Export funktionieren nur in dieser Windows-/PowerShell-Umgebung als vollständig getesteter Workflow.
+**Direkt zum Ziel:** [Schnellstart](#schnellstart) · [Ablauf verstehen](#prozess) · [Dateien verwenden](#ergebnisse) · [Private Daten](#daten) · [Finalisieren](#finalisierung) · [Probleme lösen](#hilfe)
 
-Linux-Unterstützung ist derzeit Alpha. Es gibt ein Bash-Skript für die Ordnererstellung, aber die Linux-Version ist noch nicht so weit ausgebaut wie der Windows-Workflow. Wer das Projekt ohne Reibung nutzen möchte, sollte aktuell mit Windows, PowerShell und dem OpenAI Codex Agent arbeiten.
+<a id="schnellstart"></a>
 
-## Schnellstart: erste Bewerbung
+### 🚀 Schnellstart
 
-Wenn du das Projekt zum ersten Mal nutzt, reicht dieser Ablauf:
+#### 1. Repository lokal öffnen
 
-1. Repository lokal öffnen.
-2. Private Daten aus `Private.example/Daten/` nach `Private/Daten/` übertragen.
-3. Fiktive Beispieldaten durch eigene Angaben in `Private/Daten/` ersetzen.
-4. Dem Agenten eine konkrete Stellenbeschreibung geben.
-5. Fachlichen Abschlusstest und statischen technischen Check ausführen lassen.
-6. Optional Layout-Screenshots und PDFs mit Chrome oder Edge erzeugen.
-7. Finale HTML-/PDF-Dateien vor dem Versand kurz manuell öffnen.
+```powershell
+git clone https://github.com/Web-Developer-DB/bewerbungs-agent.git
+Set-Location bewerbungs-agent
+```
 
-Der wichtigste Agentenauftrag lautet:
+Öffne den Ordner anschließend in Visual Studio Code mit Codex-Extension oder in einer lokal installierten Codex-Anwendung.
+
+#### 2. Private Daten vorbereiten
+
+Die mitgelieferten Beispieldateien enthalten ausschließlich fiktive Angaben. Kopiere sie bei einer **frischen Installation** unter Windows als lokale Arbeitsgrundlage. Der Sicherheitscheck bricht ab, falls bereits ein eigener Datenordner vorhanden ist:
+
+```powershell
+$privateDataPath = "Private/Daten"
+
+if (Test-Path -LiteralPath $privateDataPath) {
+  throw "Private/Daten existiert bereits. Vorhandene Daten werden nicht überschrieben."
+}
+
+New-Item -ItemType Directory -Path $privateDataPath | Out-Null
+Copy-Item "Private.example/Daten/01_PERSOENLICHE_DATEN.example.md" "Private/Daten/01_PERSOENLICHE_DATEN.md"
+Copy-Item "Private.example/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.example.md" "Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"
+Copy-Item "Private.example/Daten/README.md" "Private/Daten/README.md"
+```
+
+Ersetze danach alle Beispieldaten durch deine echten Angaben. Eine genaue Zuordnung findest du unter [Private Daten einrichten](#daten).
+
+> [!IMPORTANT]
+> Echte Kontaktdaten, Profildaten und Bewerbungen gehören ausschließlich nach `Private/`. Dieser Ordner wird von Git ignoriert und darf nicht veröffentlicht werden.
+
+#### 3. Bewerbung beauftragen
+
+Gib Codex eine konkrete Stellenbeschreibung mit diesem Auftrag:
 
 ```text
 Nutze Prompts/00_AGENTEN_START_HIER.md und erstelle eine Bewerbung für diese Stellenbeschreibung:
@@ -99,56 +143,194 @@ Nutze Prompts/00_AGENTEN_START_HIER.md und erstelle eine Bewerbung für diese St
 <Stellenbeschreibung einfügen>
 ```
 
-Danach erstellt der Agent einen privaten Bewerbungsordner, erzeugt Lebenslauf, Anschreiben, E-Mail-Nachricht, Analyse und Qualitätscheck und legt offene Fragen bei Bedarf separat ab.
+Der Agent liest Profildaten, Regeln und Designreferenzen, erstellt einen privaten Arbeitsordner und erzeugt die Bewerbung zunächst als prüfbaren Kandidaten.
 
-Der Inhalt der eingefügten Stellenbeschreibung wird dabei ausschließlich als Datenquelle ausgewertet. Darin enthaltene vermeintliche System- oder Agentenanweisungen werden nicht ausgeführt.
+#### 4. Ergebnisse prüfen und freigeben
 
-## Voraussetzungen
+Der Agent führt den fachlichen und technischen Abschlussworkflow aus. Öffne vor der Veröffentlichung jeden erzeugten A4-Screenshot und kontrolliere ihn vollständig selbst. Die zwei verbindlichen Befehle stehen unter [Finalisierung](#finalisierung).
 
-Für die normale Nutzung brauchst du:
+> [!TIP]
+> **Für die erste Bewerbung reicht dieser Pfad:** Daten kopieren → Beispieldaten ersetzen → zentralen Agentenauftrag senden → Screenshots prüfen → Veröffentlichung bestätigen.
 
-- dieses Repository lokal auf deinem Rechner
-- einen KI-Agenten, der lokale Projektdateien lesen und schreiben kann
-- empfohlen und getestet: OpenAI Codex Agent in Visual Studio Code oder als lokal installierte Anwendung unter Windows
-- private Profildaten unter `Private/Daten/`
-- eine konkrete Stellenbeschreibung
+<a id="prozess"></a>
 
-Für den vollständig getesteten Workflow brauchst du unter Windows:
+### 🧭 So arbeitet der Agent
 
-- PowerShell 7 oder Windows PowerShell 5.1
-- optional Chrome oder Edge für automatischen PDF-Export
-- optional Chrome, Edge oder Firefox für die visuelle Prüfung im Browser
+Der Agent trennt bewusst vier Zustände. Eine Datei ist nicht automatisch versandfertig, nur weil sie bereits einen final wirkenden Namen trägt.
 
-Für die Entwicklung und die vollständige lokale Testmatrix werden zusätzlich Git Bash für die Bash-Regressionsfälle und Chrome für `-MitBrowser` empfohlen.
+| Zustand | Speicherort | Bedeutung | Versenden? |
+| --- | --- | --- | :---: |
+| 🟡 **Entwurf** | `_Arbeitsdateien/.../` | Planung, Vorlagen und noch ungeprüfte Entscheidungen | Nein |
+| 🔵 **Kandidat** | `_Arbeitsdateien/.../Kandidat/` | vollständige, aber noch nicht freigegebene Bewerbung | Nein |
+| 🟣 **Prüfnachweise** | `_Arbeitsdateien/.../Layoutcheck/`, `PDF-Export/` und Arbeitsordner | Screenshots, Prüfberichte und Hashnachweise | Nein |
+| 🟢 **Veröffentlicht** | `YYYY-MM-DD--ROLLENNAME/` | sichtgeprüftes und technisch validiertes Ergebnis | nur `Versand/` |
 
-Unter Linux gibt es aktuell nur ein Bash-Skript für die Ordnererstellung. Die Linux-Version ist Alpha; die technischen Prüf- und Exporttools sind derzeit PowerShell-Skripte und wurden als kompletter Workflow nur unter Windows getestet.
+> [!IMPORTANT]
+> **Zum Bewerben verwendest du ausschließlich `Versand/`.** Dateien unter `_Arbeitsdateien/` sind Arbeitsstände oder Prüfnachweise. Dateien unter `Intern/` helfen dir beim Nachvollziehen und späteren Überarbeiten, werden aber nicht mitgeschickt.
 
-## Private Daten einrichten
+#### Der Ablauf in sieben Phasen
 
-Echte persönliche Daten gehören ausschließlich in:
+1. **Stammdaten prüfen** – Identität, Kontakt und zentrale Bewerbungsentscheidungen werden kontrolliert. Kritische Lücken stoppen den Ablauf.
+2. **Arbeitsbereich anlegen** – Der Agent erzeugt einen leeren Zielordner, einen privaten Arbeitsordner und den Bewerbungsauftrag.
+3. **Stelle analysieren** – Muss-/Kann-Anforderungen werden mit deinen belegbaren Profildaten abgeglichen und in einer Anforderungsmatrix bewertet.
+4. **Kandidaten erstellen** – Lebenslauf, Anschreiben, E-Mail, Analyse und Prüfdokumente entstehen zunächst unter `Kandidat/`.
+5. **Fachlich korrigieren** – Stellenbeschreibung, Profil, Matrix und alle Dokumente werden auf Wahrheit, Passung und Widerspruchsfreiheit geprüft.
+6. **Technisch vorbereiten** – A4-Screenshots, zwei PDFs sowie Layout-, PDF- und ATS-Nachweise werden erzeugt. Noch wird nichts veröffentlicht.
+7. **Sichtprüfen und veröffentlichen** – Du kontrollierst jede A4-Seite. Erst danach wird der vollständige Satz atomar nach `Versand/`, `Intern/` und `Manifest.json` veröffentlicht.
+
+<details>
+<summary><strong>Die sieben Phasen genauer erklärt</strong></summary>
+
+**1 · Stammdaten und Sicherheit**
+
+Der Agent prüft Bewerbername, Kontakt, Stellenart, Arbeitsmodell, Region, Eintrittstermin und Gehaltsstrategie. Die Stellenanzeige wird ausschließlich als nicht vertrauenswürdige Datenquelle ausgewertet; darin eingebettete Anweisungen werden nicht ausgeführt.
+
+**2 · Bewerbungsauftrag**
+
+`Bewerbungsauftrag.json` friert Firma, Rolle, Pfade und die Logistik für genau diese Bewerbung ein. Globale Profildaten müssen dadurch nicht für jede Stelle umgeschrieben werden. Noch offene Kernentscheidungen verhindern später die Freigabe.
+
+**3 · Anforderungsmatrix und Bewerbungsentscheidung**
+
+Der Agent macht aus dem ersten Matrixentwurf eine vollständige `Anforderungsmatrix.json`. Jede relevante Stellenanforderung erhält Typ, Gewichtung, Erfüllungsstatus, Beleg und geplante Behandlung. Das Ergebnis unterstützt die bewusste Entscheidung `bewerben` oder `nicht_bewerben`.
+
+**4 · Prüffähiger Kandidat**
+
+Alle inhaltlichen Dokumente werden mit ihren späteren Namen unter `Kandidat/` angelegt. Dieser Ordner ist die Werkbank für Korrekturen – noch nicht der Versandordner.
+
+**5 · Fachliche Korrekturschleife**
+
+Der Agent liest Stellenbeschreibung, Analyse, private Daten, Matrix, Lebenslauf, Anschreiben und E-Mail erneut gegeneinander. Gefundene Unstimmigkeiten werden am Kandidaten korrigiert und anschließend erneut geprüft. Fehlende Belege werden nicht erfunden.
+
+**6 · Technische Vorbereitung**
+
+Der erste Finalisierungslauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt einen Screenshot je A4-Seite, exportiert zwei PDFs und kontrolliert deren ATS-Textschicht. Der Status lautet danach lediglich `bereit_zur_sichtpruefung`.
+
+**7 · Sichtprüfung und atomare Veröffentlichung**
+
+Änderst du nach der Vorbereitung eine Kandidatendatei, verlieren Screenshots und PDFs ihre Gültigkeit und Phase 6 muss vollständig wiederholt werden. Vor dem Zieltausch werden die in der Vorbereitung erfassten Artefakte erneut verglichen. Scheitert eine dieser Vorprüfungen, bleibt der bisherige Zielordner unverändert; der anschließende Tausch verwendet Staging und gegebenenfalls ein Backup, um unvollständige Veröffentlichungen zu vermeiden.
+
+</details>
+
+<a id="ergebnisse"></a>
+
+### 🗂️ Welche Dateien entstehen – und wofür sind sie da?
+
+Die im Screenshot sichtbaren Ordner `Intern/`, `Versand/` und die Datei `Manifest.json` bilden den **veröffentlichten Endzustand**. Parallel bleibt unter `_Arbeitsdateien/` die private Werkstatt mit Entwürfen, Kandidaten und technischen Nachweisen erhalten.
+
+#### Der veröffentlichte Bewerbungsordner
 
 ```text
-Private/Daten/
+Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
+├─ Versand/
+│  ├─ Lebenslauf - NACHNAME.VORNAME.pdf
+│  ├─ Anschreiben - NACHNAME.VORNAME.pdf
+│  └─ Email-Nachricht--FIRMA.md
+├─ Intern/
+│  ├─ Stellenbeschreibung.md
+│  ├─ Analyse.md
+│  ├─ Lebenslauf - NACHNAME.VORNAME.html
+│  ├─ Anschreiben - NACHNAME.VORNAME.html
+│  ├─ Qualitaetscheck.md
+│  ├─ Druck-Hinweis.md
+│  └─ optional Offene_Fragen.md
+└─ Manifest.json
 ```
 
-Benötigte Dateien:
+##### `Versand/` – das benutzt du für die Bewerbung
 
-```text
-Private/Daten/01_PERSOENLICHE_DATEN.md
-Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
-```
+| Datei | Verwendung |
+| --- | --- |
+| `Lebenslauf - NACHNAME.VORNAME.pdf` | als ersten PDF-Anhang beifügen |
+| `Anschreiben - NACHNAME.VORNAME.pdf` | als separaten PDF-Anhang beifügen |
+| `Email-Nachricht--FIRMA.md` | Betreff und Nachricht in dein E-Mail-Programm kopieren; die Markdown-Datei nicht anhängen |
 
-Optional, aber empfohlen:
+Eine Stellenanzeige mit der Bitte um eine Bewerbung „als PDF“ verlangt nicht automatisch eine Gesamt-PDF. Lebenslauf und Anschreiben bleiben standardmäßig zwei getrennte Anlagen; zusammengeführt wird nur bei ausdrücklicher Vorgabe.
 
-```text
-Private/Daten/README.md
-```
+##### `Intern/` – deine lesbare Dokumentation
 
-Die Dateien unter `Private.example/Daten/` sind bereits mit fiktiven Beispieldaten belegt. Sie enthalten eine erfundene Person, eine erfundene Adresse, erfundene Bewerbungslogistik, Beispielkenntnisse, Beispielprojekte und bewusst formulierte Grenzen. Dadurch sieht man schneller, wie die privaten Dateien später aussehen sollen.
+| Datei | Zweck | So kannst du sie nutzen |
+| --- | --- | --- |
+| `Stellenbeschreibung.md` | gespeicherte Ausgangsanzeige | später nachlesen und zur Gesprächsvorbereitung verwenden, auch wenn die Online-Anzeige nicht mehr verfügbar ist |
+| `Analyse.md` | Passung, Profilstrategie, stärkste Argumente, Risiken und bewusste Auslassungen | Bewerbungsentscheidung nachvollziehen und auf ein Vorstellungsgespräch vorbereiten |
+| `Lebenslauf - … .html` | geprüfter HTML-Stand des Lebenslaufs | im Browser ansehen und als nachvollziehbare Dokumentquelle archivieren |
+| `Anschreiben - … .html` | geprüfter HTML-Stand des Anschreibens | im Browser ansehen und als nachvollziehbare Dokumentquelle archivieren |
+| `Qualitaetscheck.md` | fachlicher Anforderungsabgleich plus technischer Abschlussstatus | kontrollieren, was geprüft wurde und welche Warnungen dokumentiert sind |
+| `Druck-Hinweis.md` | Anleitung für manuellen Browserdruck | nur verwenden, wenn du eine HTML-Datei manuell drucken oder als PDF sichern musst |
+| `Offene_Fragen.md` | nicht erfundene, noch offene oder bewusst dokumentierte Punkte | vor dem Versand lesen und verbleibende Fragen soweit möglich klären |
 
-Du kannst die privaten Daten auch mit Hilfe des Agenten ausfüllen lassen. Gib ihm dafür Kontext zu deinen echten Daten, zum Beispiel bisherige Stationen, Ausbildung, Weiterbildung, Kenntnisse, gewünschte Rollen, Arbeitsmodell, Region und Gehaltslogik.
+> [!NOTE]
+> Wenn du ein veröffentlichtes Dokument ändern möchtest, bearbeite nicht direkt die Datei unter `Intern/`. Ändere die passende Datei unter `_Arbeitsdateien/.../Kandidat/`, wiederhole die technische Vorbereitung und veröffentliche den neuen geprüften Satz mit `-Ersetzen`.
 
-Beispielauftrag:
+##### `Manifest.json` – Integrität des veröffentlichten Satzes
+
+Das Manifest enthält Firma, Rolle, Erstellungszeit, Namen und Hashes von Stammdaten, Profil, Bewerbungsauftrag und Anforderungsmatrix sowie für jede veröffentlichte Datei unter `Versand/` und `Intern/` den relativen Pfad, die Bytezahl und den SHA-256-Wert. Es listet sich selbst sowie Entwürfe, Screenshots und Arbeitsberichte bewusst nicht auf.
+
+Nutze das Manifest nicht als Bewerbungsanhang und bearbeite es nicht manuell. Der statische Prüfer kontrolliert damit die veröffentlichten Einträge aus `files[]` auf richtige Pfade, Größen und Hashes; die vier Quellhashes dienen dort nur als Herkunftsnachweis. Die bei der Vorbereitung erfassten Hashes der vier Quellen, der flachen Kandidatendateien und der Layout-PNGs stehen separat in `Finalisierungsbericht.json` – nicht jedoch sämtliche Entwürfe, Arbeitsnotizen oder Prüfberichte.
+
+<details>
+<summary><strong>Arbeitsdateien, Kandidaten und Prüfberichte kurz erklärt</strong></summary>
+
+Alles in diesem Bereich bleibt privat und wird nicht versendet.
+
+| Datei oder Ordner | Zweck | Was du damit tun kannst |
+| --- | --- | --- |
+| `Bewerbungsauftrag.json` | eingefrorener Auftrag mit Firma, Rolle, Logistik, Darstellungsoptionen und Bewerbungsentscheidung | vor der Dokumenterstellung auf richtige Entscheidungen prüfen; nach der Vorbereitung nicht still ändern |
+| `Anforderungsmatrix--ENTWURF.json` | vom Ordnerhelfer erzeugtes Startgerüst | nicht als fertige Analyse verwenden; wird durch `Anforderungsmatrix.json` ersetzt |
+| `Anforderungsmatrix.json` | vollständiger Muss-/Kann-Abgleich mit Gewichtung, Belegen und Behandlung | Passung und Risiken nachvollziehen; auch zur Interviewvorbereitung nützlich |
+| `Arbeitsnotizen.md` | Zuordnung von Firma, Rolle und Ordnern | Arbeitsstand nachvollziehen; wird außerdem zur sicheren Fortsetzung einer Bewerbung benötigt |
+| `*--ENTWURF.*` | vorbereitete Schreibgerüste für Analyse, HTML, E-Mail, Qualitätscheck und offene Fragen | nur als Arbeitsgrundlage betrachten; nie versenden |
+| `Kandidat/` | vollständig benannter, aber noch nicht freigegebener Satz | hier Korrekturen vornehmen und danach alle Prüfungen erneut ausführen |
+| `Kandidat/*.pdf` | während der Vorbereitung erzeugte und validierte PDF-Kandidaten | nicht direkt versenden; erst die veröffentlichten Kopien unter `Versand/` verwenden |
+| `Stammdaten-Pruefbericht.json` | Ergebnis der Identitäts-, Kontakt- und Logistikprüfung | bei blockierenden Stammdatenfehlern zur Diagnose öffnen |
+| `Inhalts-Pruefbericht.json` | Konsistenz-, Zeitraum-, Darstellungs- und Passungsprüfung | fachliche Fehler und Warnungen nachvollziehen |
+| `Layoutcheck/*.png` | ein frischer Screenshot je expliziter A4-Seite | **jede PNG-Datei tatsächlich öffnen und visuell prüfen** |
+| `Layoutcheck/Layoutcheck-Bericht.json` | Browser, Abmessungen, Seiten, Screenshot-Hashes und Dichtehinweise | Layoutwarnungen einer konkreten Seite zuordnen |
+| `PDF-Export/PDF-Export-Bericht.json` | HTML-/PDF-Hashes, Dateigröße, Seitenzahl und A4-MediaBox | PDF-Exportfehler technisch einordnen |
+| `ATS-Pruefbericht.json` | Textabdeckung, Pflichttexte und grundlegende Lesereihenfolge der PDFs | erkennen, ob Bewerbermanagementsysteme den PDF-Text voraussichtlich auslesen können |
+| `Finalisierungsbericht.json` | Zustands- und Vorbereitungsnachweis mit den damals erfassten Quellen-, Kandidaten- und Screenshot-Hashes | Status und Prüflauf nachvollziehen; für die Integrität des veröffentlichten Endstands ist `Manifest.json` maßgeblich |
+
+Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner liegen. Sie sind keine zweite freigegebene Bewerbung. Maschinenlesbare Berichte und Screenshots werden absichtlich **nicht** nach `Intern/` kopiert.
+
+</details>
+
+#### Welche Datei nutze ich für welchen Zweck?
+
+- 📤 **Bewerbung verschicken:** ausschließlich die zwei PDFs aus `Versand/` anhängen.
+- ✉️ **E-Mail verfassen:** Betreff und Text aus `Versand/Email-Nachricht--FIRMA.md` kopieren.
+- 👀 **Layout freigeben:** jede PNG-Datei unter `_Arbeitsdateien/.../Layoutcheck/` öffnen.
+- 🔎 **Stellenpassung verstehen:** `Intern/Analyse.md` und bei Bedarf die private `Anforderungsmatrix.json` lesen.
+- ✏️ **Dokument korrigieren:** nur den Kandidaten bearbeiten, danach Vorbereitung und Sichtprüfung wiederholen.
+- 🧪 **Fehler untersuchen:** die passenden JSON-Berichte unter `_Arbeitsdateien/` öffnen.
+- 🔐 **Veröffentlichten Satz prüfen:** die in `Manifest.json` unter `files[]` erfassten Dateien mit dem statischen Prüfer validieren.
+- 🗄️ **Bewerbung nachvollziehbar archivieren:** finalen Ordner **und** zugehörigen Arbeitsordner behalten.
+
+> [!WARNING]
+> Lösche `_Arbeitsdateien` nicht vorschnell. Die versendbaren PDFs bleiben zwar im finalen Ordner, aber du verlierst Kandidaten, Anforderungsmatrix, Screenshots, technische Nachweise und die saubere Grundlage für spätere Korrekturen.
+
+#### Offene Fragen
+
+Fehlen belastbare Informationen, legt der Agent `Offene_Fragen.md` an. Das betrifft zum Beispiel einen unklaren Eintrittstermin, einen fehlenden Ansprechpartner, eine nicht belegte Technologie oder eine offene Gehaltsstrategie.
+
+Kritische Fragen blockieren die Veröffentlichung, wenn sonst Identität, Wahrheit oder zentrale Bewerbungsentscheidungen gefährdet wären. Bleibt eine nicht blockierende `Offene_Fragen.md` im veröffentlichten Satz erhalten, lies sie vor dem Versand. Unbekannte Angaben werden niemals geraten oder als Platzhalter in finale Dokumente übernommen.
+
+<a id="daten"></a>
+
+### 🔐 Private Daten & Datenschutz
+
+Die Trennung zwischen öffentlicher Logik und privaten Daten ist ein Kernprinzip des Projekts.
+
+| Datei | Enthält | Enthält ausdrücklich nicht |
+| --- | --- | --- |
+| `01_PERSOENLICHE_DATEN.md` | Identität, Kontakt, Verfügbarkeit, Arbeitsmodell, Region und Gehaltslogik | fachliche CV-Details |
+| `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` | Erfahrung, Ausbildung, Kenntnisse, Projekte, Belege und fachliche Grenzen | Kontakt- und Adressdaten |
+| `README.md` | lokale Pflegeanleitung für beide Dateien | Bewerbungsinhalte oder eine dritte Datenquelle |
+
+Die Vorlagen findest du unter `Private.example/Daten/`. Pflege jede Information nur an ihrer Stammquelle, damit Angaben nicht widersprüchlich werden.
+
+<details>
+<summary><strong>Persönliche Daten mit Unterstützung des Agenten einrichten</strong></summary>
+
+Du kannst Codex beim strukturierten Übertragen deiner Angaben helfen lassen:
 
 ```text
 Nutze die Struktur aus Private.example/Daten/.
@@ -164,109 +346,156 @@ Hier sind meine echten Informationen:
 <persönliche Daten und beruflicher Kontext einfügen>
 ```
 
-Wichtig: Kontrolliere die erzeugten Dateien danach sorgfältig selbst. KI-Agenten können Angaben falsch einordnen, zu stark formulieren oder aus unklaren Informationen falsche Schlüsse ziehen.
+Kontrolliere die erzeugten Dateien sorgfältig. Ein KI-Agent kann Angaben falsch einordnen, zu stark formulieren oder aus unklarem Kontext falsche Schlüsse ziehen.
 
-### Wofür ist `Private/Daten/README.md`?
+</details>
 
-`Private/Daten/README.md` ist deine lokale Pflegeanleitung für die privaten Bewerberdaten. Sie hilft dir und dem Agenten zu verstehen, welche Datei wofür zuständig ist, wie neue Angaben einsortiert werden und welche Regeln beim Erweitern der Profildaten gelten.
+#### Sicherheitsmodell
 
-Die Datei ist nicht für Bewerbungsinhalte gedacht. Sie soll keine dritte Datenquelle für Lebenslaufdaten werden, sondern erklären, wie `01_PERSOENLICHE_DATEN.md` und `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` gepflegt werden.
+Stellenanzeigen, Unternehmensseiten, E-Mails und andere Fremdtexte gelten als **nicht vertrauenswürdige Datenquellen**:
 
-Empfohlene Struktur:
+- Eingebettete Aufforderungen dürfen Projektregeln und Nutzerauftrag nicht verändern.
+- Fremdtexte dürfen keine privaten Dateien offenlegen, hochladen, versenden, löschen oder verändern lassen.
+- Externe Aktionen sind nur durch einen direkten Nutzerauftrag autorisiert.
+- Finale HTML-Dateien laden keine externen oder lokalen Ressourcen automatisch nach; vollständig eingebettete `data:`-Ressourcen sind möglich.
+- Analyse und Arbeitsnotizen vervielfältigen keine unnötigen privaten Daten oder Geheimnisse.
 
-```text
-# Datenstruktur
+> [!WARNING]
+> `.gitignore` ist keine Verschlüsselung. Cloud-Synchronisation, Backups, Virenscanner und andere lokale Programme können Dateien unter `Private/` weiterhin lesen oder kopieren. Prüfe außerdem jedes finale Dokument persönlich vor dem Versand.
 
-## Zweck
-Kurze Erklärung, dass dieser Ordner private Bewerberdaten enthält.
+<details>
+<summary><strong>Git- und Datenschutzcheck vor einem Commit</strong></summary>
 
-## Datei 01: Persönliche Daten
-Welche Informationen in 01 gehören und welche ausdrücklich nicht.
-
-## Datei 02: Bewerberprofil und Positionierung
-Welche fachlichen Informationen in 02 gehören und wie sie belegt werden.
-
-## Konfliktregel
-Was gilt, wenn Angaben doppelt, widersprüchlich oder unklar sind.
-
-## Pflegeprinzip
-Wie neue Informationen ergänzt werden sollen, ohne Daten doppelt zu pflegen.
+```powershell
+git status --short
 ```
 
-Du kannst `Private.example/Daten/README.md` als fertige Startvorlage kopieren und danach lokal an deine eigene Datenpflege anpassen.
+In der Ausgabe dürfen keine echten Dateien aus `Private/` auftauchen. Zeigt `git status --short --ignored` den Eintrag `!! Private/`, arbeitet die Ignore-Regel wie vorgesehen.
 
-Wenn `Private/Daten/` noch fehlt:
+Öffentlich geeignet sind insbesondere `.github/`, `Prompts/`, `Tests/`, `Tools/`, `Vorlagen/`, `Private.example/`, `CHANGELOG.md` und `README.md`.
 
-1. Erstelle den Ordner `Private/Daten/`.
-2. Nutze die Dateien aus `Private.example/Daten/` als Struktur- und Ausfüllvorlage.
-3. Entferne `.example` aus den Dateinamen.
-4. Ersetze alle fiktiven Beispieldaten durch deine echten lokalen Angaben.
-5. Trage persönliche Stammdaten und Bewerbungslogistik nur in `01_PERSOENLICHE_DATEN.md` ein.
-6. Trage fachliche Lebenslaufdaten nur in `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ein.
-7. Nutze `Private/Daten/README.md` als lokale Pflegeanleitung, wenn du die Daten später erweiterst.
+</details>
 
-Wichtig: `Private/` ist in `.gitignore` eingetragen und darf nicht veröffentlicht werden. `.gitignore` verhindert nur versehentliche Git-Commits; es verschlüsselt die Daten nicht und schützt sie nicht vor Cloud-Synchronisation, Backups oder anderen lokalen Programmen.
+<a id="finalisierung"></a>
 
-### Datei `01_PERSOENLICHE_DATEN.md`
+### ✅ Prüfen & veröffentlichen
 
-Diese Datei enthält Identität, Kontakt und Bewerbungslogistik:
+Der verbindliche Abschluss besteht aus zwei bewusst getrennten Schritten.
 
-- Name, Vorname, Nachname und Dateiname-Name
-- Adresse, Telefon, E-Mail
-- GitHub, Portfolio und andere öffentliche Profile
-- Verfügbarkeit, Eintrittstermin und gewünschte Stellenart
-- Arbeitsmodell, Region, Pendeldistanz, Reisebereitschaft und ähnliche Bewerbungslogistik
-- Gehaltswunsch und Gehaltslogik
-- optionale persönliche Angaben
+#### Schritt 1: Technisch vorbereiten
 
-Eine automatische Gehaltsschätzung wird nur verwendet, wenn sie im bewerbungsspezifischen Auftrag ausdrücklich aktiviert ist und eine aktuelle, nachvollziehbare Datengrundlage verfügbar ist. Datei `01` liefert dafür den initialen Standard. Maßgeblich sind Zielrolle, Seniorität, einschlägige Berufserfahrung, Region, Arbeitsmodell und Stellenart. Alter, Geschlecht und andere geschützte persönliche Merkmale werden nicht berücksichtigt. Ohne belastbare Grundlage bleibt die Gehaltsfrage offen, statt eine Zahl zu raten.
-
-### Datei `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`
-
-Diese Datei enthält die fachliche Grundlage für Lebenslauf und Argumentation:
-
-- Zielrollen und Positionierung
-- Berufserfahrung und übertragbare Erfahrung
-- Ausbildung, Umschulung, Weiterbildung und Schulbildung
-- Kenntnisse, Sprachen, Projekte und private Praxis
-- Grenzen und Hinweise, was nicht behauptet werden darf
-
-Eine Information soll nur an ihrer Stammquelle gepflegt werden. Kontakt-, Dateinamen- und Standardwerte zur Bewerbungslogistik kommen aus Datei `01`; fachliche CV-Daten kommen aus Datei `02`. Der Bewerbungsauftrag speichert bewusst einen Snapshot der Logistik, damit spätere globale Änderungen eine bereits vorbereitete Bewerbung nicht unbemerkt verändern.
-
-## Bewerbung erstellen lassen
-
-Gib dem Agenten diesen Auftrag:
-
-```text
-Nutze Prompts/00_AGENTEN_START_HIER.md und erstelle eine Bewerbung für diese Stellenbeschreibung:
-
-<Stellenbeschreibung einfügen>
+```powershell
+.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome
 ```
 
-Der Agent liest dann:
+Dieser Lauf prüft Stammdaten und Inhalte, erzeugt A4-Screenshots, exportiert zwei PDFs, kontrolliert deren Struktur und ATS-Textschicht und schreibt Hashnachweise.
 
-1. `Private/Daten/01_PERSOENLICHE_DATEN.md`
-2. `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`
-3. die Regeln aus `Prompts/`
-4. passende Designreferenzen aus `Vorlagen/`
+#### Schritt 2: Nach Sichtprüfung veröffentlichen
 
-Danach erstellt er einen privaten Arbeits- und Kandidatenordner. Der finale Zielordner bleibt bis zur geprüften Veröffentlichung leer.
+```powershell
+.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft
+```
 
-### Was der Agent fachlich macht
+Bei einer Layoutwarnung ist zusätzlich eine kurze fachliche Bewertung über `-VisuelleFreigabeNotiz "..."` erforderlich. Änderungen an Quellen, Kandidatendateien oder Screenshots machen vorhandene Nachweise ungültig.
 
-Die Stellenbeschreibung entscheidet, welche Profilteile sichtbar werden. Der Agent soll:
+<details>
+<summary><strong>Bereits veröffentlichte Bewerbung korrigieren</strong></summary>
 
-- Zielrolle und Firma erkennen
-- Anforderungen, Muss-Kriterien und Kann-Kriterien analysieren
-- passende Kompetenzen aus den privaten Daten auswählen
-- irrelevante Themen kürzen oder weglassen
-- Quereinstieg, Lücken und private Praxis ehrlich einordnen
-- Lebenslauf, Anschreiben und E-Mail passend zur Rolle formulieren
-- keine Kenntnisse, Arbeitgeber, Zeiträume oder Zertifikate erfinden
+Bearbeite veröffentlichte Dateien nicht direkt unter `Versand/` oder `Intern/`. Korrigiere die Quellen beziehungsweise Kandidatendateien, führe Schritt 1 erneut aus und kontrolliere alle neuen Screenshots. Erst danach darf der neu geprüfte Satz den bestehenden Zielordner bewusst ersetzen:
 
-### Bewerbungsordner manuell vorbereiten
+```powershell
+.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft -Ersetzen
+```
 
-Normalerweise erstellt der Agent den Ordner selbst. Du kannst die Struktur aber auch manuell vorbereiten.
+Bei Layoutwarnungen gilt auch hier zusätzlich `-VisuelleFreigabeNotiz "..."`.
+
+</details>
+
+#### Visuelle Kurzcheckliste
+
+- [ ] Jede erwartete A4-Seite ist als frischer Screenshot vorhanden.
+- [ ] Kein Text ist abgeschnitten oder verdeckt.
+- [ ] Es gibt keine ungewollte Leerseite oder große zufällige Leerfläche.
+- [ ] Schrift, Abstände und Spalten sind professionell lesbar.
+- [ ] Lebenslauf, Anschreiben und E-Mail enthalten dieselben Kerndaten.
+- [ ] Es stehen keine Platzhalter oder erfundenen Angaben in den Dateien.
+
+<details>
+<summary><strong>Einzelne Diagnose-, Layout- und Exportbefehle</strong></summary>
+
+Die Einzeltools sind für Diagnose und Entwicklung nützlich. Bei einer neuen Bewerbung ersetzen sie nicht das zweistufige Finalisierungsgate.
+
+In den folgenden Beispielen liegen die prüfbaren HTML-Dateien im Kandidatenordner; Berichte und temporäre Ausgaben bleiben daneben im privaten Arbeitsordner.
+
+**Statischer Check**
+
+```powershell
+.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat"
+```
+
+Warnungen können streng als Fehler behandelt werden:
+
+```powershell
+.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" -WarnungenAlsFehler
+```
+
+**Layout-Screenshots**
+
+```powershell
+.\Tools\Layoutcheck-Bewerbung.ps1 `
+  -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck" `
+  -Browser chrome
+```
+
+**PDF-Export**
+
+```powershell
+.\Tools\Exportiere-PDF.ps1 `
+  -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export" `
+  -Browser chrome
+```
+
+Der statische Prüfer kontrolliert Pflichtdateien, Dateinamen, Platzhalter, A4-Geometrie, eingebettetes CSS, unerlaubte Ressourcen und den E-Mail-Betreff. Layout- und Exporttools validieren zusätzlich PNG-/PDF-Signaturen, Abmessungen, Seitenzahlen und Aktualität.
+
+</details>
+
+<details>
+<summary><strong>Manueller PDF-Export mit Firefox</strong></summary>
+
+Wenn kein unterstützter Headless-Export verfügbar ist, kannst du zu Diagnosezwecken manuell drucken:
+
+1. HTML-Datei in Firefox öffnen.
+2. Mit <kbd>Strg</kbd> + <kbd>P</kbd> den Druckdialog öffnen.
+3. `Weitere Einstellungen` aufklappen.
+4. `Kopf- und Fußzeilen drucken` deaktivieren.
+5. Skalierung auf `100 %` und Ränder auf `Keine` stellen.
+
+Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgeschnittenes Einseiten-Dokument.
+
+> [!CAUTION]
+> Dieser manuelle Export ist **kein gleichwertiger Ersatz** für den verbindlichen Finalisierungsworkflow: PDF-Struktur, ATS-Textschicht und Hashnachweise werden dabei nicht automatisch validiert. Eine vollständig geprüfte Veröffentlichung benötigt Chrome oder Edge.
+
+</details>
+
+### 🪟 Voraussetzungen & Plattformstatus
+
+| Komponente | Status | Verwendung |
+| --- | --- | --- |
+| Windows + PowerShell 7 | 🟢 stabil | vollständig getesteter Referenzworkflow |
+| Codex in VS Code oder lokale Codex-App | 🟢 empfohlen | liest Regeln und erzeugt lokale Dateien |
+| Chrome oder Edge | 🔵 für Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung |
+| Firefox | 🟡 optional | manuelle Vorschau; kein gleichwertiger Finalisierungsersatz |
+| Linux + Bash | 🟠 Alpha | derzeit vor allem Ordnererstellung; [Portierungsplan](LINUX-PORTIERUNGSPLAN.md) |
+| Git Bash | 🟡 Entwicklung | Bash-Regressionsfälle unter Windows |
+
+Für die normale Nutzung brauchst du dieses Repository, gepflegte Daten unter `Private/Daten/`, einen lokal arbeitenden KI-Agenten und eine konkrete Stellenbeschreibung.
+
+<details>
+<summary><strong>Bewerbungsordner manuell anlegen</strong></summary>
+
+Normalerweise übernimmt der Agent diesen Schritt.
 
 Windows / PowerShell:
 
@@ -274,391 +503,86 @@ Windows / PowerShell:
 .\Tools\Neue-Bewerbung.ps1 -Firma "Muster GmbH" -Rolle "Junior Webentwickler"
 ```
 
-Linux / Bash:
+Linux / Bash (Alpha):
 
 ```bash
 bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Junior Webentwickler"
 ```
 
-Die Skripte erzeugen:
+Die Helfer erzeugen einen leeren Zielordner, einen Arbeitsordner und einen Kandidatenordner. Eine vorhandene Kombination aus Firma, Datum und Rolle wird nicht überschrieben. `-Fortsetzen` beziehungsweise `--fortsetzen` ist nur für dieselbe, über `Arbeitsnotizen.md` nachweisbare Bewerbung vorgesehen.
 
-```text
-Private/Bewerbungen/Muster-GmbH/YYYY-MM-DD--Junior-Webentwickler/
-Private/Bewerbungen/Muster-GmbH/_Arbeitsdateien/YYYY-MM-DD--Junior-Webentwickler/
-Private/Bewerbungen/Muster-GmbH/_Arbeitsdateien/YYYY-MM-DD--Junior-Webentwickler/Kandidat/
-```
+</details>
 
-Entwürfe, Anforderungsmatrix, Prüfberichte und versandfertig benannte Kandidatendateien liegen bis zur Freigabe unter `_Arbeitsdateien`. Der finale Bewerbungsordner bleibt nicht nur sauber, sondern zunächst vollständig leer.
+<a id="hilfe"></a>
 
-Existiert die bereinigte Kombination aus Firma, Datum und Rolle bereits, brechen die Helfer standardmäßig ab. Nur dieselbe, über `Arbeitsnotizen.md` nachweisbare Bewerbung darf ausdrücklich mit `-Fortsetzen` beziehungsweise `--fortsetzen` ergänzt werden; eine vorhandene andere Stellenbeschreibung wird nie überschrieben.
+### ❓ Häufige Probleme
 
-## Ergebnisse und Versanddateien
+| Problem | Schnellste Prüfung | Lösung |
+| --- | --- | --- |
+| Statischer Check ist rot | Fehlermeldung und betroffene Datei lesen | HTML/Markdown korrigieren und Check wiederholen |
+| Layoutcheck startet nicht | Ist Chrome oder Edge installiert? | Unter Windows gezielt `-Browser chrome` verwenden |
+| Browser scheitert in einer Sandbox | Browserfreigabe der lokalen Agentenumgebung prüfen | denselben Lauf mit lokaler Browserfreigabe wiederholen |
+| PDF-Export bricht ab | Statischen Check separat ausführen | Fehler beheben; manueller Firefox-Druck ist nur eine unvalidierte Diagnosealternative |
+| Text wirkt abgeschnitten | HTML und alle Seitenscreenshots öffnen | Inhalt fachlich kürzen oder bewusst auf zwei A4-Seiten verteilen |
+| Persönliche Dateien erscheinen in Git | `git status --short --ignored` prüfen | Dateien nach `Private/` verschieben; nichts Privates committen |
+| Informationen fehlen | `Offene_Fragen.md` lesen | belastbare Angaben ergänzen; keine Werte raten lassen |
 
-Pro Bewerbung entsteht ein eigener privater Ordner:
+Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Abschnitt [Prüfen & veröffentlichen](#finalisierung).
 
-```text
-Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
-```
+### ⚠️ Bekannte Grenzen
 
-Darin liegt am Ende eine klare Trennung zwischen Versand und internen Nachweisen:
+- Der vollständig getestete Workflow ist Windows mit PowerShell.
+- Linux befindet sich im Alpha-Status und unterstützt noch nicht den gleichwertigen Gesamtworkflow.
+- Automatischer PDF-Export unterstützt Chrome und Edge, nicht Firefox.
+- HTML- und PDF-Prüfungen sind konservativ auf den unterstützten Chromium-Export ausgerichtet; ungewöhnliche Designs und andere PDF-Erzeuger benötigen zusätzliche Regressionstests.
+- Eine echte manuelle Sichtprüfung bleibt erforderlich, besonders bei neuen Designs und zweiseitigen Lebensläufen.
+- Die Ergebnisqualität hängt von vollständigen, aktuellen und ehrlich gepflegten Profildaten ab.
 
-```text
-Versand/
-├─ Lebenslauf - NACHNAME.VORNAME.pdf
-├─ Anschreiben - NACHNAME.VORNAME.pdf
-└─ Email-Nachricht--FIRMA.md
-Intern/
-├─ Stellenbeschreibung.md
-├─ Analyse.md
-├─ Lebenslauf - NACHNAME.VORNAME.html
-├─ Anschreiben - NACHNAME.VORNAME.html
-├─ Qualitaetscheck.md
-├─ Druck-Hinweis.md
-└─ optional Offene_Fragen.md
-Manifest.json
-```
+---
 
-PDF-Dateien entstehen im verbindlichen Finalisierungsworkflow nur, wenn Chrome oder Edge verfügbar ist und Struktur-, Seiten- und ATS-Prüfung bestehen.
+<a id="entwicklung"></a>
 
-Für den Versand geeignet sind:
+## 🧰 Für Entwickler
 
-- die drei Dateien unter `Versand/`: zwei getrennte PDFs und der vorbereitete E-Mail-Text
+Dieser Abschnitt richtet sich an Mitwirkende, die Prompts, Tools, Tests oder Dateiverträge verändern möchten. Wenn du das Projekt nur für eigene Bewerbungen verwendest, brauchst du die folgenden Implementierungsdetails nicht.
 
-Nicht versenden:
+| Einstieg | Inhalt |
+| --- | --- |
+| [Änderungsprotokoll](CHANGELOG.md) | Releases, Korrekturen und Testnachweise |
+| [Prompt-System](Prompts/README.md) | Agentenablauf und fachliche Regelmodule |
+| [Vorlagen](Vorlagen/README.md) | HTML-Designreferenzen und Matrixbeispiel |
+| [Technische Dateiverträge](#dateivertraege) | vollständiger Artefaktbaum, Prüfberichte und Hash-Scope |
+| [Linux-Portierungsplan](LINUX-PORTIERUNGSPLAN.md) | geplanter gleichwertiger Windows-/Linux-Betrieb |
+| [Archivierter Frontend-Plan](frontend-project.old.md) | historischer Plan einer Electron-Oberfläche |
+| [CI-Workflow](.github/workflows/tests.yml) | Windows-/Ubuntu-Testmatrix |
 
-- Dateien aus `_Arbeitsdateien`
-- Entwürfe
-- Screenshots aus dem Layout-Check
-- interne Notizen
-- `Analyse.md`, falls sie nur für dich gedacht ist
-- `Qualitaetscheck.md`, falls er nicht ausdrücklich gewünscht ist
+### Projektprinzipien
 
-Eine Stellenanzeige mit der Bitte um eine Bewerbung „als PDF“ beschreibt üblicherweise das Datenformat. Sie verlangt nicht automatisch eine einzige Gesamt-PDF. Lebenslauf und Anschreiben bleiben daher standardmäßig zwei getrennte Anlagen; zusammengeführt wird nur bei einer ausdrücklichen Vorgabe.
+- **Öffentliche Logik, private Daten:** Regeln, Tools und Tests sind öffentlich; Profildaten und Bewerbungen bleiben lokal.
+- **Wahrheit durch Konstruktion:** Arbeitgeber, Zeiträume, Kenntnisse und Zertifikate dürfen nicht erfunden werden.
+- **Kandidat zuerst:** Finaldateien entstehen zunächst in einem Kandidatenordner und werden erst nach allen Gates veröffentlicht.
+- **Atomare Veröffentlichung:** `Versand/`, `Intern/` und `Manifest.json` werden nur als vollständig geprüfter Satz publiziert.
+- **Reproduzierbare Nachweise:** Der Finalisierungsbericht bindet den vorbereiteten Kandidaten an Quellen und Screenshots; das Manifest bindet separat den veröffentlichten Satz.
 
-### Offene Fragen
-
-Wenn wichtige Informationen fehlen, legt der Agent `Offene_Fragen.md` an oder ergänzt sie.
-
-Typische offene Punkte:
-
-- Schulabschluss noch nicht bestätigt
-- Ansprechpartner fehlt
-- Eintrittstermin oder Kündigungsfrist unklar
-- gewünschte Stellenart passt nicht eindeutig zur Anzeige
-- Gehaltswunsch wird verlangt, aber es fehlt eine manuelle Angabe oder ausreichende Schätzgrundlage
-- eine in der Anzeige gewünschte Technologie ist nur als Lernfeld, nicht als Erfahrung belegt
-
-Offene fachliche Fragen blockieren die Bewerbung nur dann, wenn sie die Wahrheit oder Identität gefährden. Nicht gepflegte Kernentscheidungen zu gewünschter Stellenart, Arbeitsmodell und Gehaltsstrategie blockieren dagegen die finale Veröffentlichung, bis ein eindeutiger persönlicher Wert vorliegt.
-
-## Prüfen und exportieren
-
-Der empfohlene Abschlussablauf ist:
-
-1. Stammdaten und zentrale Bewerbungslogistik prüfen.
-2. Anforderungsmatrix und fachlichen Abschlusstest fertigstellen.
-3. Kandidatendateien mit der Finalisierung technisch vorbereiten.
-4. Jeden erzeugten A4-Seitenscreenshot tatsächlich visuell prüfen.
-5. Erst danach den vollständigen Satz atomar veröffentlichen.
-
-### Verbindliche Finalisierung
-
-Vorbereitung:
-
-```powershell
-.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome
-```
-
-Nach der Sichtprüfung:
-
-```powershell
-.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft
-```
-
-Wenn der Vorbereitungslauf Layoutwarnungen meldet, verlangt die Veröffentlichung zusätzlich eine kurze nachvollziehbare Bewertung über `-VisuelleFreigabeNotiz "..."`.
-
-Die folgenden Einzelprüfer bleiben für Diagnose und Entwicklung nützlich. Bei neuen Bewerbungen ersetzt ihre manuelle Ausführung nicht das zweistufige Finalisierungsgate.
-
-### Fachlicher Abschlusstest
-
-Vor der technischen Prüfung soll der Agent Stellenbeschreibung, Analyse, private Daten, Lebenslauf, Anschreiben und E-Mail-Nachricht noch einmal gegeneinander prüfen.
-
-Der Abschlusstest kontrolliert:
-
-- wichtigste Muss- und Kann-Anforderungen der Stelle
-- sichtbare Belege im Lebenslauf
-- passende Argumentation im Anschreiben
-- keine erfundenen Arbeitgeber, Zeiträume, Tools, Zertifikate oder Verantwortlichkeiten
-- keine Widersprüche zwischen Lebenslauf, Anschreiben, E-Mail und privaten Daten
-- fehlende Daten nur in `Offene_Fragen.md`, nicht als Platzhalter in finalen Dateien
-
-Wenn der Abschlusstest Unstimmigkeiten findet, soll der Agent die betroffenen Dateien korrigieren und danach erneut prüfen. Das Ergebnis wird in `Qualitaetscheck.md` kurz dokumentiert, idealerweise mit einem knappen Anforderungsabgleich.
-
-### Statischer technischer Check
-
-Nach jeder Bewerbung sollte der statische Prüfer laufen:
-
-```powershell
-.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
-```
-
-Für einen strengeren automatisierten Abschluss können auch Warnungen als Fehler behandelt werden:
-
-```powershell
-.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -WarnungenAlsFehler
-```
-
-Der Prüfer kontrolliert:
-
-- Pflichtdateien als nichtleere reguläre Dateien vorhanden
-- finale Dateinamen korrekt
-- Lebenslauf und Anschreiben nutzen denselben Bewerbernamen
-- keine sichtbaren Platzhalter oder Entwurfsmarker
-- Anschreiben hat exakt eine, Lebenslauf ein oder zwei explizite A4-Seiten
-- HTML-Dateien haben exakt `210mm x 297mm` große Seitencontainer
-- CSS ist eingebettet
-- keine automatisch geladenen externen oder lokalen Ressourcen, Skripte, Fonts, Medien oder CDNs
-- `overflow: hidden` wird nur auf der äußeren A4-Seite verwendet
-- E-Mail-Nachricht ist kurz, ohne Platzhalter und beginnt mit einem konkreten `Betreff:`
-
-Wenn der Prüfer rot ist, sollte die Bewerbung noch nicht versendet werden.
-
-### Visuelle Prüfung
-
-Der Layout-Check öffnet die angegebenen HTML-Dateien per Headless-Browser und erzeugt Screenshots im privaten Arbeitsordner:
-
-```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
-```
-
-Unter Windows 11 mit VS Code, PowerShell und installiertem Chrome ist dieser direkte Weg empfohlen:
-
-```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome
-```
-
-Die Screenshots liegen unter:
-
-```text
-Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
-```
-
-Der Layout-Check gilt nur als erfolgreich, wenn die erwarteten Screenshot-Dateien im aktuellen Lauf frisch erzeugt wurden und eine gültige PNG-Signatur sowie exakt die angeforderten Abmessungen haben. Alte Ausgaben werden vorher entfernt; ein hängender Browser wird nach dem Timeout beendet.
-
-Ist die Agentenumgebung bereits als verwaltete Sandbox bekannt, sollte der browsergestützte Finalisierungslauf direkt mit lokaler Browserfreigabe gestartet werden. Ein erwartbarer erster Fehlversuch innerhalb der Sandbox liefert keinen zusätzlichen Qualitätsnachweis.
-
-Jeder erzeugte Seitenscreenshot sollte danach visuell geprüft werden:
-
-- Einseiten-Dokumente zeigen eine vollständige A4-Seite.
-- Keine Inhalte sind unten abgeschnitten.
-- Es gibt keine zerstückelte zweite Seite und keine großen ungewollten Leerflächen.
-- Schulbildung, berufliche Bildung und Weiterbildung bleiben sichtbar.
-- Schriftgröße, Zeilenabstand und Spalten wirken professionell lesbar.
-
-Der Layoutcheck isoliert jeden expliziten `.page`-Container und erzeugt Dateien wie `...--seite-1-von-2--chrome.png` und `...--seite-2-von-2--chrome.png`. Ein zweiseitiger Lebenslauf benötigt daher keine manuell erhöhte Screenshot-Höhe mehr. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; eine Warnung muss fachlich bewertet werden und darf nicht zu blindem Auffüllen oder Komprimieren führen.
-
-### PDF-Export
-
-Wenn der statische Check grün ist und Chrome oder Edge verfügbar ist:
-
-```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
-```
-
-Mit Layout-Check vor dem Export:
-
-```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -MitLayoutcheck
-```
-
-Unter Windows 11 mit Chrome kann der Export gezielt mit Chrome gestartet werden:
-
-```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome
-```
-
-Das Exporttool:
-
-- führt zuerst den statischen Prüfer aus
-- bricht ab, wenn die Bewerbung technisch nicht sauber ist
-- nutzt Chrome oder Edge Headless
-- erzeugt und prüft zuerst beide PDFs in einem eindeutigen privaten Arbeitslauf
-- prüft Aktualität, Dateigröße, PDF-Struktur, DIN-A4-MediaBox und Seitenzahl gegen die expliziten HTML-Seiten
-- ersetzt vorhandene finale PDFs erst, wenn beide neuen Dateien gültig sind, und stellt alte Dateien bei einem Veröffentlichungsfehler wieder her
-
-Die PDFs heißen genauso wie die HTML-Dateien:
-
-```text
-Lebenslauf - NACHNAME.VORNAME.html
-Lebenslauf - NACHNAME.VORNAME.pdf
-Anschreiben - NACHNAME.VORNAME.html
-Anschreiben - NACHNAME.VORNAME.pdf
-```
-
-### Manueller PDF-Export
-
-Die HTML-Dateien sind für A4 vorbereitet.
-
-Wenn in Firefox Dateiname, URL, Datum oder Seitenzahl erscheinen, kommt das aus dem Druckdialog, nicht aus der HTML-Datei.
-
-Empfohlene Firefox-Einstellungen:
-
-1. HTML-Datei öffnen.
-2. Den Druckdialog öffnen, zum Beispiel mit `Strg + P`.
-3. `Weitere Einstellungen` öffnen.
-4. `Kopf- und Fußzeilen drucken` deaktivieren.
-5. Skalierung auf `100%` stellen.
-6. Ränder auf `Keine` stellen.
-
-Bei einseitigen Dokumenten soll eine feste A4-Fläche von `210mm x 297mm` verwendet werden. Wenn ein Lebenslauf fachlich nicht sauber auf eine Seite passt, ist ein bewusst zweiseitiger Lebenslauf besser als ein gequetschtes oder abgeschnittenes einseitiges Dokument.
-
-## Datenschutz und Git
-
-Privat und nicht für GitHub:
-
-```text
-Private/
-Private/Daten/
-Private/Bewerbungen/
-Private/Bewertungen/
-Private/LebenslaufUniversal/
-Private/Archiv/
-```
-
-Öffentlich geeignet:
-
-```text
-.github/
-Prompts/
-Tests/
-Vorlagen/
-Tools/
-Private.example/
-CHANGELOG.md
-frontend-project.md
-README.md
-.gitignore
-.gitattributes
-```
-
-Vor einem Commit:
-
-```powershell
-git status --short
-```
-
-In dieser Ausgabe dürfen keine echten Dateien aus `Private/` erscheinen. Wenn `git status --short --ignored` `!! Private/` zeigt, ist das normal.
-
-Dieser Schutz gilt nur für Git. Private Daten sollten zusätzlich in einem bewusst gewählten lokalen Speicherort liegen; automatische Cloud-Synchronisation, Backups, Virenscanner und andere Programme können ignorierte Dateien weiterhin lesen oder kopieren.
-
-## Häufige Probleme
-
-Wenn der statische Check fehlschlägt:
-
-- Fehlermeldung lesen
-- HTML oder Markdown korrigieren
-- `Pruefe-Bewerbung.ps1` erneut ausführen
-
-Wenn der Layout-Check fehlschlägt:
-
-- prüfen, ob Chrome, Edge oder Firefox installiert ist
-- prüfen, ob die Ausgabedateien unter `_Arbeitsdateien` erzeugt wurden
-- den statischen Check trotzdem separat betrachten
-- unter Windows 11 zuerst `-Browser chrome` nutzen
-- bei Sandbox-Fehler denselben Chrome-Lauf außerhalb der Sandbox oder mit lokaler Browserfreigabe wiederholen
-
-Wenn der PDF-Export fehlschlägt:
-
-- prüfen, ob Chrome oder Edge installiert ist
-- statischen Check erneut ausführen
-- manuell über Firefox drucken, falls kein Headless-Export möglich ist
-
-Wenn Text im PDF abgeschnitten wirkt:
-
-- HTML öffnen und Layout prüfen
-- Lebenslauf kürzen oder bewusst auf zwei A4-Seiten umbauen
-- niemals Inhalt durch `overflow` verstecken
-
-# Entwicklerdokumentation
-
-Dieser Abschnitt ist für Entwickler gedacht. Er beschreibt Projektstruktur, Datenfluss, Tool-Verantwortlichkeiten und Erweiterungspunkte.
-
-## Projektprinzipien
-
-Das Projekt trennt strikt zwischen öffentlicher Logik und privaten Daten.
-
-Öffentlich:
-
-- Prompts und Regeln
-- Designreferenzen
-- Hilfsskripte
-- Regressionstests und CI-Konfiguration
-- Beispielstrukturen
-- README, Frontend-Projektplan und Änderungsprotokoll
-
-Privat:
-
-- echte Bewerberdaten
-- generierte Bewerbungen
-- Stellenbeschreibungen
-- Arbeitsnotizen
-- Screenshots
-- PDFs
-
-Die öffentlichen Dateien dürfen keine echten Kontaktdaten, privaten Lebenslaufdaten oder realen Bewerbungsunterlagen enthalten.
-
-## Öffentliche Projektstruktur
+<details>
+<summary><strong>Öffentliche und private Projektstruktur</strong></summary>
 
 ```text
 bewerbungs-agent/
 ├─ .github/
-│  └─ workflows/
-│     └─ tests.yml
-├─ .gitattributes
-├─ .gitignore
+│  ├─ assets/readme-hero.svg
+│  └─ workflows/tests.yml
 ├─ CHANGELOG.md
-├─ frontend-project.md
+├─ LINUX-PORTIERUNGSPLAN.md
 ├─ README.md
-├─ Prompts/
-│  ├─ 00_AGENTEN_START_HIER.md
-│  ├─ 02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md
-│  ├─ 03_LEBENSLAUF_REGELN.md
-│  ├─ 04_ANSCHREIBEN_REGELN.md
-│  ├─ 05_EMAIL_NACHRICHT_REGELN.md
-│  ├─ 06_ROLLENLOGIK.md
-│  ├─ 07_WAHRHEIT_UND_GRENZEN.md
-│  ├─ 08_HTML_CSS_DESIGNREGELN.md
-│  ├─ 09_QUALITAETSCHECK.md
-│  ├─ 10_DATEI_UND_ORDNER_REGELN.md
-│  ├─ 11_TECHNISCHER_CHECK_WORKFLOW.md
-│  └─ README.md
-├─ Private.example/
-│  ├─ README.md
-│  └─ Daten/
-│     ├─ 01_PERSOENLICHE_DATEN.example.md
-│     ├─ 02_BEWERBER_PROFIL_UND_POSITIONIERUNG.example.md
-│     └─ README.md
-├─ Tests/
-│  ├─ Bash/
-│  │  └─ test-neue-bewerbung.sh
-│  └─ Run-RegressionTests.ps1
-├─ Tools/
-│  ├─ Neue-Bewerbung.ps1
-│  ├─ neue-bewerbung.sh
-│  ├─ Pruefe-Stammdaten.ps1
-│  ├─ Pruefe-Bewerbungsinhalt.ps1
-│  ├─ Pruefe-Bewerbung.ps1
-│  ├─ Pruefe-ATS.ps1
-│  ├─ Layoutcheck-Bewerbung.ps1
-│  ├─ Exportiere-PDF.ps1
-│  └─ Finalisiere-Bewerbung.ps1
-└─ Vorlagen/
-   ├─ Anforderungsmatrix.example.json
-   ├─ Designreferenz-Lebenslauf.html
-   ├─ Designreferenz-Anschreiben.html
-   └─ README.md
+├─ Prompts/                  # Agenten- und Qualitätsregeln
+├─ Private.example/          # ausschließlich fiktive Beispieldaten
+├─ Tests/                    # PowerShell- und Bash-Regressionstests
+├─ Tools/                    # Ordner-, Prüf-, Layout- und Exporttools
+└─ Vorlagen/                 # HTML-Designreferenzen und Matrixbeispiel
 ```
 
-## Private lokale Struktur
+Die lokale, ignorierte Struktur:
 
 ```text
 Private/
@@ -666,73 +590,201 @@ Private/
 │  ├─ README.md
 │  ├─ 01_PERSOENLICHE_DATEN.md
 │  └─ 02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
-├─ Bewerbungen/
-│  └─ FIRMA/
-│     ├─ YYYY-MM-DD--ROLLENNAME/
-│     │  ├─ Versand/
-│     │  ├─ Intern/
-│     │  └─ Manifest.json
-│     └─ _Arbeitsdateien/
-│        └─ YYYY-MM-DD--ROLLENNAME/
-│           ├─ Bewerbungsauftrag.json
-│           ├─ Anforderungsmatrix.json
-│           ├─ Kandidat/
-│           ├─ Layoutcheck/
-│           ├─ PDF-Export/
-│           ├─ ATS-Pruefbericht.json
-│           └─ Entwürfe und Arbeitsnotizen
-├─ Bewertungen/
-├─ LebenslaufUniversal/
-└─ Archiv/
+└─ Bewerbungen/
+   └─ FIRMA/
+      ├─ _Arbeitsdateien/
+      │  └─ YYYY-MM-DD--ROLLENNAME/
+      │     ├─ Bewerbungsauftrag.json
+      │     ├─ Anforderungsmatrix--ENTWURF.json
+      │     ├─ Anforderungsmatrix.json
+      │     ├─ Arbeitsnotizen.md
+      │     ├─ ggf. Stellenbeschreibung--ENTWURF.md
+      │     ├─ Analyse--ENTWURF.md
+      │     ├─ Lebenslauf--FIRMA--ENTWURF.html
+      │     ├─ Anschreiben--FIRMA--ENTWURF.html
+      │     ├─ Email-Nachricht--FIRMA--ENTWURF.md
+      │     ├─ Qualitaetscheck--ENTWURF.md
+      │     ├─ Offene_Fragen--ENTWURF.md
+      │     ├─ Stammdaten-Pruefbericht.json
+      │     ├─ Inhalts-Pruefbericht.json
+      │     ├─ ATS-Pruefbericht.json
+      │     ├─ Finalisierungsbericht.json
+      │     ├─ Kandidat/
+      │     │  ├─ Stellenbeschreibung.md
+      │     │  ├─ Analyse.md
+      │     │  ├─ Lebenslauf - NACHNAME.VORNAME.html
+      │     │  ├─ Anschreiben - NACHNAME.VORNAME.html
+      │     │  ├─ Email-Nachricht--FIRMA.md
+      │     │  ├─ Qualitaetscheck.md
+      │     │  ├─ Druck-Hinweis.md
+      │     │  ├─ optional Offene_Fragen.md
+      │     │  └─ zwei PDFs nach der Vorbereitung
+      │     ├─ Layoutcheck/
+      │     │  ├─ Layoutcheck-Bericht.json
+      │     │  └─ eine *--seite-X-von-Y--BROWSER.png je A4-Seite
+      │     └─ PDF-Export/
+      │        └─ PDF-Export-Bericht.json
+      └─ YYYY-MM-DD--ROLLENNAME/
+         ├─ Versand/
+         ├─ Intern/
+         └─ Manifest.json
 ```
 
-`Private/` ist ignoriert und darf nicht in Git aufgenommen werden.
+`Anforderungsmatrix--ENTWURF.json` ist nur das Startgerüst; verbindlich ist anschließend `Anforderungsmatrix.json`. Entwurfsgerüste können im privaten Arbeitsordner verbleiben, dürfen aber weder als Kandidat noch als Veröffentlichung interpretiert werden.
 
-## Prompt-System
+Weitere private Bereiche wie `Archiv/`, `Bewertungen/` oder `LebenslaufUniversal/` können lokal existieren, gehören jedoch nicht zum aktuellen Standardworkflow einer einzelnen Bewerbung.
 
-Der zentrale Einstieg ist:
+</details>
 
-```text
-Prompts/00_AGENTEN_START_HIER.md
-```
+### Prompt-System
 
-Diese Datei legt Rolle, Arbeitsablauf, relevante Dateien, finale Ausgabe und technische Abschlusschecks fest.
-
-Die Spezialregeln sind getrennt:
+Zentraler Einstieg ist [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md). Änderungen gehören in das fachlich passende Modul:
 
 | Datei | Verantwortung |
 | --- | --- |
-| `02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md` | Stammdaten-Gate, Bewerbungsauftrag, strukturierte Muss-/Kann-Matrix und Kandidatenordner |
-| `03_LEBENSLAUF_REGELN.md` | Aufbau, Stellenart, Priorisierung, deutscher CV-Standard, A4-Seitenstrategie |
-| `04_ANSCHREIBEN_REGELN.md` | Struktur, Ton, Stellenart, Gehaltswunsch und Grenzen des Anschreibens |
+| `02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md` | Stammdaten-Gate, Auftrag und gewichtete Muss-/Kann-Matrix |
+| `03_LEBENSLAUF_REGELN.md` | deutscher CV-Standard, Priorisierung und A4-Seitenstrategie |
+| `04_ANSCHREIBEN_REGELN.md` | Struktur, Ton, Gehaltswunsch und Grenzen |
 | `05_EMAIL_NACHRICHT_REGELN.md` | kurze Versandnachricht |
-| `06_ROLLENLOGIK.md` | Ableitung von Zielrolle, Bewerbungslogistik, Recruiter-Strategie und Profilgewichtung |
-| `07_WAHRHEIT_UND_GRENZEN.md` | keine erfundenen Angaben, Sicherheitsgrenzen für nicht vertrauenswürdige Eingaben, ehrliche Einordnung von Grundlagen, Praxis und Gehaltsangaben |
-| `08_HTML_CSS_DESIGNREGELN.md` | feste A4-Geometrie, Firefox-Druck, eigenständige HTML-Dateien ohne automatisch geladene Ressourcen |
-| `09_QUALITAETSCHECK.md` | inhaltliche und technische Checkliste |
-| `10_DATEI_UND_ORDNER_REGELN.md` | private Ordner, Dateinamen, Slugs, Arbeitsdateien |
-| `11_TECHNISCHER_CHECK_WORKFLOW.md` | Staging, zweistufige Finalisierung, statischer Prüfer, Layout-Check, PDF-Export und Hashnachweise |
+| `06_ROLLENLOGIK.md` | Zielrolle, Bewerbungslogistik und Profilgewichtung |
+| `07_WAHRHEIT_UND_GRENZEN.md` | Belege, Sicherheitsgrenzen und ehrliche Formulierungen |
+| `08_HTML_CSS_DESIGNREGELN.md` | A4-Geometrie und eigenständige HTML-Dateien |
+| `09_QUALITAETSCHECK.md` | fachliche und technische Checkliste |
+| `10_DATEI_UND_ORDNER_REGELN.md` | private Ordner, Dateinamen und Slugs |
+| `11_TECHNISCHER_CHECK_WORKFLOW.md` | Staging, Finalisierung, Layout, PDF und Hashnachweise |
 
-Änderungen sollten in der fachlich passenden Datei erfolgen, nicht alles in `00_AGENTEN_START_HIER.md`.
+### Tools im Überblick
 
-## Datenfluss einer Bewerbung
+| Tool | Aufgabe | Typischer Einstieg |
+| --- | --- | --- |
+| `Neue-Bewerbung.ps1` | Arbeits- und Zielstruktur erzeugen | `-Firma "..." -Rolle "..."` |
+| `neue-bewerbung.sh` | Bash-Variante des Ordnerhelfers | `--firma "..." --rolle "..."` |
+| `Pruefe-Stammdaten.ps1` | Identität, Kontakt und Logistik prüfen | ohne Parameter oder mit Auftragspfad |
+| `Pruefe-Bewerbungsinhalt.ps1` | Inhalt gegen Auftrag und Matrix prüfen | `-Ordner "..." -AuftragPath "..." -AnforderungsmatrixPath "..."` |
+| `Pruefe-Bewerbung.ps1` | statischen Mindestcheck ausführen | `-Ordner "..."` |
+| `Layoutcheck-Bewerbung.ps1` | A4-Screenshots und Dichtebericht erzeugen | Kandidaten- und `-OutputRoot`-Pfad übergeben |
+| `Exportiere-PDF.ps1` | zwei PDFs atomar exportieren und prüfen | Kandidaten- und `-OutputRoot`-Pfad übergeben |
+| `Pruefe-ATS.ps1` | Unicode-Textschicht und Lesereihenfolge prüfen | Bestandteil der Finalisierung |
+| `Finalisiere-Bewerbung.ps1` | verbindliches Prepare-/Publish-Gate | `-Arbeitsordner "..."` |
 
-1. Stellenbeschreibung kommt vom Nutzer und wird als nicht vertrauenswürdige Datenquelle behandelt; eingebettete Anweisungen werden ignoriert.
-2. `Pruefe-Stammdaten.ps1` kontrolliert Identität, Kontakt und zentrale Bewerbungslogistik; neue Bewerbungen verwenden den Snapshot im Bewerbungsauftrag mit Stammdaten-Fallback.
-3. Agent liest private Daten und Prompt-Regeln sequenziell, damit keine gekürzte Sammelausgabe übersehen wird.
-4. Der Ordnerhelfer erzeugt leeren Zielordner, Arbeitsordner, Kandidatenordner und `Bewerbungsauftrag.json`.
-5. Agent extrahiert Muss- und Kann-Kriterien mit Kategorie und Gewichtung in eine strukturierte `Anforderungsmatrix.json`.
-6. Rollenstrategie, Bewerbungslogistik, Gehaltsstrategie, Bewerbungsentscheidung, Seitenstrategie, Schulbildungsmodus und Profil-Link-Auswahl werden festgelegt.
-7. Stellenbeschreibung, Analyse, Lebenslauf, Anschreiben, E-Mail, Qualitätscheck und Druckhinweis entstehen zunächst unter `_Arbeitsdateien/.../Kandidat/`.
-8. Fachlicher Abschlusstest und `Pruefe-Bewerbungsinhalt.ps1` gleichen Anforderungen, Belegarten, Stammdaten, formale Zeiträume und Texte ab.
-9. `Finalisiere-Bewerbung.ps1` führt statischen Check, Seitenscreenshot-Layoutcheck, Dichtehinweise, PDF-Export und ATS-Textprüfung aus und schreibt Hashnachweise.
-10. Jede A4-Seite wird anhand ihres frischen Screenshots tatsächlich visuell geprüft.
-11. Jede spätere Änderung an Quellen oder Kandidatendateien macht die Nachweise ungültig.
-12. Erst nach Sichtbestätigung wird der vollständige Satz atomar als `Versand/`, `Intern/` und `Manifest.json` veröffentlicht.
+<a id="dateivertraege"></a>
 
-## Finale Dateinamen
+### Technische Artefakte & Dateiverträge
 
-Lebenslauf und Anschreiben werden nach Bewerbername benannt, nicht nach Firma:
+Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Für Implementierungen gilt zusätzlich folgender Lebenszyklusvertrag:
+
+| Artefaktgruppe | Erzeuger | Verbindlichkeit | Hauptverbraucher |
+| --- | --- | --- | --- |
+| `Bewerbungsauftrag.json` | Ordnerhelfer, danach Agent | Pflichtquelle für Pfade, Logistik, Darstellungsoptionen und Bewerbungsentscheidung | Stammdaten-, Inhalts- und Finalisierungsprüfer |
+| `Anforderungsmatrix.json` | Agent aus dem Entwurfsgerüst | Pflicht vor Dokumenterstellung und Finalisierung | Inhaltsprüfer und fachlicher Abschlusstest |
+| `Kandidat/*` | Agent; PDFs durch Exporttool | vollständiger Release Candidate mit späteren Dateinamen | statischer Prüfer, Inhaltsprüfer, Layout, PDF, ATS und Publisher |
+| Prüfberichte und Screenshots | jeweiliges Prüfwerkzeug | im Standard-Finalisierungsworkflow verpflichtende Nachweise | `Finalisiere-Bewerbung.ps1` und menschliche Sichtprüfung |
+| `Versand/`, `Intern/`, `Manifest.json` | Finalisierer über privates Staging | einziger veröffentlichter Vertrag | Nutzer, Archivierung und nachträglicher statischer Check |
+
+#### Maschinenlesbare Berichte
+
+| Bericht | Zuständiges Tool | Wesentliche Inhalte |
+| --- | --- | --- |
+| `Stammdaten-Pruefbericht.json` | `Pruefe-Stammdaten.ps1` | Status, Fehler/Warnungen, Feldzustände sowie aufgelöste Bewerbungslogistik und deren Quelle |
+| `Inhalts-Pruefbericht.json` | `Pruefe-Bewerbungsinhalt.ps1` | formale Zeiträume, Darstellungsmodi, Profil-Links, gewichtete Eignung sowie Fehler/Warnungen |
+| `Layoutcheck/Layoutcheck-Bericht.json` | `Layoutcheck-Bewerbung.ps1` | Browser, Abmessungen, HTML- und Screenshot-Hashes, Seite/Seitenzahl und Dichtehinweise |
+| `PDF-Export/PDF-Export-Bericht.json` | `Exportiere-PDF.ps1` | HTML-/PDF-Hashes, PDF-Größe, Seitenzahl und A4-MediaBox |
+| `ATS-Pruefbericht.json` | `Pruefe-ATS.ps1` | extrahierbare Zeichen, Textabdeckung, Pflichttexte, Lesereihenfolge und Ergebnis je PDF |
+| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Release-Status, Pfade, erwartete Screenshots, Warnungen sowie die bei der Vorbereitung erfassten Hashes der vier Quellen, flachen Kandidatendateien und PNGs |
+
+`Pruefe-Bewerbung.ps1` schreibt bewusst keinen eigenen JSON-Bericht; sein Vertrag sind Konsolenausgabe und Exitcode.
+
+#### `Manifest.json` und `Finalisierungsbericht.json` sind nicht dasselbe
+
+| Eigenschaft | `Manifest.json` | `Finalisierungsbericht.json` |
+| --- | --- | --- |
+| Ablage | finaler Bewerbungsordner | privater Arbeitsordner |
+| Entstehung | während der atomaren Veröffentlichung | nach der technischen Vorbereitung, danach bei Veröffentlichung aktualisiert |
+| Dateiscope | nur veröffentlichte Dateien in `Versand/` und `Intern/`, ohne das Manifest selbst | vier Quellartefakte sowie alle bei der Vorbereitung vorhandenen Kandidatendateien einschließlich PDFs und Layout-PNGs |
+| Nachweise | relativer Pfad, Bytezahl und SHA-256 je veröffentlichter Datei; Namen und Hashes der vier Quellartefakte als Provenienz | absolute Prüfpfade, vorbereitete Artefaktmengen und SHA-256-Werte, Layoutwarnungen und Sichtfreigabenotiz |
+| Statusfunktion | Integrität des veröffentlichten Satzes | Gate `bereit_zur_sichtpruefung` beziehungsweise `veroeffentlicht` |
+| Prüfung | `Pruefe-Bewerbung.ps1` validiert Pfade, Größen und Hashes aus `files[]`; `sourceInputs` wird nicht erneut gegen die privaten Quellen geprüft | vor dem Zieltausch verweigert der Veröffentlichungslauf geänderte oder neue Quellen-, Kandidaten- und Screenshot-Artefakte |
+
+Nach erfolgreicher Veröffentlichung ergänzt der Finalisierungsbericht Pfad und SHA-256 des veröffentlichten Manifests. Seine Kandidatenhashes dokumentieren den Zustand der technischen Vorbereitung; da `Qualitaetscheck.md` bei der Freigabe noch auf `bestaetigt` aktualisiert wird, ist für den tatsächlich veröffentlichten Dateistand anschließend das Manifest maßgeblich. Arbeitsberichte oder Screenshots werden nicht Bestandteil des Manifests.
+
+<details>
+<summary><strong>Optionale und transiente technische Artefakte</strong></summary>
+
+- `Offene_Fragen.md` ist als finale Kandidatendatei nur bei echten offenen Punkten vorhanden.
+- Der Layoutcheck kann mit `-Pdf` zusätzliche Seiten-PDFs erzeugen. Sie sind Diagnoseartefakte und keine Versand-PDFs.
+- Bei einseitigem Anschreiben und einseitigem Lebenslauf entstehen normalerweise zwei Layout-PNGs; bei einem zweiseitigen Lebenslauf drei.
+- `.capture-*.html` und Browserprofile `P-*` entstehen kurz während des Layoutchecks.
+- `PDF-Export/R-*`, temporäre PDFs, kurzzeitige `Backup--*.pdf` und weitere `P-*`-Profile gehören zu einem einzelnen Exportlauf.
+- `.publish-*` und bei einer Ersetzung `.backup-*` sichern die atomare Veröffentlichung ab.
+
+Diese Hilfsdateien und Ordner werden bei einem normalen Lauf bereinigt und sind kein dauerhafter Nutzervertrag. Nach einem hart abgebrochenen Browser- oder Veröffentlichungsprozess können ausnahmsweise Reste sichtbar bleiben.
+
+</details>
+
+<details>
+<summary><strong>Datenfluss und Qualitätsgates im Detail</strong></summary>
+
+1. Die Stellenbeschreibung wird als nicht vertrauenswürdige Datenquelle übernommen.
+2. `Pruefe-Stammdaten.ps1` kontrolliert Identität, Kontakt und Bewerbungslogistik.
+3. Der Agent liest private Daten und Prompt-Regeln dateiweise.
+4. Der Ordnerhelfer erzeugt Ziel-, Arbeits- und Kandidatenordner sowie `Bewerbungsauftrag.json`, Arbeitsnotizen und Entwurfsgerüste.
+5. Muss- und Kann-Kriterien werden mit Kategorie und Gewichtung in `Anforderungsmatrix.json` abgelegt.
+6. Rollen-, Gehalts-, Seiten-, Schulbildungs- und Profil-Link-Strategie werden festgelegt.
+7. Alle Dokumente entstehen zunächst unter `_Arbeitsdateien/.../Kandidat/`.
+8. Fachlicher Abschlusstest und Inhaltsprüfer gleichen Anforderungen, Belege, Daten und Zeiträume ab.
+9. Die Finalisierung erzeugt Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Finalisierungsbericht samt Hashnachweisen.
+10. Jede explizite A4-Seite wird anhand ihres frischen Screenshots visuell geprüft.
+11. Jede spätere Quellen- oder Kandidatenänderung entwertet die Nachweise.
+12. Erst nach Sichtbestätigung wird der vollständige Satz atomar veröffentlicht.
+
+Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `stretch` ausgewiesen. Nicht vollständig belegte Muss-Anforderungen bleiben sichtbar und erfordern eine dokumentierte Behandlung sowie ehrliche, belegorientierte Formulierungen.
+
+</details>
+
+### Tests & CI
+
+Die abhängigkeitsfreie Regressionstestsuite prüft Prompt-/Tool-Verträge, Logistik-Snapshots, Anforderungsmatrix, Staging, Manifest, Veröffentlichung und Fehlerszenarien:
+
+```powershell
+.\Tests\Run-RegressionTests.ps1
+```
+
+Mit lokaler Chrome-Matrix:
+
+```powershell
+.\Tests\Run-RegressionTests.ps1 -MitBrowser
+```
+
+Bash separat:
+
+```bash
+bash Tests/Bash/test-neue-bewerbung.sh
+```
+
+Die öffentliche CI läuft über [`.github/workflows/tests.yml`](.github/workflows/tests.yml): Windows führt die PowerShell-Suite aus, Ubuntu prüft die Bash-Skripte mit ShellCheck und Regressionstests. Browserfälle bleiben lokal optional, da Runner und Sandboxen keine identische Browserumgebung garantieren.
+
+<details>
+<summary><strong>HTML-, PDF- und Browserverträge</strong></summary>
+
+Finale HTML-Dateien müssen eigenständig funktionieren:
+
+- CSS liegt direkt im HTML; es gibt keine Skripte oder CDNs.
+- Externe oder lokale Ressourcen werden nicht automatisch geladen.
+- `@page { size: A4; margin: 0; }` ist gesetzt.
+- Jede `.page` misst exakt `210mm × 297mm`.
+- `overflow: hidden` ist nur auf der äußeren `.page` zulässig.
+- Ein Lebenslauf nutzt bewusst eine oder zwei explizite A4-Seiten.
+
+Der Browserlauf gilt nur als erfolgreich, wenn er rechtzeitig mit Exitcode `0` endet und alle erwarteten Dateien frisch erzeugt. PNGs benötigen gültige Signatur und Abmessungen. PDFs benötigen Header, EOF-Marker, DIN-A4-MediaBox, passende Seitenzahl und eine ATS-lesbare Unicode-Textschicht.
+
+Chrome oder Edge übernimmt den automatischen PDF-Export. Firefox ist für manuelle Druckvorschau und manuellen Export geeignet, aber nicht Teil des verbindlichen CLI-PDF-Exports.
+
+</details>
+
+<details>
+<summary><strong>Dateinamen, Ordner- und Slug-Regeln</strong></summary>
+
+Finale HTML- und PDF-Dokumente werden nach Bewerbername benannt:
 
 ```text
 Lebenslauf - NACHNAME.VORNAME.html
@@ -741,356 +793,53 @@ Lebenslauf - NACHNAME.VORNAME.pdf
 Anschreiben - NACHNAME.VORNAME.pdf
 ```
 
-`NACHNAME.VORNAME` kommt aus:
+`NACHNAME.VORNAME` stammt aus `Private/Daten/01_PERSOENLICHE_DATEN.md`. Fehlen Vor- oder Nachname, darf keine finale Platzhalterdatei entstehen.
 
-```text
-Private/Daten/01_PERSOENLICHE_DATEN.md
-```
-
-Wenn Vorname oder Nachname fehlen, darf keine finale Datei mit Platzhalter erzeugt werden.
-
-## Ordner- und Slug-Regeln
-
-Firmen- und Rollenordner werden technisch bereinigt:
-
-- Leerzeichen werden Bindestriche
-- Umlaute werden umgewandelt
-- Sonderzeichen werden entfernt oder ersetzt
-- mehrere Trennzeichen werden geglättet
-
-Beispiel:
+Firmen- und Rollenordner normalisieren Leerzeichen, Umlaute und Sonderzeichen. Beispiel:
 
 ```text
 Müller & Partner GmbH
--> Mueller-und-Partner-GmbH
+→ Mueller-und-Partner-GmbH
 ```
 
-Die Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und sind in den Ordnerhelfern gespiegelt.
+Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und sind in beiden Ordnerhelfern gespiegelt.
 
-## Tools im Überblick
+</details>
 
-### `Tools/Neue-Bewerbung.ps1`
+<details>
+<summary><strong>Erweiterungspunkte</strong></summary>
 
-Erstellt unter Windows die Ordnerstruktur für eine neue Bewerbung.
-
-Wichtige Parameter:
-
-- `-Firma`
-- `-Rolle`
-- `-Datum`
-- `-StellenbeschreibungPath`
-- `-StammdatenPath`
-- `-ProfilPath`
-- `-BewerbungenRoot`
-- `-Fortsetzen`
-
-Das Skript erstellt finale Ordner und Arbeitsordner. Entwürfe werden nur unter `_Arbeitsdateien` abgelegt. Der Schema-2-Auftrag friert die Logistik für die konkrete Bewerbung ein und protokolliert Quellhashes. Vorhandene Zielpfade werden standardmäßig nicht weiterverwendet; `-Fortsetzen` ist nur für eine anhand der Arbeitsnotizen bestätigte identische Bewerbung vorgesehen.
-
-### `Tools/neue-bewerbung.sh`
-
-Bash-Variante des Ordnerhelfers.
-
-Wichtige Parameter:
-
-- `--firma`
-- `--rolle`
-- `--datum`
-- `--stellenbeschreibung-path`
-- `--stammdaten-path`
-- `--profil-path`
-- `--bewerbungen-root`
-- `--fortsetzen`
-
-Die Struktur soll zur PowerShell-Variante kompatibel bleiben.
-
-### `Tools/Pruefe-Stammdaten.ps1`
-
-Vorprüfung für Identität, Kontakt und Bewerbungslogistik:
-
-```powershell
-.\Tools\Pruefe-Stammdaten.ps1
-```
-
-Mit `-BewerbungsauftragPath` priorisiert der Prüfer den bewerbungsspezifischen Logistik-Snapshot; nicht im Auftrag gepflegte Werte fallen auf Datei `01` zurück. Mit `-UngeklaerteLogistikAlsFehler` werden nicht festgelegte Kernentscheidungen zu Stellenart, Arbeitsmodell und Gehaltsstrategie zu Blockern. `-BerichtPath` schreibt Quelle und aufgelöste Werte in einen maschinenlesbaren JSON-Bericht.
-
-### `Tools/Pruefe-Bewerbungsinhalt.ps1`
-
-Fachlicher Konsistenzcheck für den Kandidatenordner. Das Werkzeug gleicht Bewerbername, Dateinamen, Firma, Zielrolle, Verfügbarkeit, formale Zeiträume, Schulbildungsmodus, Profil-Link-Auswahl und die Statuswerte der Anforderungsmatrix ab. Schema 2 verlangt Kategorien und Gewichtungen und weist die Passung als `stark`, `vertretbar_mit_risiken` oder `stretch` aus. Nicht vollständig belegte Muss-Anforderungen und defensive Anschreibenformulierungen werden sichtbar gemeldet.
-
-### `Tools/Finalisiere-Bewerbung.ps1`
-
-Verbindlicher zweistufiger Freigabeworkflow:
-
-```powershell
-.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE" -Browser chrome
-```
-
-Nach tatsächlicher Sichtprüfung:
-
-```powershell
-.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE" -Veroeffentlichen -VisuellGeprueft
-```
-
-Der erste Lauf erzeugt Seitenscreenshots, zwei PDFs sowie Stammdaten-, Inhalts-, Layout-, PDF- und ATS-Berichte im privaten Arbeitslauf. Der zweite Lauf vergleicht Quellen, sämtliche Kandidatendateien und Screenshots per Hash, aktualisiert den technischen Qualitätsabschnitt und veröffentlicht über einen temporären Staging-Ordner. Das Ergebnis enthält `Versand/`, `Intern/` und ein vollständiges `Manifest.json`. Ohne Sichtbestätigung oder bei veralteten Nachweisen bleibt der finale Ordner unverändert.
-
-### `Tools/Pruefe-Bewerbung.ps1`
-
-Statischer Mindestcheck für finale Bewerbungsordner.
-
-Beispiel:
-
-```powershell
-.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLE"
-```
-
-Exitcodes:
-
-- `0`: Prüfung bestanden
-- `1`: Fehler gefunden
-
-Parameter:
-
-- `-Ordner` – finaler Bewerbungsordner
-- `-WarnungenAlsFehler` – nichtkritische Warnungen führen ebenfalls zu Exitcode `1`
-
-Das Skript ist bewusst unabhängig von `rg` und Browsern, damit der wichtigste Abschlusscheck stabil bleibt. Es validiert zusätzlich Inhaltstyp und Größe der Pflichtdateien, Seitenanzahl und Footer-Vertrag, E-Mail-Betreff sowie automatisch geladene externe oder lokale Ressourcen.
-
-### `Tools/Layoutcheck-Bewerbung.ps1`
-
-Optionale Browser-Prüfung mit Screenshots.
-
-Beispiel:
-
-```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLE"
-```
-
-Nützliche Parameter:
-
-- `-Browser auto`
-- `-Browser chrome`
-- `-Browser edge`
-- `-Browser firefox`
-- `-NurVorbereiten`
-- `-Pdf`
-- `-OutputRoot`
-- `-BerichtPath`
-- `-DichtepruefungDeaktivieren`
-- `-Width`
-- `-Height`
-- `-TimeoutSeconds`
-- `-ErlaubeFirefoxFallback`
-
-Screenshots und Browser-Profile müssen unter `_Arbeitsdateien` landen, nicht im finalen Bewerbungsordner. Für jeden expliziten A4-Seitencontainer entsteht ein eigenes PNG mit Seitenindex. Ein Erfolg erfordert alle erwarteten Dateien frisch, mit gültiger Signatur und exakt angeforderten Abmessungen. Zusätzlich entstehen HTML-/Screenshot-Hashes und eine Dichteheuristik für den nutzbaren Bereich oberhalb von Footer und Sicherheitsabstand. Im automatischen Modus wird Firefox nicht still als Ersatz für einen fehlgeschlagenen Chromium-Lauf verwendet.
-
-### `Tools/Exportiere-PDF.ps1`
-
-Automatischer PDF-Export nach erfolgreichem statischem Check.
-
-Beispiel:
-
-```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLE"
-```
-
-Nützliche Parameter:
-
-- `-Browser auto`
-- `-Browser chrome`
-- `-Browser edge`
-- `-MitLayoutcheck`
-- `-NichtUeberschreiben`
-- `-MinPdfBytes`
-- `-TimeoutSeconds`
-- `-OutputRoot`
-- `-BerichtPath`
-
-Das Skript nutzt Chrome oder Edge Headless, validiert beide Exporte zunächst in einem eindeutigen Arbeitslauf und veröffentlicht sie anschließend gemeinsam im angegebenen HTML- beziehungsweise Kandidatenordner. Geprüft werden Aktualität, Größe, PDF-Struktur, DIN-A4-MediaBox und die Seitenzahl im Vergleich zu den expliziten HTML-Seiten. Der JSON-Bericht bindet jedes PDF an den SHA-256-Wert seines HTML-Dokuments.
-
-### `Tools/Pruefe-ATS.ps1`
-
-Prüft die von Chrome/Edge erzeugten PDFs auf eine extrahierbare Unicode-Textschicht, Pflichttexte, formale Zeiträume, Textabdeckung gegenüber dem HTML und grundlegende Lesereihenfolge. Das Werkzeug benötigt kein externes PDF-Paket und ist Bestandteil der verbindlichen Finalisierung. Es ersetzt die visuelle Prüfung nicht.
-
-## Tests und CI
-
-Die dependency-freie Testsuite unter `Tests/` prüft Syntax, Logistik-Snapshots, gewichtete Matrix, Link- und Schulbildungsmodi, Stammdaten-Gates, Inhalts- und Zeitraumabgleich, Manifest, Staging und atomare Veröffentlichung, Fehlerszenarien beider Ordnerhelfer und – optional – echte mehrseitige Chrome-Screenshots, PDF-Exporte und ATS-Textprüfung:
-
-```powershell
-.\Tests\Run-RegressionTests.ps1
-.\Tests\Run-RegressionTests.ps1 -MitBrowser
-```
-
-Die Bash-Tests können separat ausgeführt werden:
-
-```bash
-bash Tests/Bash/test-neue-bewerbung.sh
-```
-
-Die öffentliche Testmatrix läuft zusätzlich über `.github/workflows/tests.yml` unter Windows und Ubuntu.
-
-Die CI-Aufteilung:
-
-- Windows: PowerShell-Regressionssuite einschließlich Parser- und Tooltests
-- Ubuntu: ShellCheck für beide Bash-Dateien und Bash-Regressionssuite
-- lokale Browsermatrix: `-MitBrowser` prüft frische PNG-Signaturen und Abmessungen, zusätzliche PDF-Druckseiten, validiertes Ersetzen vorhandener PDFs und ungültige PDF-Zielpfade
-
-Chrome-basierte Browsertests sind bewusst lokal optional, weil GitHub-Runner und Sandbox-Umgebungen keine identische Browserumgebung garantieren.
-
-`-MitBrowser` erwartet Chrome unter dem üblichen Windows-Installationspfad `C:\Program Files\Google\Chrome\Application\chrome.exe`. Ist Chrome dort nicht verfügbar, werden die Browserfälle mit einem Hinweis übersprungen; die übrige Suite läuft weiter.
-
-## HTML- und CSS-Standard
-
-Finale HTML-Dateien müssen eigenständig funktionieren:
-
-- CSS direkt im HTML
-- keine automatisch geladenen externen oder lokalen Ressourcen; vollständig eingebettete `data:`-Ressourcen sind möglich
-- keine Skripte
-- keine CDNs
-- feste A4-Seitencontainer
-- `@page { size: A4; margin: 0; }`
-- `.page` mit `width: 210mm` und `height: 297mm`
-- `overflow: hidden` nur auf der äußeren `.page`
-
-Ein Einseiten-Dokument darf nicht nur `min-height: 297mm` verwenden. Wenn Inhalt nicht passt, muss fachlich gekürzt oder auf zwei explizite A4-Seiten umgestellt werden.
-
-## Qualitätsstrategie
-
-Es gibt zwei Arten von Qualität.
-
-Fachliche Qualität:
-
-- Stellenpassung
-- keine erfundenen Angaben
-- glaubwürdiger Quereinstieg
-- Recruiter-Lesbarkeit
-- ATS-freundliche Begriffe
-- angemessene Gewichtung der privaten Profildaten
-- fachlicher Abschlusstest mit Abgleich von Stellenanzeige, privaten Daten und finalen Texten
-
-Technische Qualität:
-
-- Pflichtdateien vorhanden
-- Dateinamen korrekt
-- keine sichtbaren Platzhalter
-- A4-Geometrie korrekt
-- keine automatisch geladenen externen oder lokalen Abhängigkeiten
-- PDF-Export nur nach erfolgreicher Prüfung
-- gewichtete Anforderungsmatrix, explizite Darstellungsoptionen und verpflichtende formale Zeiträume
-- ATS-lesbare PDF-Textschicht
-- unveränderte Quell-, Kandidaten- und Screenshot-Hashes zwischen Vorbereitung und Veröffentlichung
-- vollständiges Manifest und klare Trennung von `Versand/` und `Intern/`
-- atomare Veröffentlichung erst nach Sichtbestätigung
-
-Fachliche Regeln stehen vor allem in `Prompts/03` bis `Prompts/09`. Technische Regeln stehen vor allem in `Prompts/08`, `Prompts/10` und `Prompts/11`.
-
-## Browser- und PDF-Details
-
-Der automatische PDF-Export nutzt Chrome oder Edge Headless. Firefox bleibt für manuelle Druckvorschau und manuelle PDF-Erzeugung geeignet, ist aber für CLI-PDF-Export weniger zuverlässig.
-
-Wichtig:
-
-- Ein Browser-Prozess gilt nur als Erfolg, wenn er innerhalb des Timeouts mit Exitcode `0` endet und alle erwarteten Dateien im aktuellen Lauf erzeugt wurden.
-- Für jede explizite A4-Seite wird ein eigener Screenshot erwartet; alle benötigen gültige PNG-Signatur, sinnvolle Größe und exakt angeforderte Abmessungen.
-- Alte erwartete Layout-Ausgaben werden vor dem Browserlauf entfernt und können einen Fehler nicht als Erfolg verdecken.
-- Layoutberichte speichern Seitenindex, HTML- und Screenshot-Hashes sowie einen Dichtehinweis für den Bereich oberhalb von Footer und unterem Sicherheitsabstand.
-- PDFs benötigen eine sinnvolle Größe, `%PDF-`-Header, EOF-Marker und eine DIN-A4-MediaBox.
-- Die PDF-Seitenzahl muss der Anzahl expliziter A4-Seitencontainer im zugehörigen HTML entsprechen.
-- Die PDF-Textschicht muss die ATS-Prüfung auf Pflichttexte, formale Zeiträume, Abdeckung und grundlegende Lesereihenfolge bestehen.
-- Lebenslauf, Anschreiben, Markdown-Dateien und PDFs werden zunächst vollständig im Kandidatenordner validiert und erst danach strukturiert nach `Versand/` und `Intern/` übernommen.
-- Bei einem Veröffentlichungsfehler werden vorhandene finale PDFs wiederhergestellt.
-- Hängende Browserprozesse und ihre Kindprozesse werden nach dem Timeout beendet.
-
-## Umgang mit `rg` und PowerShell
-
-Für Dateisuche bevorzugt das Projekt `rg`.
-
-Unter PowerShell keine Pfad-Wildcards wie diese verwenden:
-
-```powershell
-rg "MUSTER" "ORDNER/*.html"
-```
-
-Stattdessen:
-
-```powershell
-rg -g "*.html" "MUSTER" "ORDNER"
-```
-
-Die PowerShell-Prüftools vermeiden diese Abhängigkeit für kritische Checks.
-
-## Git- und Datenschutzregeln
-
-Vor Commits:
-
-```powershell
-git status --short
-```
-
-Erwartet sind nur öffentliche Dateien wie:
-
-```text
-.github/...
-Prompts/...
-Tests/...
-Tools/...
-Vorlagen/...
-CHANGELOG.md
-frontend-project.md
-README.md
-Private.example/...
-```
-
-Nicht im Commit auftauchen dürfen:
-
-```text
-Private/...
-```
-
-Die einzelne Regel `/Private/` in `.gitignore` deckt den vollständigen privaten Verzeichnisbaum einschließlich `Daten/`, `Bewerbungen/`, `Bewertungen/`, `LebenslaufUniversal/` und `Archiv/` ab. Der führende Schrägstrich begrenzt die Regel auf das Projektwurzelverzeichnis; gleichnamige Test- oder Dokumentationsordner an anderer Stelle bleiben versionierbar.
-
-Wenn `git status --short --ignored` `!! Private/` zeigt, ist das normal.
-
-## Erweiterungspunkte
-
-| Ziel | Datei |
+| Ziel | Zuständige Datei |
 | --- | --- |
-| Hauptablauf ändern | `Prompts/00_AGENTEN_START_HIER.md` |
-| Lebenslaufregeln ändern | `Prompts/03_LEBENSLAUF_REGELN.md` |
-| Regeln für Anschreiben ändern | `Prompts/04_ANSCHREIBEN_REGELN.md` |
-| E-Mail-Regeln ändern | `Prompts/05_EMAIL_NACHRICHT_REGELN.md` |
-| Rollenlogik ändern | `Prompts/06_ROLLENLOGIK.md` |
-| Wahrheitsregeln ändern | `Prompts/07_WAHRHEIT_UND_GRENZEN.md` |
-| HTML/CSS-Regeln ändern | `Prompts/08_HTML_CSS_DESIGNREGELN.md` |
-| Qualitätscheck ändern | `Prompts/09_QUALITAETSCHECK.md` |
-| Datei- und Ordnerregeln ändern | `Prompts/10_DATEI_UND_ORDNER_REGELN.md` |
-| technische Abschlusslogik ändern | `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md` |
-| Ordnererstellung unter Windows ändern | `Tools/Neue-Bewerbung.ps1` |
-| Ordnererstellung unter Linux ändern | `Tools/neue-bewerbung.sh` |
-| Stammdaten-Gate ändern | `Tools/Pruefe-Stammdaten.ps1`, `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md` |
-| fachlichen Inhaltsabgleich ändern | `Tools/Pruefe-Bewerbungsinhalt.ps1` |
-| Staging und atomare Veröffentlichung ändern | `Tools/Finalisiere-Bewerbung.ps1` |
-| statischen Check ändern | `Tools/Pruefe-Bewerbung.ps1` |
-| Layout-Check ändern | `Tools/Layoutcheck-Bewerbung.ps1` |
-| PDF-Export ändern | `Tools/Exportiere-PDF.ps1` |
-| Regressionstests ändern | `Tests/Run-RegressionTests.ps1`, `Tests/Bash/test-neue-bewerbung.sh` |
-| CI-Matrix ändern | `.github/workflows/tests.yml` |
-| Designreferenzen ändern | `Vorlagen/Designreferenz-Lebenslauf.html`, `Vorlagen/Designreferenz-Anschreiben.html` |
-| Electron-Frontend planen und umsetzen | `frontend-project.md` |
-| Änderungshistorie pflegen | `CHANGELOG.md` |
+| Hauptablauf | `Prompts/00_AGENTEN_START_HIER.md` |
+| Lebenslauf | `Prompts/03_LEBENSLAUF_REGELN.md` |
+| Anschreiben | `Prompts/04_ANSCHREIBEN_REGELN.md` |
+| E-Mail | `Prompts/05_EMAIL_NACHRICHT_REGELN.md` |
+| Rollen- und Wahrheitslogik | `Prompts/06_ROLLENLOGIK.md`, `Prompts/07_WAHRHEIT_UND_GRENZEN.md` |
+| HTML/CSS | `Prompts/08_HTML_CSS_DESIGNREGELN.md` |
+| Qualität und Dateiregeln | `Prompts/09_QUALITAETSCHECK.md`, `Prompts/10_DATEI_UND_ORDNER_REGELN.md` |
+| technischer Workflow | `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md` |
+| Ordnererstellung | `Tools/Neue-Bewerbung.ps1`, `Tools/neue-bewerbung.sh` |
+| Stammdaten und Inhalt | `Tools/Pruefe-Stammdaten.ps1`, `Tools/Pruefe-Bewerbungsinhalt.ps1` |
+| Finalisierung | `Tools/Finalisiere-Bewerbung.ps1` |
+| statischer Check | `Tools/Pruefe-Bewerbung.ps1` |
+| Layout und PDF | `Tools/Layoutcheck-Bewerbung.ps1`, `Tools/Exportiere-PDF.ps1` |
+| Regressionstests | `Tests/Run-RegressionTests.ps1`, `Tests/Bash/test-neue-bewerbung.sh` |
+| Designreferenzen | `Vorlagen/Designreferenz-Lebenslauf.html`, `Vorlagen/Designreferenz-Anschreiben.html` |
 
-## Empfohlener Entwickler-Workflow
+</details>
 
-1. Änderungen an Prompt, Tool oder Vorlage machen.
+### Empfohlener Entwickler-Workflow
+
+1. Fachlich zuständige Prompt-, Tool- oder Vorlagendatei ändern.
 2. Änderung unter der passenden Version in `CHANGELOG.md` dokumentieren.
 3. Mit einer privaten Testbewerbung prüfen.
-4. Statischen Check ausführen.
-5. Regressionstests ausführen.
-6. Optional Layout-Check ausführen.
-7. Optional PDF-Export ausführen.
-8. `git status --short` prüfen.
-9. Sicherstellen, dass keine privaten Dateien im Commit landen.
+4. Statischen Check und Regressionstests ausführen.
+5. Bei Layout-/Exportänderungen zusätzlich die Browsermatrix ausführen.
+6. `git status --short` prüfen und private Dateien ausschließen.
 
-PowerShell-Syntaxcheck für Tools:
+<details>
+<summary><strong>PowerShell-Syntaxcheck für alle Tools</strong></summary>
 
 ```powershell
 $files = Get-ChildItem -LiteralPath "Tools" -Filter "*.ps1" -File
@@ -1111,12 +860,13 @@ foreach ($file in $files) {
 }
 ```
 
-## Bekannte Grenzen
+Für Dateisuche unter PowerShell bevorzugt das Projekt `rg -g "*.html" "MUSTER" "ORDNER"` anstelle von Pfad-Wildcards wie `ORDNER/*.html`.
 
-- Der vollständig getestete Workflow ist Windows mit PowerShell.
-- Die technischen Prüf- und Exporttools sind aktuell PowerShell-basiert und nicht als gleichwertiger Linux-Workflow ausgebaut.
-- Die Linux-Unterstützung ist Alpha und beschränkt sich derzeit vor allem auf die Ordnererstellung per Bash-Skript.
-- Der automatische PDF-Export unterstützt Chrome und Edge, nicht Firefox.
-- HTML- und PDF-Struktur werden ohne vollständigen DOM- beziehungsweise Universal-PDF-Parser konservativ geprüft; die ATS-Extraktion ist auf die vom unterstützten Chromium-Export erzeugten Font-/ToUnicode-Strukturen ausgelegt. Neue ungewöhnliche Designs oder andere PDF-Erzeuger benötigen passende Regressionstests.
-- Eine echte manuelle Sichtprüfung der finalen PDFs bleibt sinnvoll, besonders bei neuen Designs oder zweiseitigen Lebensläufen.
-- Die Qualität der Bewerbung hängt weiterhin von gepflegten privaten Profildaten ab.
+</details>
+
+---
+
+<p align="center">
+  <strong>Bereit für die erste Bewerbung?</strong><br>
+  <a href="#schnellstart">Zum Schnellstart</a> · <a href="CHANGELOG.md">Änderungen ansehen</a> · <a href="#hilfe">Hilfe finden</a>
+</p>

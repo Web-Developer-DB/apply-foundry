@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title description">
+  <title id="title">bewerbungs-agent</title>
+  <desc id="description">Lokaler Bewerbungsassistent für passgenaue, ehrliche und technisch geprüfte Bewerbungsunterlagen.</desc>
+  <defs>
+    <linearGradient id="background" x1="40" y1="20" x2="1160" y2="340" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="0.52" stop-color="#1E3A8A"/>
+      <stop offset="1" stop-color="#0F766E"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#2DD4BF"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#020617" flood-opacity="0.28"/>
+    </filter>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#FFFFFF" stroke-opacity="0.055"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="360" rx="28" fill="url(#background)"/>
+  <rect width="1200" height="360" rx="28" fill="url(#grid)"/>
+  <circle cx="1085" cy="40" r="185" fill="#38BDF8" opacity="0.07"/>
+  <circle cx="1005" cy="345" r="150" fill="#2DD4BF" opacity="0.08"/>
+
+  <g transform="translate(74 64)">
+    <rect width="256" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.12" stroke="#FFFFFF" stroke-opacity="0.18"/>
+    <circle cx="19" cy="17" r="5" fill="#5EEAD4"/>
+    <text x="34" y="22" fill="#E2E8F0" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1.6">LOCAL-FIRST WORKFLOW</text>
+
+    <text y="105" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="750" letter-spacing="-1.8">bewerbungs-agent</text>
+    <rect y="126" width="84" height="5" rx="2.5" fill="url(#accent)"/>
+    <text y="171" fill="#DBEAFE" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="500">Passgenau. Ehrlich. Versandfertig.</text>
+    <text y="210" fill="#CBD5E1" font-family="Segoe UI, Arial, sans-serif" font-size="16">Vom Stellenprofil bis zu geprüften HTML- und PDF-Unterlagen.</text>
+  </g>
+
+  <g transform="translate(874 48)" filter="url(#shadow)">
+    <rect x="0" y="0" width="230" height="264" rx="22" fill="#F8FAFC"/>
+    <rect x="25" y="29" width="72" height="11" rx="5.5" fill="#1E3A8A"/>
+    <rect x="25" y="51" width="126" height="7" rx="3.5" fill="#CBD5E1"/>
+    <rect x="25" y="79" width="180" height="1.5" fill="#E2E8F0"/>
+
+    <g transform="translate(25 103)">
+      <circle cx="10" cy="10" r="10" fill="#CCFBF1"/>
+      <path d="m5.5 10 3 3 6-7" fill="none" stroke="#0F766E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="31" y="4" width="138" height="7" rx="3.5" fill="#64748B"/>
+      <rect x="31" y="17" width="104" height="5" rx="2.5" fill="#CBD5E1"/>
+    </g>
+    <g transform="translate(25 151)">
+      <circle cx="10" cy="10" r="10" fill="#DBEAFE"/>
+      <path d="m5.5 10 3 3 6-7" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="31" y="4" width="122" height="7" rx="3.5" fill="#64748B"/>
+      <rect x="31" y="17" width="149" height="5" rx="2.5" fill="#CBD5E1"/>
+    </g>
+    <g transform="translate(25 199)">
+      <circle cx="10" cy="10" r="10" fill="#EDE9FE"/>
+      <path d="m5.5 10 3 3 6-7" fill="none" stroke="#7C3AED" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="31" y="4" width="145" height="7" rx="3.5" fill="#64748B"/>
+      <rect x="31" y="17" width="96" height="5" rx="2.5" fill="#CBD5E1"/>
+    </g>
+  </g>
+
+  <g transform="translate(1081 44)">
+    <path d="M0 12C13 10 20 3 22-10c2 13 9 20 22 22-13 2-20 9-22 22C20 21 13 14 0 12Z" fill="#FDE68A"/>
+  </g>
+  <g transform="translate(830 266)">
+    <path d="M0 9C10 8 15 3 16-7c2 10 7 15 17 16-10 2-15 7-17 17C15 16 10 11 0 9Z" fill="#5EEAD4"/>
+  </g>
+</svg>
