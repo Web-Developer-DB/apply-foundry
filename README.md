@@ -1,6 +1,3 @@
-<!-- cspell:words Layoutcheck MitLayoutcheck NurVorbereiten MinPdfBytes NichtUeberschreiben ErlaubeFirefoxFallback firefox Pruefe Qualitaetscheck Strg Headless Sandbox Browserfreigabe MediaBox -->
-<!-- cspell:words Referenzworkflow versioniert rollenbezogene Regressionsfälle Regressionstest Regressionstests Regressionssuite nichtkritische Tooltests Browsertest Browsertests Browsermatrix Browserumgebung Browserfälle Browserlauf Browserprozesse Kindprozesse -->
-
 <p align="center">
   <img src=".github/assets/readme-hero.svg" alt="bewerbungs-agent – passgenaue, ehrliche und versandfertige Bewerbungsunterlagen" width="100%">
 </p>
@@ -147,7 +144,7 @@ Der Agent liest Profildaten, Regeln und Designreferenzen, erstellt einen private
 
 #### 4. Ergebnisse prüfen und freigeben
 
-Der Agent führt den fachlichen und technischen Abschlussworkflow aus. Öffne vor der Veröffentlichung jeden erzeugten A4-Screenshot und kontrolliere ihn vollständig selbst. Die zwei verbindlichen Befehle stehen unter [Finalisierung](#finalisierung).
+Der Agent führt danach alle fachlichen und technischen Abschlussprüfungen aus. Öffne vor der Veröffentlichung jeden erzeugten A4-Screenshot und kontrolliere ihn vollständig selbst. Die zwei verbindlichen Befehle stehen unter [Finalisierung](#finalisierung).
 
 > [!TIP]
 > **Für die erste Bewerbung reicht dieser Pfad:** Daten kopieren → Beispieldaten ersetzen → zentralen Agentenauftrag senden → Screenshots prüfen → Veröffentlichung bestätigen.
@@ -163,7 +160,7 @@ Der Agent trennt bewusst vier Zustände. Eine Datei ist nicht automatisch versan
 | 🟡 **Entwurf** | `_Arbeitsdateien/.../` | Planung, Vorlagen und noch ungeprüfte Entscheidungen | Nein |
 | 🔵 **Kandidat** | `_Arbeitsdateien/.../Kandidat/` | vollständige, aber noch nicht freigegebene Bewerbung | Nein |
 | 🟣 **Prüfnachweise** | `_Arbeitsdateien/.../Layoutcheck/`, `PDF-Export/` und Arbeitsordner | Screenshots, Prüfberichte und Hashnachweise | Nein |
-| 🟢 **Veröffentlicht** | `YYYY-MM-DD--ROLLENNAME/` | sichtgeprüftes und technisch validiertes Ergebnis | nur `Versand/` |
+| 🟢 **Veröffentlicht** | `YYYY-MM-DD--ROLLENNAME/` | visuell und technisch geprüftes Ergebnis | nur `Versand/` |
 
 > [!IMPORTANT]
 > **Zum Bewerben verwendest du ausschließlich `Versand/`.** Dateien unter `_Arbeitsdateien/` sind Arbeitsstände oder Prüfnachweise. Dateien unter `Intern/` helfen dir beim Nachvollziehen und späteren Überarbeiten, werden aber nicht mitgeschickt.
@@ -176,7 +173,7 @@ Der Agent trennt bewusst vier Zustände. Eine Datei ist nicht automatisch versan
 4. **Kandidaten erstellen** – Lebenslauf, Anschreiben, E-Mail, Analyse und Prüfdokumente entstehen zunächst unter `Kandidat/`.
 5. **Fachlich korrigieren** – Stellenbeschreibung, Profil, Matrix und alle Dokumente werden auf Wahrheit, Passung und Widerspruchsfreiheit geprüft.
 6. **Technisch vorbereiten** – A4-Screenshots, zwei PDFs sowie Layout-, PDF- und ATS-Nachweise werden erzeugt. Noch wird nichts veröffentlicht.
-7. **Sichtprüfen und veröffentlichen** – Du kontrollierst jede A4-Seite. Erst danach wird der vollständige Satz atomar nach `Versand/`, `Intern/` und `Manifest.json` veröffentlicht.
+7. **Sichtprüfen und veröffentlichen** – Du kontrollierst jede A4-Seite. Erst danach werden die geprüften Dateien gemeinsam nach `Versand/` und `Intern/` übernommen; zusätzlich wird `Manifest.json` erstellt.
 
 <details>
 <summary><strong>Die sieben Phasen genauer erklärt</strong></summary>
@@ -191,9 +188,9 @@ Der Agent prüft Bewerbername, Kontakt, Stellenart, Arbeitsmodell, Region, Eintr
 
 **3 · Anforderungsmatrix und Bewerbungsentscheidung**
 
-Der Agent macht aus dem ersten Matrixentwurf eine vollständige `Anforderungsmatrix.json`. Jede relevante Stellenanforderung erhält Typ, Gewichtung, Erfüllungsstatus, Beleg und geplante Behandlung. Das Ergebnis unterstützt die bewusste Entscheidung `bewerben` oder `nicht_bewerben`.
+Der Agent macht aus dem ersten Matrixentwurf eine vollständige `Anforderungsmatrix.json`. Jede relevante Stellenanforderung erhält Typ, Gewichtung, einen Status der Erfüllung, einen Beleg und eine geplante Behandlung. Das Ergebnis unterstützt die bewusste Entscheidung `bewerben` oder `nicht_bewerben`.
 
-**4 · Prüffähiger Kandidat**
+**4 · Vollständiger Kandidat zur Prüfung**
 
 Alle inhaltlichen Dokumente werden mit ihren späteren Namen unter `Kandidat/` angelegt. Dieser Ordner ist die Werkbank für Korrekturen – noch nicht der Versandordner.
 
@@ -205,9 +202,9 @@ Der Agent liest Stellenbeschreibung, Analyse, private Daten, Matrix, Lebenslauf,
 
 Der erste Finalisierungslauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt einen Screenshot je A4-Seite, exportiert zwei PDFs und kontrolliert deren ATS-Textschicht. Der Status lautet danach lediglich `bereit_zur_sichtpruefung`.
 
-**7 · Sichtprüfung und atomare Veröffentlichung**
+**7 · Sichtprüfung und gemeinsame Veröffentlichung**
 
-Änderst du nach der Vorbereitung eine Kandidatendatei, verlieren Screenshots und PDFs ihre Gültigkeit und Phase 6 muss vollständig wiederholt werden. Vor dem Zieltausch werden die in der Vorbereitung erfassten Artefakte erneut verglichen. Scheitert eine dieser Vorprüfungen, bleibt der bisherige Zielordner unverändert; der anschließende Tausch verwendet Staging und gegebenenfalls ein Backup, um unvollständige Veröffentlichungen zu vermeiden.
+Änderst du nach der Vorbereitung eine Kandidatendatei, verlieren Screenshots und PDFs ihre Gültigkeit und Phase 6 muss vollständig wiederholt werden. Direkt vor der Veröffentlichung prüft das Tool erneut, ob sich seit der Vorbereitung etwas verändert hat. Scheitert eine dieser Vorprüfungen, bleibt der bisherige Zielordner unverändert. Neue Dateien werden zuerst in einem separaten Zwischenordner vorbereitet und anschließend gemeinsam übernommen, damit kein unvollständiger Endstand entsteht.
 
 </details>
 
@@ -255,7 +252,7 @@ Eine Stellenanzeige mit der Bitte um eine Bewerbung „als PDF“ verlangt nicht
 | `Lebenslauf - … .html` | geprüfter HTML-Stand des Lebenslaufs | im Browser ansehen und als nachvollziehbare Dokumentquelle archivieren |
 | `Anschreiben - … .html` | geprüfter HTML-Stand des Anschreibens | im Browser ansehen und als nachvollziehbare Dokumentquelle archivieren |
 | `Qualitaetscheck.md` | fachlicher Anforderungsabgleich plus technischer Abschlussstatus | kontrollieren, was geprüft wurde und welche Warnungen dokumentiert sind |
-| `Druck-Hinweis.md` | Anleitung für manuellen Browserdruck | nur verwenden, wenn du eine HTML-Datei manuell drucken oder als PDF sichern musst |
+| `Druck-Hinweis.md` | Anleitung für das manuelle Drucken im Browser | nur verwenden, wenn du eine HTML-Datei manuell drucken oder als PDF sichern musst |
 | `Offene_Fragen.md` | nicht erfundene, noch offene oder bewusst dokumentierte Punkte | vor dem Versand lesen und verbleibende Fragen soweit möglich klären |
 
 > [!NOTE]
@@ -305,7 +302,7 @@ Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner lieg
 - 🗄️ **Bewerbung nachvollziehbar archivieren:** finalen Ordner **und** zugehörigen Arbeitsordner behalten.
 
 > [!WARNING]
-> Lösche `_Arbeitsdateien` nicht vorschnell. Die versendbaren PDFs bleiben zwar im finalen Ordner, aber du verlierst Kandidaten, Anforderungsmatrix, Screenshots, technische Nachweise und die saubere Grundlage für spätere Korrekturen.
+> Lösche `_Arbeitsdateien` nicht vorschnell. Die zum Versand bestimmten PDFs bleiben zwar im finalen Ordner, aber du verlierst Kandidaten, Anforderungsmatrix, Screenshots, technische Nachweise und die saubere Grundlage für spätere Korrekturen.
 
 #### Offene Fragen
 
@@ -423,7 +420,7 @@ Bei Layoutwarnungen gilt auch hier zusätzlich `-VisuelleFreigabeNotiz "..."`.
 <details>
 <summary><strong>Einzelne Diagnose-, Layout- und Exportbefehle</strong></summary>
 
-Die Einzeltools sind für Diagnose und Entwicklung nützlich. Bei einer neuen Bewerbung ersetzen sie nicht das zweistufige Finalisierungsgate.
+Die Einzeltools sind für Diagnose und Entwicklung nützlich. Bei einer neuen Bewerbung ersetzen sie nicht den zweistufigen Freigabeprozess.
 
 In den folgenden Beispielen liegen die prüfbaren HTML-Dateien im Kandidatenordner; Berichte und temporäre Ausgaben bleiben daneben im privaten Arbeitsordner.
 
@@ -486,7 +483,7 @@ Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgesch
 | Windows + PowerShell 7 | 🟢 stabil | vollständig getesteter Referenzworkflow |
 | Codex in VS Code oder lokale Codex-App | 🟢 empfohlen | liest Regeln und erzeugt lokale Dateien |
 | Chrome oder Edge | 🔵 für Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung |
-| Firefox | 🟡 optional | manuelle Vorschau; kein gleichwertiger Finalisierungsersatz |
+| Firefox | 🟡 optional | manuelle Vorschau; kein Ersatz für die verbindliche Finalisierung |
 | Linux + Bash | 🟠 Alpha | derzeit vor allem Ordnererstellung; [Portierungsplan](LINUX-PORTIERUNGSPLAN.md) |
 | Git Bash | 🟡 Entwicklung | Bash-Regressionsfälle unter Windows |
 
@@ -522,9 +519,9 @@ Die Helfer erzeugen einen leeren Zielordner, einen Arbeitsordner und einen Kandi
 | Statischer Check ist rot | Fehlermeldung und betroffene Datei lesen | HTML/Markdown korrigieren und Check wiederholen |
 | Layoutcheck startet nicht | Ist Chrome oder Edge installiert? | Unter Windows gezielt `-Browser chrome` verwenden |
 | Browser scheitert in einer Sandbox | Browserfreigabe der lokalen Agentenumgebung prüfen | denselben Lauf mit lokaler Browserfreigabe wiederholen |
-| PDF-Export bricht ab | Statischen Check separat ausführen | Fehler beheben; manueller Firefox-Druck ist nur eine unvalidierte Diagnosealternative |
+| PDF-Export bricht ab | Statischen Check separat ausführen | Fehler beheben; manueller Firefox-Druck ist nur eine nicht validierte Diagnosealternative |
 | Text wirkt abgeschnitten | HTML und alle Seitenscreenshots öffnen | Inhalt fachlich kürzen oder bewusst auf zwei A4-Seiten verteilen |
-| Persönliche Dateien erscheinen in Git | `git status --short --ignored` prüfen | Dateien nach `Private/` verschieben; nichts Privates committen |
+| Persönliche Dateien erscheinen in Git | `git status --short --ignored` prüfen | Dateien nach `Private/` verschieben; nichts Privates in Git übernehmen |
 | Informationen fehlen | `Offene_Fragen.md` lesen | belastbare Angaben ergänzen; keine Werte raten lassen |
 
 Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Abschnitt [Prüfen & veröffentlichen](#finalisierung).
@@ -532,7 +529,7 @@ Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Absc
 ### ⚠️ Bekannte Grenzen
 
 - Der vollständig getestete Workflow ist Windows mit PowerShell.
-- Linux befindet sich im Alpha-Status und unterstützt noch nicht den gleichwertigen Gesamtworkflow.
+- Linux befindet sich im Alpha-Status und unterstützt noch nicht den gesamten Ablauf in gleicher Qualität.
 - Automatischer PDF-Export unterstützt Chrome und Edge, nicht Firefox.
 - HTML- und PDF-Prüfungen sind konservativ auf den unterstützten Chromium-Export ausgerichtet; ungewöhnliche Designs und andere PDF-Erzeuger benötigen zusätzliche Regressionstests.
 - Eine echte manuelle Sichtprüfung bleibt erforderlich, besonders bei neuen Designs und zweiseitigen Lebensläufen.
@@ -560,8 +557,8 @@ Dieser Abschnitt richtet sich an Mitwirkende, die Prompts, Tools, Tests oder Dat
 
 - **Öffentliche Logik, private Daten:** Regeln, Tools und Tests sind öffentlich; Profildaten und Bewerbungen bleiben lokal.
 - **Wahrheit durch Konstruktion:** Arbeitgeber, Zeiträume, Kenntnisse und Zertifikate dürfen nicht erfunden werden.
-- **Kandidat zuerst:** Finaldateien entstehen zunächst in einem Kandidatenordner und werden erst nach allen Gates veröffentlicht.
-- **Atomare Veröffentlichung:** `Versand/`, `Intern/` und `Manifest.json` werden nur als vollständig geprüfter Satz publiziert.
+- **Kandidat zuerst:** Die finalen Dateien entstehen zunächst in einem Kandidatenordner und werden erst nach allen Prüfungen veröffentlicht.
+- **Gemeinsame Veröffentlichung:** `Versand/`, `Intern/` und `Manifest.json` werden getrennt vom Ziel vorbereitet und anschließend als zusammengehörige Einheit übernommen.
 - **Reproduzierbare Nachweise:** Der Finalisierungsbericht bindet den vorbereiteten Kandidaten an Quellen und Screenshots; das Manifest bindet separat den veröffentlichten Satz.
 
 <details>
@@ -632,7 +629,7 @@ Private/
 
 `Anforderungsmatrix--ENTWURF.json` ist nur das Startgerüst; verbindlich ist anschließend `Anforderungsmatrix.json`. Entwurfsgerüste können im privaten Arbeitsordner verbleiben, dürfen aber weder als Kandidat noch als Veröffentlichung interpretiert werden.
 
-Weitere private Bereiche wie `Archiv/`, `Bewertungen/` oder `LebenslaufUniversal/` können lokal existieren, gehören jedoch nicht zum aktuellen Standardworkflow einer einzelnen Bewerbung.
+Weitere private Bereiche wie `Archiv/`, `Bewertungen/` oder `LebenslaufUniversal/` können lokal existieren, gehören jedoch nicht zum aktuellen Standardablauf einer einzelnen Bewerbung.
 
 </details>
 
@@ -663,7 +660,7 @@ Zentraler Einstieg ist [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_S
 | `Pruefe-Bewerbungsinhalt.ps1` | Inhalt gegen Auftrag und Matrix prüfen | `-Ordner "..." -AuftragPath "..." -AnforderungsmatrixPath "..."` |
 | `Pruefe-Bewerbung.ps1` | statischen Mindestcheck ausführen | `-Ordner "..."` |
 | `Layoutcheck-Bewerbung.ps1` | A4-Screenshots und Dichtebericht erzeugen | Kandidaten- und `-OutputRoot`-Pfad übergeben |
-| `Exportiere-PDF.ps1` | zwei PDFs atomar exportieren und prüfen | Kandidaten- und `-OutputRoot`-Pfad übergeben |
+| `Exportiere-PDF.ps1` | zwei PDFs sicher exportieren und prüfen | Kandidaten- und `-OutputRoot`-Pfad übergeben |
 | `Pruefe-ATS.ps1` | Unicode-Textschicht und Lesereihenfolge prüfen | Bestandteil der Finalisierung |
 | `Finalisiere-Bewerbung.ps1` | verbindliches Prepare-/Publish-Gate | `-Arbeitsordner "..."` |
 
@@ -671,15 +668,15 @@ Zentraler Einstieg ist [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_S
 
 ### Technische Artefakte & Dateiverträge
 
-Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Für Implementierungen gilt zusätzlich folgender Lebenszyklusvertrag:
+Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Für Implementierungen gilt zusätzlich folgender verbindlicher technischer Ablauf:
 
 | Artefaktgruppe | Erzeuger | Verbindlichkeit | Hauptverbraucher |
 | --- | --- | --- | --- |
-| `Bewerbungsauftrag.json` | Ordnerhelfer, danach Agent | Pflichtquelle für Pfade, Logistik, Darstellungsoptionen und Bewerbungsentscheidung | Stammdaten-, Inhalts- und Finalisierungsprüfer |
+| `Bewerbungsauftrag.json` | Ordnerhelfer, danach Agent | Pflichtquelle für Pfade, Logistik, Darstellungsoptionen und Bewerbungsentscheidung | Stammdaten-, Inhalts- und Finalisierungswerkzeug |
 | `Anforderungsmatrix.json` | Agent aus dem Entwurfsgerüst | Pflicht vor Dokumenterstellung und Finalisierung | Inhaltsprüfer und fachlicher Abschlusstest |
 | `Kandidat/*` | Agent; PDFs durch Exporttool | vollständiger Release Candidate mit späteren Dateinamen | statischer Prüfer, Inhaltsprüfer, Layout, PDF, ATS und Publisher |
 | Prüfberichte und Screenshots | jeweiliges Prüfwerkzeug | im Standard-Finalisierungsworkflow verpflichtende Nachweise | `Finalisiere-Bewerbung.ps1` und menschliche Sichtprüfung |
-| `Versand/`, `Intern/`, `Manifest.json` | Finalisierer über privates Staging | einziger veröffentlichter Vertrag | Nutzer, Archivierung und nachträglicher statischer Check |
+| `Versand/`, `Intern/`, `Manifest.json` | Finalisierungswerkzeug über privates Staging | einziger veröffentlichter Vertrag | Nutzer, Archivierung und nachträglicher statischer Check |
 
 #### Maschinenlesbare Berichte
 
@@ -699,13 +696,13 @@ Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Fü
 | Eigenschaft | `Manifest.json` | `Finalisierungsbericht.json` |
 | --- | --- | --- |
 | Ablage | finaler Bewerbungsordner | privater Arbeitsordner |
-| Entstehung | während der atomaren Veröffentlichung | nach der technischen Vorbereitung, danach bei Veröffentlichung aktualisiert |
-| Dateiscope | nur veröffentlichte Dateien in `Versand/` und `Intern/`, ohne das Manifest selbst | vier Quellartefakte sowie alle bei der Vorbereitung vorhandenen Kandidatendateien einschließlich PDFs und Layout-PNGs |
-| Nachweise | relativer Pfad, Bytezahl und SHA-256 je veröffentlichter Datei; Namen und Hashes der vier Quellartefakte als Provenienz | absolute Prüfpfade, vorbereitete Artefaktmengen und SHA-256-Werte, Layoutwarnungen und Sichtfreigabenotiz |
+| Entstehung | während der gemeinsamen Veröffentlichung | nach der technischen Vorbereitung, danach bei Veröffentlichung aktualisiert |
+| Dateiumfang | nur veröffentlichte Dateien in `Versand/` und `Intern/`, ohne das Manifest selbst | vier Quellartefakte sowie alle bei der Vorbereitung vorhandenen Kandidatendateien einschließlich PDFs und Layout-PNGs |
+| Nachweise | relativer Pfad, Bytezahl und SHA-256 je veröffentlichter Datei; Namen und Hashes der vier Quellartefakte als Provenienz | absolute Prüfpfade, vorbereitete Artefakte und SHA-256-Werte, Layoutwarnungen und Sichtfreigabenotiz |
 | Statusfunktion | Integrität des veröffentlichten Satzes | Gate `bereit_zur_sichtpruefung` beziehungsweise `veroeffentlicht` |
 | Prüfung | `Pruefe-Bewerbung.ps1` validiert Pfade, Größen und Hashes aus `files[]`; `sourceInputs` wird nicht erneut gegen die privaten Quellen geprüft | vor dem Zieltausch verweigert der Veröffentlichungslauf geänderte oder neue Quellen-, Kandidaten- und Screenshot-Artefakte |
 
-Nach erfolgreicher Veröffentlichung ergänzt der Finalisierungsbericht Pfad und SHA-256 des veröffentlichten Manifests. Seine Kandidatenhashes dokumentieren den Zustand der technischen Vorbereitung; da `Qualitaetscheck.md` bei der Freigabe noch auf `bestaetigt` aktualisiert wird, ist für den tatsächlich veröffentlichten Dateistand anschließend das Manifest maßgeblich. Arbeitsberichte oder Screenshots werden nicht Bestandteil des Manifests.
+Nach erfolgreicher Veröffentlichung ergänzt der Finalisierungsbericht Pfad und SHA-256 des veröffentlichten Manifests. Die Hashes der Kandidatendateien dokumentieren den Zustand der technischen Vorbereitung; da `Qualitaetscheck.md` bei der Freigabe noch auf `bestaetigt` aktualisiert wird, ist für den tatsächlich veröffentlichten Dateistand anschließend das Manifest maßgeblich. Arbeitsberichte oder Screenshots werden nicht Bestandteil des Manifests.
 
 <details>
 <summary><strong>Optionale und transiente technische Artefakte</strong></summary>
@@ -713,16 +710,16 @@ Nach erfolgreicher Veröffentlichung ergänzt der Finalisierungsbericht Pfad und
 - `Offene_Fragen.md` ist als finale Kandidatendatei nur bei echten offenen Punkten vorhanden.
 - Der Layoutcheck kann mit `-Pdf` zusätzliche Seiten-PDFs erzeugen. Sie sind Diagnoseartefakte und keine Versand-PDFs.
 - Bei einseitigem Anschreiben und einseitigem Lebenslauf entstehen normalerweise zwei Layout-PNGs; bei einem zweiseitigen Lebenslauf drei.
-- `.capture-*.html` und Browserprofile `P-*` entstehen kurz während des Layoutchecks.
+- `.capture-*.html` und Browser-Profile `P-*` entstehen kurz während des Layoutchecks.
 - `PDF-Export/R-*`, temporäre PDFs, kurzzeitige `Backup--*.pdf` und weitere `P-*`-Profile gehören zu einem einzelnen Exportlauf.
-- `.publish-*` und bei einer Ersetzung `.backup-*` sichern die atomare Veröffentlichung ab.
+- `.publish-*` und bei einer Ersetzung `.backup-*` sichern die gemeinsame Veröffentlichung ab.
 
 Diese Hilfsdateien und Ordner werden bei einem normalen Lauf bereinigt und sind kein dauerhafter Nutzervertrag. Nach einem hart abgebrochenen Browser- oder Veröffentlichungsprozess können ausnahmsweise Reste sichtbar bleiben.
 
 </details>
 
 <details>
-<summary><strong>Datenfluss und Qualitätsgates im Detail</strong></summary>
+<summary><strong>Datenfluss und Qualitätsprüfungen im Detail</strong></summary>
 
 1. Die Stellenbeschreibung wird als nicht vertrauenswürdige Datenquelle übernommen.
 2. `Pruefe-Stammdaten.ps1` kontrolliert Identität, Kontakt und Bewerbungslogistik.
@@ -735,9 +732,9 @@ Diese Hilfsdateien und Ordner werden bei einem normalen Lauf bereinigt und sind 
 9. Die Finalisierung erzeugt Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Finalisierungsbericht samt Hashnachweisen.
 10. Jede explizite A4-Seite wird anhand ihres frischen Screenshots visuell geprüft.
 11. Jede spätere Quellen- oder Kandidatenänderung entwertet die Nachweise.
-12. Erst nach Sichtbestätigung wird der vollständige Satz atomar veröffentlicht.
+12. Erst nach Sichtbestätigung wird der vollständige Satz als zusammengehörige Einheit veröffentlicht.
 
-Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `stretch` ausgewiesen. Nicht vollständig belegte Muss-Anforderungen bleiben sichtbar und erfordern eine dokumentierte Behandlung sowie ehrliche, belegorientierte Formulierungen.
+Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `stretch` ausgewiesen. Nicht vollständig belegte Muss-Anforderungen bleiben sichtbar und erfordern eine dokumentierte Behandlung sowie ehrliche, an Belegen orientierte Formulierungen.
 
 </details>
 
@@ -764,7 +761,7 @@ bash Tests/Bash/test-neue-bewerbung.sh
 Die öffentliche CI läuft über [`.github/workflows/tests.yml`](.github/workflows/tests.yml): Windows führt die PowerShell-Suite aus, Ubuntu prüft die Bash-Skripte mit ShellCheck und Regressionstests. Browserfälle bleiben lokal optional, da Runner und Sandboxen keine identische Browserumgebung garantieren.
 
 <details>
-<summary><strong>HTML-, PDF- und Browserverträge</strong></summary>
+<summary><strong>HTML-, PDF- und Browser-Verträge</strong></summary>
 
 Finale HTML-Dateien müssen eigenständig funktionieren:
 
@@ -793,7 +790,7 @@ Lebenslauf - NACHNAME.VORNAME.pdf
 Anschreiben - NACHNAME.VORNAME.pdf
 ```
 
-`NACHNAME.VORNAME` stammt aus `Private/Daten/01_PERSOENLICHE_DATEN.md`. Fehlen Vor- oder Nachname, darf keine finale Platzhalterdatei entstehen.
+`NACHNAME.VORNAME` stammt aus `Private/Daten/01_PERSOENLICHE_DATEN.md`. Fehlen Vor- oder Nachname, darf keine finale Datei mit Platzhalter entstehen.
 
 Firmen- und Rollenordner normalisieren Leerzeichen, Umlaute und Sonderzeichen. Beispiel:
 
