@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title description">
   <title id="title">bewerbungs-agent</title>
-  <desc id="description">Lokaler Bewerbungsassistent für passgenaue, ehrliche und technisch geprüfte Bewerbungsunterlagen.</desc>
+  <desc id="description">KI-Bewerbungsagent für OpenAI Codex mit lokalem Prüfworkflow für deutsche Bewerbungsunterlagen.</desc>
   <defs>
     <linearGradient id="background" x1="40" y1="20" x2="1160" y2="340" gradientUnits="userSpaceOnUse">
       <stop stop-color="#0F172A"/>
@@ -25,14 +25,14 @@
   <circle cx="1005" cy="345" r="150" fill="#2DD4BF" opacity="0.08"/>
 
   <g transform="translate(74 64)">
-    <rect width="256" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.12" stroke="#FFFFFF" stroke-opacity="0.18"/>
+    <rect width="300" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.12" stroke="#FFFFFF" stroke-opacity="0.18"/>
     <circle cx="19" cy="17" r="5" fill="#5EEAD4"/>
-    <text x="34" y="22" fill="#E2E8F0" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1.6">LOCAL-FIRST WORKFLOW</text>
+    <text x="34" y="22" fill="#E2E8F0" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1.4">KI-WORKFLOW · OPENAI CODEX</text>
 
     <text y="105" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="750" letter-spacing="-1.8">bewerbungs-agent</text>
     <rect y="126" width="84" height="5" rx="2.5" fill="url(#accent)"/>
-    <text y="171" fill="#DBEAFE" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="500">Passgenau. Ehrlich. Versandfertig.</text>
-    <text y="210" fill="#CBD5E1" font-family="Segoe UI, Arial, sans-serif" font-size="16">Vom Stellenprofil bis zu geprüften HTML- und PDF-Unterlagen.</text>
+    <text y="171" fill="#DBEAFE" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="500">KI-Bewerbungsagent für OpenAI Codex</text>
+    <text y="210" fill="#CBD5E1" font-family="Segoe UI, Arial, sans-serif" font-size="16">Passgenaue deutsche Unterlagen mit lokalem Prüfworkflow.</text>
   </g>
 
   <g transform="translate(874 48)" filter="url(#shadow)">
