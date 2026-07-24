@@ -12,6 +12,7 @@
 <p align="center">
   <a href="https://developers.openai.com/codex/ide"><img src="https://img.shields.io/badge/KI--Agent-OpenAI%20Codex-10A37F?style=flat-square" alt="Bewerbungsworkflow für OpenAI Codex"></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.3-2563EB?style=flat-square" alt="Aktuelle Version 1.3"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-22C55E?style=flat-square" alt="MIT-Lizenz"></a>
   <a href="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
   <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
   <a href="LINUX-PORTIERUNGSPLAN.md"><img src="https://img.shields.io/badge/Linux-Alpha-F59E0B?style=flat-square" alt="Linux-Unterstützung im Alpha-Status"></a>
@@ -23,6 +24,7 @@
   <a href="#schnellstart">🚀 Schnellstart</a> ·
   <a href="#ergebnisse">🗂️ Dateien</a> ·
   <a href="#entwicklung">🧰 Entwicklung</a> ·
+  <a href="#lizenz">📄 Lizenz</a> ·
   <a href="#hilfe">❓ Hilfe</a>
 </p>
 
@@ -1120,6 +1122,16 @@ foreach ($file in $files) {
 Für Dateisuche unter PowerShell bevorzugt das Projekt `rg -g "*.html" "MUSTER" "ORDNER"` anstelle von Pfad-Wildcards wie `ORDNER/*.html`.
 
 </details>
+
+---
+
+<a id="lizenz"></a>
+
+## 📄 Lizenz
+
+Dieses Projekt steht unter der [MIT-Lizenz](LICENSE). Du darfst es privat und kommerziell verwenden, kopieren, verändern und weitergeben. Dabei müssen der Copyright- und Lizenzhinweis erhalten bleiben. Die Software wird ohne Gewährleistung bereitgestellt.
+
+Copyright © 2026 Web-Developer-DB
 
 ---
 
