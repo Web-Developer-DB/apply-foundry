@@ -1,15 +1,16 @@
 <p align="center">
-  <img src=".github/assets/readme-hero.svg" alt="bewerbungs-agent – passgenaue, ehrliche und versandfertige Bewerbungsunterlagen" width="100%">
+  <img src=".github/assets/readme-hero.svg" alt="bewerbungs-agent – KI-Bewerbungsagent für OpenAI Codex" width="100%">
 </p>
 
 <h1 align="center">bewerbungs-agent</h1>
 
 <p align="center">
-  <strong>Lokaler Bewerbungsassistent für passgenaue deutsche Bewerbungsunterlagen</strong><br>
-  Von der Stellenanalyse bis zu visuell geprüften A4-Layouts und technisch geprüften PDFs.
+  <strong>KI-Bewerbungsagent für OpenAI Codex</strong><br>
+  Lokaler Coding-Agent-Workflow für passgenaue deutsche Bewerbungsunterlagen – von der Stellenanalyse bis zu geprüften A4-Layouts und PDFs.
 </p>
 
 <p align="center">
+  <a href="https://developers.openai.com/codex/ide"><img src="https://img.shields.io/badge/KI--Agent-OpenAI%20Codex-10A37F?style=flat-square" alt="Bewerbungsworkflow für OpenAI Codex"></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.3-2563EB?style=flat-square" alt="Aktuelle Version 1.3"></a>
   <a href="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
   <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
@@ -28,6 +29,8 @@
 ---
 
 ## Auf einen Blick
+
+Dieses Repository erweitert OpenAI Codex – den KI-Coding-Agenten von OpenAI – um einen spezialisierten Bewerbungsworkflow: Prompts, Regeln und lokale Prüfwerkzeuge führen ihn von der Stellenanalyse bis zur kontrollierten Freigabe.
 
 | 🎯 **Passgenau** | 🔒 **Lokal & privat** | ✅ **Geprüft** |
 | :---: | :---: | :---: |
