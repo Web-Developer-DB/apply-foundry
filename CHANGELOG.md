@@ -16,6 +16,7 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 - Strukturierte Veröffentlichung mit `Versand/`, `Intern/` und `Manifest.json` samt Pfad-, Größen- und SHA-256-Nachweisen.
 - Hashschutz für alle Kandidatendateien sowie Stammdaten, Profil, Bewerbungsauftrag und Anforderungsmatrix zwischen Vorbereitung und Veröffentlichung.
 - Verpflichtende `-VisuelleFreigabeNotiz`, wenn der Layoutcheck automatische Dichte- oder Randwarnungen meldet.
+- MIT-Lizenzdatei mit Copyright-Hinweis für Web-Developer-DB sowie sichtbarem Lizenzhinweis in der README.
 
 ### Geändert
 

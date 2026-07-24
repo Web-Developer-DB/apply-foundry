@@ -53,6 +53,7 @@ Layoutcheck
 Layoutchecks
 Layoutwarnung
 Layoutwarnungen
+Lizenzhinweis
 Logistikprüfung
 MediaBox
 MinPdfBytes
