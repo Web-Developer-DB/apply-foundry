@@ -22,7 +22,7 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Versandfertige Dateien werden zunächst im privaten `Kandidat`-Ordner geprüft. Der finale Zielordner bleibt bis zur atomaren Veröffentlichung leer.
 - Eine Änderung an einer HTML-Datei nach dem Layoutcheck macht den bisherigen Screenshot- und PDF-Nachweis ungültig. Maßgeblich sind die SHA-256-Werte in den Prüfberichten.
 - Kandidatendateien einzeln und vollständig schreiben und danach unmittelbar validieren. Insbesondere JSON-Dateien nach jeder Änderung parsen; keine unübersichtliche Sammeländerung darf bei einem Teilfehler mehrere fertige Dokumente halb aktualisiert zurücklassen.
-- In einer als verwaltete Sandbox bekannten Umgebung den ersten browsergestützten Lauf direkt mit lokaler Browserfreigabe ausführen, statt einen erwartbaren Chrome-Fehlerlauf zu provozieren.
+- In einer als verwaltete Sandbox bekannten Umgebung den ersten browsergestützten Lauf direkt mit lokaler Browserfreigabe ausführen, statt einen erwartbaren Browser-Fehlerlauf zu provozieren.
 
 ## Verbindlicher Finalisierungsworkflow
 
@@ -31,7 +31,7 @@ Der Standardweg verwendet `Tools/Finalisiere-Bewerbung.ps1` und den privaten Arb
 Vorbereitung mit allen maschinellen Prüfungen:
 
 ```powershell
-.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome
+.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser auto
 ```
 
 Dieser Lauf:
@@ -103,17 +103,18 @@ Als Einzelwerkzeug ist der Browser-Layoutcheck für Diagnose optional. Im verbin
 
 ## Standardweg unter Windows 11 / VS Code / PowerShell
 
-Wenn der Agent unter Windows 11 in VS Code mit PowerShell arbeitet und Chrome installiert ist, soll für die visuelle Prüfung direkt Chrome gewählt werden:
+Im Standardweg wählt das Skript automatisch einen unterstützten installierten Browser aus:
 
 ```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome
+.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser auto
 ```
 
-Das vermeidet unnötige Browserwechsel. Besonders in Sandbox-Umgebungen können Headless-Browser ohne echte Layoutursache fehlschlagen oder hängen. Wenn der Chrome-Lauf im Sandbox-Kontext keine Screenshot-Dateien erzeugt, mit einem Browser-Startfehler endet oder hängen bleibt:
+`auto` verwendet Chrome oder Edge, sofern einer davon verfügbar ist. Besonders in Sandbox-Umgebungen können Headless-Browser ohne echte Layoutursache fehlschlagen oder hängen. Wenn der Lauf im Sandbox-Kontext keine Screenshot-Dateien erzeugt, mit einem Browser-Startfehler endet oder hängen bleibt:
 
 - den Lauf nicht als bestandenen Layoutcheck werten
-- nicht automatisch auf Firefox ausweichen, wenn Chrome lokal vorhanden ist
-- denselben Chrome-Befehl außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut ausführen
+- nicht automatisch auf Firefox ausweichen, wenn Chrome oder Edge lokal vorhanden ist
+- denselben Befehl außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut ausführen
+- bei Bedarf den tatsächlich installierten Browser mit `-Browser chrome` oder `-Browser edge` gezielt diagnostizieren
 - den Sandbox-Fehler in `Qualitaetscheck.md` nur als technischen Laufzeitfehler dokumentieren
 
 Erfolgreiche Screenshots liegen hier:
@@ -129,6 +130,8 @@ Lebenslauf---NACHNAME.VORNAME--seite-1-von-2--chrome.png
 Lebenslauf---NACHNAME.VORNAME--seite-2-von-2--chrome.png
 Anschreiben---NACHNAME.VORNAME--seite-1-von-1--chrome.png
 ```
+
+Bei automatischer Auswahl kann im Dateinamen statt `chrome` auch `edge` stehen.
 
 Wenn ein Bildbetrachter oder ein Agentenwerkzeug für lokale Bilder verfügbar ist, muss jeder erwartete Seitenscreenshot geöffnet und visuell geprüft werden. Bei einer Layoutkorrektur sind danach alle Nachweise erneut zu erzeugen.
 

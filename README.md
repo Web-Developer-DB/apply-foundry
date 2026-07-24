@@ -41,7 +41,7 @@ Aus einer Stellenbeschreibung und deinen Profildaten entstehen:
 - ein vollständiger privater Arbeits- und Prüfverlauf mit Analyse, Anforderungsmatrix, Screenshots und Qualitätsnachweisen
 
 > [!NOTE]
-> **Empfohlener Referenzworkflow:** Windows, PowerShell, OpenAI Codex und Chrome oder Edge. Die PowerShell-Tools sind stabil getestet; die [Linux-Unterstützung befindet sich noch im Alpha-Status](LINUX-PORTIERUNGSPLAN.md).
+> **Einfachster Einstieg:** Windows, PowerShell 7, OpenAI Codex und Chrome oder Edge. Dieser Weg wird vom Projekt am umfassendsten unterstützt; die [Linux-Unterstützung befindet sich noch im Alpha-Status](LINUX-PORTIERUNGSPLAN.md).
 
 ### So fließen deine Daten
 
@@ -75,7 +75,7 @@ flowchart LR
     <td width="50%" valign="top">
       <strong>👤 Projekt nutzen</strong><br><br>
       Private Daten einrichten, eine Bewerbung erzeugen, alle Dateien verstehen und nur den geprüften Satz versenden.<br><br>
-      <a href="#nutzung"><strong>Zur Nutzungsdokumentation →</strong></a>
+      <a href="#schnellstart"><strong>Anfängeranleitung starten →</strong></a>
     </td>
     <td width="50%" valign="top">
       <strong>🧰 Projekt weiterentwickeln</strong><br><br>
@@ -93,24 +93,104 @@ flowchart LR
 
 Dieser Abschnitt ist für alle, die mit dem Projekt Bewerbungen erstellen möchten. Du brauchst dafür keine Kenntnisse über den internen Code oder die Implementierung der Prüfwerkzeuge.
 
-**Direkt zum Ziel:** [Schnellstart](#schnellstart) · [Ablauf verstehen](#prozess) · [Dateien verwenden](#ergebnisse) · [Private Daten](#daten) · [Finalisieren](#finalisierung) · [Probleme lösen](#hilfe)
+**Direkt zum Ziel:** [Schritt-für-Schritt-Anleitung](#schnellstart) · [Ablauf verstehen](#prozess) · [Dateien verwenden](#ergebnisse) · [Private Daten](#daten) · [Prüfen & lokal freigeben](#finalisierung) · [Probleme lösen](#hilfe)
 
 <a id="schnellstart"></a>
 
-### 🚀 Schnellstart
+### 🚀 Erste Bewerbung: Schritt für Schritt
 
-#### 1. Repository lokal öffnen
+> [!IMPORTANT]
+> **Folge für deine erste Bewerbung den Schritten 0 bis 7 in dieser Reihenfolge.** Im empfohlenen Weg führt Codex die technischen Befehle aus und nennt dir die nächsten Aktionen. Du kontrollierst persönlich deine Daten, jeden Seitenscreenshot und die fertigen Versanddateien.
+
+#### 0. Das brauchst du vor dem Start
+
+| Benötigt | Wofür? |
+| --- | --- |
+| Windows mit [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/install-powershell-on-windows) | primär unterstützter Projektablauf |
+| [Git für Windows](https://git-scm.com/install/windows) | Repository klonen und später aktualisieren |
+| [Visual Studio Code](https://code.visualstudio.com/download) mit installierter und angemeldeter [Codex-Erweiterung](https://developers.openai.com/codex/ide) | in dieser Anleitung verwendete Oberfläche für Agentenaufträge, Terminal und Dateien |
+| Chrome oder Edge | Layoutbilder und geprüfte PDFs erzeugen |
+| vorhandener Lebenslauf, Zeugnisse oder eigene Notizen | wahre persönliche und fachliche Angaben übernehmen |
+| vollständiger Text einer Stellenanzeige | Bewerbung gezielt auf die Stelle ausrichten |
+
+**Wenn dir eines der ersten drei Programme fehlt:**
+
+1. Öffne den jeweiligen Link in der Tabelle, installiere nur das fehlende Programm und starte Visual Studio Code danach neu.
+2. Öffne in Visual Studio Code links **Erweiterungen** mit <kbd>Strg</kbd> + <kbd>Umschalt</kbd> + <kbd>X</kbd>. Suche nach **Codex – OpenAI’s coding agent**, prüfe den Herausgeber **OpenAI** und wähle **Installieren**.
+3. Wähle anschließend links das **Codex-Symbol**. Ist es nicht sichtbar, öffne mit <kbd>Strg</kbd> + <kbd>Umschalt</kbd> + <kbd>P</kbd> die Befehlspalette, suche `Codex: Open Codex Sidebar` und bestätige den Befehl.
+4. Folge dem Anmeldedialog der Erweiterung. Beginne erst, wenn du unten im Codex-Bereich eine Nachricht eingeben kannst.
+
+> [!TIP]
+> Öffne Befehle in Visual Studio Code über **Terminal → Neues Terminal**. In der Eingabezeile sollte PowerShell aktiv sein. Führe Projektbefehle immer im Projektstamm aus, in dem `README.md`, `Prompts/` und `Tools/` liegen.
+
+Prüfe im Terminal Git und die PowerShell-Version:
+
+```powershell
+git --version
+$PSVersionTable.PSVersion
+```
+
+Der erste Befehl muss eine Git-Version ausgeben. Meldet PowerShell, dass `git` nicht gefunden wurde, installiere Git über den Link in der Tabelle und starte Visual Studio Code neu.
+
+Bei PowerShell muss die erste Zahl unter `Major` mindestens `7` sein. Zeigt sie `5`, wähle über den Pfeil rechts neben dem Pluszeichen im Terminal ein vorhandenes Profil **PowerShell 7** beziehungsweise `pwsh`. Ist es nicht vorhanden, installiere PowerShell 7 über den Link in der Tabelle, starte Visual Studio Code neu und prüfe beide Befehle erneut. Fahre außerdem erst fort, wenn der Codex-Chat sichtbar und angemeldet ist.
+
+#### 1. Projekt herunterladen und öffnen
+
+Wenn du das Projekt noch nicht auf deinem Rechner hast, führe diese beiden Befehle aus:
 
 ```powershell
 git clone https://github.com/Web-Developer-DB/bewerbungs-agent.git
 Set-Location bewerbungs-agent
 ```
 
-Öffne den Ordner anschließend in Visual Studio Code mit Codex-Extension oder in einer lokal installierten Codex-Anwendung.
+Wenn du das Projekt bereits geklont hast, überspringe die Befehle. Wähle in Visual Studio Code **Datei → Ordner öffnen**, und öffne genau den geklonten Projektordner – standardmäßig heißt er `bewerbungs-agent`. Öffne nicht nur den übergeordneten Ordner.
 
-#### 2. Private Daten vorbereiten
+Im Explorer von Visual Studio Code müssen anschließend unter anderem `README.md`, `Prompts/`, `Private.example/` und `Tools/` sichtbar sein. Mit diesem Befehl kannst du den geöffneten Terminalpfad prüfen:
 
-Die mitgelieferten Beispieldateien enthalten ausschließlich fiktive Angaben. Kopiere sie bei einer **frischen Installation** unter Windows als lokale Arbeitsgrundlage. Der Sicherheitscheck bricht ab, falls bereits ein eigener Datenordner vorhanden ist:
+```powershell
+Get-Location
+```
+
+Der ausgegebene Pfad muss der geöffnete Projektstamm sein, in dem `README.md`, `Prompts/`, `Private.example/` und `Tools/` liegen. Der Ordnername darf abweichen, wenn du ihn beim Klonen oder später bewusst umbenannt hast.
+
+> [!TIP]
+> **Zwei Eingabestellen:** Blöcke mit der Überschrift `powershell` gehören in das VS-Code-Terminal. Blöcke mit der Überschrift `text` gehören in den Codex-Chat. Kopiere einen Agentenauftrag niemals in das PowerShell-Terminal.
+
+#### 2. Persönliche Daten mit Codex einrichten
+
+Dies ist der einfachste und empfohlene Weg. Kopiere den folgenden Auftrag vollständig in den Codex-Chat:
+
+> [!WARNING]
+> `Private/` schützt vor einer versehentlichen Aufnahme in Git, macht die KI-Verarbeitung aber nicht automatisch offline. Gib keine Passwörter, Bankdaten, Ausweisnummern oder andere unnötige Geheimnisse ein und beachte die Datenschutz- und Kontoeinstellungen deiner Codex-Umgebung.
+
+```text
+Hilf mir als Einsteiger dabei, meine privaten Bewerberdaten einzurichten.
+
+1. Prüfe zuerst, ob Private/Daten bereits existiert. Überschreibe vorhandene Dateien niemals ungefragt.
+2. Nutze Private.example/Daten nur als Strukturvorlage.
+3. Falls Private/Daten noch fehlt, erstelle:
+   - Private/Daten/01_PERSOENLICHE_DATEN.md
+   - Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
+   - Private/Daten/README.md
+4. Führe mich abschnittsweise durch die benötigten Angaben. Frage verständlich nach fehlenden Informationen.
+5. Datei 01 enthält nur Identität, Kontakt und Bewerbungslogistik.
+6. Datei 02 enthält nur Berufserfahrung, Ausbildung, Kenntnisse, Projekte, Belege und fachliche Grenzen.
+7. Übernimm keine fiktiven Beispieldaten und erfinde nichts. Unklare Angaben bleiben als offene Fragen sichtbar.
+8. Fasse meine Angaben vor dem Schreiben verständlich zusammen und warte auf meine Bestätigung.
+9. Erstelle noch keine Bewerbung.
+
+Nenne mir am Ende die beiden Datendateien, die ich persönlich kontrollieren muss, und liste noch fehlende Angaben auf.
+```
+
+Du kannst dem Agenten anschließend deinen bisherigen Lebenslauf, Stationen, Ausbildungen, Weiterbildungen, Kenntnisse, Projekte, gewünschte Rollen und Rahmenbedingungen geben. Bearbeite immer nur Angaben, die wirklich zu dir gehören.
+
+> [!CAUTION]
+> Die Vorlagen enthalten **glaubwürdig wirkende, aber vollständig erfundene Beispieldaten**. Ein automatischer Prüfer kann nicht erkennen, ob ein plausibler Name oder Arbeitgeber wirklich zu dir gehört. Fahre erst fort, wenn du alle Beispiele persönlich ersetzt oder entfernt hast.
+
+<details>
+<summary><strong>Alternative: Dateien ohne Agentenhilfe kopieren</strong></summary>
+
+Verwende diese Befehle nur bei einer frischen Installation. Sie stoppen, wenn `Private/Daten` bereits existiert:
 
 ```powershell
 $privateDataPath = "Private/Daten"
@@ -125,35 +205,148 @@ Copy-Item "Private.example/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.example.m
 Copy-Item "Private.example/Daten/README.md" "Private/Daten/README.md"
 ```
 
-Ersetze danach alle Beispieldaten durch deine echten Angaben. Eine genaue Zuordnung findest du unter [Private Daten einrichten](#daten).
+Öffne danach beide Datendateien und ersetze jede fiktive Angabe manuell.
 
-> [!IMPORTANT]
-> Echte Kontaktdaten, Profildaten und Bewerbungen gehören ausschließlich nach `Private/`. Dieser Ordner wird von Git ignoriert und darf nicht veröffentlicht werden.
+</details>
 
-#### 3. Bewerbung beauftragen
+#### 3. Eigene Daten persönlich kontrollieren
 
-Gib Codex eine konkrete Stellenbeschreibung mit diesem Auftrag:
+Öffne im Explorer von Visual Studio Code diese beiden Dateien:
 
 ```text
-Nutze Prompts/00_AGENTEN_START_HIER.md und erstelle eine Bewerbung für diese Stellenbeschreibung:
-
-<Stellenbeschreibung einfügen>
+Private/Daten/01_PERSOENLICHE_DATEN.md
+Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
 ```
 
-Der Agent liest Profildaten, Regeln und Designreferenzen, erstellt einen privaten Arbeitsordner und erzeugt die Bewerbung zunächst als prüfbaren Kandidaten.
+Kontrolliere vor der ersten Bewerbung:
 
-#### 4. Ergebnisse prüfen und freigeben
+- [ ] Name, Adresse, Telefon, E-Mail und öffentliche Profil-Links gehören wirklich zu dir.
+- [ ] Arbeitgeber, Zeiträume, Ausbildung und Weiterbildungen stimmen vollständig.
+- [ ] Kenntnisse und Projekte sind korrekt als beruflich, Weiterbildung, Projektpraxis oder private Praxis eingeordnet.
+- [ ] Beispielpersonen, Beispielunternehmen und erfundene Zertifikate wurden vollständig entfernt.
+- [ ] Unsichere oder fehlende Informationen sind offen markiert und wurden nicht geraten.
 
-Der Agent führt danach alle fachlichen und technischen Abschlussprüfungen aus. Öffne vor der Veröffentlichung jeden erzeugten A4-Screenshot und kontrolliere ihn vollständig selbst. Die zwei verbindlichen Befehle stehen unter [Finalisierung](#finalisierung).
+Lass danach den maschinellen Stammdatencheck von Codex ausführen:
+
+```text
+Führe Tools/Pruefe-Stammdaten.ps1 für meine Daten unter Private/Daten aus.
+Erkläre mir Fehler und Warnungen in einfacher Sprache.
+Korrigiere nur Angaben, für die ich dir echte Informationen gegeben habe, und erfinde nichts.
+Erstelle noch keine Bewerbung. Melde mir am Ende eindeutig, ob der Stammdatencheck erfolgreich ist.
+```
+
+Bei einem erfolgreichen Lauf endet die Ausgabe mit `ERGEBNIS: OK`. Fehler müssen vor der Bewerbung behoben werden; Warnungen solltest du bewusst prüfen. Der Check kontrolliert Pflichtfelder, bekannte Platzhalter, E-Mail-/Dateinamensformat und zentrale Logistikentscheidungen – nicht deine Identität, die Wahrheit der Angaben oder das vollständige Entfernen aller Beispieldaten.
+
+> [!IMPORTANT]
+> Echte Kontaktdaten, Profildaten und Bewerbungen gehören ausschließlich nach `Private/`. Dieser Ordner wird von Git ignoriert. Nimm seinen Inhalt niemals in einen Git-Commit auf und lade ihn nicht zu GitHub hoch; die spätere **lokale** Freigabe innerhalb von `Private/` ist dagegen beabsichtigt.
+
+#### 4. Stellenanzeige an den Agenten übergeben
+
+Kopiere möglichst den **vollständigen Text** der Stellenanzeige. Ein Link allein kann später nicht mehr erreichbar sein oder vom Agenten nicht gelesen werden.
+
+```text
+Nutze Prompts/00_AGENTEN_START_HIER.md und erstelle eine Bewerbung für die folgende Stellenbeschreibung.
+
+Ich nutze das Projekt als Einsteiger. Führe den vorgesehenen Ablauf selbstständig bis zur vorbereiteten Sichtprüfung aus, aber veröffentliche noch nichts.
+Verwende für die automatische Browserauswahl -Browser auto, damit Chrome oder Edge erkannt wird.
+Nenne mir danach:
+- den genauen privaten Arbeitsordner,
+- den genauen Ordner mit den Layout-PNGs,
+- jede PNG-Datei, die ich öffnen muss,
+- die klare Bestätigung, ob der Status bereit_zur_sichtpruefung erreicht ist,
+- offene Fragen oder Warnungen,
+- den nächsten Schritt in einfacher Sprache.
+
+Stellenbeschreibung:
+
+<hier den vollständigen Text der Stellenanzeige einfügen>
+```
+
+Der Agent erstellt jetzt den privaten Arbeitsordner, analysiert die Stelle, erzeugt die Dokumente, prüft Inhalte und Layout und bereitet PDFs vor. Die Dateien sind zu diesem Zeitpunkt **noch nicht für den Versand freigegeben**.
+
+> [!WARNING]
+> Gehe erst zu Schritt 5, wenn der Agent den Status `bereit_zur_sichtpruefung` bestätigt und konkrete PNG-Dateien nennt. Bei einem Fehler, einer kritischen offenen Frage oder fehlenden Screenshots lässt du zuerst die Ursache beheben und die Vorbereitung vollständig wiederholen.
+
+#### 5. Jeden Seitenscreenshot öffnen
+
+Der Agent nennt dir den genauen Ordner. Er sieht ungefähr so aus:
+
+```text
+Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
+```
+
+Öffne im Explorer von Visual Studio Code **jede Datei mit der Endung `.png` einzeln**. Kontrolliere jede sichtbare A4-Seite:
+
+- [ ] Kein Text ist abgeschnitten, verdeckt oder überlappt.
+- [ ] Es gibt keine ungewollte leere Seite oder große zufällige Leerfläche.
+- [ ] Schrift, Abstände und Spalten sind gut lesbar.
+- [ ] Name, Firma, Rolle und Kontaktdaten stimmen.
+- [ ] Lebenslauf und Anschreiben enthalten keine Platzhalter oder erfundenen Angaben.
+
+Wenn du einen Fehler findest, sende beispielsweise:
+
+```text
+Veröffentliche noch nichts. Im Screenshot <Dateiname> ist folgendes Problem sichtbar:
+<Problem genau beschreiben>.
+Korrigiere die Kandidatendatei, wiederhole die vollständige technische Vorbereitung und nenne mir danach alle neu erzeugten PNG-Dateien zur erneuten Prüfung.
+```
+
+#### 6. Veröffentlichung ausdrücklich bestätigen
+
+> [!IMPORTANT]
+> **„Veröffentlichen“ bedeutet hier nur eine lokale Freigabe:** Das Tool übernimmt geprüfte Dateien in die lokalen Ordner `Versand/` und `Intern/` und erstellt `Manifest.json`. Es lädt nichts zu GitHub oder einem Unternehmen hoch, verschickt keine E-Mail und sendet keine Portalbewerbung.
+
+Sende den folgenden Auftrag **nur, wenn du wirklich jede PNG-Datei geöffnet und geprüft hast**:
+
+```text
+Ich habe jede von dir genannte PNG-Datei persönlich geöffnet und vollständig geprüft.
+Es gibt keinen abgeschnittenen oder überlappenden Text, keine problematische Leerseite und keine falschen sichtbaren Angaben.
+
+Veröffentliche jetzt den vorbereiteten Bewerbungssatz mit dem vorgesehenen Finalisierungswerkzeug.
+Gib ihn nur lokal frei. Lade nichts hoch und versende nichts.
+Falls sich seit der Vorbereitung eine Quelle oder die Arbeitsversion unter Kandidat/ geändert hat, veröffentliche nicht. Wiederhole nur die Vorbereitung, nenne mir jede neu erzeugte PNG-Datei und stoppe danach. Warte zwingend auf meine erneute Sichtprüfungsbestätigung; gib im selben Auftrag nichts frei.
+Nur wenn der unveränderte vorbereitete Stand erfolgreich freigegeben wurde: Nenne mir danach den genauen Versandordner, alle darin enthaltenen Dateien und wofür ich sie abhängig von der Stellenanzeige verwenden kann.
+```
+
+Bei einer automatischen Layoutwarnung kann der Agent zusätzlich nach deiner konkreten Sichtbewertung fragen. Beschreibe dann ehrlich, was du auf der betroffenen Seite geprüft hast.
+
+#### 7. Nur die Versanddateien verwenden
+
+Öffne den vom Agenten genannten Ordner:
+
+```text
+Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/Versand/
+```
+
+| Datei | Deine Aktion |
+| --- | --- |
+| `Lebenslauf - NACHNAME.VORNAME.pdf` | hochladen oder anhängen, wenn ein Lebenslauf verlangt wird |
+| `Anschreiben - NACHNAME.VORNAME.pdf` | nur hochladen oder anhängen, wenn ein Anschreiben verlangt oder zugelassen wird |
+| `Email-Nachricht--FIRMA.md` | bei einer E-Mail-Bewerbung öffnen und Betreff sowie Nachricht kopieren; nicht als Datei anhängen |
+
+Verwende ausschließlich freigegebene Dateien aus `Versand/`, aber beachte immer die Anforderungen der Stellenanzeige oder des Bewerbungsportals. Wenn ausdrücklich kein Anschreiben verlangt wird, hänge es nicht ungefragt an. Bei einer Portalbewerbung brauchst du die E-Mail-Datei meistens nicht.
+
+Prüfe außerdem, ob unter `Intern/` eine `Offene_Fragen.md` vorhanden ist, und kläre alle versandrelevanten Punkte. Öffne jede benötigte PDF-Datei vor dem Versand noch einmal. Kontrolliere Empfänger, Firma, Rolle, Namen, Kontaktdaten und Seitenzahl. Dateien aus `_Arbeitsdateien/`, `Intern/` sowie `Manifest.json` werden nicht mitgeschickt.
+
+> [!IMPORTANT]
+> Ändert die Antwort auf eine offene Frage den Lebenslauf, das Anschreiben, die E-Mail oder eine Quelldatei, sind die bisherigen PDFs und Screenshots nicht mehr aktuell. Bitte Codex, die Arbeitsversion zu korrigieren, die vollständige technische Vorbereitung erneut auszuführen, alle neuen PNG-Dateien zu nennen und dann zu stoppen. Öffne danach jede neue PNG-Datei und bestätige die lokale Freigabe erneut, bevor du etwas versendest.
+
+> [!NOTE]
+> Auch der Ordner `Versand/` versendet nichts automatisch. Das Hochladen in ein Bewerbungsportal oder das Abschicken einer E-Mail bleibt immer deine bewusste Aktion.
 
 > [!TIP]
-> **Für die erste Bewerbung reicht dieser Pfad:** Daten kopieren → Beispieldaten ersetzen → zentralen Agentenauftrag senden → Screenshots prüfen → Veröffentlichung bestätigen.
+> **Deine Bewerbungsunterlagen sind jetzt für das bewusste manuelle Hochladen oder Versenden vorbereitet.** Die folgenden Nutzerabschnitte erklären den Ablauf und alle Dateien genauer; für den normalen ersten Durchlauf musst du sie nicht vollständig lesen.
 
 <a id="prozess"></a>
 
 ### 🧭 So arbeitet der Agent
 
-Der Agent trennt bewusst vier Zustände. Eine Datei ist nicht automatisch versandfertig, nur weil sie bereits einen final wirkenden Namen trägt.
+Dieser Abschnitt erklärt den Hintergrund. Für deine erste Bewerbung kannst du direkt der sichtbaren [Schritt-für-Schritt-Anleitung](#schnellstart) folgen.
+
+Der Agent trennt bewusst vier Zustände. Ein **Kandidat** ist dabei nur eine noch nicht freigegebene Arbeitsversion. Eine Datei ist nicht automatisch versandfertig, nur weil sie bereits einen final wirkenden Namen trägt.
+
+> [!NOTE]
+> **„Veröffentlicht“ bedeutet im gesamten Projekt nur lokal freigegeben.** Dateien werden auf deinem Rechner in `Versand/` und `Intern/` übernommen. Dadurch wird nichts hochgeladen oder automatisch verschickt.
 
 | Zustand | Speicherort | Bedeutung | Versenden? |
 | --- | --- | --- | :---: |
@@ -163,7 +356,7 @@ Der Agent trennt bewusst vier Zustände. Eine Datei ist nicht automatisch versan
 | 🟢 **Veröffentlicht** | `YYYY-MM-DD--ROLLENNAME/` | visuell und technisch geprüftes Ergebnis | nur `Versand/` |
 
 > [!IMPORTANT]
-> **Zum Bewerben verwendest du ausschließlich `Versand/`.** Dateien unter `_Arbeitsdateien/` sind Arbeitsstände oder Prüfnachweise. Dateien unter `Intern/` helfen dir beim Nachvollziehen und späteren Überarbeiten, werden aber nicht mitgeschickt.
+> **Für Bewerbungsanhänge verwendest du nur freigegebene Dateien aus `Versand/`.** Welche Anhänge du tatsächlich übermittelst, richtet sich nach der Stellenanzeige oder dem Bewerbungsportal. Dateien unter `_Arbeitsdateien/` sind Arbeitsstände oder Prüfnachweise; Dateien unter `Intern/` bleiben bei dir.
 
 #### Der Ablauf in sieben Phasen
 
@@ -237,9 +430,9 @@ Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
 
 | Datei | Verwendung |
 | --- | --- |
-| `Lebenslauf - NACHNAME.VORNAME.pdf` | als ersten PDF-Anhang beifügen |
-| `Anschreiben - NACHNAME.VORNAME.pdf` | als separaten PDF-Anhang beifügen |
-| `Email-Nachricht--FIRMA.md` | Betreff und Nachricht in dein E-Mail-Programm kopieren; die Markdown-Datei nicht anhängen |
+| `Lebenslauf - NACHNAME.VORNAME.pdf` | aus `Versand/` hochladen oder anhängen, wenn ein Lebenslauf verlangt wird |
+| `Anschreiben - NACHNAME.VORNAME.pdf` | getrennt vom Lebenslauf hochladen oder anhängen, wenn ein Anschreiben verlangt oder zugelassen wird |
+| `Email-Nachricht--FIRMA.md` | bei einer E-Mail-Bewerbung Betreff und Nachricht kopieren; die Markdown-Datei nicht anhängen |
 
 Eine Stellenanzeige mit der Bitte um eine Bewerbung „als PDF“ verlangt nicht automatisch eine Gesamt-PDF. Lebenslauf und Anschreiben bleiben standardmäßig zwei getrennte Anlagen; zusammengeführt wird nur bei ausdrücklicher Vorgabe.
 
@@ -260,9 +453,9 @@ Eine Stellenanzeige mit der Bitte um eine Bewerbung „als PDF“ verlangt nicht
 
 ##### `Manifest.json` – Integrität des veröffentlichten Satzes
 
-Das Manifest enthält Firma, Rolle, Erstellungszeit, Namen und Hashes von Stammdaten, Profil, Bewerbungsauftrag und Anforderungsmatrix sowie für jede veröffentlichte Datei unter `Versand/` und `Intern/` den relativen Pfad, die Bytezahl und den SHA-256-Wert. Es listet sich selbst sowie Entwürfe, Screenshots und Arbeitsberichte bewusst nicht auf.
+`Manifest.json` ist ein technischer Prüfbeleg für den lokal freigegebenen Dateisatz. Die Projektwerkzeuge können damit erkennen, ob sich eine freigegebene Datei später verändert hat.
 
-Nutze das Manifest nicht als Bewerbungsanhang und bearbeite es nicht manuell. Der statische Prüfer kontrolliert damit die veröffentlichten Einträge aus `files[]` auf richtige Pfade, Größen und Hashes; die vier Quellhashes dienen dort nur als Herkunftsnachweis. Die bei der Vorbereitung erfassten Hashes der vier Quellen, der flachen Kandidatendateien und der Layout-PNGs stehen separat in `Finalisierungsbericht.json` – nicht jedoch sämtliche Entwürfe, Arbeitsnotizen oder Prüfberichte.
+Du musst diese Datei für die normale Nutzung nicht öffnen oder verstehen. **Bearbeite sie nicht, hänge sie nicht an und versende sie nicht.** Die vollständigen technischen Details stehen in der Entwicklerdokumentation.
 
 <details>
 <summary><strong>Arbeitsdateien, Kandidaten und Prüfberichte kurz erklärt</strong></summary>
@@ -292,11 +485,11 @@ Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner lieg
 
 #### Welche Datei nutze ich für welchen Zweck?
 
-- 📤 **Bewerbung verschicken:** ausschließlich die zwei PDFs aus `Versand/` anhängen.
+- 📤 **Bewerbung verschicken:** nur freigegebene Dateien aus `Versand/` verwenden und die verlangten Anlagen der Stellenanzeige beachten.
 - ✉️ **E-Mail verfassen:** Betreff und Text aus `Versand/Email-Nachricht--FIRMA.md` kopieren.
 - 👀 **Layout freigeben:** jede PNG-Datei unter `_Arbeitsdateien/.../Layoutcheck/` öffnen.
 - 🔎 **Stellenpassung verstehen:** `Intern/Analyse.md` und bei Bedarf die private `Anforderungsmatrix.json` lesen.
-- ✏️ **Dokument korrigieren:** nur den Kandidaten bearbeiten, danach Vorbereitung und Sichtprüfung wiederholen.
+- ✏️ **Dokument korrigieren:** Codex um eine Korrektur der Arbeitsversion unter `Kandidat/` bitten; danach Vorbereitung und Sichtprüfung vollständig wiederholen.
 - 🧪 **Fehler untersuchen:** die passenden JSON-Berichte unter `_Arbeitsdateien/` öffnen.
 - 🔐 **Veröffentlichten Satz prüfen:** die in `Manifest.json` unter `files[]` erfassten Dateien mit dem statischen Prüfer validieren.
 - 🗄️ **Bewerbung nachvollziehbar archivieren:** finalen Ordner **und** zugehörigen Arbeitsordner behalten.
@@ -316,6 +509,17 @@ Kritische Fragen blockieren die Veröffentlichung, wenn sonst Identität, Wahrhe
 
 Die Trennung zwischen öffentlicher Logik und privaten Daten ist ein Kernprinzip des Projekts.
 
+#### Das solltest du für die Einrichtung bereithalten
+
+- Name, Adresse und erreichbare Kontaktdaten
+- berufliche Stationen mit Monat und Jahr
+- Ausbildung, Umschulung, Weiterbildungen und Abschlüsse
+- Kenntnisse mit ehrlicher Erfahrungsstufe
+- Projekte und private Praxis mit klarer Einordnung
+- gewünschte Rollen, Arbeitsregion und Arbeitsmodell
+- Verfügbarkeit und frühester Eintrittstermin
+- Gehaltsangabe oder die bewusste Entscheidung, keine Angabe zu verwenden
+
 | Datei | Enthält | Enthält ausdrücklich nicht |
 | --- | --- | --- |
 | `01_PERSOENLICHE_DATEN.md` | Identität, Kontakt, Verfügbarkeit, Arbeitsmodell, Region und Gehaltslogik | fachliche CV-Details |
@@ -324,28 +528,36 @@ Die Trennung zwischen öffentlicher Logik und privaten Daten ist ein Kernprinzip
 
 Die Vorlagen findest du unter `Private.example/Daten/`. Pflege jede Information nur an ihrer Stammquelle, damit Angaben nicht widersprüchlich werden.
 
-<details>
-<summary><strong>Persönliche Daten mit Unterstützung des Agenten einrichten</strong></summary>
+#### Persönliche Daten mit Unterstützung des Agenten einrichten
 
-Du kannst Codex beim strukturierten Übertragen deiner Angaben helfen lassen:
+> [!WARNING]
+> Lies dies vor der Dateneingabe: Speichere keine Passwörter, Zugangscodes, Bankdaten, Ausweisnummern oder unnötige sensible Angaben. `Private/` verhindert die Aufnahme in Git, ist aber keine Verschlüsselung und macht die KI-Verarbeitung nicht automatisch offline. Abhängig von deiner Codex-Umgebung können Inhalte zur Modellverarbeitung an den jeweiligen Anbieter übertragen werden; beachte deshalb dessen Datenschutz- und Kontoeinstellungen.
+
+Diese Hilfe ist absichtlich sichtbar, weil sie für Einsteiger der einfachste Weg ist. Kopiere den Auftrag in den Codex-Chat:
 
 ```text
-Nutze die Struktur aus Private.example/Daten/.
-Erstelle oder aktualisiere meine privaten Daten unter Private/Daten/.
+Ich richte den bewerbungs-agent zum ersten Mal ein.
 
-Fülle 01_PERSOENLICHE_DATEN.md nur mit Identität, Kontakt und Bewerbungslogistik.
-Fülle 02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md nur mit fachlichem Profil, Erfahrung, Kenntnissen, Projekten, Belegarten und Grenzen.
-Nutze keine erfundenen Angaben.
-Wenn Informationen fehlen oder unklar sind, dokumentiere sie als offene Fragen.
+Lies Private.example/Daten/README.md und die beiden Beispieldateien nur als Struktur.
+Übernimm keinen Beispielwert als meine Angabe und überschreibe vorhandene Dateien nie ungefragt.
 
-Hier sind meine echten Informationen:
+Führe mich nacheinander durch:
+1. Identität und Kontakt,
+2. Verfügbarkeit, Stellenart, Arbeitsmodell, Region und Gehaltslogik,
+3. Zielrollen, Berufserfahrung, Ausbildung, Weiterbildungen, Kenntnisse, Projekte und alle Zeiträume.
 
-<persönliche Daten und beruflicher Kontext einfügen>
+Stelle verständliche Rückfragen, wenn etwas fehlt. Erfinde nichts und markiere unsichere Angaben.
+Fasse meine Angaben vor dem Schreiben zusammen und warte auf meine Bestätigung.
+
+Erstelle danach ausschließlich:
+- Private/Daten/01_PERSOENLICHE_DATEN.md
+- Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
+- Private/Daten/README.md
+
+Führe anschließend Tools/Pruefe-Stammdaten.ps1 aus, nenne offene Punkte und erinnere mich daran, beide Datendateien persönlich zu prüfen.
 ```
 
-Kontrolliere die erzeugten Dateien sorgfältig. Ein KI-Agent kann Angaben falsch einordnen, zu stark formulieren oder aus unklarem Kontext falsche Schlüsse ziehen.
-
-</details>
+Kontrolliere die erzeugten Dateien sorgfältig. Der Stammdatencheck prüft Pflichtfelder, bekannte Platzhalter, ausgewählte Formate und zentrale Logistikentscheidungen. Er kann nicht wissen, ob ein plausibel wirkender Beispielwert wirklich zu dir gehört.
 
 #### Sicherheitsmodell
 
@@ -375,30 +587,65 @@ In der Ausgabe dürfen keine echten Dateien aus `Private/` auftauchen. Zeigt `gi
 
 <a id="finalisierung"></a>
 
-### ✅ Prüfen & veröffentlichen
+### ✅ Prüfen & lokal freigeben
 
-Der verbindliche Abschluss besteht aus zwei bewusst getrennten Schritten.
+Der verbindliche Abschluss besteht aus Vorbereitung, deiner persönlichen Sichtprüfung und der lokalen Freigabe.
 
-#### Schritt 1: Technisch vorbereiten
+> [!IMPORTANT]
+> Die lokale Freigabe lädt nichts hoch und verschickt nichts. Sie erstellt auf deinem Rechner den geprüften Ordner mit `Versand/`, `Intern/` und `Manifest.json`.
 
-```powershell
-.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome
+#### Empfohlen: Codex führt die Befehle aus
+
+Wenn die Bewerbung erstellt ist, kannst du diesen Auftrag senden:
+
+```text
+Bereite diese Bewerbung vollständig für meine Sichtprüfung vor.
+Verwende -Browser auto, veröffentliche noch nichts und nenne mir danach:
+- den exakten privaten Arbeitsordner,
+- den exakten Layoutcheck-Ordner,
+- jede erzeugte PNG-Datei,
+- alle Fehler und Layoutwarnungen,
+- die klare Bestätigung, ob der Status bereit_zur_sichtpruefung erreicht ist.
 ```
 
-Dieser Lauf prüft Stammdaten und Inhalte, erzeugt A4-Screenshots, exportiert zwei PDFs, kontrolliert deren Struktur und ATS-Textschicht und schreibt Hashnachweise.
+Dieser Lauf prüft Stammdaten und Inhalte, erzeugt A4-Screenshots, exportiert zwei PDFs und kontrolliert, ob Bewerbungsportale den PDF-Text grundsätzlich lesen können. Öffne erst nach bestätigtem Status `bereit_zur_sichtpruefung` jede genannte PNG-Datei.
 
-#### Schritt 2: Nach Sichtprüfung veröffentlichen
+Nach deiner tatsächlichen Sichtprüfung sendest du:
+
+```text
+Ich habe jede PNG-Datei im genannten Layoutcheck-Ordner persönlich geprüft.
+Kein Text ist abgeschnitten oder verdeckt, die Seiten wirken vollständig und die sichtbaren Angaben sind korrekt.
+
+Gib den unveränderten geprüften Satz jetzt lokal frei. Lade nichts hoch und versende nichts.
+Falls sich seit der Vorbereitung eine Quelle oder die Arbeitsversion unter Kandidat/ geändert hat, gib nichts frei. Wiederhole nur die vollständige Vorbereitung, nenne mir alle neu erzeugten PNG-Dateien und stoppe danach. Warte auf meine erneute persönliche Sichtprüfung; verwende meine alte Bestätigung nicht für den neuen Stand.
+Nur wenn der von mir geprüfte Stand unverändert erfolgreich freigegeben wurde: Nenne mir danach den exakten Versandordner und eventuell verbliebene offene Fragen.
+```
+
+Bei einer Layoutwarnung beschreibst du zusätzlich konkret, was du auf der betroffenen Seite gesehen und geprüft hast. Ohne echte Sichtprüfung darfst du diesen Auftrag nicht senden.
+
+#### Alternative: Befehle selbst ausführen
+
+> [!WARNING]
+> `FIRMA` und `YYYY-MM-DD--ROLLENNAME` sind Platzhalter und dürfen nicht wörtlich übernommen werden. Verwende den exakten Arbeitsordner, den Codex oder `Neue-Bewerbung.ps1` ausgegeben hat.
+
+**1. Technisch vorbereiten**
+
+```powershell
+.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser auto
+```
+
+**2. Nach der Sichtprüfung lokal freigeben**
 
 ```powershell
 .\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft
 ```
 
-Bei einer Layoutwarnung ist zusätzlich eine kurze fachliche Bewertung über `-VisuelleFreigabeNotiz "..."` erforderlich. Änderungen an Quellen, Kandidatendateien oder Screenshots machen vorhandene Nachweise ungültig.
+Bei einer Layoutwarnung ist zusätzlich eine ehrliche Bewertung über `-VisuelleFreigabeNotiz "..."` erforderlich. Änderungen an Quellen, Arbeitsversionen oder Screenshots machen vorhandene Prüfnachweise ungültig. Dann muss die Vorbereitung erneut laufen; öffne danach jede neu erzeugte PNG-Datei und führe Schritt 2 erst nach dieser neuen Sichtprüfung noch einmal aus.
 
 <details>
 <summary><strong>Bereits veröffentlichte Bewerbung korrigieren</strong></summary>
 
-Bearbeite veröffentlichte Dateien nicht direkt unter `Versand/` oder `Intern/`. Korrigiere die Quellen beziehungsweise Kandidatendateien, führe Schritt 1 erneut aus und kontrolliere alle neuen Screenshots. Erst danach darf der neu geprüfte Satz den bestehenden Zielordner bewusst ersetzen:
+Bearbeite veröffentlichte Dateien nicht direkt unter `Versand/` oder `Intern/`. Bitte Codex um die Korrektur der Arbeitsversion unter `Kandidat/`, wiederhole die technische Vorbereitung und kontrolliere alle neuen Screenshots. Erst danach darf der neu geprüfte Satz den bestehenden Zielordner bewusst ersetzen:
 
 ```powershell
 .\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft -Ersetzen
@@ -442,7 +689,7 @@ Warnungen können streng als Fehler behandelt werden:
 .\Tools\Layoutcheck-Bewerbung.ps1 `
   -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
   -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck" `
-  -Browser chrome
+  -Browser auto
 ```
 
 **PDF-Export**
@@ -451,7 +698,7 @@ Warnungen können streng als Fehler behandelt werden:
 .\Tools\Exportiere-PDF.ps1 `
   -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
   -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export" `
-  -Browser chrome
+  -Browser auto
 ```
 
 Der statische Prüfer kontrolliert Pflichtdateien, Dateinamen, Platzhalter, A4-Geometrie, eingebettetes CSS, unerlaubte Ressourcen und den E-Mail-Betreff. Layout- und Exporttools validieren zusätzlich PNG-/PDF-Signaturen, Abmessungen, Seitenzahlen und Aktualität.
@@ -480,7 +727,7 @@ Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgesch
 
 | Komponente | Status | Verwendung |
 | --- | --- | --- |
-| Windows + PowerShell 7 | 🟢 stabil | vollständig getesteter Referenzworkflow |
+| Windows + PowerShell 7 | 🟢 primär unterstützt | am umfassendsten geprüfter Projektablauf |
 | Codex in VS Code oder lokale Codex-App | 🟢 empfohlen | liest Regeln und erzeugt lokale Dateien |
 | Chrome oder Edge | 🔵 für Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung |
 | Firefox | 🟡 optional | manuelle Vorschau; kein Ersatz für die verbindliche Finalisierung |
@@ -516,21 +763,31 @@ Die Helfer erzeugen einen leeren Zielordner, einen Arbeitsordner und einen Kandi
 
 | Problem | Schnellste Prüfung | Lösung |
 | --- | --- | --- |
-| Statischer Check ist rot | Fehlermeldung und betroffene Datei lesen | HTML/Markdown korrigieren und Check wiederholen |
-| Layoutcheck startet nicht | Ist Chrome oder Edge installiert? | Unter Windows gezielt `-Browser chrome` verwenden |
+| Codex findet `Prompts/` oder `Tools/` nicht | Sind diese Ordner im VS-Code-Explorer sichtbar? | über **Datei → Ordner öffnen** den geklonten Projektordner öffnen, in dem `README.md`, `Prompts/` und `Tools/` liegen |
+| `Private/Daten/` fehlt | wurden die persönlichen Daten bereits eingerichtet? | den sichtbaren Einrichtungsauftrag aus Schritt 2 an Codex senden |
+| Ein Beispielname oder Beispielunternehmen erscheint | beide Dateien unter `Private/Daten/` durchsuchen | nicht fortfahren; alle fiktiven Werte durch eigene, wahre Angaben ersetzen oder entfernen |
+| Stammdatencheck ist rot | `[FEHLER]`-Zeilen lesen | Ausgabe an Codex geben, nur mit echten Angaben korrigieren und erneut prüfen |
+| Technische Prüfung ist rot | erste `[FEHLER]`-Meldung und betroffene Datei lesen | vollständige Ausgabe an Codex geben, Arbeitsversion korrigieren und Vorbereitung wiederholen lassen |
+| Befehl findet einen Pfad mit `FIRMA` nicht | steht noch ein großgeschriebener Platzhalter im Befehl? | exakten Arbeitsordner von Codex ausgeben lassen und diesen Pfad verwenden |
+| Layoutcheck startet nicht | Ist Chrome oder Edge installiert? | zuerst `-Browser auto` verwenden; zur Diagnose den tatsächlich installierten Browser mit `-Browser chrome` oder `-Browser edge` wählen |
 | Browser scheitert in einer Sandbox | Browserfreigabe der lokalen Agentenumgebung prüfen | denselben Lauf mit lokaler Browserfreigabe wiederholen |
+| Keine PNG-Datei vorhanden | `Layoutcheck/` prüfen | noch nicht freigeben; technische Vorbereitung durch Codex wiederholen lassen |
 | PDF-Export bricht ab | Statischen Check separat ausführen | Fehler beheben; manueller Firefox-Druck ist nur eine nicht validierte Diagnosealternative |
 | Text wirkt abgeschnitten | HTML und alle Seitenscreenshots öffnen | Inhalt fachlich kürzen oder bewusst auf zwei A4-Seiten verteilen |
+| Bewerbung für dieselbe Firma und Rolle existiert bereits | Datum, Firma und Rolle vergleichen | nicht neu anlegen; Codex mit „Setze die bestehende Bewerbung fort“ beauftragen; `-Fortsetzen` nur für exakt dieselbe Bewerbung nutzen |
+| PowerShell meldet „Skriptausführung deaktiviert“ | `Get-ExecutionPolicy` ausführen | nur im vertrauenswürdigen Projektterminal vorübergehend `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` verwenden; auf Firmengeräten zuerst die Administration fragen |
 | Persönliche Dateien erscheinen in Git | `git status --short --ignored` prüfen | Dateien nach `Private/` verschieben; nichts Privates in Git übernehmen |
 | Informationen fehlen | `Offene_Fragen.md` lesen | belastbare Angaben ergänzen; keine Werte raten lassen |
+| Fertige Dateien werden nicht gefunden | hat Codex die lokale Freigabe erfolgreich gemeldet? | den exakten Ordner `.../Versand/` von Codex nennen lassen |
 
-Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Abschnitt [Prüfen & veröffentlichen](#finalisierung).
+Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Abschnitt [Prüfen & lokal freigeben](#finalisierung).
 
 ### ⚠️ Bekannte Grenzen
 
-- Der vollständig getestete Workflow ist Windows mit PowerShell.
+- Der primär unterstützte Workflow ist Windows mit PowerShell 7.
 - Linux befindet sich im Alpha-Status und unterstützt noch nicht den gesamten Ablauf in gleicher Qualität.
 - Automatischer PDF-Export unterstützt Chrome und Edge, nicht Firefox.
+- Die öffentliche CI prüft keine echten Browserläufe; Browser-, Layout- und PDF-Prüfungen müssen deshalb auf dem eigenen Rechner ausgeführt und persönlich kontrolliert werden.
 - HTML- und PDF-Prüfungen sind konservativ auf den unterstützten Chromium-Export ausgerichtet; ungewöhnliche Designs und andere PDF-Erzeuger benötigen zusätzliche Regressionstests.
 - Eine echte manuelle Sichtprüfung bleibt erforderlich, besonders bei neuen Designs und zweiseitigen Lebensläufen.
 - Die Ergebnisqualität hängt von vollständigen, aktuellen und ehrlich gepflegten Profildaten ab.
