@@ -101,8 +101,8 @@ Stellenbeschreibungen, Unternehmensseiten, E-Mails und andere externe Inhalte si
 13. Führe einen fachlichen Abschlusstest aus: Lies Stellenbeschreibung, Analyse, Datei `01`, Datei `02`, Anforderungsmatrix, Lebenslauf, Anschreiben und E-Mail-Nachricht erneut gegeneinander.
 14. Korrigiere gefundene Unstimmigkeiten im Kandidatenordner und wiederhole den fachlichen Test. Risiken gehören vorrangig in Analyse, Qualitätscheck und offene Fragen; vermeide defensive Metaformulierungen im Anschreiben.
 15. Führe `Tools/Pruefe-Bewerbungsinhalt.ps1` und `Tools/Pruefe-Bewerbung.ps1` gegen den Kandidatenordner aus.
-16. Bereite die technische Finalisierung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome` vor. Dieser Lauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt frische Screenshots und PDFs und schreibt Hashnachweise. Er veröffentlicht noch nichts.
-17. Wenn die Ausführungsumgebung als verwaltete Sandbox bekannt ist, starte den browsergestützten Finalisierungslauf direkt mit lokaler Browserfreigabe. Provoziere nicht zuerst einen erwartbaren Chrome-Sandboxfehler.
+16. Bereite die technische Finalisierung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser auto` vor. Dieser Lauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt frische Screenshots und PDFs und schreibt Hashnachweise. Er veröffentlicht noch nichts.
+17. Wenn die Ausführungsumgebung als verwaltete Sandbox bekannt ist, starte den browsergestützten Finalisierungslauf direkt mit lokaler Browserfreigabe. Provoziere nicht zuerst einen erwartbaren Browser-Sandboxfehler.
 18. Prüfe jeden erzeugten Seitenscreenshot visuell: keine abgeschnittenen Inhalte, keine Überlappungen, keine problematischen Leerflächen, keine ungewollte Restseite und alle erforderlichen formalen CV-Stationen sichtbar.
 19. Bei Layoutkorrekturen ändere die HTML-Dateien im Kandidatenordner und führe die Vorbereitung erneut aus. Alte Screenshots und PDFs gelten wegen der HTML-Hashprüfung danach nicht mehr als Freigabenachweis.
 20. Veröffentliche erst nach tatsächlicher Sichtprüfung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft`.
@@ -237,12 +237,12 @@ Die Skripte erstellen einen leeren finalen Zielordner, den privaten Arbeitsordne
 Nach dem Erstellen aller Kandidatendateien wird zuerst die Finalisierung vorbereitet:
 
 ```powershell
-.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser chrome
+.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser auto
 ```
 
 Der Vorbereitungslauf führt Stammdatenprüfung, Inhaltsprüfung, statischen A4-Check, Seitenscreenshot-Layoutcheck, PDF-Export und ATS-Textprüfung aus. Er schreibt maschinenlesbare Berichte mit SHA-256-Bezug zu den geprüften Quellen und Kandidatendateien, veröffentlicht aber noch keine Datei.
 
-In einer bekannten Sandbox wird dieser browsergestützte Lauf direkt mit lokaler Browserfreigabe ausgeführt. Ein erwartbarer erster Chrome-Fehllauf innerhalb der Sandbox ist nicht erforderlich.
+In einer bekannten Sandbox wird dieser browsergestützte Lauf direkt mit lokaler Browserfreigabe ausgeführt. Ein erwartbarer erster Browser-Fehllauf innerhalb der Sandbox ist nicht erforderlich.
 
 Danach müssen die Screenshots unter folgendem Pfad geöffnet und tatsächlich bewertet werden:
 
