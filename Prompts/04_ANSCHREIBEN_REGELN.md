@@ -13,6 +13,39 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 5. Stellenart immer; Eintritt und Gehaltswunsch nach Bewerbungsauftrag und Stellenanzeige
 6. Abschluss mit Gesprächsbereitschaft
 
+## Verbindlicher Lebenslauf-zu-Anschreiben-Abgleich
+
+Im Modus `vollbewerbung` wird der Lebenslauf vor dem Anschreiben erstellt. Im Modus `anschreiben_mit_universalem_lebenslauf` wird stattdessen der unverändert übernommene universelle Lebenslauf vollständig geprüft. Erst danach schreibt der Agent den ersten Anschreibenentwurf.
+
+Folgende Bereiche sind einzeln zu prüfen:
+
+- Schulbildung
+- Berufsausbildung, Studium oder Umschulung
+- Weiterbildungen und Zertifikate
+- Berufserfahrung
+- technische Kenntnisse
+- KI- und Softwarekenntnisse
+- Projekte und sonstige Praxisbelege
+- Soft Skills und Arbeitsweise
+- besondere Stärken und Motivation
+
+Für jeden Bereich wird in `Analyse.md` eine Inhaltsentscheidung dokumentiert:
+
+- `Anschreiben`: Der Bereich liefert einen starken, rollenrelevanten Beleg oder erklärt die Motivation und wird im Anschreiben aufgegriffen.
+- `nur Lebenslauf`: Der Bereich ist für die Bewerbung relevant, aber im Lebenslauf ausreichend sichtbar oder würde das Anschreiben unnötig wiederholen.
+- `weggelassen mit Begründung`: Der Bereich ist für die konkrete Rolle nicht relevant, schwächt die Positionierung oder muss aus Platz- beziehungsweise Fokusgründen entfallen. Die Begründung muss konkret sein.
+- `keine belegte Angabe`: Zu diesem Bereich liegt keine belastbare Information vor; es darf nichts ergänzt oder erfunden werden.
+
+Pflichtregeln:
+
+- Keine für die Bewerbung relevante Information darf ohne begründete Inhaltsentscheidung entfallen.
+- Nicht jeder relevante Bereich gehört automatisch in das Anschreiben. Das Anschreiben hebt die stärksten zwei bis vier Passungen hervor; weitere relevante Angaben bleiben bewusst und nachvollziehbar ausschließlich im Lebenslauf.
+- Formale Chronologie gehört grundsätzlich in den Lebenslauf. Schulbildung, ältere Stationen oder Abschlüsse werden im Anschreiben nur erwähnt, wenn sie für Motivation, Quereinstieg oder eine formale Stellenanforderung einen konkreten Erklärungswert besitzen.
+- Soft Skills werden im Anschreiben bevorzugt durch ein konkretes Beispiel aus Berufserfahrung, Weiterbildung oder Projektpraxis gezeigt, nicht als bloße Eigenschaftsliste.
+- Besondere Stärken und Motivation müssen mit der Zielrolle verbunden werden. Allgemeine Aussagen ohne Beleg oder konkreten Bezug reichen nicht.
+- Widersprüche oder relevante Lücken zwischen Lebenslauf und Anschreiben werden vor der Finalisierung korrigiert oder in `Offene_Fragen.md` dokumentiert.
+- Im Anschreiben-Modus werden Lücken nicht durch Änderungen am universellen Lebenslauf behoben. Belegte, wichtige Passungen werden im Anschreiben erklärt; reicht dies nicht, wird ein Wechsel zur Vollbewerbung empfohlen.
+
 ## Stil
 
 - Maximal eine A4-Seite.
@@ -20,6 +53,7 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 - Keine erfundenen Unternehmensdetails.
 - Keine Übertreibungen wie „perfekt“, wenn die Daten das nicht tragen.
 - Nicht den Lebenslauf wiederholen, sondern die Passung erklären.
+- Die im Lebenslauf-zu-Anschreiben-Abgleich als `Anschreiben` markierten Bereiche gezielt aufgreifen und die als `nur Lebenslauf` markierten Inhalte nicht unnötig wiederholen.
 - Visuell ruhig und passend zum Lebenslauf, aber ohne dekorative Karten- oder Marketingoptik.
 - In Firefox druckstabil als eine feste A4-Seite anlegen, nicht als wachsendes Dokument mit zufälligem Umbruch.
 

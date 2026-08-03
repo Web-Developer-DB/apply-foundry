@@ -4,6 +4,8 @@
 
 Der Lebenslauf ist eine bewerbungsspezifische, recruiterfreundliche Darstellung. Er zeigt nicht alles, sondern genau das, was zur Stellenbeschreibung passt, aus den privaten Profildaten belegbar ist und für die konkrete Zielrolle einen Nutzen hat.
 
+Diese Zieldefinition gilt für den Modus `vollbewerbung`. Im Modus `anschreiben_mit_universalem_lebenslauf` wird kein neuer Lebenslauf geschrieben: Die freigegebene Universalquelle wird unverändert übernommen und nur technisch erneut geprüft und als PDF gerendert.
+
 Der öffentliche Agent ist neutral. Branche, Rollenprofil, Erfahrungsart, Zusatzkenntnisse und Schwerpunkt entstehen aus:
 
 1. der Stellenbeschreibung
@@ -121,6 +123,8 @@ Vor dem Schreiben des Lebenslaufs muss der Agent ein kurzes Bewerbungsprofil bes
 Zusätzlich muss vor dem Lebenslauf eine strukturierte `Anforderungsmatrix.json` nach `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md` vorliegen. Jede früh platzierte Rollenbehauptung muss auf einen konkreten Beleg oder eine ausdrücklich vorsichtige Erfahrungsart in dieser Matrix zurückführbar sein.
 
 Dieses Profil steuert Auswahl, Reihenfolge und Kürzung des Lebenslaufs.
+
+Im Anschreiben-Modus steuert dieses Profil ausschließlich Analyse und Anschreiben. Es darf keine Änderung am universellen Lebenslauf auslösen. Reicht der universelle Lebenslauf für eine glaubwürdige Bewerbung nicht aus, wird ein Wechsel zur Vollbewerbung empfohlen.
 
 ## Inhalt
 
@@ -276,3 +280,5 @@ Dateiname:
 `Lebenslauf - NACHNAME.VORNAME.html`
 
 Finale Lebenslaufdateien dürfen keine Platzhalter, Warnhinweise, Entwurfsmarker oder abgeschnittene Inhalte enthalten. Der Dateiname nutzt den Bewerbernamen aus den privaten Daten, damit E-Mail-Anhänge für Recruiter schnell zuordenbar sind.
+
+Im Anschreiben-Modus muss der SHA-256-Wert der final geprüften HTML-Quelle mit dem im Bewerbungsauftrag eingefrorenen Universal-Snapshot übereinstimmen.

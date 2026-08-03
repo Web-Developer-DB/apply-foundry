@@ -4,6 +4,35 @@
 
 Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Die Struktur orientiert sich an „Keep a Changelog“ und verwendet die im Projekt geführten Versionsnummern.
 
+## Version 1.4 - 2026-08-03
+
+### Hinzugefügt
+
+- Zwei verbindliche Dokumentmodi: `vollbewerbung` sowie `anschreiben_mit_universalem_lebenslauf`.
+- SHA-256-gebundene Übernahme einer freigegebenen Universal-Lebenslauf-HTML in den Anschreiben-Modus.
+- Neues Promptmodul `01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` mit Auswahl-, Ablage- und Versandregeln.
+- Regressionstests für unveränderte Universal-Snapshots, fehlende Zielrolle im universellen Lebenslauf und abweichende Eignungskennzahlen.
+
+### Geändert
+
+- PowerShell- und Bash-Ordnerhelfer erzeugen Schema-3-Aufträge mit eindeutigem Dokumentmodus.
+- Im Anschreiben-Modus erzeugen die Ordnerhelfer keinen Lebenslaufentwurf, sondern kopieren die freigegebene Universalquelle hashgleich in den Kandidatenordner.
+- Die Zielrolle wird bei Vollbewerbungen in allen drei Dokumenten geprüft; im Anschreiben-Modus nur in Anschreiben und E-Mail-Betreff.
+- README, Agentenworkflow, Lebenslauf-, Anschreiben-, Qualitäts- und Dateiregeln beschreiben beide Betriebsarten ausdrücklich.
+
+### Behoben
+
+- Der Agentenprompt nennt jetzt die vollständige Parameterform für `Pruefe-Bewerbungsinhalt.ps1`; dadurch wird der nicht existierende Parameter `-Arbeitsordner` vermieden.
+- Manuell abweichende Eignungswerte in `Analyse.md` oder `Qualitaetscheck.md` werden gegen die maschinelle Matrixberechnung geprüft und blockiert.
+- Die exakte Zielrollenbezeichnung einschließlich Zusätzen wie `(m/w/d)` wird bereits bei der Auftragsanlage verlangt.
+- Ein universeller Lebenslauf wird nicht mehr versehentlich stellenbezogen verändert, wenn der Nutzer ausdrücklich nur ein neues Anschreiben wünscht.
+
+### Tests und Verifikation
+
+- PowerShell-Parserprüfung für alle Werkzeuge.
+- Vollständige dependency-freie Regressionstests für beide Dokumentmodi.
+- Bash-Syntax- und Modustests für die plattformgleiche Ordneranlage.
+
 ## Version 1.3 – 2026-07-15
 
 ### Hinzugefügt

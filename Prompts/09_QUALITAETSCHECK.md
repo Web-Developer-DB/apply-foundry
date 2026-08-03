@@ -13,6 +13,8 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Wurden Belegarten aus Datei `02` ausgewertet und korrekt in die Formulierung übertragen?
 - Wurde vor dem Schreiben eine vollständige `Anforderungsmatrix.json` mit Muss-/Kann-Typ, Kategorie, Gewichtung, Status, Belegart, Beleg und Behandlung erstellt?
 - Wurde die gewichtete Eignungsklasse geprüft und die Bewerbungsentscheidung ausdrücklich im Bewerbungsauftrag dokumentiert?
+- Stimmt jede in Analyse oder Qualitätscheck genannte Eignungskennzahl exakt mit dem maschinell berechneten Wert aus `Inhalts-Pruefbericht.json` überein?
+- Ist der Dokumentmodus eindeutig festgelegt und über den gesamten Workflow unverändert geblieben?
 - Gibt es keine stillschweigend vermischten Dopplungen oder Widersprüche zwischen Datei `01` und Datei `02`?
 - Sind die wichtigsten Anforderungen der Stelle sichtbar?
 - Sind irrelevante Profilteile für die konkrete Zielrolle entfernt oder reduziert?
@@ -82,6 +84,8 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Entsprechen die sichtbaren Profil-Links exakt dem Modus und der Auswahl im Bewerbungsauftrag und besitzt jeder rollenbezogen ausgewählte Link Recruiter-Nutzen?
 - Sind finale sichtbare Platzhalter vollständig entfernt?
 - Sind fehlende Daten stattdessen in `Offene_Fragen.md` dokumentiert?
+- Im Modus `vollbewerbung`: Enthält der Lebenslauf die exakte Zielrolle aus dem Bewerbungsauftrag?
+- Im Modus `anschreiben_mit_universalem_lebenslauf`: Ist der Lebenslauf hashgleich zum eingefrorenen Universal-Snapshot und frei von nachträglichen Stellenanpassungen?
 
 ## A4-Fit-Check
 
@@ -114,6 +118,12 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 ## Anschreiben
 
 - Passt das Anschreiben zur Rolle?
+- Wurde der Lebenslauf vor dem Anschreiben vollständig geprüft?
+- Ist in `Analyse.md` für Schulbildung, Berufsausbildung/Studium/Umschulung, Weiterbildungen/Zertifikate, Berufserfahrung, technische Kenntnisse, KI-/Softwarekenntnisse, Projekte, Soft Skills sowie besondere Stärken/Motivation jeweils eine Inhaltsentscheidung dokumentiert?
+- Ist jede Inhaltsentscheidung als `Anschreiben`, `nur Lebenslauf`, `weggelassen mit Begründung` oder `keine belegte Angabe` nachvollziehbar?
+- Fehlt keine relevante Information ohne konkrete Begründung?
+- Greift das Anschreiben die stärksten zwei bis vier Passungen auf, ohne den Lebenslauf vollständig nachzuerzählen?
+- Bleiben relevante, aber erklärungsarme Angaben bewusst ausschließlich im Lebenslauf?
 - Ist es maximal eine A4-Seite?
 - Gibt es konkrete Belege?
 - Enthält es keine Floskeln?
@@ -125,6 +135,7 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Wurde ein manuell gepflegter Gehaltswunsch aus dem Bewerbungsauftrag bevorzugt?
 - Ist eine automatische Gehaltsschätzung ausdrücklich aktiviert, durch eine aktuelle Quelle mit Stand belegt, ohne geschützte persönliche Merkmale abgeleitet und nicht scheingenau formuliert?
 - Wurde bei fehlender Grundlage für eine verlangte Gehaltsangabe `Offene_Fragen.md` genutzt?
+- Im Anschreiben-Modus: Ergänzt das Anschreiben die wichtigsten belegten Stellenpassungen, ohne Änderungen am universellen Lebenslauf vorauszusetzen?
 
 ## E-Mail-Nachricht
 

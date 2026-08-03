@@ -16,6 +16,7 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 - Neutrale oder konkrete Anrede.
 - Kurzer Hinweis auf Bewerbung und Zielrolle.
 - Hinweis auf die beiden getrennten PDF-Anlagen für Lebenslauf und Anschreiben.
+- Im Anschreiben-Modus wird weiterhin auf zwei Anlagen verwiesen: den unveränderten universellen Lebenslauf und das neu erstellte Anschreiben.
 - Freundlicher Abschluss mit Name aus den privaten Daten.
 - Wenn die Stellenanzeige eine konkrete Bewerbungsfrage enthält, darf sie nur kurz und sachlich aufgegriffen werden, sofern die Antwort aus den Nutzerdaten oder der Stellenbeschreibung ableitbar ist.
 

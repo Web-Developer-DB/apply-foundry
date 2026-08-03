@@ -44,6 +44,7 @@ Dieser Lauf:
 - prüft die PDF-Textschicht und Lesbarkeit für ATS
 - schreibt Hashnachweise für Quellen, sämtliche Kandidatendateien, PDFs und Seitenscreenshots
 - veröffentlicht noch keine Datei
+- prüft ab Schema 3 den Dokumentmodus; im Anschreiben-Modus zusätzlich den SHA-256-Snapshot des universellen Lebenslaufs
 
 Nach der tatsächlichen Sichtprüfung:
 
@@ -208,7 +209,7 @@ Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versand
 ## Reihenfolge im Abschluss
 
 1. Stammdaten prüfen und `Anforderungsmatrix.json` vervollständigen.
-2. Versandfertig benannte Dateien im privaten Kandidatenordner erzeugen.
+2. Versandfertig benannte Dateien im privaten Kandidatenordner erzeugen. Im Anschreiben-Modus übernimmt der Ordnerhelfer den universellen Lebenslauf; der Agent darf ihn nicht verändern.
 3. Finalisierung ohne Veröffentlichung vorbereiten.
 4. Jeden Seitenscreenshot visuell öffnen und prüfen.
 5. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.

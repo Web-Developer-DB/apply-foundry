@@ -5,6 +5,11 @@ param(
 
   [string]$Rolle = "Bewerbung",
 
+  [ValidateSet("vollbewerbung", "anschreiben_mit_universalem_lebenslauf")]
+  [string]$Dokumentmodus = "vollbewerbung",
+
+  [string]$UniversalLebenslaufPath,
+
   [string]$Datum = (Get-Date -Format "yyyy-MM-dd"),
 
   [string]$StellenbeschreibungPath,
@@ -111,6 +116,35 @@ if (($Firma -match '[\x00-\x1F\x7F]') -or ($Rolle -match '[\x00-\x1F\x7F]')) {
   Stop-WithValidationError -Message "Firma und Rolle dürfen keine Steuerzeichen oder Zeilenumbrüche enthalten."
 }
 
+$applicantFileName = Get-MarkdownField -Path $StammdatenPath -Name "Dateiname-Name"
+$universalSourceResolved = ""
+$universalSourceHash = ""
+if ($Dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") {
+  if ([string]::IsNullOrWhiteSpace($UniversalLebenslaufPath)) {
+    Stop-WithValidationError -Message "Der Dokumentmodus anschreiben_mit_universalem_lebenslauf erfordert -UniversalLebenslaufPath."
+  }
+  if (-not (Test-Path -LiteralPath $UniversalLebenslaufPath -PathType Leaf)) {
+    Stop-WithValidationError -Message "UniversalLebenslaufPath muss auf eine vorhandene HTML-Datei zeigen: $UniversalLebenslaufPath"
+  }
+  $universalSourceResolved = (Resolve-Path -LiteralPath $UniversalLebenslaufPath).Path
+  if ([System.IO.Path]::GetExtension($universalSourceResolved) -ne ".html") {
+    Stop-WithValidationError -Message "Der universelle Lebenslauf muss als HTML-Quelle vorliegen."
+  }
+  if ([string]::IsNullOrWhiteSpace($applicantFileName)) {
+    Stop-WithValidationError -Message "Dateiname-Name fehlt in den Stammdaten; universeller Lebenslauf kann nicht sicher zugeordnet werden."
+  }
+  if ([System.IO.Path]::GetFileNameWithoutExtension($universalSourceResolved) -ne "Lebenslauf - $applicantFileName") {
+    Stop-WithValidationError -Message "Der universelle Lebenslauf muss exakt 'Lebenslauf - $applicantFileName.html' heißen."
+  }
+  $universalSourceText = Get-Content -LiteralPath $universalSourceResolved -Raw -Encoding UTF8
+  if ($universalSourceText -match '(?i)\[ergänzen\]|\{\{[^}]+\}\}|TODO|DOKUMENT NOCH NICHT FINAL') {
+    Stop-WithValidationError -Message "Der universelle Lebenslauf enthält sichtbare Platzhalter oder Entwurfsmarker."
+  }
+  $universalSourceHash = (Get-FileHash -LiteralPath $universalSourceResolved -Algorithm SHA256).Hash
+} elseif (-not [string]::IsNullOrWhiteSpace($UniversalLebenslaufPath)) {
+  Stop-WithValidationError -Message "-UniversalLebenslaufPath ist nur im Dokumentmodus anschreiben_mit_universalem_lebenslauf zulässig."
+}
+
 $parsedDate = [datetime]::MinValue
 $dateIsValid = [datetime]::TryParseExact(
   $Datum,
@@ -183,6 +217,11 @@ if ($Fortsetzen -and $arbeitsExisted) {
   if (($noteLines -notcontains "- Firma: $Firma") -or ($noteLines -notcontains "- Zielrolle: $Rolle")) {
     Stop-WithValidationError -Message "Der vorhandene Arbeitsordner gehört zu einer anderen Firma oder Rolle. Fortsetzen wurde verweigert."
   }
+  if (($noteLines -contains "- Dokumentmodus: vollbewerbung") -or ($noteLines -contains "- Dokumentmodus: anschreiben_mit_universalem_lebenslauf")) {
+    if ($noteLines -notcontains "- Dokumentmodus: $Dokumentmodus") {
+      Stop-WithValidationError -Message "Der vorhandene Arbeitsordner verwendet einen anderen Dokumentmodus. Fortsetzen wurde verweigert."
+    }
+  }
 }
 
 $zielCreated = -not $zielExisted
@@ -212,6 +251,7 @@ $offeneFragenEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Offene_Fragen
 $anforderungsmatrixEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Anforderungsmatrix--ENTWURF.json"
 $auftragFile = Join-Path -Path $arbeitsDir -ChildPath "Bewerbungsauftrag.json"
 $druckHinweisFile = Join-Path -Path $kandidatDir -ChildPath "Druck-Hinweis.md"
+$universalCandidateFile = if ([string]::IsNullOrWhiteSpace($applicantFileName)) { "" } else { Join-Path -Path $kandidatDir -ChildPath "Lebenslauf - $applicantFileName.html" }
 
 if ((Test-Path -LiteralPath $stellenbeschreibungKandidatFile) -and -not (Test-Path -LiteralPath $stellenbeschreibungKandidatFile -PathType Leaf)) {
   throw "Stellenbeschreibung.md existiert, ist aber keine reguläre Datei."
@@ -235,8 +275,20 @@ if ($StellenbeschreibungPath) {
 "@
 }
 
+if ($Dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") {
+  if (Test-Path -LiteralPath $universalCandidateFile -PathType Leaf) {
+    $candidateUniversalHash = (Get-FileHash -LiteralPath $universalCandidateFile -Algorithm SHA256).Hash
+    if ($candidateUniversalHash -ne $universalSourceHash) {
+      throw "Der Lebenslauf im Kandidatenordner weicht von der freigegebenen Universalquelle ab. Überschreiben wurde verweigert."
+    }
+  } elseif (Test-Path -LiteralPath $universalCandidateFile) {
+    throw "Der erwartete universelle Lebenslauf im Kandidatenordner ist keine reguläre Datei."
+  } else {
+    Copy-Item -LiteralPath $universalSourceResolved -Destination $universalCandidateFile
+  }
+}
+
 if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
-  $applicantFileName = Get-MarkdownField -Path $StammdatenPath -Name "Dateiname-Name"
   $bewerbungslogistik = [ordered]@{
     verfuegbarkeit = Get-MarkdownField -Path $StammdatenPath -Name "Verfügbarkeit"
     fruehesterEintrittstermin = Get-MarkdownField -Path $StammdatenPath -Name "Frühester Eintrittstermin"
@@ -260,7 +312,7 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
     profilSha256BeiAnlage = if (Test-Path -LiteralPath $ProfilPath -PathType Leaf) { (Get-FileHash -LiteralPath $ProfilPath -Algorithm SHA256).Hash } else { "" }
   }
   $auftrag = [ordered]@{
-    schemaVersion = 2
+    schemaVersion = 3
     firma = $Firma
     firmaSlug = $firmaSlug
     rolle = $Rolle
@@ -270,6 +322,16 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
     zielOrdner = $zielDir
     arbeitsOrdner = $arbeitsDir
     kandidatOrdner = $kandidatDir
+    dokumentmodus = $Dokumentmodus
+    universalLebenslauf = if ($Dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") {
+      [ordered]@{
+        sourceHtmlPath = $universalSourceResolved
+        sourceHtmlSha256BeiAnlage = $universalSourceHash
+        kandidatDatei = "Lebenslauf - $applicantFileName.html"
+      }
+    } else {
+      $null
+    }
     seitenstrategie = "noch_festzulegen"
     bewerbungslogistik = $bewerbungslogistik
     bewerbungsentscheidung = "noch_festzulegen"
@@ -319,7 +381,7 @@ if (-not (Test-Path -LiteralPath $analyseEntwurfFile)) {
 "@
 }
 
-if (-not (Test-Path -LiteralPath $lebenslaufEntwurfFile)) {
+if ($Dokumentmodus -eq "vollbewerbung" -and -not (Test-Path -LiteralPath $lebenslaufEntwurfFile)) {
   Set-Content -LiteralPath $lebenslaufEntwurfFile -Encoding UTF8 -Value @"
 <!doctype html>
 <html lang="de">
@@ -385,6 +447,7 @@ if (-not (Test-Path -LiteralPath $arbeitsnotizenFile)) {
 
 - Firma: $Firma
 - Zielrolle: $Rolle
+- Dokumentmodus: $Dokumentmodus
 - Finaler Bewerbungsordner: $zielDir
 - Entwurfs-/Arbeitsdateien: $arbeitsDir
 - Kandidatendateien vor Freigabe: $kandidatDir
@@ -457,6 +520,10 @@ Ziel: Die sichtbare A4-Seite im Browser soll ohne Firefox-Dateipfad, URL, Datum 
 Write-Output "Bewerbungsordner: $zielDir"
 Write-Output "Arbeitsdateien: $arbeitsDir"
 Write-Output "Kandidatendateien: $kandidatDir"
+Write-Output "Dokumentmodus: $Dokumentmodus"
+if ($Dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") {
+  Write-Output "Universeller Lebenslauf unverändert übernommen: $universalCandidateFile"
+}
 } catch {
   if ($kandidatCreated -and -not $arbeitsCreated -and (Test-Path -LiteralPath $kandidatDir -PathType Container) -and (Test-IsSafeChildPath -Candidate $kandidatDir -Root $arbeitsDir)) {
     Remove-Item -LiteralPath $kandidatDir -Recurse -Force -ErrorAction SilentlyContinue

@@ -11,6 +11,8 @@ Deine Aufgabe ist es, aus einer konkreten Stellenbeschreibung automatisch eine p
 - eine kurze Analyse der Stellenanzeige
 - einen Qualitätscheck
 
+Der konkrete Umfang wird durch den Dokumentmodus gesteuert. Neben der vollständigen Bewerbung ist ein Anschreiben-Modus mit unverändertem universellem Lebenslauf zulässig. Die verbindlichen Regeln stehen in `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`.
+
 Die Bewerbung muss professionell, glaubwürdig, ATS-kompatibel, druckfreundlich und nicht wie generischer KI-Text wirken. Branche, Zielrolle und Profilrichtung werden nicht aus diesem öffentlichen Prompt abgeleitet, sondern aus der Stellenbeschreibung und den privaten Daten.
 
 Der Lebenslauf muss zusätzlich wie ein sauberer deutscher, recruiterfreundlicher tabellarischer Lebenslauf wirken. Er darf nicht wie eine Portfolioseite, Skill-Sammlung oder Webprofil-Karte aussehen. Gestaltung, Inhalt und Drucklayout müssen gemeinsam geplant werden.
@@ -21,16 +23,17 @@ Lies vor der Erstellung in dieser Reihenfolge:
 
 1. `Private/Daten/01_PERSOENLICHE_DATEN.md`
 2. `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`
-3. `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md`
-4. `Prompts/03_LEBENSLAUF_REGELN.md`
-5. `Prompts/04_ANSCHREIBEN_REGELN.md`
-6. `Prompts/05_EMAIL_NACHRICHT_REGELN.md`
-7. `Prompts/06_ROLLENLOGIK.md`
-8. `Prompts/07_WAHRHEIT_UND_GRENZEN.md`
-9. `Prompts/08_HTML_CSS_DESIGNREGELN.md`
-10. `Prompts/09_QUALITAETSCHECK.md`
-11. `Prompts/10_DATEI_UND_ORDNER_REGELN.md`
-12. `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`
+3. `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`
+4. `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md`
+5. `Prompts/03_LEBENSLAUF_REGELN.md`
+6. `Prompts/04_ANSCHREIBEN_REGELN.md`
+7. `Prompts/05_EMAIL_NACHRICHT_REGELN.md`
+8. `Prompts/06_ROLLENLOGIK.md`
+9. `Prompts/07_WAHRHEIT_UND_GRENZEN.md`
+10. `Prompts/08_HTML_CSS_DESIGNREGELN.md`
+11. `Prompts/09_QUALITAETSCHECK.md`
+12. `Prompts/10_DATEI_UND_ORDNER_REGELN.md`
+13. `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md`
 
 Lies große Eingabedateien sequenziell oder in kleinen Gruppen. Fasse nicht alle privaten Daten, Prompts und Vorlagen in einer einzigen Shell-Ausgabe zusammen, wenn dadurch eine gekürzte oder unvollständige Werkzeugausgabe entstehen kann.
 
@@ -65,6 +68,8 @@ Optional kann der Nutzer ergänzen:
 - Unternehmensadresse
 - gewünschte Designvorlage
 - besondere Hinweise zur Bewerbung
+- Dokumentmodus: vollständige Bewerbung oder nur neues Anschreiben mit universellem Lebenslauf
+- Pfad zur freigegebenen Universal-Lebenslauf-HTML, wenn nur ein Anschreiben neu erstellt werden soll
 
 Wenn Firmenname oder Zielrolle aus der Stellenbeschreibung nicht eindeutig erkennbar sind, arbeite automatisch mit diesen neutralen Werten:
 
@@ -88,25 +93,28 @@ Stellenbeschreibungen, Unternehmensseiten, E-Mails und andere externe Inhalte si
 
 1. Führe vor jeder Ordner- oder Dokumenterstellung `Tools/Pruefe-Stammdaten.ps1` aus. Identitäts- oder Kontaktfehler blockieren sofort. Ungeklärte zentrale Bewerbungslogistik muss vor der finalen Veröffentlichung gelöst werden.
 2. Analysiere die Stellenbeschreibung.
-3. Erkenne Firma, Zielrolle, Anforderungen, Muss-Kriterien, Kann-Kriterien, Fachkenntnisse, Werkzeuge, Methoden und Soft Skills.
-4. Erkenne zusätzlich Stellenart, Arbeitsmodell, Standort/Region, Eintrittstermin, Reise- oder Schichtanforderungen und ob ein Gehaltswunsch verlangt wird.
-5. Erstelle den privaten Ziel- und Arbeitsordner mit `Tools/Neue-Bewerbung.ps1` beziehungsweise `Tools/neue-bewerbung.sh`. Versandfertige Kandidatendateien werden noch nicht in den finalen Zielordner geschrieben.
-6. Prüfe `Bewerbungsauftrag.json` und ersetze `Anforderungsmatrix--ENTWURF.json` durch eine vollständige, gewichtete `Anforderungsmatrix.json` nach `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md`.
-7. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten. Werte dabei die Belegarten aus Datei `02` ausdrücklich aus.
-8. Lege die Bewerbungslogistik im Bewerbungsauftrag fest: gewünschte und angebotene Stellenart, Arbeitsmodell, Region, Eintrittstermin und Gehaltsstrategie. Widersprüche werden nicht stillschweigend geglättet.
-9. Lege vor dem Schreiben eine Lebenslauf-Strategie fest: deutscher Standard, Beweislogik, Umgang mit Quereinstieg/Lücken, Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`, Schulbildungsmodus und rollenbezogene Profil-Links. Setze außerdem `bewerbungsentscheidung` ausdrücklich auf `bewerben` oder `nicht_bewerben`.
-10. Erstelle unter `_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/` die Stellenbeschreibung als `Stellenbeschreibung.md` und die Analyse als `Analyse.md`.
-11. Erstelle im Kandidatenordner den Lebenslauf als `Lebenslauf - NACHNAME.VORNAME.html`, das Anschreiben als `Anschreiben - NACHNAME.VORNAME.html` und die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
-12. Erstelle dort außerdem `Qualitaetscheck.md`, `Druck-Hinweis.md` und bei offenen Punkten `Offene_Fragen.md`. Erzeuge und validiere jede Kandidatendatei einzeln; ein Fehler in einer großen Sammeländerung darf nicht mehrere fertige Dokumente unbemerkt teilweise schreiben.
-13. Führe einen fachlichen Abschlusstest aus: Lies Stellenbeschreibung, Analyse, Datei `01`, Datei `02`, Anforderungsmatrix, Lebenslauf, Anschreiben und E-Mail-Nachricht erneut gegeneinander.
-14. Korrigiere gefundene Unstimmigkeiten im Kandidatenordner und wiederhole den fachlichen Test. Risiken gehören vorrangig in Analyse, Qualitätscheck und offene Fragen; vermeide defensive Metaformulierungen im Anschreiben.
-15. Führe `Tools/Pruefe-Bewerbungsinhalt.ps1` und `Tools/Pruefe-Bewerbung.ps1` gegen den Kandidatenordner aus.
-16. Bereite die technische Finalisierung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser auto` vor. Dieser Lauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt frische Screenshots und PDFs und schreibt Hashnachweise. Er veröffentlicht noch nichts.
-17. Wenn die Ausführungsumgebung als verwaltete Sandbox bekannt ist, starte den browsergestützten Finalisierungslauf direkt mit lokaler Browserfreigabe. Provoziere nicht zuerst einen erwartbaren Browser-Sandboxfehler.
-18. Prüfe jeden erzeugten Seitenscreenshot visuell: keine abgeschnittenen Inhalte, keine Überlappungen, keine problematischen Leerflächen, keine ungewollte Restseite und alle erforderlichen formalen CV-Stationen sichtbar.
-19. Bei Layoutkorrekturen ändere die HTML-Dateien im Kandidatenordner und führe die Vorbereitung erneut aus. Alte Screenshots und PDFs gelten wegen der HTML-Hashprüfung danach nicht mehr als Freigabenachweis.
-20. Veröffentliche erst nach tatsächlicher Sichtprüfung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft`.
-21. Die Finalisierung aktualisiert den technischen Abschnitt des Qualitätschecks und veröffentlicht das geprüfte Set in `Versand/` und `Intern/` mit `Manifest.json`. Bei einem Fehler bleibt der finale Zielordner unverändert.
+3. Lege den Dokumentmodus nach `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` fest. Verwende die Zielrolle exakt wie in der Stellenanzeige, einschließlich Zusätzen wie `(m/w/d)`, sofern der Nutzer keine abweichende Bezeichnung vorgibt.
+4. Erkenne Firma, Zielrolle, Anforderungen, Muss-Kriterien, Kann-Kriterien, Fachkenntnisse, Werkzeuge, Methoden und Soft Skills.
+5. Erkenne zusätzlich Stellenart, Arbeitsmodell, Standort/Region, Eintrittstermin, Reise- oder Schichtanforderungen und ob ein Gehaltswunsch verlangt wird.
+6. Erstelle den privaten Ziel- und Arbeitsordner mit `Tools/Neue-Bewerbung.ps1` beziehungsweise `Tools/neue-bewerbung.sh`. Übergebe den Dokumentmodus ausdrücklich. Im Anschreiben-Modus ist zusätzlich die freigegebene Universal-Lebenslauf-HTML zu übergeben. Versandfertige Kandidatendateien werden noch nicht in den finalen Zielordner geschrieben.
+7. Prüfe `Bewerbungsauftrag.json` und ersetze `Anforderungsmatrix--ENTWURF.json` durch eine vollständige, gewichtete `Anforderungsmatrix.json` nach `Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md`.
+8. Bestimme anhand von `Prompts/06_ROLLENLOGIK.md` ein neutrales Bewerbungsprofil mit Zielrolle, Branche/Arbeitsfeld, Erfahrungsart, Recruiter-Strategie und bewusst weggelassenen Inhalten. Werte dabei die Belegarten aus Datei `02` ausdrücklich aus.
+9. Lege die Bewerbungslogistik im Bewerbungsauftrag fest: gewünschte und angebotene Stellenart, Arbeitsmodell, Region, Eintrittstermin und Gehaltsstrategie. Widersprüche werden nicht stillschweigend geglättet.
+10. Lege vor dem Schreiben eine Lebenslauf-Strategie fest: deutscher Standard, Beweislogik, Umgang mit Quereinstieg/Lücken, Seitenstrategie `eine A4-Seite` oder `zwei explizite A4-Seiten`, Schulbildungsmodus und rollenbezogene Profil-Links. Setze außerdem `bewerbungsentscheidung` ausdrücklich auf `bewerben` oder `nicht_bewerben`.
+11. Erstelle unter `_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/` die Stellenbeschreibung als `Stellenbeschreibung.md` und die Analyse als `Analyse.md`.
+12. Im Modus `vollbewerbung`: Erstelle im Kandidatenordner zuerst den stellenbezogenen Lebenslauf als `Lebenslauf - NACHNAME.VORNAME.html`. Im Modus `anschreiben_mit_universalem_lebenslauf`: Prüfe, dass der Ordnerhelfer den Universal-Lebenslauf unverändert und hashgleich in den Kandidatenordner übernommen hat; ändere diese Datei nicht.
+13. Führe danach vor dem Schreiben des Anschreibens den verbindlichen Lebenslauf-zu-Anschreiben-Abgleich aus `Prompts/04_ANSCHREIBEN_REGELN.md` durch. Dokumentiere in `Analyse.md` für Schulbildung, Berufsausbildung, Weiterbildungen/Zertifikate, Berufserfahrung, technische Kenntnisse, KI-/Softwarekenntnisse, Projekte, Soft Skills sowie besondere Stärken/Motivation jeweils die Entscheidung `Anschreiben`, `nur Lebenslauf`, `weggelassen mit Begründung` oder `keine belegte Angabe`. Keine relevante Information darf ohne dokumentierte Begründung entfallen.
+14. Erstelle erst nach diesem Abgleich das Anschreiben als `Anschreiben - NACHNAME.VORNAME.html` und die E-Mail-Nachricht als `Email-Nachricht--FIRMA.md`.
+15. Erstelle außerdem `Qualitaetscheck.md`, `Druck-Hinweis.md` und bei offenen Punkten `Offene_Fragen.md`. Erzeuge und validiere jede Kandidatendatei einzeln; ein Fehler in einer großen Sammeländerung darf nicht mehrere fertige Dokumente unbemerkt teilweise schreiben.
+16. Führe einen fachlichen Abschlusstest aus: Lies Stellenbeschreibung, Analyse, Datei `01`, Datei `02`, Anforderungsmatrix, Lebenslauf, Anschreiben und E-Mail-Nachricht erneut gegeneinander.
+17. Korrigiere gefundene Unstimmigkeiten im Kandidatenordner und wiederhole den fachlichen Test. Risiken gehören vorrangig in Analyse, Qualitätscheck und offene Fragen; vermeide defensive Metaformulierungen im Anschreiben.
+18. Führe die Inhaltsprüfung mit allen Pflichtparametern aus: `Tools/Pruefe-Bewerbungsinhalt.ps1 -Ordner ".../Kandidat" -AuftragPath ".../Bewerbungsauftrag.json" -AnforderungsmatrixPath ".../Anforderungsmatrix.json"`. Führe danach `Tools/Pruefe-Bewerbung.ps1 -Ordner ".../Kandidat"` aus. Übernimm die Eignungskennzahl aus dem maschinellen Inhaltsbericht; berechne oder runde sie nicht manuell abweichend.
+19. Bereite die technische Finalisierung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser auto` vor. Dieser Lauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt frische Screenshots und PDFs und schreibt Hashnachweise. Er veröffentlicht noch nichts.
+20. Wenn die Ausführungsumgebung als verwaltete Sandbox bekannt ist, starte den browsergestützten Finalisierungslauf direkt mit lokaler Browserfreigabe. Provoziere nicht zuerst einen erwartbaren Browser-Sandboxfehler.
+21. Prüfe jeden erzeugten Seitenscreenshot visuell: keine abgeschnittenen Inhalte, keine Überlappungen, keine problematischen Leerflächen, keine ungewollte Restseite und alle erforderlichen formalen CV-Stationen sichtbar.
+22. Bei Layoutkorrekturen ändere die HTML-Dateien im Kandidatenordner und führe die Vorbereitung erneut aus. Alte Screenshots und PDFs gelten wegen der HTML-Hashprüfung danach nicht mehr als Freigabenachweis.
+23. Veröffentliche erst nach tatsächlicher Sichtprüfung mit `Tools/Finalisiere-Bewerbung.ps1 -Arbeitsordner ".../_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft`.
+24. Die Finalisierung aktualisiert den technischen Abschnitt des Qualitätschecks und veröffentlicht das geprüfte Set in `Versand/` und `Intern/` mit `Manifest.json`. Bei einem Fehler bleibt der finale Zielordner unverändert.
 
 Temporäre Entwürfe, Zwischenschritte oder Arbeitsnotizen dürfen nicht direkt im Projektwurzelordner liegen. Sie gehören immer in den privaten Firmenordner unter:
 
@@ -114,9 +122,9 @@ Temporäre Entwürfe, Zwischenschritte oder Arbeitsnotizen dürfen nicht direkt 
 
 ## Grundprinzip
 
-Erstelle niemals einen universellen Lebenslauf, der alles zeigt.
+Im Modus `vollbewerbung` wird immer eine bewerbungsspezifische Lebenslaufversion erstellt; ein universelles Alles-Profil ist dort verboten.
 
-Erstelle immer eine bewerbungsspezifische Version.
+Im Modus `anschreiben_mit_universalem_lebenslauf` wird der bereits freigegebene universelle Lebenslauf bewusst unverändert übernommen. Die Stellenpassung entsteht dann im Anschreiben; die Zielrolle wird nicht nachträglich in den universellen Lebenslauf geschrieben.
 
 Die Stellenbeschreibung und die privaten Daten entscheiden, welche Informationen verwendet, gekürzt, ausgelassen oder in den Vordergrund gestellt werden.
 

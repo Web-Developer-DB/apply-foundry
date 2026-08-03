@@ -96,7 +96,8 @@ function Write-JsonReport {
     [array]$CompactSchoolPeriods,
     [object]$FitAssessment,
     [string]$SchoolMode,
-    [string]$ProfileLinksMode
+    [string]$ProfileLinksMode,
+    [string]$DocumentMode
   )
   if ([string]::IsNullOrWhiteSpace($Path)) { return }
   $fullPath = [System.IO.Path]::GetFullPath($Path)
@@ -105,7 +106,7 @@ function Write-JsonReport {
     New-Item -Path $parent -ItemType Directory -Force | Out-Null
   }
   $report = [ordered]@{
-    schemaVersion = 2
+    schemaVersion = 3
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     applicationFolder = [System.IO.Path]::GetFullPath($Ordner)
     status = if ($errors.Count -gt 0) { "fehler" } elseif ($warnings.Count -gt 0) { "warnung" } else { "ok" }
@@ -117,6 +118,7 @@ function Write-JsonReport {
     compactedSchoolPeriods = $CompactSchoolPeriods
     schoolMode = $SchoolMode
     profileLinksMode = $ProfileLinksMode
+    documentMode = $DocumentMode
     fitAssessment = $FitAssessment
   }
   Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 6)
@@ -171,6 +173,12 @@ $schoolMode = [string](Get-JsonProperty -Object $displayOptions -Name "schulbild
 $profileLinksMode = [string](Get-JsonProperty -Object $displayOptions -Name "profillinksModus")
 $profileLinksSelection = @((Get-JsonProperty -Object $displayOptions -Name "profillinksAuswahl"))
 $applicationDecision = [string](Get-JsonProperty -Object $auftrag -Name "bewerbungsentscheidung")
+$documentMode = [string](Get-JsonProperty -Object $auftrag -Name "dokumentmodus")
+$universalCv = Get-JsonProperty -Object $auftrag -Name "universalLebenslauf"
+
+if ($auftragSchema -lt 3 -and [string]::IsNullOrWhiteSpace($documentMode)) {
+  $documentMode = "vollbewerbung"
+}
 
 if ($auftragSchema -ge 2) {
   if ($applicationDecision -notin @("bewerben", "nicht_bewerben")) {
@@ -189,6 +197,14 @@ if ($auftragSchema -ge 2) {
 } else {
   if ([string]::IsNullOrWhiteSpace($schoolMode)) { $schoolMode = "vollstaendig" }
   if ([string]::IsNullOrWhiteSpace($profileLinksMode)) { $profileLinksMode = "legacy_ungeprueft" }
+}
+
+if ($auftragSchema -ge 3) {
+  if ($documentMode -notin @("vollbewerbung", "anschreiben_mit_universalem_lebenslauf")) {
+    Add-ErrorMessage "Dokumentmodus ist ungültig. Erlaubt: vollbewerbung oder anschreiben_mit_universalem_lebenslauf."
+  } else {
+    Add-OkMessage "Dokumentmodus ist eindeutig festgelegt: $documentMode."
+  }
 }
 
 $cvPageCount = [regex]::Matches($cvHtml, '(?is)<main\b[^>]*class\s*=\s*["''][^"'']*\bpage\b[^"'']*["'']').Count
@@ -221,16 +237,38 @@ if ($letterFiles[0].BaseName -ne "Anschreiben - $fileNamePerson") {
   Add-ErrorMessage "Anschreiben-Dateiname stimmt nicht mit Dateiname-Name aus den Stammdaten überein."
 }
 
+if ($documentMode -eq "anschreiben_mit_universalem_lebenslauf") {
+  $expectedUniversalHash = [string](Get-JsonProperty -Object $universalCv -Name "sourceHtmlSha256BeiAnlage")
+  $expectedUniversalName = [string](Get-JsonProperty -Object $universalCv -Name "kandidatDatei")
+  if ([string]::IsNullOrWhiteSpace($expectedUniversalHash) -or [string]::IsNullOrWhiteSpace($expectedUniversalName)) {
+    Add-ErrorMessage "Der Anschreiben-Modus enthält keinen vollständigen Hashnachweis für den universellen Lebenslauf."
+  } elseif ($cvFiles[0].Name -ne $expectedUniversalName) {
+    Add-ErrorMessage "Der Kandidaten-Lebenslauf stimmt nicht mit dem im Auftrag eingefrorenen Universaldateinamen überein."
+  } else {
+    $actualUniversalHash = (Get-FileHash -LiteralPath $cvFiles[0].FullName -Algorithm SHA256).Hash
+    if ($actualUniversalHash -eq $expectedUniversalHash) {
+      Add-OkMessage "Universeller Lebenslauf wurde unverändert aus dem eingefrorenen Snapshot übernommen."
+    } else {
+      Add-ErrorMessage "Universeller Lebenslauf wurde für die konkrete Stelle verändert; Anschreiben-Modus verletzt."
+    }
+  }
+}
+
 if (Test-ContainsText -Haystack $letterText -Needle $firma) {
   Add-OkMessage "Anschreiben enthält die Firma aus dem Bewerbungsauftrag."
 } else {
   Add-ErrorMessage "Anschreiben enthält die Firma aus dem Bewerbungsauftrag nicht."
 }
-foreach ($document in @(
-  [pscustomobject]@{ Name = "Lebenslauf"; Text = $cvText },
+$roleDocuments = @(
   [pscustomobject]@{ Name = "Anschreiben"; Text = $letterText },
   [pscustomobject]@{ Name = "E-Mail-Betreff"; Text = ($emailText -split "`r?`n", 2)[0] }
-)) {
+)
+if ($documentMode -eq "vollbewerbung") {
+  $roleDocuments = @([pscustomobject]@{ Name = "Lebenslauf"; Text = $cvText }) + $roleDocuments
+} else {
+  Add-OkMessage "Zielrollenprüfung im universellen Lebenslauf ist im Anschreiben-Modus bewusst ausgenommen."
+}
+foreach ($document in $roleDocuments) {
   if (Test-ContainsText -Haystack $document.Text -Needle $rolle) {
     Add-OkMessage "$($document.Name) enthält die Zielrolle."
   } else {
@@ -372,6 +410,24 @@ if ($fitClassification -eq "stretch") {
   Add-OkMessage "Gewichtete Eignungsbewertung: $fitClassification ($fitPercent %)."
 }
 
+$fitScorePattern = '(?im)(?:Eignung|Passung|gewichtete\s+(?:Eignungsbewertung|Anforderungsmatrix))[^\r\n]{0,100}?(?<score>\d+(?:[\.,]\d+)?)\s*(?:%|Prozent)|(?<scoreBefore>\d+(?:[\.,]\d+)?)\s*(?:%|Prozent)[^\r\n]{0,70}?(?:Eignung|Passung)'
+foreach ($scoreDocumentName in @("Analyse.md", "Qualitaetscheck.md")) {
+  $scoreDocumentPath = Join-Path -Path $documentFolder -ChildPath $scoreDocumentName
+  if (-not (Test-Path -LiteralPath $scoreDocumentPath -PathType Leaf)) { continue }
+  $scoreDocumentText = Get-Content -LiteralPath $scoreDocumentPath -Raw -Encoding UTF8
+  foreach ($scoreMatch in [regex]::Matches($scoreDocumentText, $fitScorePattern)) {
+    $scoreText = if ($scoreMatch.Groups["score"].Success) { $scoreMatch.Groups["score"].Value } else { $scoreMatch.Groups["scoreBefore"].Value }
+    $documentScore = 0.0
+    if ([double]::TryParse($scoreText.Replace(',', '.'), [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$documentScore)) {
+      if ([math]::Abs($documentScore - $fitPercent) -gt 0.11) {
+        Add-ErrorMessage "$scoreDocumentName nennt eine Eignungskennzahl von $scoreText Prozent, berechnet wurden $fitPercent Prozent."
+      } else {
+        Add-OkMessage "$scoreDocumentName verwendet die berechnete Eignungskennzahl von $fitPercent Prozent."
+      }
+    }
+  }
+}
+
 function Get-EffectiveLogisticsValue {
   param([string]$ApplicationProperty, [string]$MasterField)
   $applicationValue = [string](Get-JsonProperty -Object $applicationLogistics -Name $ApplicationProperty)
@@ -452,7 +508,7 @@ foreach ($pattern in $defensivePatterns) {
   }
 }
 
-Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode
+Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode -DocumentMode $documentMode
 
 Write-Host ""
 Write-Host "Zusammenfassung:"

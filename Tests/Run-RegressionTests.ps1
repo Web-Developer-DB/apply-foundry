@@ -379,8 +379,8 @@ try {
     Assert-True -Condition ($result.ExitCode -ne 0) -Message "Ungeklärte zentrale Bewerbungslogistik wurde im strikten Modus akzeptiert."
   }
 
-  Invoke-Test -Name "Ordnerhelfer legt Schema-2-Auftrag mit Logistik-Snapshot an" -Body {
-    $root = Join-Path $testRoot "schema2-order"
+  Invoke-Test -Name "Ordnerhelfer legt Schema-3-Auftrag mit Dokumentmodus und Logistik-Snapshot an" -Body {
+    $root = Join-Path $testRoot "schema3-order"
     $data = New-ValidPrivateDataFixture -Root $root
     $applicationsRoot = Join-Path $root "Private/Bewerbungen"
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
@@ -394,10 +394,36 @@ try {
     Assert-True -Condition ($result.ExitCode -eq 0) -Message "Ordnerhelfer schlug fehl: $($result.Output -join ' | ')"
     $auftragPath = Join-Path $applicationsRoot "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle/Bewerbungsauftrag.json"
     $auftrag = Get-Content -LiteralPath $auftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    Assert-True -Condition ($auftrag.schemaVersion -eq 2) -Message "Bewerbungsauftrag verwendet nicht Schema 2."
+    Assert-True -Condition ($auftrag.schemaVersion -eq 3) -Message "Bewerbungsauftrag verwendet nicht Schema 3."
+    Assert-True -Condition ($auftrag.dokumentmodus -eq "vollbewerbung") -Message "Standard-Dokumentmodus ist nicht vollbewerbung."
     Assert-True -Condition ($auftrag.bewerbungslogistik.stellenart -eq "Vollzeit" -and $auftrag.bewerbungslogistik.arbeitsmodell -eq "hybrid") -Message "Logistik-Snapshot ist unvollständig."
     Assert-True -Condition ($auftrag.bewerbungsentscheidung -eq "noch_festzulegen") -Message "Initiale Bewerbungsentscheidung ist nicht offen markiert."
     Assert-True -Condition ($auftrag.quellnachweise.stammdatenSha256BeiAnlage -eq (Get-FileHash -LiteralPath $data.Personal -Algorithm SHA256).Hash) -Message "Stammdaten-Quellhash fehlt oder stimmt nicht."
+  }
+
+  Invoke-Test -Name "Ordnerhelfer übernimmt universellen Lebenslauf unverändert und erzeugt keinen CV-Entwurf" -Body {
+    $root = Join-Path $testRoot "universal-order"
+    $data = New-ValidPrivateDataFixture -Root $root
+    $universalDir = Join-Path $root "Private/LebenslaufUniversal/Aktiv"
+    New-Item -Path $universalDir -ItemType Directory -Force | Out-Null
+    $universalPath = Join-Path $universalDir "Lebenslauf - TEST.PERSON.html"
+    $universalHtml = @"
+<!doctype html><html lang="de"><head><style>@page { size: A4; margin: 0; } .page { width: 210mm; height: 297mm; overflow: hidden; }</style></head><body><main class="page"><h1>Test Person</h1><p>Universeller Lebenslauf 01/2020 - 12/2020 02/2021 - 03/2022</p></main></body></html>
+"@
+    Set-Content -LiteralPath $universalPath -Encoding UTF8 -Value $universalHtml
+    $applicationsRoot = Join-Path $root "Private/Bewerbungen"
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
+      "-Firma", "Universal Firma", "-Rolle", "Universal Rolle", "-Datum", "2026-07-14",
+      "-Dokumentmodus", "anschreiben_mit_universalem_lebenslauf", "-UniversalLebenslaufPath", $universalPath,
+      "-StammdatenPath", $data.Personal, "-ProfilPath", $data.Profile, "-BewerbungenRoot", $applicationsRoot
+    )
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Anschreiben-Modus schlug fehl: $($result.Output -join ' | ')"
+    $work = Join-Path $applicationsRoot "Universal-Firma/_Arbeitsdateien/2026-07-14--Universal-Rolle"
+    $candidatePath = Join-Path $work "Kandidat/Lebenslauf - TEST.PERSON.html"
+    $auftrag = Get-Content -LiteralPath (Join-Path $work "Bewerbungsauftrag.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($auftrag.dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") -Message "Anschreiben-Modus fehlt im Auftrag."
+    Assert-True -Condition ((Get-FileHash $candidatePath -Algorithm SHA256).Hash -eq (Get-FileHash $universalPath -Algorithm SHA256).Hash) -Message "Universalquelle wurde beim Übernehmen verändert."
+    Assert-True -Condition (-not (Test-Path (Join-Path $work "Lebenslauf--Universal-Firma--ENTWURF.html"))) -Message "Im Anschreiben-Modus wurde fälschlich ein Lebenslaufentwurf erzeugt."
   }
 
   Invoke-Test -Name "Bewerbungsspezifische Logistik überschreibt ungeklärte globale Kernwerte" -Body {
@@ -434,6 +460,35 @@ try {
     $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ($report.fitAssessment.classification -eq "stark" -and $report.fitAssessment.scorePercent -eq 100) -Message "Gewichtete Eignungsbewertung ist unerwartet."
     Assert-True -Condition ($report.profileLinksMode -eq "rollenrelevant") -Message "Profillink-Modus fehlt im Bericht."
+  }
+
+  Invoke-Test -Name "Anschreiben-Modus verlangt Zielrolle nicht im unveränderten Universal-Lebenslauf" -Body {
+    $fixture = Convert-ToSchema2Fixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "universal-content"))
+    $cvPath = Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.html"
+    $cv = (Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8).Replace("Audit-Rolle", "Universeller Lebenslauf")
+    Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+    $auftrag = Get-Content -LiteralPath $fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+    $auftrag.schemaVersion = 3
+    $auftrag | Add-Member -NotePropertyName dokumentmodus -NotePropertyValue "anschreiben_mit_universalem_lebenslauf" -Force
+    $auftrag | Add-Member -NotePropertyName universalLebenslauf -NotePropertyValue ([ordered]@{
+      sourceHtmlPath = $cvPath
+      sourceHtmlSha256BeiAnlage = (Get-FileHash -LiteralPath $cvPath -Algorithm SHA256).Hash
+      kandidatDatei = "Lebenslauf - TEST.PERSON.html"
+    }) -Force
+    Set-Content -LiteralPath $fixture.Auftrag -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 8)
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Unveränderter Universal-Lebenslauf wurde abgelehnt: $($result.Output -join ' | ')"
+
+    Add-Content -LiteralPath $cvPath -Encoding UTF8 -Value "<!-- stellenbezogen verändert -->"
+    $tamperResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($tamperResult.ExitCode -ne 0) -Message "Veränderter Universal-Lebenslauf wurde im Anschreiben-Modus akzeptiert."
+  }
+
+  Invoke-Test -Name "Inhaltsprüfer lehnt abweichende manuelle Eignungskennzahl ab" -Body {
+    $fixture = Convert-ToSchema2Fixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "fit-score-drift"))
+    Set-Content -LiteralPath (Join-Path $fixture.Folder "Analyse.md") -Encoding UTF8 -Value "Eignung: 61 Prozent gewichtete Passung."
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($result.ExitCode -ne 0) -Message "Abweichende manuelle Eignungskennzahl wurde akzeptiert."
   }
 
   Invoke-Test -Name "Nicht ausgewählter Profillink wird im Lebenslauf abgelehnt" -Body {

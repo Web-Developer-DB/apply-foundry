@@ -45,8 +45,11 @@ Vor Lebenslauf und Anschreiben wird eine kurze Profilstrategie erstellt:
 - bewusst weggelassene Inhalte
 - gewichtete Eignungsklasse und ausdrückliche Bewerbungsentscheidung
 - Schulbildungsmodus und begründete Auswahl öffentlicher Profil-Links
+- Dokumentmodus und, im Anschreiben-Modus, Eignung des universellen Lebenslaufs als unveränderte Basis
 
 Diese Strategie wird in `Analyse.md` dokumentiert.
+
+Im Anschreiben-Modus beeinflusst die Rollenstrategie nicht den Lebenslauf-Inhalt. Sie bestimmt, welche belegten Argumente das Anschreiben ergänzend hervorhebt und ob der universelle Lebenslauf für die konkrete Bewerbung ausreichend ist.
 
 ## Gewichtung nach Rolle
 

@@ -29,6 +29,14 @@ Private/LebenslaufUniversal/
 Private/Archiv/
 ```
 
+Empfohlene aktive Universalquelle:
+
+```text
+Private/LebenslaufUniversal/Aktiv/Lebenslauf - NACHNAME.VORNAME.html
+```
+
+Sie wird im Anschreiben-Modus per SHA-256 als unveränderter Snapshot in den Bewerbungsauftrag eingebunden. Frühere Versionen gehören unter `Private/LebenslaufUniversal/Archiv/`.
+
 ## Hauptordner für Bewerbungen
 
 Alle neuen Bewerbungen werden unter diesem Ordner gespeichert:
@@ -94,6 +102,8 @@ YYYY-MM-DD--ROLLENNAME/
 
 `Versand/` ist die unmittelbar nutzbare Auswahl und enthält genau zwei getrennte PDF-Anlagen plus E-Mail-Text. `Intern/` enthält die bearbeitbaren HTML-Quellen und Nachweise, aber keine PDF-Dubletten. `Manifest.json` weist alle Dateien außer sich selbst mit relativem Pfad, Größe und SHA-256 nach.
 
+Im Anschreiben-Modus ist die Lebenslauf-PDF keine neu geschriebene Stellenfassung, sondern die frisch gerenderte, inhaltlich unveränderte Universalquelle.
+
 Eine Stellenanzeige, die eine Bewerbung „in Form einer PDF-Datei“ verlangt, legt das Datenformat fest. Sie ändert diese Zwei-Anlagen-Struktur nur, wenn ausdrücklich eine einzige zusammengeführte Datei gefordert wird.
 
 Wenn ein HTML-Kandidat wegen Drucklayout, A4-Fit oder Recruiter-Design überarbeitet wird, bleibt der geplante finale Dateiname gleich. Die Änderung macht vorhandene Layout- und PDF-Nachweise ungültig und erfordert eine neue Finalisierungsvorbereitung. Bereits veröffentlichte Bewerbungen dürfen nur über einen erneut vollständig geprüften Kandidatensatz ersetzt werden.
@@ -149,6 +159,8 @@ bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Sachbearbeitung"
 ```
 
 Beide Skripte erstellen den Firmenordner, einen zunächst leeren finalen Bewerbungsordner, einen Arbeitsordner unter `_Arbeitsdateien`, den Unterordner `Kandidat/`, `Bewerbungsauftrag.json` und einen Entwurf der Anforderungsmatrix.
+
+Für den Anschreiben-Modus müssen die Skripte zusätzlich den Dokumentmodus und die freigegebene Universal-Lebenslauf-HTML erhalten. Sie kopieren diese hashgleich in den Kandidatenordner und erzeugen keinen Lebenslaufentwurf.
 
 Existiert die bereinigte Kombination aus Firma, Datum und Rolle bereits, müssen beide Skripte standardmäßig abbrechen. Eine vorhandene Bewerbung darf nur mit `-Fortsetzen` unter PowerShell beziehungsweise `--fortsetzen` unter Bash ergänzt werden, wenn Ziel- und Arbeitsordner vollständig vorhanden sind und `Arbeitsnotizen.md` exakt dieselbe Firma und Zielrolle bestätigt. Eine abweichende vorhandene `Stellenbeschreibung.md` darf nie überschrieben werden.
 

@@ -38,12 +38,21 @@ Dieses Repository erweitert OpenAI Codex – den KI-Coding-Agenten von OpenAI �
 | :---: | :---: | :---: |
 | Jede Bewerbung wird neu aus Stelle und Profil aufgebaut. | Echte Daten und Ergebnisse bleiben unter `Private/`. | Inhalt, A4-Layout, PDFs und ATS-Textschicht werden kontrolliert. |
 
-Aus einer Stellenbeschreibung und deinen Profildaten entstehen:
+Aus einer Stellenbeschreibung und deinen Profildaten entstehen - abhängig vom gewählten Dokumentmodus:
 
-- ein rollenbezogener Lebenslauf als HTML und PDF
+- entweder ein neuer rollenbezogener Lebenslauf oder ein unverändert übernommener universeller Lebenslauf als HTML und PDF
 - ein passendes Anschreiben als HTML und PDF
 - eine kurze E-Mail-Nachricht
 - ein vollständiger privater Arbeits- und Prüfverlauf mit Analyse, Anforderungsmatrix, Screenshots und Qualitätsnachweisen
+
+### Zwei Dokumentmodi
+
+| Modus | Was wird neu geschrieben? | Wann verwenden? |
+| --- | --- | --- |
+| `vollbewerbung` | Lebenslauf, Anschreiben und E-Mail | Wenn der Lebenslauf sichtbar auf die konkrete Zielrolle zugeschnitten werden soll. |
+| `anschreiben_mit_universalem_lebenslauf` | nur Anschreiben und E-Mail; der freigegebene Universal-Lebenslauf bleibt inhaltlich unverändert | Wenn ein stabiler universeller Lebenslauf bereits vorhanden ist und nur das Anschreiben an die Stelle angepasst werden soll. |
+
+Im zweiten Modus friert der Bewerbungsauftrag die Universalquelle per SHA-256 ein. Die Zielrolle muss dann im Anschreiben und E-Mail-Betreff stehen, nicht im universellen Lebenslauf.
 
 > [!NOTE]
 > **Einfachster Einstieg:** Windows, PowerShell 7, OpenAI Codex und Chrome oder Edge. Dieser Weg wird vom Projekt am umfassendsten unterstützt; die [Linux-Unterstützung befindet sich noch im Alpha-Status](LINUX-PORTIERUNGSPLAN.md).
@@ -267,6 +276,15 @@ Stellenbeschreibung:
 <hier den vollständigen Text der Stellenanzeige einfügen>
 ```
 
+Wenn du stattdessen nur ein Anschreiben zu deinem universellen Lebenslauf möchtest, ergänze im Auftrag:
+
+```text
+Dokumentmodus: anschreiben_mit_universalem_lebenslauf.
+Verwende die freigegebene HTML-Quelle unter
+Private/LebenslaufUniversal/Aktiv/Lebenslauf - NACHNAME.VORNAME.html
+unverändert. Erstelle nur Anschreiben und E-Mail neu und prüfe den Lebenslauf-Snapshot trotzdem technisch mit.
+```
+
 Der Agent erstellt jetzt den privaten Arbeitsordner, analysiert die Stelle, erzeugt die Dokumente, prüft Inhalte und Layout und bereitet PDFs vor. Die Dateien sind zu diesem Zeitpunkt **noch nicht für den Versand freigegeben**.
 
 > [!WARNING]
@@ -368,7 +386,7 @@ Der Agent trennt bewusst vier Zustände. Ein **Kandidat** ist dabei nur eine noc
 1. **Stammdaten prüfen** – Identität, Kontakt und zentrale Bewerbungsentscheidungen werden kontrolliert. Kritische Lücken stoppen den Ablauf.
 2. **Arbeitsbereich anlegen** – Der Agent erzeugt einen leeren Zielordner, einen privaten Arbeitsordner und den Bewerbungsauftrag.
 3. **Stelle analysieren** – Muss-/Kann-Anforderungen werden mit deinen belegbaren Profildaten abgeglichen und in einer Anforderungsmatrix bewertet.
-4. **Kandidaten erstellen** – Lebenslauf, Anschreiben, E-Mail, Analyse und Prüfdokumente entstehen zunächst unter `Kandidat/`.
+4. **Kandidaten erstellen** – In der Vollbewerbung entstehen Lebenslauf, Anschreiben und E-Mail neu. Im Anschreiben-Modus wird der universelle Lebenslauf unverändert übernommen und nur Anschreiben sowie E-Mail werden neu geschrieben.
 5. **Fachlich korrigieren** – Stellenbeschreibung, Profil, Matrix und alle Dokumente werden auf Wahrheit, Passung und Widerspruchsfreiheit geprüft.
 6. **Technisch vorbereiten** – A4-Screenshots, zwei PDFs sowie Layout-, PDF- und ATS-Nachweise werden erzeugt. Noch wird nichts veröffentlicht.
 7. **Sichtprüfen und veröffentlichen** – Du kontrollierst jede A4-Seite. Erst danach werden die geprüften Dateien gemeinsam nach `Versand/` und `Intern/` übernommen; zusätzlich wird `Manifest.json` erstellt.
@@ -849,6 +867,10 @@ Private/
 │  ├─ README.md
 │  ├─ 01_PERSOENLICHE_DATEN.md
 │  └─ 02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
+├─ LebenslaufUniversal/
+│  ├─ Aktiv/
+│  │  └─ Lebenslauf - NACHNAME.VORNAME.html
+│  └─ Archiv/
 └─ Bewerbungen/
    └─ FIRMA/
       ├─ _Arbeitsdateien/
@@ -891,7 +913,7 @@ Private/
 
 `Anforderungsmatrix--ENTWURF.json` ist nur das Startgerüst; verbindlich ist anschließend `Anforderungsmatrix.json`. Entwurfsgerüste können im privaten Arbeitsordner verbleiben, dürfen aber weder als Kandidat noch als Veröffentlichung interpretiert werden.
 
-Weitere private Bereiche wie `Archiv/`, `Bewertungen/` oder `LebenslaufUniversal/` können lokal existieren, gehören jedoch nicht zum aktuellen Standardablauf einer einzelnen Bewerbung.
+Weitere private Bereiche wie `Archiv/` oder `Bewertungen/` können lokal existieren. `LebenslaufUniversal/` ist die optionale, technisch eingebundene Quelle für den Anschreiben-Modus.
 
 </details>
 
@@ -901,6 +923,7 @@ Zentraler Einstieg ist [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_S
 
 | Datei | Verantwortung |
 | --- | --- |
+| `01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` | Vollbewerbung versus Anschreiben mit unverändertem Universal-Lebenslauf |
 | `02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md` | Stammdaten-Gate, Auftrag und gewichtete Muss-/Kann-Matrix |
 | `03_LEBENSLAUF_REGELN.md` | deutscher CV-Standard, Priorisierung und A4-Seitenstrategie |
 | `04_ANSCHREIBEN_REGELN.md` | Struktur, Ton, Gehaltswunsch und Grenzen |

@@ -42,10 +42,21 @@ grep -Fq 'R &quot;Q&quot;' "$html" || fail "Rollenname wurde nicht korrekt HTML-
 [[ -d "$test_root/escaping/AundB-X/_Arbeitsdateien/2026-07-14--R-Q/Kandidat" ]] || fail "Kandidatenordner wurde nicht erzeugt."
 auftrag="$test_root/escaping/AundB-X/_Arbeitsdateien/2026-07-14--R-Q/Bewerbungsauftrag.json"
 matrix="$test_root/escaping/AundB-X/_Arbeitsdateien/2026-07-14--R-Q/Anforderungsmatrix--ENTWURF.json"
-grep -Fq '"schemaVersion": 2' "$auftrag" || fail "Bewerbungsauftrag verwendet nicht Schema 2."
+grep -Fq '"schemaVersion": 3' "$auftrag" || fail "Bewerbungsauftrag verwendet nicht Schema 3."
+grep -Fq '"dokumentmodus": "vollbewerbung"' "$auftrag" || fail "Standard-Dokumentmodus fehlt im Auftrag."
 grep -Fq '"bewerbungsentscheidung": "noch_festzulegen"' "$auftrag" || fail "Bewerbungsentscheidung fehlt im Auftrag."
 grep -Fq '"profillinksModus": "noch_festzulegen"' "$auftrag" || fail "Profillink-Modus fehlt im Auftrag."
 grep -Fq '"gewichtung": "hoch"' "$matrix" || fail "Matrixentwurf enthält keine Gewichtung."
+
+mkdir -p "$test_root/universal-source"
+printf '%s\n' '<!doctype html><html><head><style>.page { width: 210mm; height: 297mm; overflow: hidden; }</style></head><body><main class="page">TEST.PERSON universell</main></body></html>' > "$test_root/universal-source/Lebenslauf - TEST.PERSON.html"
+printf '%s\n' '- Dateiname-Name: TEST.PERSON' > "$test_root/universal-personal.md"
+printf '%s\n' '# Testprofil' > "$test_root/universal-profile.md"
+bash "$tool" --firma "Universal Firma" --rolle "Universal Rolle" --datum "2026-07-14" --dokumentmodus "anschreiben_mit_universalem_lebenslauf" --universal-lebenslauf-path "$test_root/universal-source/Lebenslauf - TEST.PERSON.html" --stammdaten-path "$test_root/universal-personal.md" --profil-path "$test_root/universal-profile.md" --bewerbungen-root "$test_root/universal-app" >/dev/null
+universal_work="$test_root/universal-app/Universal-Firma/_Arbeitsdateien/2026-07-14--Universal-Rolle"
+cmp -s "$test_root/universal-source/Lebenslauf - TEST.PERSON.html" "$universal_work/Kandidat/Lebenslauf - TEST.PERSON.html" || fail "Universalquelle wurde verändert übernommen."
+[[ ! -e "$universal_work/Lebenslauf--Universal-Firma--ENTWURF.html" ]] || fail "Im Anschreiben-Modus wurde ein Lebenslaufentwurf erzeugt."
+grep -Fq '"dokumentmodus": "anschreiben_mit_universalem_lebenslauf"' "$universal_work/Bewerbungsauftrag.json" || fail "Anschreiben-Modus fehlt im Auftrag."
 
 printf '%s\n' \
   '- Dateiname-Name: TEST.PERSON' \

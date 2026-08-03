@@ -24,6 +24,8 @@ Ungeklärte zentrale Bewerbungslogistik im Bewerbungsauftrag wird bei der Finali
 
 Sie enthält mindestens:
 
+- Dokumentmodus: `vollbewerbung` oder `anschreiben_mit_universalem_lebenslauf`
+- im Anschreiben-Modus: Pfad, Dateiname und SHA-256-Snapshot der freigegebenen Universal-Lebenslauf-HTML
 - Firma und technischer Firmenslug
 - Zielrolle und technischer Rollenslug
 - Bewerbungsdatum
@@ -46,6 +48,8 @@ Vor der Inhaltsprüfung müssen folgende Werte endgültig gesetzt sein:
 - bei `rollenrelevant`: `profillinksAuswahl` mit den tatsächlich verwendeten Feldnamen aus Datei `01`
 
 Die Werte `noch_festzulegen` sind nur im initialen Arbeitsauftrag erlaubt und blockieren die Finalisierung. `nicht_bewerben` dokumentiert einen bewussten Abbruch und darf nicht veröffentlicht werden.
+
+Ab Schema 3 ist der Dokumentmodus Pflicht. Im Anschreiben-Modus darf der eingefrorene universelle Lebenslauf nicht verändert werden. Die Zielrollenprüfung gilt dann für Anschreiben und E-Mail-Betreff, nicht für den universellen Lebenslauf.
 
 Firma, Rolle und Pfade in dieser Datei dürfen nach der Dokumenterstellung nicht stillschweigend geändert werden.
 

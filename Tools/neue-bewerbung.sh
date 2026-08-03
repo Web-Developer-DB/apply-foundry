@@ -9,6 +9,8 @@ Usage:
 Options:
   --firma NAME                    Firmenname, Pflichtangabe
   --rolle NAME                    Zielrolle, Standard: Bewerbung
+  --dokumentmodus MODUS           vollbewerbung (Standard) oder anschreiben_mit_universalem_lebenslauf
+  --universal-lebenslauf-path PATH Freigegebene HTML-Quelle für den Anschreiben-Modus
   --datum YYYY-MM-DD              Datum, Standard: heute
   --stellenbeschreibung-path PATH Pfad zu vorhandener Stellenbeschreibung
   --stammdaten-path PATH           Stammdaten für den Logistik-Snapshot
@@ -117,6 +119,8 @@ project_root="$(cd -- "$script_dir/.." && pwd)"
 
 firma=""
 rolle="Bewerbung"
+dokumentmodus="vollbewerbung"
+universal_lebenslauf_path=""
 datum="$(date +%F)"
 stellenbeschreibung_path=""
 stammdaten_path="$project_root/Private/Daten/01_PERSOENLICHE_DATEN.md"
@@ -134,6 +138,16 @@ while [[ $# -gt 0 ]]; do
     --rolle)
       [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --rolle" >&2; exit 2; }
       rolle="$2"
+      shift 2
+      ;;
+    --dokumentmodus)
+      [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --dokumentmodus" >&2; exit 2; }
+      dokumentmodus="$2"
+      shift 2
+      ;;
+    --universal-lebenslauf-path)
+      [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --universal-lebenslauf-path" >&2; exit 2; }
+      universal_lebenslauf_path="$2"
       shift 2
       ;;
     --datum)
@@ -213,6 +227,38 @@ if [[ -n "$stellenbeschreibung_path" && ! -f "$stellenbeschreibung_path" ]]; the
   exit 2
 fi
 
+if [[ "$dokumentmodus" != "vollbewerbung" && "$dokumentmodus" != "anschreiben_mit_universalem_lebenslauf" ]]; then
+  echo "Fehler: --dokumentmodus muss vollbewerbung oder anschreiben_mit_universalem_lebenslauf sein." >&2
+  exit 2
+fi
+
+bewerber_dateiname="$(markdown_field "$stammdaten_path" 'Dateiname-Name')"
+universal_source_full=""
+universal_source_hash=""
+if [[ "$dokumentmodus" == "anschreiben_mit_universalem_lebenslauf" ]]; then
+  if [[ -z "$universal_lebenslauf_path" || ! -f "$universal_lebenslauf_path" ]]; then
+    echo "Fehler: Der Anschreiben-Modus erfordert --universal-lebenslauf-path mit einer vorhandenen HTML-Datei." >&2
+    exit 2
+  fi
+  universal_source_full="$(cd -- "$(dirname -- "$universal_lebenslauf_path")" && pwd)/$(basename -- "$universal_lebenslauf_path")"
+  if [[ "$universal_source_full" != *.html ]]; then
+    echo "Fehler: Der universelle Lebenslauf muss als HTML-Quelle vorliegen." >&2
+    exit 2
+  fi
+  if [[ -z "$bewerber_dateiname" || "$(basename -- "$universal_source_full")" != "Lebenslauf - $bewerber_dateiname.html" ]]; then
+    echo "Fehler: Der universelle Lebenslauf muss exakt 'Lebenslauf - $bewerber_dateiname.html' heißen." >&2
+    exit 2
+  fi
+  if grep -Eiq '\[ergänzen\]|\{\{[^}]+\}\}|TODO|DOKUMENT NOCH NICHT FINAL' "$universal_source_full"; then
+    echo "Fehler: Der universelle Lebenslauf enthält Platzhalter oder Entwurfsmarker." >&2
+    exit 2
+  fi
+  universal_source_hash="$(file_sha256 "$universal_source_full")"
+elif [[ -n "$universal_lebenslauf_path" ]]; then
+  echo "Fehler: --universal-lebenslauf-path ist nur im Anschreiben-Modus zulässig." >&2
+  exit 2
+fi
+
 if [[ -e "$bewerbungen_root" && ! -d "$bewerbungen_root" ]]; then
   echo "Fehler: --bewerbungen-root existiert, ist aber kein Ordner: $bewerbungen_root" >&2
   exit 2
@@ -257,6 +303,10 @@ if (( fortsetzen && arbeits_existed )); then
     echo "Fehler: Der vorhandene Arbeitsordner gehört nicht nachweislich zu derselben Firma und Rolle." >&2
     exit 2
   fi
+  if grep -Eq '^- Dokumentmodus: (vollbewerbung|anschreiben_mit_universalem_lebenslauf)$' "$existing_notes" && ! grep -Fqx -- "- Dokumentmodus: $dokumentmodus" "$existing_notes"; then
+    echo "Fehler: Der vorhandene Arbeitsordner verwendet einen anderen Dokumentmodus." >&2
+    exit 2
+  fi
 fi
 
 ziel_created=0
@@ -299,6 +349,7 @@ offene_fragen_entwurf_file="$arbeits_dir/Offene_Fragen--ENTWURF.md"
 anforderungsmatrix_entwurf_file="$arbeits_dir/Anforderungsmatrix--ENTWURF.json"
 auftrag_file="$arbeits_dir/Bewerbungsauftrag.json"
 druck_hinweis_file="$kandidat_dir/Druck-Hinweis.md"
+universal_candidate_file="$kandidat_dir/Lebenslauf - $bewerber_dateiname.html"
 
 if [[ -n "$stellenbeschreibung_path" ]]; then
   if [[ -f "$stellenbeschreibung_kandidat_file" ]]; then
@@ -320,13 +371,27 @@ elif [[ ! -e "$stellenbeschreibung_kandidat_file" && ! -e "$stellenbeschreibung_
 EOF
 fi
 
+if [[ "$dokumentmodus" == "anschreiben_mit_universalem_lebenslauf" ]]; then
+  if [[ -f "$universal_candidate_file" ]]; then
+    [[ "$(file_sha256 "$universal_candidate_file")" == "$universal_source_hash" ]] || {
+      echo "Fehler: Der Kandidaten-Lebenslauf weicht von der freigegebenen Universalquelle ab." >&2
+      exit 1
+    }
+  elif [[ -e "$universal_candidate_file" ]]; then
+    echo "Fehler: Der erwartete universelle Lebenslauf im Kandidatenordner ist keine Datei." >&2
+    exit 1
+  else
+    cp -- "$universal_source_full" "$universal_candidate_file"
+  fi
+fi
+
 if [[ ! -e "$auftrag_file" ]]; then
   firma_json="$(json_escape "$firma")"
   rolle_json="$(json_escape "$rolle")"
   ziel_json="$(json_escape "$ziel_dir")"
   arbeits_json="$(json_escape "$arbeits_dir")"
   kandidat_json="$(json_escape "$kandidat_dir")"
-  bewerber_dateiname_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Dateiname-Name')")"
+  bewerber_dateiname_json="$(json_escape "$bewerber_dateiname")"
   verfuegbarkeit_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Verfügbarkeit')")"
   eintritt_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Frühester Eintrittstermin')")"
   stellenart_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gewünschte Stellenart')")"
@@ -345,10 +410,18 @@ if [[ ! -e "$auftrag_file" ]]; then
   gehaltslogik_json="$(json_escape "$(markdown_field "$stammdaten_path" 'Gehaltslogik')")"
   stammdaten_hash="$(file_sha256 "$stammdaten_path")"
   profil_hash="$(file_sha256 "$profil_path")"
+  dokumentmodus_json="$(json_escape "$dokumentmodus")"
+  if [[ "$dokumentmodus" == "anschreiben_mit_universalem_lebenslauf" ]]; then
+    universal_source_json="$(json_escape "$universal_source_full")"
+    universal_candidate_json="$(json_escape "Lebenslauf - $bewerber_dateiname.html")"
+    universal_json="{\"sourceHtmlPath\": \"$universal_source_json\", \"sourceHtmlSha256BeiAnlage\": \"$universal_source_hash\", \"kandidatDatei\": \"$universal_candidate_json\"}"
+  else
+    universal_json="null"
+  fi
   created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   cat > "$auftrag_file" <<EOF
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "firma": "$firma_json",
   "firmaSlug": "$firma_slug",
   "rolle": "$rolle_json",
@@ -358,6 +431,8 @@ if [[ ! -e "$auftrag_file" ]]; then
   "zielOrdner": "$ziel_json",
   "arbeitsOrdner": "$arbeits_json",
   "kandidatOrdner": "$kandidat_json",
+  "dokumentmodus": "$dokumentmodus_json",
+  "universalLebenslauf": $universal_json,
   "seitenstrategie": "noch_festzulegen",
   "bewerbungslogistik": {
     "verfuegbarkeit": "$verfuegbarkeit_json",
@@ -427,7 +502,7 @@ if [[ ! -e "$analyse_entwurf_file" ]]; then
 EOF
 fi
 
-if [[ ! -e "$lebenslauf_entwurf_file" ]]; then
+if [[ "$dokumentmodus" == "vollbewerbung" && ! -e "$lebenslauf_entwurf_file" ]]; then
   cat > "$lebenslauf_entwurf_file" <<EOF
 <!doctype html>
 <html lang="de">
@@ -493,6 +568,7 @@ if [[ ! -e "$arbeitsnotizen_file" ]]; then
 
 - Firma: $firma
 - Zielrolle: $rolle
+- Dokumentmodus: $dokumentmodus
 - Finaler Bewerbungsordner: $ziel_dir
 - Entwurfs-/Arbeitsdateien: $arbeits_dir
 - Kandidatendateien vor Freigabe: $kandidat_dir
@@ -565,4 +641,8 @@ fi
 printf 'Bewerbungsordner: %s\n' "$ziel_dir"
 printf 'Arbeitsdateien: %s\n' "$arbeits_dir"
 printf 'Kandidatendateien: %s\n' "$kandidat_dir"
+printf 'Dokumentmodus: %s\n' "$dokumentmodus"
+if [[ "$dokumentmodus" == "anschreiben_mit_universalem_lebenslauf" ]]; then
+  printf 'Universeller Lebenslauf unverändert übernommen: %s\n' "$universal_candidate_file"
+fi
 success=1
