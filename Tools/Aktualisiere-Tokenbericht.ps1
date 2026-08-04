@@ -45,7 +45,7 @@ trap {
   exit 1
 }
 
-function Normalize-MetadataValue {
+function ConvertTo-NormalizedMetadataValue {
   param([string]$Value, [string]$Name)
 
   if ([string]::IsNullOrWhiteSpace($Value)) {
@@ -85,10 +85,10 @@ if (($resolvedWork -notmatch '[\\/]Private[\\/]Bewerbungen[\\/]+') -or ($resolve
   throw "Arbeitsordner muss unter Private/Bewerbungen/.../_Arbeitsdateien liegen: $resolvedWork"
 }
 $reportPath = Join-Path -Path $resolvedWork -ChildPath "Tokenverbrauch.json"
-$providerValue = Normalize-MetadataValue -Value $Anbieter -Name "Anbieter"
-$modelValue = Normalize-MetadataValue -Value $Modell -Name "Modell"
-$sessionValue = Normalize-MetadataValue -Value $VorgangsId -Name "VorgangsId"
-$sourceValue = Normalize-MetadataValue -Value $Messquelle -Name "Messquelle"
+$providerValue = ConvertTo-NormalizedMetadataValue -Value $Anbieter -Name "Anbieter"
+$modelValue = ConvertTo-NormalizedMetadataValue -Value $Modell -Name "Modell"
+$sessionValue = ConvertTo-NormalizedMetadataValue -Value $VorgangsId -Name "VorgangsId"
+$sourceValue = ConvertTo-NormalizedMetadataValue -Value $Messquelle -Name "Messquelle"
 if ([string]::IsNullOrWhiteSpace($sourceValue)) {
   throw "Messquelle darf nicht leer sein."
 }
