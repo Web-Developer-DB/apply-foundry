@@ -11,6 +11,8 @@ Alle generierten Bewerbungsdateien liegen unter `Private/`, damit das Projekt oh
 Öffentlich:
 
 ```text
+AGENTS.md
+GEMINI.md
 Prompts/
 Vorlagen/
 Tools/
@@ -137,6 +139,14 @@ Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/
 ```
 
 Der Kandidatenordner verwendet bereits die späteren finalen Dateinamen. Er ist trotzdem kein Versandordner. Der finale Zielordner bleibt bis zur atomaren Veröffentlichung leer.
+
+Der standardisierte Nutzungsbericht liegt ausschließlich im zugehörigen Arbeitsordner:
+
+```text
+Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Tokenverbrauch.json
+```
+
+Er ist ein nicht blockierendes Diagnose- und Kostenartefakt, kein Qualitätsnachweis und keine Kandidatendatei. Er gehört weder nach `Versand/` noch nach `Intern/` und wird standardmäßig nicht in `Manifest.json` aufgenommen. Er darf keine API-Schlüssel, Zugangsdaten, vollständigen Prompts oder privaten Bewerbungsinhalte enthalten.
 
 Regel:
 - Entwürfe und Kandidatendateien in `_Arbeitsdateien`

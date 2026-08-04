@@ -355,6 +355,94 @@ try {
     }
   }
 
+  Invoke-Test -Name "Universeller Agenteneinstieg routet alle Betriebsmodi sicher" -Body {
+    $agentsPath = Join-Path $repoRoot "AGENTS.md"
+    $geminiPath = Join-Path $repoRoot "GEMINI.md"
+    Assert-True -Condition (Test-Path -LiteralPath $agentsPath -PathType Leaf) -Message "AGENTS.md fehlt im Projektstamm."
+    Assert-True -Condition (Test-Path -LiteralPath $geminiPath -PathType Leaf) -Message "GEMINI.md fehlt im Projektstamm."
+    $agents = Get-Content -LiteralPath $agentsPath -Raw -Encoding UTF8
+    $gemini = Get-Content -LiteralPath $geminiPath -Raw -Encoding UTF8
+    Assert-True -Condition ($agents -match 'Prompts/00_AGENTEN_START_HIER\.md') -Message "AGENTS.md verweist nicht auf den fachlichen Einstieg."
+    Assert-True -Condition ($agents -match 'README\.md.+keine verbindliche operative Agentenanweisung') -Message "README wird nicht eindeutig vom operativen Einstieg abgegrenzt."
+    foreach ($mode in @("Bewerbungsmodus", "Einrichtungsmodus", "Entwicklungsmodus", "Informationsmodus")) {
+      Assert-True -Condition ($agents.Contains($mode)) -Message "Modus fehlt in AGENTS.md: $mode"
+    }
+    Assert-True -Condition ($agents -match 'persönliche Sichtprüfung') -Message "Persönliche Sichtprüfung ist nicht ausdrücklich zwingend."
+    Assert-True -Condition ($agents -match 'neue eindeutige Sichtprüfungsbestätigung') -Message "Neue Sichtprüfungsbestätigung nach Änderungen ist nicht erzwungen."
+    Assert-True -Condition ($agents -match 'Tokenzahlen dürfen niemals geschätzt') -Message "Schätzverbot für Tokenwerte fehlt."
+    Assert-True -Condition ($agents -match 'Tokenverbrauch: nicht verfügbar') -Message "Eindeutige Nichtverfügbarkeitsausgabe fehlt."
+    Assert-True -Condition ($gemini.Trim() -eq '@AGENTS.md') -Message "GEMINI.md ist kein minimaler Import von AGENTS.md."
+  }
+
+  Invoke-Test -Name "Tokenbericht speichert Nichtverfügbarkeit ohne Schätzwerte oder sensible Felder" -Body {
+    $work = Join-Path $testRoot "Private/Bewerbungen/Token-Test/_Arbeitsdateien/token-unavailable"
+    New-Item -Path $work -ItemType Directory | Out-Null
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Aktualisiere-Tokenbericht.ps1") -Arguments @("-Arbeitsordner", $work, "-Messbereich", "lebenslauf")
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Nichtverfügbarkeitsbericht schlug fehl: $($result.Output -join ' | ')"
+    Assert-True -Condition (($result.Output -join "`n") -match 'Tokenverbrauch: nicht verfügbar – die aktuelle Agentenumgebung stellt keine maschinenlesbaren Nutzungsdaten bereit\.') -Message "Vorgeschriebene Nichtverfügbarkeitsmeldung fehlt."
+    $reportPath = Join-Path $work "Tokenverbrauch.json"
+    $raw = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8
+    $report = $raw | ConvertFrom-Json
+    Assert-True -Condition ($report.schemaVersion -eq 1 -and $report.availability -eq "unavailable") -Message "Tokenbericht verwendet nicht das erwartete Nichtverfügbarkeitsschema."
+    Assert-True -Condition (@($report.sections).Count -eq 1 -and $report.sections[0].name -eq "lebenslauf") -Message "Lebenslauf-Messbereich fehlt."
+    Assert-True -Condition ($null -eq $report.sections[0].inputTokens -and $null -eq $report.sections[0].totalTokens) -Message "Nicht verfügbare Tokenwerte sind nicht null."
+    Assert-True -Condition ($raw -notmatch '(?i)api[_-]?key|access[_-]?token|vollständige[rn]?\s+prompt|stellenbeschreibung|bewerbungsinhalt') -Message "Tokenbericht enthält ein verbotenes sensibles Inhaltsfeld."
+  }
+
+  Invoke-Test -Name "Tokenbericht übernimmt nur ausdrücklich bereitgestellte exakte Laufzeitwerte" -Body {
+    $work = Join-Path $testRoot "Private/Bewerbungen/Token-Test/_Arbeitsdateien/token-available"
+    New-Item -Path $work -ItemType Directory | Out-Null
+    $tool = Join-Path $toolsRoot "Aktualisiere-Tokenbericht.ps1"
+    $result = Invoke-ChildScript -ScriptPath $tool -Arguments @(
+      "-Arbeitsordner", $work,
+      "-Messbereich", "lebenslauf",
+      "-Messumfang", "gesamte_agentensitzung",
+      "-NutzungsdatenVerfuegbar",
+      "-Anbieter", "Test Runtime",
+      "-Modell", "test-model",
+      "-VorgangsId", "fixture-session",
+      "-EingabeTokens", "100",
+      "-AusgabeTokens", "50",
+      "-GesamtTokens", "150"
+    )
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Exakter Tokenbericht schlug fehl: $($result.Output -join ' | ')"
+    Assert-True -Condition (($result.Output -join "`n") -match 'Messbereich: gesamte Agentensitzung') -Message "Sitzungsweiter Messbereich wird nicht offengelegt."
+    $downgrade = Invoke-ChildScript -ScriptPath $tool -Arguments @("-Arbeitsordner", $work, "-Messbereich", "lebenslauf")
+    Assert-True -Condition ($downgrade.ExitCode -eq 0) -Message "Erneute Verfügbarkeitsprüfung schlug fehl."
+    $report = Get-Content -LiteralPath (Join-Path $work "Tokenverbrauch.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($report.availability -eq "available") -Message "Exakte Werte wurden durch einen späteren Nichtverfügbarkeitslauf herabgestuft."
+    Assert-True -Condition ($report.sections[0].inputTokens -eq 100 -and $report.sections[0].outputTokens -eq 50 -and $report.sections[0].totalTokens -eq 150) -Message "Bereitgestellte Laufzeitwerte wurden verändert."
+
+    $invalidWork = Join-Path $testRoot "Private/Bewerbungen/Token-Test/_Arbeitsdateien/token-invalid"
+    New-Item -Path $invalidWork -ItemType Directory | Out-Null
+    $invalid = Invoke-ChildScript -ScriptPath $tool -Arguments @("-Arbeitsordner", $invalidWork, "-Messbereich", "lebenslauf", "-EingabeTokens", "100")
+    Assert-True -Condition ($invalid.ExitCode -ne 0) -Message "Tokenwert ohne Verfügbarkeitsnachweis wurde akzeptiert."
+    Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $invalidWork "Tokenverbrauch.json"))) -Message "Ungültiger Tokenwert wurde gespeichert."
+
+    $publicWork = Join-Path $testRoot "public-token-report"
+    New-Item -Path $publicWork -ItemType Directory | Out-Null
+    $outsidePrivate = Invoke-ChildScript -ScriptPath $tool -Arguments @("-Arbeitsordner", $publicWork, "-Messbereich", "lebenslauf")
+    Assert-True -Condition ($outsidePrivate.ExitCode -ne 0) -Message "Tokenbericht wurde außerhalb eines privaten Bewerbungs-Arbeitsordners zugelassen."
+    Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $publicWork "Tokenverbrauch.json"))) -Message "Tokenbericht wurde außerhalb von Private/ gespeichert."
+  }
+
+  Invoke-Test -Name "README verweist nur auf vorhandene lokale Ziele und definierte Anker" -Body {
+    $readmePath = Join-Path $repoRoot "README.md"
+    $readme = Get-Content -LiteralPath $readmePath -Raw -Encoding UTF8
+    $anchorIds = @([regex]::Matches($readme, '<a\s+id="(?<id>[^"]+)"') | ForEach-Object { $_.Groups['id'].Value })
+    $anchorReferences = @([regex]::Matches($readme, '(?:\]\(|href=")#(?<id>[^)"\s]+)') | ForEach-Object { $_.Groups['id'].Value } | Sort-Object -Unique)
+    foreach ($anchor in $anchorReferences) {
+      Assert-True -Condition ($anchorIds -contains $anchor) -Message "README-Anker ist nicht definiert: #$anchor"
+    }
+    $localTargets = @([regex]::Matches($readme, '(?<!!)\[[^\]]+\]\((?<target>[^)]+)\)') | ForEach-Object { $_.Groups['target'].Value } | Where-Object {
+      $_ -notmatch '^(?:https?://|mailto:|#)'
+    } | Sort-Object -Unique)
+    foreach ($target in $localTargets) {
+      $fileTarget = ($target -split '#', 2)[0]
+      Assert-True -Condition (Test-Path -LiteralPath (Join-Path $repoRoot $fileTarget)) -Message "Lokales README-Ziel fehlt: $target"
+    }
+  }
+
   Invoke-Test -Name "Gültige Bewerbung besteht den statischen Prüfer" -Body {
     $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "valid")
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $folder)
@@ -599,6 +687,8 @@ try {
 
   Invoke-Test -Name "Finalisierung veröffentlicht validiertes Set atomar" -Body {
     $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-valid")
+    $tokenResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Aktualisiere-Tokenbericht.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-Messbereich", "lebenslauf")
+    Assert-True -Condition ($tokenResult.ExitCode -eq 0) -Message "Token-Diagnoseartefakt konnte für den Veröffentlichungstest nicht angelegt werden."
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Veroeffentlichen", "-VisuellGeprueft")
     Assert-True -Condition ($result.ExitCode -eq 0) -Message "Gültige atomare Veröffentlichung schlug fehl: $($result.Output -join ' | ')"
     Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Versand/Lebenslauf - TEST.PERSON.pdf") -PathType Leaf) -Message "Veröffentlichter Lebenslauf fehlt im Versandordner."
@@ -606,6 +696,10 @@ try {
     Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Intern/Lebenslauf - TEST.PERSON.html") -PathType Leaf) -Message "Interne HTML-Quelle fehlt."
     Assert-True -Condition (@(Get-ChildItem -LiteralPath (Join-Path $fixture.Folder "Intern") -Filter "*.pdf" -File).Count -eq 0) -Message "Interner Ordner enthält PDF-Dubletten."
     Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Manifest.json") -PathType Leaf) -Message "Veröffentlichungsmanifest fehlt."
+    Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Work "Tokenverbrauch.json") -PathType Leaf) -Message "Tokenbericht blieb nicht im privaten Arbeitsordner."
+    Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Recurse -File -Filter "Tokenverbrauch.json").Count -eq 0) -Message "Tokenbericht gelangte in den veröffentlichten Zielordner."
+    $manifest = Get-Content -LiteralPath (Join-Path $fixture.Folder "Manifest.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition (@($manifest.files | Where-Object { $_.path -match 'Tokenverbrauch\.json$' }).Count -eq 0) -Message "Tokenbericht wurde in Manifest.json aufgenommen."
     $staticResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder)
     Assert-True -Condition ($staticResult.ExitCode -eq 0) -Message "Strukturierte Veröffentlichung wurde nachträglich abgelehnt: $($staticResult.Output -join ' | ')"
     $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -814,11 +908,13 @@ Text vor dem Doctype
         $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Browser", "chrome", "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -eq 0) -Message "Browsergestützte Finalisierungsvorbereitung schlug fehl: $($result.Output -join ' | ')"
         $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
-        Assert-True -Condition ($report.status -eq "bereit_zur_sichtpruefung") -Message "Finalisierungsbericht hat nicht den erwarteten Vorbereitungsstatus."
+        Assert-True -Condition ($report.schemaVersion -eq 3 -and $report.status -eq "bereit_zur_sichtpruefung") -Message "Finalisierungsbericht hat nicht das erwartete Schema oder den Vorbereitungsstatus."
         Assert-True -Condition (@($report.artifacts.html).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei HTML-Nachweise."
         Assert-True -Condition (@($report.artifacts.pdf).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei PDF-Nachweise."
         Assert-True -Condition (@($report.artifacts.screenshots).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei Screenshot-Nachweise."
         Assert-True -Condition (Test-Path -LiteralPath $report.atsReport -PathType Leaf) -Message "Finalisierung schrieb keinen ATS-Prüfbericht."
+        Assert-True -Condition (Test-Path -LiteralPath $report.tokenUsageReport.path -PathType Leaf) -Message "Finalisierung schrieb keinen referenzierten Tokenbericht."
+        Assert-True -Condition (-not $report.tokenUsageReport.blocksFinalization -and -not $report.tokenUsageReport.includedInManifest) -Message "Tokenbericht ist nicht ausdrücklich nicht blockierend und manifestfrei."
         $ats = Get-Content -LiteralPath $report.atsReport -Raw -Encoding UTF8 | ConvertFrom-Json
         Assert-True -Condition ($ats.status -eq "ok" -and @($ats.results).Count -eq 2) -Message "ATS-Prüfung bestätigte nicht beide PDFs."
         Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Force).Count -eq 0) -Message "Vorbereitung hat den finalen Zielordner befüllt."
@@ -833,6 +929,7 @@ Text vor dem Doctype
         Assert-True -Condition ($publish.ExitCode -eq 0) -Message "Veröffentlichung nach realer Browservorbereitung schlug fehl: $($publish.Output -join ' | ')"
         Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Versand/Lebenslauf - TEST.PERSON.pdf") -PathType Leaf) -Message "Realer Versand-Lebenslauf fehlt."
         Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Manifest.json") -PathType Leaf) -Message "Manifest der realen Veröffentlichung fehlt."
+        Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Recurse -File -Filter "Tokenverbrauch.json").Count -eq 0) -Message "Tokenbericht wurde bei realer Veröffentlichung mitveröffentlicht."
         $publishedStatic = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder)
         Assert-True -Condition ($publishedStatic.ExitCode -eq 0) -Message "Reale strukturierte Veröffentlichung wurde abgelehnt: $($publishedStatic.Output -join ' | ')"
       }

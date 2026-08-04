@@ -23,6 +23,7 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Eine Änderung an einer HTML-Datei nach dem Layoutcheck macht den bisherigen Screenshot- und PDF-Nachweis ungültig. Maßgeblich sind die SHA-256-Werte in den Prüfberichten.
 - Kandidatendateien einzeln und vollständig schreiben und danach unmittelbar validieren. Insbesondere JSON-Dateien nach jeder Änderung parsen; keine unübersichtliche Sammeländerung darf bei einem Teilfehler mehrere fertige Dokumente halb aktualisiert zurücklassen.
 - In einer als verwaltete Sandbox bekannten Umgebung den ersten browsergestützten Lauf direkt mit lokaler Browserfreigabe ausführen, statt einen erwartbaren Browser-Fehlerlauf zu provozieren.
+- Tokenzahlen niemals schätzen oder aus Textlängen beziehungsweise Teilwerten ableiten. Exakte Zahlen sind nur zulässig, wenn die Agentenlaufzeit sie maschinenlesbar bereitstellt.
 
 ## Verbindlicher Finalisierungsworkflow
 
@@ -43,6 +44,7 @@ Dieser Lauf:
 - exportiert und validiert beide PDFs
 - prüft die PDF-Textschicht und Lesbarkeit für ATS
 - schreibt Hashnachweise für Quellen, sämtliche Kandidatendateien, PDFs und Seitenscreenshots
+- aktualisiert den nicht blockierenden Diagnosebericht `Tokenverbrauch.json` im Arbeitsordner mindestens mit dem Verfügbarkeitsstatus und referenziert ihn optional im `Finalisierungsbericht.json`
 - veröffentlicht noch keine Datei
 - prüft ab Schema 3 den Dokumentmodus; im Anschreiben-Modus zusätzlich den SHA-256-Snapshot des universellen Lebenslaufs
 
@@ -57,6 +59,22 @@ Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbew
 Die Veröffentlichung wird verweigert, wenn Quellen, Kandidatendateien oder Screenshots nach der Vorbereitung verändert wurden. Sie kopiert nicht dateiweise in den Zielordner, sondern veröffentlicht das validierte Set über einen privaten Staging-Ordner gemeinsam. Das Ergebnis trennt `Versand/` mit genau zwei PDF-Anlagen und E-Mail-Text von `Intern/` mit HTML-Quellen und Nachweisen. `Manifest.json` bindet jede veröffentlichte Datei an ihren SHA-256-Wert.
 
 Die nachfolgenden Einzelwerkzeuge bleiben für Diagnose, Entwicklung und gezielte Wiederholungen verfügbar. Für neue Bewerbungen ersetzt ihre manuelle Verkettung nicht den verbindlichen Finalisierungsworkflow.
+
+## Tokenverbrauch und Laufzeitmessung
+
+Der standardisierte Bericht wird mit folgendem Werkzeug aktualisiert:
+
+```powershell
+.\Tools\Aktualisiere-Tokenbericht.ps1 `
+  -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  -Messbereich lebenslauf
+```
+
+Ohne maschinenlesbare Nutzungsdaten schreibt das Werkzeug ausschließlich Nullwerte und den Status `unavailable`. Liegen exakte Laufzeitdaten vor, werden sie ausdrücklich mit `-NutzungsdatenVerfuegbar`, Anbieter, Modell und den tatsächlich bereitgestellten Tokenfeldern übergeben. Fehlende Felder bleiben `null`; insbesondere wird `totalTokens` nicht aus anderen Feldern berechnet.
+
+Zulässige Messbereiche sind `lebenslauf`, `gesamte_bewerbung` und `technische_vorbereitung`. Anbieter, Modell, eine nicht sensible Vorgangs-ID, Beginn, Ende, Eingabe-, Ausgabe-, Cache-Lese-, Cache-Schreib-, Reasoning- und Gesamt-Tokens werden nur gespeichert, soweit die Laufzeit sie tatsächlich ausweist. Kann sie nur die gesamte Sitzung messen, muss `-Messumfang gesamte_agentensitzung` gesetzt und diese Einschränkung in der Konsolenausgabe genannt werden.
+
+`Tokenverbrauch.json` bleibt im privaten Arbeitsordner. Der Bericht ist kein Qualitätsnachweis, blockiert weder Vorbereitung noch Veröffentlichung, gelangt nicht nach `Versand/` und wird standardmäßig nicht in `Manifest.json` aufgenommen. Er speichert keine API-Schlüssel, Zugangsdaten, vollständigen Prompts oder privaten Bewerbungsinhalte.
 
 ## Pflichtprüfung nach jeder Bewerbung
 
@@ -210,12 +228,13 @@ Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versand
 
 1. Stammdaten prüfen und `Anforderungsmatrix.json` vervollständigen.
 2. Versandfertig benannte Dateien im privaten Kandidatenordner erzeugen. Im Anschreiben-Modus übernimmt der Ordnerhelfer den universellen Lebenslauf; der Agent darf ihn nicht verändern.
-3. Finalisierung ohne Veröffentlichung vorbereiten.
-4. Jeden Seitenscreenshot visuell öffnen und prüfen.
-5. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.
-6. Bei Dichte- oder Layoutwarnungen die Sichtbewertung als Freigabenotiz dokumentieren.
-7. Erst nach erfolgreicher Sichtprüfung mit `-Veroeffentlichen -VisuellGeprueft` atomar veröffentlichen.
-8. Bei Fehlern nicht final melden; der finale Zielordner muss unverändert bleiben.
+3. Nach Fertigstellung des Lebenslauf-Kandidaten den Abschnitt `lebenslauf` in `Tokenverbrauch.json` aktualisieren, ohne den Workflow zu unterbrechen.
+4. Finalisierung ohne Veröffentlichung vorbereiten, danach `gesamte_bewerbung` aktualisieren und `technische_vorbereitung` nur bei isoliert verfügbaren Laufzeitwerten mit Zahlen befüllen.
+5. Jeden Seitenscreenshot visuell öffnen und prüfen.
+6. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.
+7. Bei Dichte- oder Layoutwarnungen die Sichtbewertung als Freigabenotiz dokumentieren.
+8. Erst nach neuer eindeutiger Sichtprüfungsbestätigung mit `-Veroeffentlichen -VisuellGeprueft` atomar veröffentlichen.
+9. Bei Fehlern nicht final melden; der finale Zielordner muss unverändert bleiben. Der Tokenbericht darf einen ansonsten erfolgreichen Lauf nicht blockieren.
 
 ## Keine stillen Erfolge
 

@@ -81,6 +81,43 @@ function Invoke-ChildTool {
   }
 }
 
+function Update-TokenReportNonBlocking {
+  param(
+    [string]$ScriptPath,
+    [string]$WorkFolder,
+    [string]$ReportPath
+  )
+
+  $reference = [ordered]@{
+    path = $ReportPath
+    availability = "unavailable"
+    purpose = "Diagnose- und Kostenartefakt; kein Qualitätsnachweis"
+    blocksFinalization = $false
+    includedInManifest = $false
+  }
+  if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
+    Write-Host "[WARNUNG] Tokenbericht-Werkzeug fehlt; die Finalisierung wird dadurch nicht blockiert: $ScriptPath" -ForegroundColor Yellow
+    return $reference
+  }
+
+  try {
+    $powerShellExe = (Get-Process -Id $PID).Path
+    $output = & $powerShellExe -NoProfile -File $ScriptPath -Arbeitsordner $WorkFolder -Messbereich "technische_vorbereitung" 2>&1
+    foreach ($line in @($output)) { Write-Host $line }
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host "[WARNUNG] Tokenbericht konnte nicht aktualisiert werden; die Finalisierung wird fortgesetzt." -ForegroundColor Yellow
+      return $reference
+    }
+    if (Test-Path -LiteralPath $ReportPath -PathType Leaf) {
+      $tokenReport = Get-Content -LiteralPath $ReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      $reference.availability = [string](Get-JsonProperty -Object $tokenReport -Name "availability")
+    }
+  } catch {
+    Write-Host "[WARNUNG] Tokenbericht konnte nicht gelesen werden; die Finalisierung wird fortgesetzt: $($_.Exception.Message)" -ForegroundColor Yellow
+  }
+  return $reference
+}
+
 function Update-TechnicalSection {
   param(
     [string]$QualityPath,
@@ -249,6 +286,7 @@ $layoutReportPath = Join-Path -Path $layoutDir -ChildPath "Layoutcheck-Bericht.j
 $pdfReportPath = Join-Path -Path $pdfWorkDir -ChildPath "PDF-Export-Bericht.json"
 $atsReportPath = Join-Path -Path $resolvedWork -ChildPath "ATS-Pruefbericht.json"
 $finalReportPath = Join-Path -Path $resolvedWork -ChildPath "Finalisierungsbericht.json"
+$tokenReportPath = Join-Path -Path $resolvedWork -ChildPath "Tokenverbrauch.json"
 
 foreach ($requiredPath in @($auftragPath, $matrixPath, $candidateDir, $StammdatenPath, $ProfilPath)) {
   if (-not (Test-Path -LiteralPath $requiredPath)) {
@@ -274,6 +312,7 @@ $contentTool = Join-Path -Path $PSScriptRoot -ChildPath "Pruefe-Bewerbungsinhalt
 $layoutTool = Join-Path -Path $PSScriptRoot -ChildPath "Layoutcheck-Bewerbung.ps1"
 $exportTool = Join-Path -Path $PSScriptRoot -ChildPath "Exportiere-PDF.ps1"
 $atsTool = Join-Path -Path $PSScriptRoot -ChildPath "Pruefe-ATS.ps1"
+$tokenReportTool = Join-Path -Path $PSScriptRoot -ChildPath "Aktualisiere-Tokenbericht.ps1"
 $stammdatenReportPath = Join-Path -Path $resolvedWork -ChildPath "Stammdaten-Pruefbericht.json"
 $contentReportPath = Join-Path -Path $resolvedWork -ChildPath "Inhalts-Pruefbericht.json"
 
@@ -300,8 +339,9 @@ if (-not $Veroeffentlichen) {
   if ($artifacts.html.Count -ne 2 -or $artifacts.pdf.Count -ne 2 -or $artifacts.screenshots.Count -ne $expectedScreenshots) {
     Stop-Finalization -Message "Vorbereitung erzeugte nicht genau zwei HTML-Dateien, zwei PDFs und einen Screenshot pro A4-Seite (erwartet: $expectedScreenshots, erzeugt: $($artifacts.screenshots.Count))."
   }
+  $tokenUsageReference = Update-TokenReportNonBlocking -ScriptPath $tokenReportTool -WorkFolder $resolvedWork -ReportPath $tokenReportPath
   $report = [ordered]@{
-    schemaVersion = 2
+    schemaVersion = 3
     status = "bereit_zur_sichtpruefung"
     preparedAtUtc = [datetime]::UtcNow.ToString("o")
     workFolder = $resolvedWork
@@ -312,6 +352,7 @@ if (-not $Veroeffentlichen) {
     atsReport = $atsReportPath
     expectedScreenshots = $expectedScreenshots
     layoutWarnings = $layoutWarnings
+    tokenUsageReport = $tokenUsageReference
     sourceInputs = [ordered]@{
       stammdaten = Get-ArtifactRecord -File (Get-Item -LiteralPath $StammdatenPath)
       profil = Get-ArtifactRecord -File (Get-Item -LiteralPath $ProfilPath)

@@ -5,13 +5,13 @@
 <h1 align="center">bewerbungs-agent</h1>
 
 <p align="center">
-  <strong>KI-Bewerbungsagent für OpenAI Codex</strong><br>
-  Lokaler Coding-Agent-Workflow für passgenaue deutsche Bewerbungsunterlagen – von der Stellenanalyse bis zu geprüften A4-Layouts und PDFs.
+  <strong>Lokaler KI-Bewerbungsagent für Codex, OpenCode und Gemini-basierte Coding-Agenten</strong><br>
+  Agentenübergreifender Workflow für passgenaue deutsche Bewerbungsunterlagen – von der Stellenanalyse bis zu geprüften A4-Layouts und PDFs.
 </p>
 
 <p align="center">
   <a href="https://developers.openai.com/codex/ide"><img src="https://img.shields.io/badge/KI--Agent-OpenAI%20Codex-10A37F?style=flat-square" alt="Bewerbungsworkflow für OpenAI Codex"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.3-2563EB?style=flat-square" alt="Aktuelle Version 1.3"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.5-2563EB?style=flat-square" alt="Aktuelle Version 1.5"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-22C55E?style=flat-square" alt="MIT-Lizenz"></a>
   <a href="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
   <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
@@ -32,7 +32,7 @@
 
 ## Auf einen Blick
 
-Dieses Repository erweitert OpenAI Codex – den KI-Coding-Agenten von OpenAI – um einen spezialisierten Bewerbungsworkflow: Prompts, Regeln und lokale Prüfwerkzeuge führen ihn von der Stellenanalyse bis zur kontrollierten Freigabe.
+Dieses Repository stellt kompatiblen Coding-Agenten einen spezialisierten Bewerbungsworkflow bereit: Die zentrale [`AGENTS.md`](AGENTS.md), modulare Prompts und lokale Prüfwerkzeuge führen von der Stellenanalyse bis zur kontrollierten Freigabe. Codex bleibt der am umfassendsten dokumentierte Einstieg; OpenCode und Gemini-basierte Agenten nutzen dieselben Projektregeln.
 
 | 🎯 **Passgenau** | 🔒 **Lokal & privat** | ✅ **Geprüft** |
 | :---: | :---: | :---: |
@@ -98,6 +98,18 @@ flowchart LR
     </td>
   </tr>
 </table>
+
+### Automatischer Projekteinstieg für Coding-Agenten
+
+Nach dem Öffnen des Projektstamms erkennen AGENTS-kompatible Agenten die verbindlichen Routing- und Sicherheitsregeln aus [`AGENTS.md`](AGENTS.md). Gemini-basierte Coding-Agenten erhalten über den kleinen Adapter [`GEMINI.md`](GEMINI.md) denselben Inhalt. Die README bleibt die ausführliche Anleitung für Menschen; der fachliche Bewerbungsablauf beginnt weiterhin in [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) und lädt die Module `01` bis `11` bedarfsgerecht.
+
+| Agentenumgebung | Automatischer Projekteinstieg |
+| --- | --- |
+| Codex oder ein anderer AGENTS-kompatibler Agent | `AGENTS.md` im Projektstamm |
+| Gemini CLI beziehungsweise Gemini-basierter Coding-Agent | `GEMINI.md` importiert `AGENTS.md` |
+| Agent ohne Unterstützung für Projektanweisungen | manuell zuerst `AGENTS.md` und bei einer Bewerbung danach `Prompts/00_AGENTEN_START_HIER.md` lesen lassen |
+
+Diese Dateien stellen Kontext bereit, sind aber kein Betriebssystem-Autostart: Allein durch das Öffnen des Ordners wird kein Shell-Befehl ausgeführt und keine Bewerbung gestartet. Eine konkrete Stellenbeschreibung oder ein eindeutiger Bewerbungsauftrag startet den passenden Ablauf unmittelbar. Bei einer allgemeinen Begrüßung fragt der Agent knapp nach Bewerbung, Dateneinrichtung, Fortsetzung oder Projektentwicklung.
 
 ---
 
@@ -259,22 +271,15 @@ Bei einem erfolgreichen Lauf endet die Ausgabe mit `ERGEBNIS: OK`. Fehler müsse
 Kopiere möglichst den **vollständigen Text** der Stellenanzeige. Ein Link allein kann später nicht mehr erreichbar sein oder vom Agenten nicht gelesen werden.
 
 ```text
-Nutze Prompts/00_AGENTEN_START_HIER.md und erstelle eine Bewerbung für die folgende Stellenbeschreibung.
-
-Ich nutze das Projekt als Einsteiger. Führe den vorgesehenen Ablauf selbstständig bis zur vorbereiteten Sichtprüfung aus, aber veröffentliche noch nichts.
-Verwende für die automatische Browserauswahl -Browser auto, damit Chrome oder Edge erkannt wird.
-Nenne mir danach:
-- den genauen privaten Arbeitsordner,
-- den genauen Ordner mit den Layout-PNGs,
-- jede PNG-Datei, die ich öffnen muss,
-- die klare Bestätigung, ob der Status bereit_zur_sichtpruefung erreicht ist,
-- offene Fragen oder Warnungen,
-- den nächsten Schritt in einfacher Sprache.
+Erstelle eine Bewerbung für folgende Stellenbeschreibung und bereite sie bis zur Sichtprüfung vor.
+Veröffentliche noch nichts. Nenne mir jede PNG-Datei, die ich persönlich prüfen muss.
 
 Stellenbeschreibung:
 
 <hier den vollständigen Text der Stellenanzeige einfügen>
 ```
+
+Dieser kurze Auftrag genügt bei Agenten, die `AGENTS.md` beziehungsweise den Gemini-Adapter automatisch laden. Beim manuellen Fallback ergänze davor: `Lies AGENTS.md und folge für diese Bewerbung Prompts/00_AGENTEN_START_HIER.md.` Die automatische Browserauswahl bleibt im Workflow auf `-Browser auto` gesetzt.
 
 Wenn du stattdessen nur ein Anschreiben zu deinem universellen Lebenslauf möchtest, ergänze im Auftrag:
 
@@ -286,6 +291,8 @@ unverändert. Erstelle nur Anschreiben und E-Mail neu und prüfe den Lebenslauf-
 ```
 
 Der Agent erstellt jetzt den privaten Arbeitsordner, analysiert die Stelle, erzeugt die Dokumente, prüft Inhalte und Layout und bereitet PDFs vor. Die Dateien sind zu diesem Zeitpunkt **noch nicht für den Versand freigegeben**.
+
+Nach dem Lebenslauf-Kandidaten und nach der technischen Vorbereitung zeigt der Agent außerdem einen kompakten Tokenbericht. Exakte Zahlen erscheinen ausschließlich, wenn die jeweilige Laufzeit maschinenlesbare Nutzungsdaten bereitstellt. Andernfalls lautet die Ausgabe eindeutig `Tokenverbrauch: nicht verfügbar – die aktuelle Agentenumgebung stellt keine maschinenlesbaren Nutzungsdaten bereit.` und es wird keine Näherung berechnet.
 
 > [!WARNING]
 > Gehe erst zu Schritt 5, wenn der Agent den Status `bereit_zur_sichtpruefung` bestätigt und konkrete PNG-Dateien nennt. Bei einem Fehler, einer kritischen offenen Frage oder fehlenden Screenshots lässt du zuerst die Ursache beheben und die Vorbereitung vollständig wiederholen.
@@ -386,9 +393,9 @@ Der Agent trennt bewusst vier Zustände. Ein **Kandidat** ist dabei nur eine noc
 1. **Stammdaten prüfen** – Identität, Kontakt und zentrale Bewerbungsentscheidungen werden kontrolliert. Kritische Lücken stoppen den Ablauf.
 2. **Arbeitsbereich anlegen** – Der Agent erzeugt einen leeren Zielordner, einen privaten Arbeitsordner und den Bewerbungsauftrag.
 3. **Stelle analysieren** – Muss-/Kann-Anforderungen werden mit deinen belegbaren Profildaten abgeglichen und in einer Anforderungsmatrix bewertet.
-4. **Kandidaten erstellen** – In der Vollbewerbung entstehen Lebenslauf, Anschreiben und E-Mail neu. Im Anschreiben-Modus wird der universelle Lebenslauf unverändert übernommen und nur Anschreiben sowie E-Mail werden neu geschrieben.
+4. **Kandidaten erstellen** – In der Vollbewerbung entstehen Lebenslauf, Anschreiben und E-Mail neu. Im Anschreiben-Modus wird der universelle Lebenslauf unverändert übernommen und nur Anschreiben sowie E-Mail werden neu geschrieben. Nach dem Lebenslauf wird der nicht blockierende Nutzungsbericht aktualisiert.
 5. **Fachlich korrigieren** – Stellenbeschreibung, Profil, Matrix und alle Dokumente werden auf Wahrheit, Passung und Widerspruchsfreiheit geprüft.
-6. **Technisch vorbereiten** – A4-Screenshots, zwei PDFs sowie Layout-, PDF- und ATS-Nachweise werden erzeugt. Noch wird nichts veröffentlicht.
+6. **Technisch vorbereiten** – A4-Screenshots, zwei PDFs sowie Layout-, PDF-, ATS- und Token-Nachweise werden erzeugt beziehungsweise aktualisiert. Noch wird nichts veröffentlicht.
 7. **Sichtprüfen und veröffentlichen** – Du kontrollierst jede A4-Seite. Erst danach werden die geprüften Dateien gemeinsam nach `Versand/` und `Intern/` übernommen; zusätzlich wird `Manifest.json` erstellt.
 
 <details>
@@ -408,7 +415,7 @@ Der Agent macht aus dem ersten Matrixentwurf eine vollständige `Anforderungsmat
 
 **4 · Vollständiger Kandidat zur Prüfung**
 
-Alle inhaltlichen Dokumente werden mit ihren späteren Namen unter `Kandidat/` angelegt. Dieser Ordner ist die Werkbank für Korrekturen – noch nicht der Versandordner.
+Alle inhaltlichen Dokumente werden mit ihren späteren Namen unter `Kandidat/` angelegt. Dieser Ordner ist die Werkbank für Korrekturen – noch nicht der Versandordner. Nach Fertigstellung des Lebenslaufs aktualisiert der Agent `Tokenverbrauch.json`, ohne die weitere Dokumenterstellung zu unterbrechen.
 
 **5 · Fachliche Korrekturschleife**
 
@@ -416,7 +423,7 @@ Der Agent liest Stellenbeschreibung, Analyse, private Daten, Matrix, Lebenslauf,
 
 **6 · Technische Vorbereitung**
 
-Der erste Finalisierungslauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt einen Screenshot je A4-Seite, exportiert zwei PDFs und kontrolliert deren ATS-Textschicht. Der Status lautet danach lediglich `bereit_zur_sichtpruefung`.
+Der erste Finalisierungslauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt einen Screenshot je A4-Seite, exportiert zwei PDFs, kontrolliert deren ATS-Textschicht und aktualisiert den Tokenbericht mindestens mit dessen Verfügbarkeitsstatus. Der Status lautet danach lediglich `bereit_zur_sichtpruefung`; fehlende Laufzeit-Nutzungsdaten blockieren ihn nicht.
 
 **7 · Sichtprüfung und gemeinsame Veröffentlichung**
 
@@ -501,6 +508,7 @@ Alles in diesem Bereich bleibt privat und wird nicht versendet.
 | `PDF-Export/PDF-Export-Bericht.json` | HTML-/PDF-Hashes, Dateigröße, Seitenzahl und A4-MediaBox | PDF-Exportfehler technisch einordnen |
 | `ATS-Pruefbericht.json` | Textabdeckung, Pflichttexte und grundlegende Lesereihenfolge der PDFs | erkennen, ob Bewerbermanagementsysteme den PDF-Text voraussichtlich auslesen können |
 | `Finalisierungsbericht.json` | Zustands- und Vorbereitungsnachweis mit den damals erfassten Quellen-, Kandidaten- und Screenshot-Hashes | Status und Prüflauf nachvollziehen; für die Integrität des veröffentlichten Endstands ist `Manifest.json` maßgeblich |
+| `Tokenverbrauch.json` | anbieterneutraler Nutzungsbericht mit exakten Laufzeitwerten oder eindeutiger Nichtverfügbarkeit | Diagnose und Kosten nachvollziehen; niemals als Qualitäts- oder Versandnachweis verwenden |
 
 Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner liegen. Sie sind keine zweite freigegebene Bewerbung. Maschinenlesbare Berichte und Screenshots werden absichtlich **nicht** nach `Intern/` kopiert.
 
@@ -514,6 +522,7 @@ Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner lieg
 - 🔎 **Stellenpassung verstehen:** `Intern/Analyse.md` und bei Bedarf die private `Anforderungsmatrix.json` lesen.
 - ✏️ **Dokument korrigieren:** Codex um eine Korrektur der Arbeitsversion unter `Kandidat/` bitten; danach Vorbereitung und Sichtprüfung vollständig wiederholen.
 - 🧪 **Fehler untersuchen:** die passenden JSON-Berichte unter `_Arbeitsdateien/` öffnen.
+- 📊 **Tokenverbrauch prüfen:** `Tokenverbrauch.json` im Arbeitsordner öffnen; `null` und `unavailable` bedeuten, dass keine exakte maschinenlesbare Messung vorlag.
 - 🔐 **Veröffentlichten Satz prüfen:** die in `Manifest.json` unter `files[]` erfassten Dateien mit dem statischen Prüfer validieren.
 - 🗄️ **Bewerbung nachvollziehbar archivieren:** finalen Ordner **und** zugehörigen Arbeitsordner behalten.
 
@@ -632,6 +641,8 @@ Verwende -Browser auto, veröffentliche noch nichts und nenne mir danach:
 ```
 
 Dieser Lauf prüft Stammdaten und Inhalte, erzeugt A4-Screenshots, exportiert zwei PDFs und kontrolliert, ob Bewerbungsportale den PDF-Text grundsätzlich lesen können. Öffne erst nach bestätigtem Status `bereit_zur_sichtpruefung` jede genannte PNG-Datei.
+
+Der Lauf aktualisiert außerdem `Tokenverbrauch.json` im privaten Arbeitsordner. Das Tool selbst kennt keine Nutzungsdaten des übergeordneten Agenten und schreibt deshalb ohne maschinenlesbare Laufzeitwerte `unavailable` und `null`. Ein kompatibler Agent darf diese Felder anschließend nur mit tatsächlich von seiner Laufzeit bereitgestellten exakten Werten aktualisieren. Der Bericht beeinflusst den Finalisierungsstatus nicht.
 
 Nach deiner tatsächlichen Sichtprüfung sendest du:
 
@@ -752,6 +763,8 @@ Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgesch
 | --- | --- | --- |
 | Windows + PowerShell 7 | 🟢 primär unterstützt | am umfassendsten geprüfter Projektablauf |
 | Codex in VS Code oder lokale Codex-App | 🟢 empfohlen | liest Regeln und erzeugt lokale Dateien |
+| OpenCode mit AGENTS-Unterstützung | 🔵 kompatibler Einstieg | liest die zentrale `AGENTS.md`; lokale PowerShell- und Browservoraussetzungen bleiben gleich |
+| Gemini CLI beziehungsweise Gemini-basierter Coding-Agent | 🔵 kompatibler Einstieg | lädt über `GEMINI.md` dieselben Regeln aus `AGENTS.md` |
 | Chrome oder Edge | 🔵 für Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung |
 | Firefox | 🟡 optional | manuelle Vorschau; kein Ersatz für die verbindliche Finalisierung |
 | Linux + Bash | 🟠 Alpha | derzeit vor allem Ordnererstellung; [Portierungsplan](LINUX-PORTIERUNGSPLAN.md) |
@@ -802,6 +815,7 @@ Die Helfer erzeugen einen leeren Zielordner, einen Arbeitsordner und einen Kandi
 | Persönliche Dateien erscheinen in Git | `git status --short --ignored` prüfen | Dateien nach `Private/` verschieben; nichts Privates in Git übernehmen |
 | Informationen fehlen | `Offene_Fragen.md` lesen | belastbare Angaben ergänzen; keine Werte raten lassen |
 | Fertige Dateien werden nicht gefunden | hat Codex die lokale Freigabe erfolgreich gemeldet? | den exakten Ordner `.../Versand/` von Codex nennen lassen |
+| Tokenzahlen stehen auf `nicht verfügbar` | stellt die Agentenlaufzeit maschinenlesbare Nutzungsdaten bereit? | keine Zahl schätzen; `Tokenverbrauch.json` bleibt ein nicht blockierender Bericht mit `null`-Werten |
 
 Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Abschnitt [Prüfen & lokal freigeben](#finalisierung).
 
@@ -811,6 +825,7 @@ Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Absc
 - Linux befindet sich im Alpha-Status und unterstützt noch nicht den gesamten Ablauf in gleicher Qualität.
 - Automatischer PDF-Export unterstützt Chrome und Edge, nicht Firefox.
 - Die öffentliche CI prüft keine echten Browserläufe; Browser-, Layout- und PDF-Prüfungen müssen deshalb auf dem eigenen Rechner ausgeführt und persönlich kontrolliert werden.
+- Nicht jede Agentenoberfläche stellt maschinenlesbare Tokenwerte bereit oder kann Lebenslauf und Gesamtsitzung getrennt messen. In diesem Fall bleibt der Bericht ausdrücklich `unavailable`; das Projekt schätzt keine Werte.
 - HTML- und PDF-Prüfungen sind konservativ auf den unterstützten Chromium-Export ausgerichtet; ungewöhnliche Designs und andere PDF-Erzeuger benötigen zusätzliche Regressionstests.
 - Eine echte manuelle Sichtprüfung bleibt erforderlich, besonders bei neuen Designs und zweiseitigen Lebensläufen.
 - Die Ergebnisqualität hängt von vollständigen, aktuellen und ehrlich gepflegten Profildaten ab.
@@ -849,6 +864,8 @@ bewerbungs-agent/
 ├─ .github/
 │  ├─ assets/readme-hero.svg
 │  └─ workflows/tests.yml
+├─ AGENTS.md
+├─ GEMINI.md
 ├─ CHANGELOG.md
 ├─ LINUX-PORTIERUNGSPLAN.md
 ├─ README.md
@@ -890,6 +907,7 @@ Private/
       │     ├─ Inhalts-Pruefbericht.json
       │     ├─ ATS-Pruefbericht.json
       │     ├─ Finalisierungsbericht.json
+      │     ├─ Tokenverbrauch.json
       │     ├─ Kandidat/
       │     │  ├─ Stellenbeschreibung.md
       │     │  ├─ Analyse.md
@@ -919,7 +937,7 @@ Weitere private Bereiche wie `Archiv/` oder `Bewertungen/` können lokal existie
 
 ### Prompt-System
 
-Zentraler Einstieg ist [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md). Änderungen gehören in das fachlich passende Modul:
+Die zentrale [`AGENTS.md`](AGENTS.md) erkennt Nutzung, Einrichtung, Entwicklung und Information und routet Bewerbungsaufträge zum fachlichen Einstieg [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md). [`GEMINI.md`](GEMINI.md) ist ausschließlich der Gemini-Adapter; fachliche Regeln werden dort nicht dupliziert. Änderungen gehören in das fachlich passende Promptmodul:
 
 | Datei | Verantwortung |
 | --- | --- |
@@ -948,6 +966,7 @@ Zentraler Einstieg ist [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_S
 | `Exportiere-PDF.ps1` | zwei PDFs sicher exportieren und prüfen | Kandidaten- und `-OutputRoot`-Pfad übergeben |
 | `Pruefe-ATS.ps1` | Unicode-Textschicht und Lesereihenfolge prüfen | Bestandteil der Finalisierung |
 | `Finalisiere-Bewerbung.ps1` | verbindliches Prepare-/Publish-Gate | `-Arbeitsordner "..."` |
+| `Aktualisiere-Tokenbericht.ps1` | exakte Laufzeitwerte oder eindeutige Nichtverfügbarkeit standardisiert speichern | `-Arbeitsordner "..." -Messbereich lebenslauf` |
 
 <a id="dateivertraege"></a>
 
@@ -972,7 +991,8 @@ Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Fü
 | `Layoutcheck/Layoutcheck-Bericht.json` | `Layoutcheck-Bewerbung.ps1` | Browser, Abmessungen, HTML- und Screenshot-Hashes, Seite/Seitenzahl und Dichtehinweise |
 | `PDF-Export/PDF-Export-Bericht.json` | `Exportiere-PDF.ps1` | HTML-/PDF-Hashes, PDF-Größe, Seitenzahl und A4-MediaBox |
 | `ATS-Pruefbericht.json` | `Pruefe-ATS.ps1` | extrahierbare Zeichen, Textabdeckung, Pflichttexte, Lesereihenfolge und Ergebnis je PDF |
-| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Release-Status, Pfade, erwartete Screenshots, Warnungen sowie die bei der Vorbereitung erfassten Hashes der vier Quellen, flachen Kandidatendateien und PNGs |
+| `Tokenverbrauch.json` | Agent beziehungsweise `Aktualisiere-Tokenbericht.ps1` | Anbieter, Modell, optionale nicht sensible Vorgangs-ID, Messquelle, Messzeiten und ausschließlich exakt bereitgestellte Tokenfelder je Messbereich; andernfalls `unavailable` und `null` |
+| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Release-Status, Pfade, erwartete Screenshots, Warnungen, optionale nicht blockierende Tokenbericht-Referenz sowie die bei der Vorbereitung erfassten Hashes der vier Quellen, flachen Kandidatendateien und PNGs |
 
 `Pruefe-Bewerbung.ps1` schreibt bewusst keinen eigenen JSON-Bericht; sein Vertrag sind Konsolenausgabe und Exitcode.
 
@@ -988,6 +1008,8 @@ Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Fü
 | Prüfung | `Pruefe-Bewerbung.ps1` validiert Pfade, Größen und Hashes aus `files[]`; `sourceInputs` wird nicht erneut gegen die privaten Quellen geprüft | vor dem Zieltausch verweigert der Veröffentlichungslauf geänderte oder neue Quellen-, Kandidaten- und Screenshot-Artefakte |
 
 Nach erfolgreicher Veröffentlichung ergänzt der Finalisierungsbericht Pfad und SHA-256 des veröffentlichten Manifests. Die Hashes der Kandidatendateien dokumentieren den Zustand der technischen Vorbereitung; da `Qualitaetscheck.md` bei der Freigabe noch auf `bestaetigt` aktualisiert wird, ist für den tatsächlich veröffentlichten Dateistand anschließend das Manifest maßgeblich. Arbeitsberichte oder Screenshots werden nicht Bestandteil des Manifests.
+
+`Tokenverbrauch.json` ist bewusst nicht hashgebundener Bestandteil des Veröffentlichungs-Gates: Der Bericht darf nach einzelnen Messabschnitten aktualisiert werden, ist kein Qualitätsnachweis, blockiert die Finalisierung nicht und wird weder nach `Versand/` beziehungsweise `Intern/` kopiert noch standardmäßig in `Manifest.json` aufgenommen.
 
 <details>
 <summary><strong>Optionale und transiente technische Artefakte</strong></summary>
@@ -1014,7 +1036,7 @@ Diese Hilfsdateien und Ordner werden bei einem normalen Lauf bereinigt und sind 
 6. Rollen-, Gehalts-, Seiten-, Schulbildungs- und Profil-Link-Strategie werden festgelegt.
 7. Alle Dokumente entstehen zunächst unter `_Arbeitsdateien/.../Kandidat/`.
 8. Fachlicher Abschlusstest und Inhaltsprüfer gleichen Anforderungen, Belege, Daten und Zeiträume ab.
-9. Die Finalisierung erzeugt Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Finalisierungsbericht samt Hashnachweisen.
+9. Die Finalisierung erzeugt Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Finalisierungsbericht samt Hashnachweisen und aktualisiert den separaten Tokenbericht nicht blockierend.
 10. Jede explizite A4-Seite wird anhand ihres frischen Screenshots visuell geprüft.
 11. Jede spätere Quellen- oder Kandidatenänderung entwertet die Nachweise.
 12. Erst nach Sichtbestätigung wird der vollständige Satz als zusammengehörige Einheit veröffentlicht.
@@ -1025,7 +1047,7 @@ Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `str
 
 ### Tests & CI
 
-Die abhängigkeitsfreie Regressionstestsuite prüft Prompt-/Tool-Verträge, Logistik-Snapshots, Anforderungsmatrix, Staging, Manifest, Veröffentlichung und Fehlerszenarien:
+Die abhängigkeitsfreie Regressionstestsuite prüft Agenteneinstieg, Gemini-Adapter, README-Verweise, Tokenbericht, Prompt-/Tool-Verträge, Logistik-Snapshots, Anforderungsmatrix, Staging, Manifest, Veröffentlichung und Fehlerszenarien:
 
 ```powershell
 .\Tests\Run-RegressionTests.ps1
@@ -1094,6 +1116,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | Ziel | Zuständige Datei |
 | --- | --- |
 | Hauptablauf | `Prompts/00_AGENTEN_START_HIER.md` |
+| Agentenübergreifendes Routing | `AGENTS.md`, `GEMINI.md` |
 | Lebenslauf | `Prompts/03_LEBENSLAUF_REGELN.md` |
 | Anschreiben | `Prompts/04_ANSCHREIBEN_REGELN.md` |
 | E-Mail | `Prompts/05_EMAIL_NACHRICHT_REGELN.md` |
@@ -1104,6 +1127,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | Ordnererstellung | `Tools/Neue-Bewerbung.ps1`, `Tools/neue-bewerbung.sh` |
 | Stammdaten und Inhalt | `Tools/Pruefe-Stammdaten.ps1`, `Tools/Pruefe-Bewerbungsinhalt.ps1` |
 | Finalisierung | `Tools/Finalisiere-Bewerbung.ps1` |
+| Tokenbericht | `Tools/Aktualisiere-Tokenbericht.ps1` |
 | statischer Check | `Tools/Pruefe-Bewerbung.ps1` |
 | Layout und PDF | `Tools/Layoutcheck-Bewerbung.ps1`, `Tools/Exportiere-PDF.ps1` |
 | Regressionstests | `Tests/Run-RegressionTests.ps1`, `Tests/Bash/test-neue-bewerbung.sh` |

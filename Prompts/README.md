@@ -6,6 +6,8 @@ Startpunkt ist `00_AGENTEN_START_HIER.md`. Danach legt `01_DOKUMENTMODI_UND_UNIV
 
 Private Bewerberdaten stehen nicht in diesem Ordner. Sie gehören lokal nach `Private/Daten/`.
 
+Repository-kompatible Coding-Agenten erhalten die übergreifenden Routing- und Sicherheitsregeln aus der zentralen `AGENTS.md`; `GEMINI.md` importiert sie für Gemini-basierte Agenten. Der private, nicht blockierende Nutzungsbericht `Tokenverbrauch.json` wird über `Tools/Aktualisiere-Tokenbericht.ps1` nur mit exakt bereitgestellten Laufzeitwerten aktualisiert. Die fachlichen Regeln bleiben in den Modulen dieses Ordners und werden bedarfsgerecht geladen.
+
 Wichtiger Standard:
 
 - Lebensläufe sollen wie ruhige deutsche tabellarische CVs wirken, nicht wie Portfolio-Seiten oder Skill-Dashboards.

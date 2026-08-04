@@ -4,6 +4,30 @@
 
 Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Die Struktur orientiert sich an „Keep a Changelog“ und verwendet die im Projekt geführten Versionsnummern.
 
+## Version 1.5 - 2026-08-04
+
+### Hinzugefügt
+
+- Zentrale `AGENTS.md` als kompakte Routing-, Sicherheits- und Moduserkennungsschicht für AGENTS-kompatible Coding-Agenten.
+- Minimaler Gemini-Adapter `GEMINI.md`, der die zentrale `AGENTS.md` importiert, ohne fachliche Regeln zu duplizieren.
+- Anbieterneutraler, privater Nutzungsbericht `Tokenverbrauch.json` mit den Messbereichen `lebenslauf`, `gesamte_bewerbung` und `technische_vorbereitung`.
+- Neues Werkzeug `Tools/Aktualisiere-Tokenbericht.ps1`, das nur ausdrücklich als maschinenlesbar verfügbar gekennzeichnete Laufzeitwerte übernimmt und andernfalls `unavailable` mit Nullwerten schreibt.
+- Regressionstests für Agenteneinstieg, Gemini-Import, Betriebsmodi, Sichtprüfungszwang, Token-Schätzverbot, Berichtsschema, Nichtverfügbarkeit, sensible Felder sowie Ausschluss aus Versand und Manifest.
+- README-Prüfung für vorhandene lokale Markdown-Ziele und definierte interne Anker.
+
+### Geändert
+
+- Der Agentenstart lädt Promptmodule bedarfsgerecht statt vorsorglich das vollständige Prompt-System in den Kontext zu übernehmen.
+- Der Bewerbungsworkflow zeigt den Tokenbericht nach dem Lebenslauf-Kandidaten und nach der technischen Vorbereitung, ohne den Arbeitsablauf oder die Finalisierung zu blockieren.
+- `Finalisierungsbericht.json` verwendet Schema 3 und kann auf den separaten, nicht hashgebundenen Tokenbericht als Diagnose- und Kostenartefakt verweisen.
+- README und Promptdokumentation beschreiben den automatischen Einstieg für kompatible Agenten, den manuellen Fallback, den Unterschied zu einem Betriebssystem-Autostart sowie die Grenzen exakter Tokenmessung.
+
+### Sicherheit
+
+- Tokenwerte werden weder geschätzt noch aus Textlängen oder Teilwerten berechnet.
+- `Tokenverbrauch.json` bleibt im privaten Arbeitsordner, enthält keine Prompts oder Bewerbungsinhalte und gelangt nicht nach `Versand/`, `Intern/` oder `Manifest.json`.
+- Eine lokale Veröffentlichung verlangt weiterhin eine neue eindeutige persönliche Sichtprüfungsbestätigung für den unveränderten vorbereiteten Stand.
+
 ## Version 1.4 - 2026-08-03
 
 ### Hinzugefügt

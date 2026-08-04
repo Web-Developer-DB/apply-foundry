@@ -282,3 +282,9 @@ Dateiname:
 Finale Lebenslaufdateien dürfen keine Platzhalter, Warnhinweise, Entwurfsmarker oder abgeschnittene Inhalte enthalten. Der Dateiname nutzt den Bewerbernamen aus den privaten Daten, damit E-Mail-Anhänge für Recruiter schnell zuordenbar sind.
 
 Im Anschreiben-Modus muss der SHA-256-Wert der final geprüften HTML-Quelle mit dem im Bewerbungsauftrag eingefrorenen Universal-Snapshot übereinstimmen.
+
+## Tokenbericht nach dem Lebenslauf
+
+Sobald der Lebenslauf-Kandidat fertiggestellt ist beziehungsweise der unveränderte Universal-Snapshot als Kandidat feststeht, aktualisiert der Agent `Tokenverbrauch.json` im zugehörigen privaten Arbeitsordner über `Tools/Aktualisiere-Tokenbericht.ps1 -Messbereich lebenslauf`.
+
+Exakte Tokenwerte dürfen nur mit `-NutzungsdatenVerfuegbar` übergeben werden, wenn die Agentenlaufzeit diese maschinenlesbar ausweist. Sie werden weder aus Textlängen hochgerechnet noch aus Teilwerten ergänzt. Kann nur die gesamte Agentensitzung gemessen werden, wird `-Messumfang gesamte_agentensitzung` verwendet und die fehlende isolierte Lebenslaufmessung ausdrücklich genannt. Ohne exakte Nutzungsdaten lautet die Ausgabe eindeutig `nicht verfügbar`; die Erstellung von Anschreiben und E-Mail wird dadurch nicht unterbrochen.
