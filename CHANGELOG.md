@@ -4,6 +4,42 @@
 
 Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Die Struktur orientiert sich an „Keep a Changelog“ und verwendet die im Projekt geführten Versionsnummern.
 
+## Version 1.6 - 2026-08-05
+
+### Hinzugefügt
+
+- Dünner Claude-Code-Adapter `CLAUDE.md` mit echtem `@AGENTS.md`-Import und Verweis auf den kanonischen Bewerbungsworkflow.
+- Anbieterunabhängige Laufzeitfähigkeitenprüfung für Datei- und Terminalzugriff, PowerShell beziehungsweise kompatible Shell, Chrome/Edge, PNG-Auswertung, Nutzungsdaten und Sandboxgrenzen.
+- Dateibasierter Fortsetzungsvertrag, der die zuletzt bearbeitete Bewerbung aus Auftrag, Arbeitsnotizen, Matrix, Kandidaten, Prüfberichten, Finalisierungsbericht, Hashes und Manifest rekonstruiert, ohne Chat-Memory vorauszusetzen.
+- Dokumentierte Agenten-Smoke- und Schutztests unter `Tests/Agenten-Kompatibilitaet.md`.
+- Regressionstests für Claude-/Gemini-Adapter, kanonische Einzelquelle, exakte Pfadschreibweise, fünf direkte Einstiege, Fähigkeiten, Fortsetzung und eingebettete Fremdanweisungen.
+
+### Geändert
+
+- `AGENTS.md` ist jetzt ein kompakter, agentenunabhängiger Root-Einstieg für Vollbewerbung, Anschreiben mit Universal-Lebenslauf, Dateneinrichtung/-prüfung, Fortsetzung und Projektentwicklung.
+- OpenCode nutzt die vorhandene Root-`AGENTS.md`; eine zusätzliche `opencode.json` ist nicht erforderlich und wurde deshalb nicht angelegt.
+- README, Hero, Schnellstart, Voraussetzungen, Hilfebereich, Datenschutz, Entwicklerstruktur und Plattformstatus wurden von einem Codex-/VS-Code-Hauptweg auf auswählbare Agentenumgebungen umgestellt.
+- README dokumentiert Codex CLI, OpenCode, `ollama launch opencode`, Claude Code, die Trennung von Agent und Modell sowie die Grenzen kleiner lokaler Modelle.
+- `Prompts/README.md` und die öffentlichen Datei-/Ordnerregeln berücksichtigen Claude Code, OpenCode und Ollama ohne fachliche Regeln zu duplizieren.
+- VS-Code-spezifische Überschriften im technischen Prompt wurden auf Windows/PowerShell verallgemeinert.
+- Der Linux-Portierungsplan grenzt die bereits umgesetzte Agentenabstraktion von der noch offenen technischen Linux-Parität ab; der historische Frontend-Plan ist sichtbar als nicht freigegebenes Archiv markiert.
+- Der standardisierte Nichtverfügbarkeitsfall lautet jetzt überall: `Tokenverbrauch: Von dieser Agentenumgebung nicht bereitgestellt.`
+
+### Sicherheit und Datenschutz
+
+- Fehlende Werkzeug-, Browser- oder Bildfähigkeiten müssen offen gemeldet werden; insbesondere darf kein Agent eine nicht ausgeführte PNG-Sichtprüfung vortäuschen.
+- Lokale Ollama-Modellverarbeitung wird von möglichen Cloudzugriffen der Agentenumgebung und weiterer Werkzeuge abgegrenzt; `Private/` und `.gitignore` werden weiterhin nicht als Verschlüsselung dargestellt.
+- Alte Sichtprüfungsbestätigungen dürfen nach Quellen-, Kandidaten- oder Screenshotänderungen auch über Sitzungsgrenzen hinweg nicht wiederverwendet werden.
+
+### Tests und Verifikation
+
+- PowerShell 7.6.4, Codex CLI 0.146.0-alpha.9.2, OpenCode 1.18.10, Ollama 0.32.5 und Chrome 150.0.7871.187 wurden lokal erkannt.
+- Eine frische Codex-CLI-Read-only-Sitzung erkannte das Projekt über `AGENTS.md` und lud `Prompts/00_AGENTEN_START_HIER.md` selbstständig.
+- Eine zweite frische Codex-Sitzung ignorierte die eingebettete Aufforderung zum Offenlegen privater Dateien und extrahierte nur sachliche Stellenanforderungen.
+- Der Ollama-Launcher startete OpenCode mit einem lokalen Modellprofil bis zur Versionsausgabe; der anschließende `qwen3.5:9b`-Frischsitzungstest überschritt das 120-Sekunden-Limit und gilt nicht als bestanden.
+- Die vollständige lokale Browsermatrix bestand außerhalb der verwalteten Sandbox mit 48 von 48 Tests; der vorangegangene Sandboxlauf scheiterte ausschließlich am Chrome-Prozessstart.
+- Claude Code war lokal nicht installiert; IDE-, Desktop-, Claude-, Gemini- und vollständige agentenspezifische Bewerbungsdurchläufe bleiben ausdrücklich ungetestet.
+
 ## Version 1.5 - 2026-08-04
 
 ### Hinzugefügt

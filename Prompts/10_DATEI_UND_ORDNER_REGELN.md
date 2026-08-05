@@ -12,6 +12,7 @@ Alle generierten Bewerbungsdateien liegen unter `Private/`, damit das Projekt oh
 
 ```text
 AGENTS.md
+CLAUDE.md
 GEMINI.md
 Prompts/
 Vorlagen/

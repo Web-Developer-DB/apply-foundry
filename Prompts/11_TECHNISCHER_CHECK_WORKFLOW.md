@@ -22,7 +22,7 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Versandfertige Dateien werden zunächst im privaten `Kandidat`-Ordner geprüft. Der finale Zielordner bleibt bis zur atomaren Veröffentlichung leer.
 - Eine Änderung an einer HTML-Datei nach dem Layoutcheck macht den bisherigen Screenshot- und PDF-Nachweis ungültig. Maßgeblich sind die SHA-256-Werte in den Prüfberichten.
 - Kandidatendateien einzeln und vollständig schreiben und danach unmittelbar validieren. Insbesondere JSON-Dateien nach jeder Änderung parsen; keine unübersichtliche Sammeländerung darf bei einem Teilfehler mehrere fertige Dokumente halb aktualisiert zurücklassen.
-- In einer als verwaltete Sandbox bekannten Umgebung den ersten browsergestützten Lauf direkt mit lokaler Browserfreigabe ausführen, statt einen erwartbaren Browser-Fehlerlauf zu provozieren.
+- In einer als verwaltete Sandbox bekannten Umgebung vor dem Browserlauf prüfen, ob eine lokale Browserfreigabe verfügbar ist. Eine vorhandene Freigabe direkt verwenden; andernfalls die Grenze offen melden und keinen erfolgreichen Lauf behaupten.
 - Tokenzahlen niemals schätzen oder aus Textlängen beziehungsweise Teilwerten ableiten. Exakte Zahlen sind nur zulässig, wenn die Agentenlaufzeit sie maschinenlesbar bereitstellt.
 
 ## Verbindlicher Finalisierungsworkflow
@@ -120,7 +120,7 @@ Der Layoutcheck:
 
 Als Einzelwerkzeug ist der Browser-Layoutcheck für Diagnose optional. Im verbindlichen Finalisierungsworkflow ist er Voraussetzung für die Veröffentlichung. Wenn er wegen lokaler Browser- oder Sandbox-Einschränkungen nicht läuft, darf der statische Check zwar separat ausgewertet, die Bewerbung aber nicht als vollständig finalisiert veröffentlicht werden.
 
-## Standardweg unter Windows 11 / VS Code / PowerShell
+## Standardweg unter Windows 11 / PowerShell
 
 Im Standardweg wählt das Skript automatisch einen unterstützten installierten Browser aus:
 
@@ -205,7 +205,7 @@ Optional kann der PDF-Export vorher auch den Browser-Layoutcheck ausführen:
 .\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -MitLayoutcheck
 ```
 
-Unter Windows 11 / VS Code / PowerShell mit Chrome kann der Export gezielt mit Chrome ausgeführt werden:
+Unter Windows 11 mit PowerShell und Chrome kann der Export gezielt mit Chrome ausgeführt werden:
 
 ```powershell
 .\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome

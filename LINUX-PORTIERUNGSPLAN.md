@@ -3,6 +3,8 @@
 Stand: 2026-07-21  
 Status: **nur Planung; noch keine Portierungsänderungen umgesetzt**
 
+Hinweis vom 05.08.2026: Der agentenunabhängige Root-Einstieg und die anbieterneutrale Fähigkeitenprüfung sind inzwischen in `AGENTS.md` und `Prompts/00_AGENTEN_START_HIER.md` umgesetzt. Das stellt noch keine technische Linux-Parität her; insbesondere bleiben die unten geplanten Module, Browseranpassungen und vollständigen Linux-Prüfläufe offen.
+
 ## 1. Ziel und Definition von „gleichwertig"
 
 Das Repository soll auf Windows und Linux denselben vollständigen Bewerbungsworkflow bieten:
@@ -392,9 +394,9 @@ Die Portierung ist erst fertig, wenn alle Punkte erfüllt sind:
 11. realer End-to-End-Lauf auf Linux.
 12. abschließender Gegenlauf auf Windows.
 
-## 8. Startauftrag für einen neuen Chat nach dem Linux-Wechsel
+## 8. Technischer Portierungsauftrag für einen neuen Chat nach dem Linux-Wechsel
 
-Diesen Text kann der Nutzer im neuen Linux-Chat verwenden:
+Dieser Text ist ausschließlich ein Entwicklungsauftrag für die noch offene Portierung, kein zweiter Bewerbungsworkflow und kein normaler Projekteinstieg:
 
 ```text
 Lies zuerst vollständig LINUX-PORTIERUNGSPLAN.md und setze die dort beschriebene
@@ -406,4 +408,3 @@ erst auf, wenn die Abnahmekriterien erfüllt oder ein echter externer Blocker
 belegt ist. Installiere keine Systempakete und deaktiviere keine Browser-Sandbox
 ohne meine ausdrückliche Freigabe.
 ```
-

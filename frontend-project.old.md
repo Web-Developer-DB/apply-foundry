@@ -2,10 +2,13 @@
 
 # Frontend-Projektplan: Electron-GUI mit Codex-Agenten
 
+> [!CAUTION]
+> **Archivierter, nicht aktueller Plan.** Dieses Dokument beschreibt einen früher erwogenen Frontend-Ausbau, ist keine operative Projektanweisung und darf nicht als aktueller Implementierungsauftrag verwendet werden. Der derzeitige Bewerbungsworkflow bleibt terminal- und agentengesteuert; verbindlich sind `AGENTS.md` und `Prompts/00_AGENTEN_START_HIER.md`.
+
 **Ausgangspunkt:** `bewerbungs-agent` Version 1.1  
 **Empfohlenes Zielrelease:** Version 1.2  
 **Plattform des ersten Releases:** Windows mit PowerShell  
-**Dokumentstatus:** verbindlicher Implementierungs- und Abnahmeplan
+**Dokumentstatus:** archivierter historischer Entwurf, nicht zur Umsetzung freigegeben
 
 Dieses Dokument beschreibt, wie das bestehende Projekt mit einer Electron-Oberfläche ergänzt und mithilfe von Codex-Agenten schrittweise umgesetzt werden kann. Es ist kein Nachweis, dass das Frontend bereits existiert. Eine Phase gilt erst dann als abgeschlossen, wenn ihre Abnahmekriterien erfüllt und die vorgesehenen Tests erfolgreich ausgeführt wurden.
 

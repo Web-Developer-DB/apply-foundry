@@ -148,7 +148,7 @@ if ($preserveAvailableSection) {
   $reason = if ($NutzungsdatenVerfuegbar) {
     $null
   } else {
-    "Die aktuelle Agentenumgebung stellt keine maschinenlesbaren Nutzungsdaten bereit."
+    "Von dieser Agentenumgebung nicht bereitgestellt."
   }
   $section = [ordered]@{
     name = $Messbereich
@@ -180,7 +180,7 @@ $report = [ordered]@{
   sessionId = if ($null -ne $sessionValue) { $sessionValue } else { $existingSession }
   measurementSource = $sourceValue
   availability = if ($anyAvailable) { "available" } else { "unavailable" }
-  reason = if ($anyAvailable) { $null } else { "Die aktuelle Agentenumgebung stellt keine maschinenlesbaren Nutzungsdaten bereit." }
+  reason = if ($anyAvailable) { $null } else { "Von dieser Agentenumgebung nicht bereitgestellt." }
   sections = $sections
 }
 
@@ -193,7 +193,7 @@ $heading = switch ($Messbereich) {
 }
 $storedAvailability = [string](Get-JsonProperty -Object $section -Name "availability")
 if ($storedAvailability -ne "available") {
-  Write-Host "Tokenverbrauch: nicht verfügbar – die aktuelle Agentenumgebung stellt keine maschinenlesbaren Nutzungsdaten bereit."
+  Write-Host "Tokenverbrauch: Von dieser Agentenumgebung nicht bereitgestellt."
 }
 Write-Host "Tokenverbrauch – $heading"
 Write-Host "Anbieter: $(Format-TokenValue -Value $report.provider)"

@@ -1,17 +1,17 @@
 <p align="center">
-  <img src=".github/assets/readme-hero.svg" alt="bewerbungs-agent – KI-Bewerbungsagent für OpenAI Codex" width="100%">
+  <img src=".github/assets/readme-hero.svg" alt="bewerbungs-agent – agentenunabhängiger KI-Bewerbungsworkflow" width="100%">
 </p>
 
 <h1 align="center">bewerbungs-agent</h1>
 
 <p align="center">
-  <strong>Lokaler KI-Bewerbungsagent für Codex, OpenCode und Gemini-basierte Coding-Agenten</strong><br>
-  Agentenübergreifender Workflow für passgenaue deutsche Bewerbungsunterlagen – von der Stellenanalyse bis zu geprüften A4-Layouts und PDFs.
+  <strong>Agentenunabhängiger KI-Bewerbungsworkflow</strong><br>
+  Für Codex, OpenCode, Claude Code, Gemini und weitere AGENTS-kompatible Agenten – von der Stellenanalyse bis zu geprüften A4-Layouts und PDFs.
 </p>
 
 <p align="center">
-  <a href="https://developers.openai.com/codex/ide"><img src="https://img.shields.io/badge/KI--Agent-OpenAI%20Codex-10A37F?style=flat-square" alt="Bewerbungsworkflow für OpenAI Codex"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.5-2563EB?style=flat-square" alt="Aktuelle Version 1.5"></a>
+  <img src="https://img.shields.io/badge/Agentenregeln-AGENTS.md-0F766E?style=flat-square" alt="Agentenunabhängiger Einstieg über AGENTS.md">
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.6-2563EB?style=flat-square" alt="Aktuelle Version 1.6"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-22C55E?style=flat-square" alt="MIT-Lizenz"></a>
   <a href="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
   <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
@@ -32,7 +32,7 @@
 
 ## Auf einen Blick
 
-Dieses Repository stellt kompatiblen Coding-Agenten einen spezialisierten Bewerbungsworkflow bereit: Die zentrale [`AGENTS.md`](AGENTS.md), modulare Prompts und lokale Prüfwerkzeuge führen von der Stellenanalyse bis zur kontrollierten Freigabe. Codex bleibt der am umfassendsten dokumentierte Einstieg; OpenCode und Gemini-basierte Agenten nutzen dieselben Projektregeln.
+Dieses Repository stellt unterschiedlichen Coding-Agenten denselben spezialisierten Bewerbungsworkflow bereit. Die zentrale [`AGENTS.md`](AGENTS.md) erkennt den Auftrag, der kanonische Einstieg [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) steuert den vollständigen Ablauf, und lokale Werkzeuge führen von der Stellenanalyse bis zur kontrollierten Freigabe. Agentenspezifische Adapter enthalten keine Kopie des Workflows.
 
 | 🎯 **Passgenau** | 🔒 **Lokal & privat** | ✅ **Geprüft** |
 | :---: | :---: | :---: |
@@ -55,7 +55,7 @@ Aus einer Stellenbeschreibung und deinen Profildaten entstehen - abhängig vom g
 Im zweiten Modus friert der Bewerbungsauftrag die Universalquelle per SHA-256 ein. Die Zielrolle muss dann im Anschreiben und E-Mail-Betreff stehen, nicht im universellen Lebenslauf.
 
 > [!NOTE]
-> **Einfachster Einstieg:** Windows, PowerShell 7, OpenAI Codex und Chrome oder Edge. Dieser Weg wird vom Projekt am umfassendsten unterstützt; die [Linux-Unterstützung befindet sich noch im Alpha-Status](LINUX-PORTIERUNGSPLAN.md).
+> **Vollständig unterstützte Werkzeugkette:** Windows, PowerShell 7 und Chrome oder Edge. Die Agentenumgebung ist frei wählbar, muss aber Dateien bearbeiten und Terminalbefehle ausführen können. Die [Linux-Unterstützung befindet sich noch im Alpha-Status](LINUX-PORTIERUNGSPLAN.md).
 
 ### So fließen deine Daten
 
@@ -99,17 +99,28 @@ flowchart LR
   </tr>
 </table>
 
+<a id="agentenkompatibilitaet"></a>
+
 ### Automatischer Projekteinstieg für Coding-Agenten
 
-Nach dem Öffnen des Projektstamms erkennen AGENTS-kompatible Agenten die verbindlichen Routing- und Sicherheitsregeln aus [`AGENTS.md`](AGENTS.md). Gemini-basierte Coding-Agenten erhalten über den kleinen Adapter [`GEMINI.md`](GEMINI.md) denselben Inhalt. Die README bleibt die ausführliche Anleitung für Menschen; der fachliche Bewerbungsablauf beginnt weiterhin in [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) und lädt die Module `01` bis `11` bedarfsgerecht.
+Nach dem Start einer Agentensitzung im Projektstamm laden AGENTS-kompatible Agenten die Routing- und Sicherheitsregeln aus [`AGENTS.md`](AGENTS.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) sind dünne Adapter, die dieselben Regeln importieren. `AGENTS.md` weist den Agenten an, den einzigen vollständigen Workflow aus [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) zu lesen; die Module `01` bis `11` werden erst beim jeweils zuständigen Arbeitsschritt geladen. Eine zusätzliche `opencode.json` ist für diesen Einstieg nicht erforderlich.
 
-| Agentenumgebung | Automatischer Projekteinstieg |
-| --- | --- |
-| Codex oder ein anderer AGENTS-kompatibler Agent | `AGENTS.md` im Projektstamm |
-| Gemini CLI beziehungsweise Gemini-basierter Coding-Agent | `GEMINI.md` importiert `AGENTS.md` |
-| Agent ohne Unterstützung für Projektanweisungen | manuell zuerst `AGENTS.md` und bei einer Bewerbung danach `Prompts/00_AGENTEN_START_HIER.md` lesen lassen |
+| Umgebung | Projektstatus | Automatische Projektregeln | Lokaler Teststand vom 05.08.2026 |
+| --- | --- | --- | --- |
+| Codex in VS Code | unterstützt | `AGENTS.md` | strukturell geprüft; kein vollständiger Beispielworkflow in einer frischen IDE-Sitzung |
+| Codex CLI | unterstützt | `AGENTS.md` | CLI `0.146.0-alpha.9.2`; frische Read-only-Sitzung erkannte das Projekt und lud den kanonischen Prompt |
+| ChatGPT-Desktop-App mit Codex | vorbereitet | `AGENTS.md` | gemeinsamer Adapter vorhanden; nicht in einer frischen App-Sitzung getestet |
+| OpenCode | vorbereitet | `AGENTS.md` | CLI `1.18.10` mit isolierter Konfiguration gestartet; keine frische Modellsitzung abgeschlossen |
+| OpenCode mit Ollama | experimentell | OpenCode lädt `AGENTS.md`; Ollama liefert das Modell | Launcher bis OpenCode `1.18.10` geprüft; lokaler `qwen3.5:9b`-Startauftrag erreichte nach 120 Sekunden den Timeout |
+| Claude Code | vorbereitet | `CLAUDE.md` → `AGENTS.md` | Adapter automatisiert geprüft; Claude CLI lokal nicht installiert |
+| Gemini-basierter Coding-Agent | vorbereitet | `GEMINI.md` → `AGENTS.md` | Adapter automatisiert geprüft; keine frische Modellsitzung |
+| andere AGENTS.md-Agenten | experimentell | `AGENTS.md` | abhängig von Datei-, Terminal-, Browser- und Bildfähigkeiten |
 
-Diese Dateien stellen Kontext bereit, sind aber kein Betriebssystem-Autostart: Allein durch das Öffnen des Ordners wird kein Shell-Befehl ausgeführt und keine Bewerbung gestartet. Eine konkrete Stellenbeschreibung oder ein eindeutiger Bewerbungsauftrag startet den passenden Ablauf unmittelbar. Bei einer allgemeinen Begrüßung fragt der Agent knapp nach Bewerbung, Dateneinrichtung, Fortsetzung oder Projektentwicklung.
+„Unterstützt“ bedeutet hier, dass der Projekteinstieg und die erforderlichen Verträge vorhanden sind. Es bedeutet nicht, dass jedes Modell den langen Workflow gleich zuverlässig ausführt. Die reproduzierbaren Prüfungen und die Abgrenzung zwischen lokal getestet und nur vorbereitet stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md).
+
+Codex CLI, OpenCode und Claude Code sind **Agentenumgebungen**: Sie lesen Dateien, führen Werkzeuge aus und verwalten den Ablauf. Ollama ist dagegen ein **Modellanbieter** für lokale oder gehostete Modelle. Das Modell erzeugt und bewertet Inhalte; OpenCode bleibt auch beim Start über Ollama der ausführende Agent.
+
+Diese Dateien stellen Kontext bereit, sind aber kein Betriebssystem-Autostart: Allein durch das Öffnen des Ordners wird kein Shell-Befehl ausgeführt und keine Bewerbung gestartet. Ein kurzer eindeutiger Auftrag startet den passenden Ablauf. Ohne konkreten Auftrag nennt der Agent nur die Einstiege Vollbewerbung, Anschreiben mit Universal-Lebenslauf, Dateneinrichtung/-prüfung, Fortsetzung und Projektentwicklung.
 
 ---
 
@@ -126,68 +137,98 @@ Dieser Abschnitt ist für alle, die mit dem Projekt Bewerbungen erstellen möcht
 ### 🚀 Erste Bewerbung: Schritt für Schritt
 
 > [!IMPORTANT]
-> **Folge für deine erste Bewerbung den Schritten 0 bis 7 in dieser Reihenfolge.** Im empfohlenen Weg führt Codex die technischen Befehle aus und nennt dir die nächsten Aktionen. Du kontrollierst persönlich deine Daten, jeden Seitenscreenshot und die fertigen Versanddateien.
+> **Folge für deine erste Bewerbung den Schritten 0 bis 8 in dieser Reihenfolge.** Der geöffnete KI-Agent führt die verfügbaren technischen Schritte aus und nennt fehlende Fähigkeiten offen. Du kontrollierst persönlich deine Daten, jeden Seitenscreenshot und die fertigen Versanddateien.
 
 #### 0. Das brauchst du vor dem Start
 
 | Benötigt | Wofür? |
 | --- | --- |
-| Windows mit [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/install-powershell-on-windows) | primär unterstützter Projektablauf |
-| [Git für Windows](https://git-scm.com/install/windows) | Repository klonen und später aktualisieren |
-| [Visual Studio Code](https://code.visualstudio.com/download) mit installierter und angemeldeter [Codex-Erweiterung](https://developers.openai.com/codex/ide) | in dieser Anleitung verwendete Oberfläche für Agentenaufträge, Terminal und Dateien |
-| Chrome oder Edge | Layoutbilder und geprüfte PDFs erzeugen |
+| Windows mit [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/install-powershell-on-windows) | vollständig unterstützte Prüf- und Freigabekette; Linux/Bash ist derzeit Alpha |
+| Git | Repository klonen und später aktualisieren; bei einem bereits vorhandenen Projektordner nicht für den Workflow selbst erforderlich |
+| eine eingerichtete Agentenumgebung | Projektregeln lesen, Dateien bearbeiten und Terminalbefehle ausführen |
+| Chrome oder Edge | verbindliche Layoutbilder und geprüfte PDFs erzeugen |
 | vorhandener Lebenslauf, Zeugnisse oder eigene Notizen | wahre persönliche und fachliche Angaben übernehmen |
 | vollständiger Text einer Stellenanzeige | Bewerbung gezielt auf die Stelle ausrichten |
 
-**Wenn dir eines der ersten drei Programme fehlt:**
-
-1. Öffne den jeweiligen Link in der Tabelle, installiere nur das fehlende Programm und starte Visual Studio Code danach neu.
-2. Öffne in Visual Studio Code links **Erweiterungen** mit <kbd>Strg</kbd> + <kbd>Umschalt</kbd> + <kbd>X</kbd>. Suche nach **Codex – OpenAI’s coding agent**, prüfe den Herausgeber **OpenAI** und wähle **Installieren**.
-3. Wähle anschließend links das **Codex-Symbol**. Ist es nicht sichtbar, öffne mit <kbd>Strg</kbd> + <kbd>Umschalt</kbd> + <kbd>P</kbd> die Befehlspalette, suche `Codex: Open Codex Sidebar` und bestätige den Befehl.
-4. Folge dem Anmeldedialog der Erweiterung. Beginne erst, wenn du unten im Codex-Bereich eine Nachricht eingeben kannst.
-
 > [!TIP]
-> Öffne Befehle in Visual Studio Code über **Terminal → Neues Terminal**. In der Eingabezeile sollte PowerShell aktiv sein. Führe Projektbefehle immer im Projektstamm aus, in dem `README.md`, `Prompts/` und `Tools/` liegen.
+> Führe Projektbefehle immer im Projektstamm aus, in dem `AGENTS.md`, `README.md`, `Prompts/` und `Tools/` liegen. Ein Editor wie VS Code ist optional.
 
-Prüfe im Terminal Git und die PowerShell-Version:
+Prüfe im Terminal die installierten Grundlagen:
 
 ```powershell
 git --version
-$PSVersionTable.PSVersion
+pwsh --version
 ```
 
-Der erste Befehl muss eine Git-Version ausgeben. Meldet PowerShell, dass `git` nicht gefunden wurde, installiere Git über den Link in der Tabelle und starte Visual Studio Code neu.
-
-Bei PowerShell muss die erste Zahl unter `Major` mindestens `7` sein. Zeigt sie `5`, wähle über den Pfeil rechts neben dem Pluszeichen im Terminal ein vorhandenes Profil **PowerShell 7** beziehungsweise `pwsh`. Ist es nicht vorhanden, installiere PowerShell 7 über den Link in der Tabelle, starte Visual Studio Code neu und prüfe beide Befehle erneut. Fahre außerdem erst fort, wenn der Codex-Chat sichtbar und angemeldet ist.
+`pwsh` muss eine Hauptversion von mindestens 7 melden. Die Agentenumgebung prüft zusätzlich Dateizugriff, Terminal, Browser, PNG-Auswertung, Nutzungsdaten und Sandboxgrenzen jeweils vor dem betroffenen Schritt. Fehlt beispielsweise die Bildauswertung, darf sie keine visuelle Prüfung behaupten; sie muss die PNGs erzeugen und dich zur persönlichen Prüfung auffordern.
 
 #### 1. Projekt herunterladen und öffnen
 
 Wenn du das Projekt noch nicht auf deinem Rechner hast, führe diese beiden Befehle aus:
 
-```powershell
+```bash
 git clone https://github.com/Web-Developer-DB/bewerbungs-agent.git
-Set-Location bewerbungs-agent
+cd bewerbungs-agent
 ```
 
-Wenn du das Projekt bereits geklont hast, überspringe die Befehle. Wähle in Visual Studio Code **Datei → Ordner öffnen**, und öffne genau den geklonten Projektordner – standardmäßig heißt er `bewerbungs-agent`. Öffne nicht nur den übergeordneten Ordner.
+Wenn du das Projekt bereits geklont hast, überspringe die Befehle. Öffne genau den Projektordner – standardmäßig heißt er `bewerbungs-agent` – als Arbeitsverzeichnis deiner Agentenumgebung. Öffne nicht nur den übergeordneten Ordner.
 
-Im Explorer von Visual Studio Code müssen anschließend unter anderem `README.md`, `Prompts/`, `Private.example/` und `Tools/` sichtbar sein. Mit diesem Befehl kannst du den geöffneten Terminalpfad prüfen:
+Im Dateimanager oder Editor müssen anschließend unter anderem `AGENTS.md`, `README.md`, `Prompts/`, `Private.example/` und `Tools/` sichtbar sein. Mit diesem Befehl kannst du unter PowerShell den Terminalpfad prüfen:
 
 ```powershell
 Get-Location
 ```
 
-Der ausgegebene Pfad muss der geöffnete Projektstamm sein, in dem `README.md`, `Prompts/`, `Private.example/` und `Tools/` liegen. Der Ordnername darf abweichen, wenn du ihn beim Klonen oder später bewusst umbenannt hast.
+Der ausgegebene Pfad muss der Projektstamm sein. Der Ordnername darf abweichen, wenn du ihn beim Klonen oder später bewusst umbenannt hast.
 
 > [!TIP]
-> **Zwei Eingabestellen:** Blöcke mit der Überschrift `powershell` gehören in das VS-Code-Terminal. Blöcke mit der Überschrift `text` gehören in den Codex-Chat. Kopiere einen Agentenauftrag niemals in das PowerShell-Terminal.
+> Blöcke mit der Überschrift `powershell` oder `bash` gehören in ein Terminal. Blöcke mit der Überschrift `text` sind Aufträge für die geöffnete Agentensitzung.
 
-#### 2. Persönliche Daten mit Codex einrichten
+#### 2. Agentenumgebung auswählen und im Projektstamm starten
 
-Dies ist der einfachste und empfohlene Weg. Kopiere den folgenden Auftrag vollständig in den Codex-Chat:
+Verwende eine bereits installierte und eingerichtete Umgebung. Installations- und Anmeldehinweise stehen in den offiziellen Dokumentationen für [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), [OpenCode](https://opencode.ai/docs/), [Ollama mit OpenCode](https://docs.ollama.com/integrations/opencode) und [Claude Code](https://code.claude.com/docs/en/quickstart). Die folgenden Befehle sind Alternativen, nicht gemeinsam auszuführen:
+
+Codex CLI:
+
+```bash
+cd bewerbungs-agent
+codex
+```
+
+OpenCode:
+
+```bash
+cd bewerbungs-agent
+opencode
+```
+
+OpenCode mit einem über Ollama bereitgestellten Modell:
+
+```bash
+cd bewerbungs-agent
+ollama launch opencode
+```
+
+Der Ollama-Launcher öffnet die Modellauswahl; eine zusätzliche Projektkonfiguration ist dafür nicht erforderlich. In einer normalen OpenCode-Sitzung steht `/models` für die Modellwahl zur Verfügung. Prüfe bei lokalen Modellen besonders Kontextlänge und zuverlässige Werkzeugaufrufe; Ollama empfiehlt für Agenten- und Coding-Aufgaben mindestens 64.000 Kontexttokens, was den Speicherbedarf erhöht. Kleine lokale Modelle können lange Regeln, korrektes JSON, HTML/CSS, mehrere Prüfberichte oder Bildrückmeldungen weniger zuverlässig verarbeiten.
+
+Claude Code:
+
+```bash
+cd bewerbungs-agent
+claude
+```
+
+Alternativ kannst du den Projektordner in der ChatGPT-Desktop-App öffnen und dort **Codex** mit der lokalen Umgebung wählen oder die Codex-Erweiterung in VS Code verwenden. Diese Oberflächen sind optional; die gemeinsamen Regeln kommen weiterhin aus `AGENTS.md`.
+
+> [!NOTE]
+> Die Befehle funktionieren nur, wenn das jeweilige Programm installiert, angemeldet beziehungsweise konfiguriert ist. Das Laden einer Regeldatei garantiert außerdem nicht, dass jedes Modell die Anweisungen gleich zuverlässig befolgt.
+
+#### 3. Persönliche Daten mit dem Agenten einrichten
+
+Sende den folgenden Auftrag an die geöffnete Agentensitzung:
 
 > [!WARNING]
-> `Private/` schützt vor einer versehentlichen Aufnahme in Git, macht die KI-Verarbeitung aber nicht automatisch offline. Gib keine Passwörter, Bankdaten, Ausweisnummern oder andere unnötige Geheimnisse ein und beachte die Datenschutz- und Kontoeinstellungen deiner Codex-Umgebung.
+> `Private/` schützt vor einer versehentlichen Aufnahme in Git, macht die KI-Verarbeitung aber nicht automatisch offline. Gib keine Passwörter, Bankdaten, Ausweisnummern oder andere unnötige Geheimnisse ein und prüfe die Datenschutz- und Kontoeinstellungen deiner Agenten- und Modellumgebung.
 
 ```text
 Hilf mir als Einsteiger dabei, meine privaten Bewerberdaten einzurichten.
@@ -235,9 +276,9 @@ Copy-Item "Private.example/Daten/README.md" "Private/Daten/README.md"
 
 </details>
 
-#### 3. Eigene Daten persönlich kontrollieren
+#### 4. Eigene Daten persönlich kontrollieren
 
-Öffne im Explorer von Visual Studio Code diese beiden Dateien:
+Öffne in deinem Dateimanager oder Editor diese beiden Dateien:
 
 ```text
 Private/Daten/01_PERSOENLICHE_DATEN.md
@@ -252,7 +293,7 @@ Kontrolliere vor der ersten Bewerbung:
 - [ ] Beispielpersonen, Beispielunternehmen und erfundene Zertifikate wurden vollständig entfernt.
 - [ ] Unsichere oder fehlende Informationen sind offen markiert und wurden nicht geraten.
 
-Lass danach den maschinellen Stammdatencheck von Codex ausführen:
+Lass danach den maschinellen Stammdatencheck vom geöffneten Agenten ausführen:
 
 ```text
 Führe Tools/Pruefe-Stammdaten.ps1 für meine Daten unter Private/Daten aus.
@@ -266,7 +307,7 @@ Bei einem erfolgreichen Lauf endet die Ausgabe mit `ERGEBNIS: OK`. Fehler müsse
 > [!IMPORTANT]
 > Echte Kontaktdaten, Profildaten und Bewerbungen gehören ausschließlich nach `Private/`. Dieser Ordner wird von Git ignoriert. Nimm seinen Inhalt niemals in einen Git-Commit auf und lade ihn nicht zu GitHub hoch; die spätere **lokale** Freigabe innerhalb von `Private/` ist dagegen beabsichtigt.
 
-#### 4. Stellenanzeige an den Agenten übergeben
+#### 5. Stellenanzeige an den Agenten übergeben
 
 Kopiere möglichst den **vollständigen Text** der Stellenanzeige. Ein Link allein kann später nicht mehr erreichbar sein oder vom Agenten nicht gelesen werden.
 
@@ -279,9 +320,18 @@ Stellenbeschreibung:
 <hier den vollständigen Text der Stellenanzeige einfügen>
 ```
 
-Dieser kurze Auftrag genügt bei Agenten, die `AGENTS.md` beziehungsweise den Gemini-Adapter automatisch laden. Beim manuellen Fallback ergänze davor: `Lies AGENTS.md und folge für diese Bewerbung Prompts/00_AGENTEN_START_HIER.md.` Die automatische Browserauswahl bleibt im Workflow auf `-Browser auto` gesetzt.
+Dieser kurze Auftrag genügt bei Agenten, die `AGENTS.md`, `CLAUDE.md` oder `GEMINI.md` automatisch laden. Beim manuellen Fallback ergänze davor: `Lies AGENTS.md und folge für diese Bewerbung Prompts/00_AGENTEN_START_HIER.md.` Die automatische Browserauswahl bleibt im Workflow auf `-Browser auto` gesetzt.
 
-Wenn du stattdessen nur ein Anschreiben zu deinem universellen Lebenslauf möchtest, ergänze im Auftrag:
+Wenn du stattdessen nur ein Anschreiben zu deinem universellen Lebenslauf möchtest, genügt:
+
+```text
+Erstelle nur ein Anschreiben und verwende meinen universellen Lebenslauf.
+Stellenbeschreibung:
+
+<hier den vollständigen Text der Stellenanzeige einfügen>
+```
+
+Falls die freigegebene Universalquelle nicht eindeutig ist, ergänze Modus und Pfad:
 
 ```text
 Dokumentmodus: anschreiben_mit_universalem_lebenslauf.
@@ -290,14 +340,30 @@ Private/LebenslaufUniversal/Aktiv/Lebenslauf - NACHNAME.VORNAME.html
 unverändert. Erstelle nur Anschreiben und E-Mail neu und prüfe den Lebenslauf-Snapshot trotzdem technisch mit.
 ```
 
+Auch diese kurzen Aufträge werden direkt erkannt:
+
+```text
+Prüfe meine Bewerberdaten.
+```
+
+```text
+Setze die zuletzt begonnene Bewerbung fort.
+```
+
+```text
+Erkläre mir den aktuellen Stand dieser Bewerbung.
+```
+
+Bei Fortsetzung oder Standabfrage rekonstruiert eine neue Agentensitzung den Zustand aus `Arbeitsnotizen.md`, `Bewerbungsauftrag.json`, Matrix, Kandidaten, Prüfberichten, `Finalisierungsbericht.json` und gegebenenfalls `Manifest.json`. Chat-Memory ist kein Zustandsnachweis. Geänderte Quellen, Kandidaten oder Screenshots entwerten die davon abhängigen Hash- und Sichtnachweise.
+
 Der Agent erstellt jetzt den privaten Arbeitsordner, analysiert die Stelle, erzeugt die Dokumente, prüft Inhalte und Layout und bereitet PDFs vor. Die Dateien sind zu diesem Zeitpunkt **noch nicht für den Versand freigegeben**.
 
-Nach dem Lebenslauf-Kandidaten und nach der technischen Vorbereitung zeigt der Agent außerdem einen kompakten Tokenbericht. Exakte Zahlen erscheinen ausschließlich, wenn die jeweilige Laufzeit maschinenlesbare Nutzungsdaten bereitstellt. Andernfalls lautet die Ausgabe eindeutig `Tokenverbrauch: nicht verfügbar – die aktuelle Agentenumgebung stellt keine maschinenlesbaren Nutzungsdaten bereit.` und es wird keine Näherung berechnet.
+Nach dem Lebenslauf-Kandidaten und nach der technischen Vorbereitung zeigt der Agent außerdem einen kompakten Tokenbericht. Exakte Zahlen erscheinen ausschließlich, wenn die jeweilige Laufzeit maschinenlesbare Nutzungsdaten bereitstellt. Andernfalls lautet die Ausgabe eindeutig `Tokenverbrauch: Von dieser Agentenumgebung nicht bereitgestellt.` und es wird keine Näherung berechnet.
 
 > [!WARNING]
-> Gehe erst zu Schritt 5, wenn der Agent den Status `bereit_zur_sichtpruefung` bestätigt und konkrete PNG-Dateien nennt. Bei einem Fehler, einer kritischen offenen Frage oder fehlenden Screenshots lässt du zuerst die Ursache beheben und die Vorbereitung vollständig wiederholen.
+> Gehe erst zu Schritt 6, wenn der Agent den Status `bereit_zur_sichtpruefung` bestätigt und konkrete PNG-Dateien nennt. Bei einem Fehler, einer kritischen offenen Frage oder fehlenden Screenshots lässt du zuerst die Ursache beheben und die Vorbereitung vollständig wiederholen.
 
-#### 5. Jeden Seitenscreenshot öffnen
+#### 6. Jeden Seitenscreenshot öffnen
 
 Der Agent nennt dir den genauen Ordner. Er sieht ungefähr so aus:
 
@@ -305,7 +371,7 @@ Der Agent nennt dir den genauen Ordner. Er sieht ungefähr so aus:
 Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
 ```
 
-Öffne im Explorer von Visual Studio Code **jede Datei mit der Endung `.png` einzeln**. Kontrolliere jede sichtbare A4-Seite:
+Öffne in deinem Dateimanager, Editor oder Bildbetrachter **jede Datei mit der Endung `.png` einzeln**. Kontrolliere jede sichtbare A4-Seite:
 
 - [ ] Kein Text ist abgeschnitten, verdeckt oder überlappt.
 - [ ] Es gibt keine ungewollte leere Seite oder große zufällige Leerfläche.
@@ -321,7 +387,7 @@ Veröffentliche noch nichts. Im Screenshot <Dateiname> ist folgendes Problem sic
 Korrigiere die Kandidatendatei, wiederhole die vollständige technische Vorbereitung und nenne mir danach alle neu erzeugten PNG-Dateien zur erneuten Prüfung.
 ```
 
-#### 6. Veröffentlichung ausdrücklich bestätigen
+#### 7. Lokale Freigabe ausdrücklich bestätigen
 
 > [!IMPORTANT]
 > **„Veröffentlichen“ bedeutet hier nur eine lokale Freigabe:** Das Tool übernimmt geprüfte Dateien in die lokalen Ordner `Versand/` und `Intern/` und erstellt `Manifest.json`. Es lädt nichts zu GitHub oder einem Unternehmen hoch, verschickt keine E-Mail und sendet keine Portalbewerbung.
@@ -340,7 +406,7 @@ Nur wenn der unveränderte vorbereitete Stand erfolgreich freigegeben wurde: Nen
 
 Bei einer automatischen Layoutwarnung kann der Agent zusätzlich nach deiner konkreten Sichtbewertung fragen. Beschreibe dann ehrlich, was du auf der betroffenen Seite geprüft hast.
 
-#### 7. Nur die Versanddateien verwenden
+#### 8. Nur die Versanddateien verwenden
 
 Öffne den vom Agenten genannten Ordner:
 
@@ -359,7 +425,7 @@ Verwende ausschließlich freigegebene Dateien aus `Versand/`, aber beachte immer
 Prüfe außerdem, ob unter `Intern/` eine `Offene_Fragen.md` vorhanden ist, und kläre alle versandrelevanten Punkte. Öffne jede benötigte PDF-Datei vor dem Versand noch einmal. Kontrolliere Empfänger, Firma, Rolle, Namen, Kontaktdaten und Seitenzahl. Dateien aus `_Arbeitsdateien/`, `Intern/` sowie `Manifest.json` werden nicht mitgeschickt.
 
 > [!IMPORTANT]
-> Ändert die Antwort auf eine offene Frage den Lebenslauf, das Anschreiben, die E-Mail oder eine Quelldatei, sind die bisherigen PDFs und Screenshots nicht mehr aktuell. Bitte Codex, die Arbeitsversion zu korrigieren, die vollständige technische Vorbereitung erneut auszuführen, alle neuen PNG-Dateien zu nennen und dann zu stoppen. Öffne danach jede neue PNG-Datei und bestätige die lokale Freigabe erneut, bevor du etwas versendest.
+> Ändert die Antwort auf eine offene Frage den Lebenslauf, das Anschreiben, die E-Mail oder eine Quelldatei, sind die bisherigen PDFs und Screenshots nicht mehr aktuell. Bitte den Agenten, die Arbeitsversion zu korrigieren, die vollständige technische Vorbereitung erneut auszuführen, alle neuen PNG-Dateien zu nennen und dann zu stoppen. Öffne danach jede neue PNG-Datei und bestätige die lokale Freigabe erneut, bevor du etwas versendest.
 
 > [!NOTE]
 > Auch der Ordner `Versand/` versendet nichts automatisch. Das Hochladen in ein Bewerbungsportal oder das Abschicken einer E-Mail bleibt immer deine bewusste Aktion.
@@ -520,7 +586,7 @@ Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner lieg
 - ✉️ **E-Mail verfassen:** Betreff und Text aus `Versand/Email-Nachricht--FIRMA.md` kopieren.
 - 👀 **Layout freigeben:** jede PNG-Datei unter `_Arbeitsdateien/.../Layoutcheck/` öffnen.
 - 🔎 **Stellenpassung verstehen:** `Intern/Analyse.md` und bei Bedarf die private `Anforderungsmatrix.json` lesen.
-- ✏️ **Dokument korrigieren:** Codex um eine Korrektur der Arbeitsversion unter `Kandidat/` bitten; danach Vorbereitung und Sichtprüfung vollständig wiederholen.
+- ✏️ **Dokument korrigieren:** den Agenten um eine Korrektur der Arbeitsversion unter `Kandidat/` bitten; danach Vorbereitung und Sichtprüfung vollständig wiederholen.
 - 🧪 **Fehler untersuchen:** die passenden JSON-Berichte unter `_Arbeitsdateien/` öffnen.
 - 📊 **Tokenverbrauch prüfen:** `Tokenverbrauch.json` im Arbeitsordner öffnen; `null` und `unavailable` bedeuten, dass keine exakte maschinenlesbare Messung vorlag.
 - 🔐 **Veröffentlichten Satz prüfen:** die in `Manifest.json` unter `files[]` erfassten Dateien mit dem statischen Prüfer validieren.
@@ -563,33 +629,11 @@ Die Vorlagen findest du unter `Private.example/Daten/`. Pflege jede Information 
 #### Persönliche Daten mit Unterstützung des Agenten einrichten
 
 > [!WARNING]
-> Lies dies vor der Dateneingabe: Speichere keine Passwörter, Zugangscodes, Bankdaten, Ausweisnummern oder unnötige sensible Angaben. `Private/` verhindert die Aufnahme in Git, ist aber keine Verschlüsselung und macht die KI-Verarbeitung nicht automatisch offline. Abhängig von deiner Codex-Umgebung können Inhalte zur Modellverarbeitung an den jeweiligen Anbieter übertragen werden; beachte deshalb dessen Datenschutz- und Kontoeinstellungen.
+> Lies dies vor der Dateneingabe: Speichere keine Passwörter, Zugangscodes, Bankdaten, Ausweisnummern oder unnötige sensible Angaben. `Private/` verhindert die Aufnahme in Git, ist aber keine Verschlüsselung.
 
-Diese Hilfe ist absichtlich sichtbar, weil sie für Einsteiger der einfachste Weg ist. Kopiere den Auftrag in den Codex-Chat:
+Verwende den vollständigen Einrichtungsauftrag aus [Schritt 3](#schnellstart), statt eine zweite abweichende Anleitung zu pflegen. Kontrolliere die erzeugten Dateien sorgfältig. Der Stammdatencheck prüft Pflichtfelder, bekannte Platzhalter, ausgewählte Formate und zentrale Logistikentscheidungen. Er kann nicht wissen, ob ein plausibel wirkender Beispielwert wirklich zu dir gehört.
 
-```text
-Ich richte den bewerbungs-agent zum ersten Mal ein.
-
-Lies Private.example/Daten/README.md und die beiden Beispieldateien nur als Struktur.
-Übernimm keinen Beispielwert als meine Angabe und überschreibe vorhandene Dateien nie ungefragt.
-
-Führe mich nacheinander durch:
-1. Identität und Kontakt,
-2. Verfügbarkeit, Stellenart, Arbeitsmodell, Region und Gehaltslogik,
-3. Zielrollen, Berufserfahrung, Ausbildung, Weiterbildungen, Kenntnisse, Projekte und alle Zeiträume.
-
-Stelle verständliche Rückfragen, wenn etwas fehlt. Erfinde nichts und markiere unsichere Angaben.
-Fasse meine Angaben vor dem Schreiben zusammen und warte auf meine Bestätigung.
-
-Erstelle danach ausschließlich:
-- Private/Daten/01_PERSOENLICHE_DATEN.md
-- Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
-- Private/Daten/README.md
-
-Führe anschließend Tools/Pruefe-Stammdaten.ps1 aus, nenne offene Punkte und erinnere mich daran, beide Datendateien persönlich zu prüfen.
-```
-
-Kontrolliere die erzeugten Dateien sorgfältig. Der Stammdatencheck prüft Pflichtfelder, bekannte Platzhalter, ausgewählte Formate und zentrale Logistikentscheidungen. Er kann nicht wissen, ob ein plausibel wirkender Beispielwert wirklich zu dir gehört.
+Ein lokal ausgeführtes Ollama-Modell kann die Modellverarbeitung auf dem eigenen Rechner halten. Das macht den gesamten Ablauf jedoch nicht automatisch offline: OpenCode, Erweiterungen oder andere Werkzeuge können je nach Konfiguration weiterhin Cloudanbieter oder externe Dienste verwenden. Cloudmodelle übertragen die zur Bearbeitung bereitgestellten Inhalte an den jeweiligen Anbieter. Prüfe deshalb Anbieter, gewähltes Modell, Plugins, Netzwerkzugriffe sowie Datenschutz- und Kontoeinstellungen selbst.
 
 #### Sicherheitsmodell
 
@@ -613,7 +657,7 @@ git status --short
 
 In der Ausgabe dürfen keine echten Dateien aus `Private/` auftauchen. Zeigt `git status --short --ignored` den Eintrag `!! Private/`, arbeitet die Ignore-Regel wie vorgesehen.
 
-Öffentlich geeignet sind insbesondere `.github/`, `Prompts/`, `Tests/`, `Tools/`, `Vorlagen/`, `Private.example/`, `CHANGELOG.md` und `README.md`.
+Öffentlich geeignet sind insbesondere `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.github/`, `Prompts/`, `Tests/`, `Tools/`, `Vorlagen/`, `Private.example/`, `CHANGELOG.md` und `README.md`.
 
 </details>
 
@@ -626,7 +670,7 @@ Der verbindliche Abschluss besteht aus Vorbereitung, deiner persönlichen Sichtp
 > [!IMPORTANT]
 > Die lokale Freigabe lädt nichts hoch und verschickt nichts. Sie erstellt auf deinem Rechner den geprüften Ordner mit `Versand/`, `Intern/` und `Manifest.json`.
 
-#### Empfohlen: Codex führt die Befehle aus
+#### Empfohlen: Der geöffnete Agent führt die Befehle aus
 
 Wenn die Bewerbung erstellt ist, kannst du diesen Auftrag senden:
 
@@ -660,7 +704,7 @@ Bei einer Layoutwarnung beschreibst du zusätzlich konkret, was du auf der betro
 #### Alternative: Befehle selbst ausführen
 
 > [!WARNING]
-> `FIRMA` und `YYYY-MM-DD--ROLLENNAME` sind Platzhalter und dürfen nicht wörtlich übernommen werden. Verwende den exakten Arbeitsordner, den Codex oder `Neue-Bewerbung.ps1` ausgegeben hat.
+> `FIRMA` und `YYYY-MM-DD--ROLLENNAME` sind Platzhalter und dürfen nicht wörtlich übernommen werden. Verwende den exakten Arbeitsordner, den der Agent oder `Neue-Bewerbung.ps1` ausgegeben hat.
 
 **1. Technisch vorbereiten**
 
@@ -679,7 +723,7 @@ Bei einer Layoutwarnung ist zusätzlich eine ehrliche Bewertung über `-Visuelle
 <details>
 <summary><strong>Bereits veröffentlichte Bewerbung korrigieren</strong></summary>
 
-Bearbeite veröffentlichte Dateien nicht direkt unter `Versand/` oder `Intern/`. Bitte Codex um die Korrektur der Arbeitsversion unter `Kandidat/`, wiederhole die technische Vorbereitung und kontrolliere alle neuen Screenshots. Erst danach darf der neu geprüfte Satz den bestehenden Zielordner bewusst ersetzen:
+Bearbeite veröffentlichte Dateien nicht direkt unter `Versand/` oder `Intern/`. Bitte den Agenten um die Korrektur der Arbeitsversion unter `Kandidat/`, wiederhole die technische Vorbereitung und kontrolliere alle neuen Screenshots. Erst danach darf der neu geprüfte Satz den bestehenden Zielordner bewusst ersetzen:
 
 ```powershell
 .\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft -Ersetzen
@@ -762,15 +806,14 @@ Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgesch
 | Komponente | Status | Verwendung |
 | --- | --- | --- |
 | Windows + PowerShell 7 | 🟢 primär unterstützt | am umfassendsten geprüfter Projektablauf |
-| Codex in VS Code oder lokale Codex-App | 🟢 empfohlen | liest Regeln und erzeugt lokale Dateien |
-| OpenCode mit AGENTS-Unterstützung | 🔵 kompatibler Einstieg | liest die zentrale `AGENTS.md`; lokale PowerShell- und Browservoraussetzungen bleiben gleich |
-| Gemini CLI beziehungsweise Gemini-basierter Coding-Agent | 🔵 kompatibler Einstieg | lädt über `GEMINI.md` dieselben Regeln aus `AGENTS.md` |
+| PowerShell-Werkzeuge unter `Tools/` | 🟢 Kernworkflow | Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Freigabeprüfungen |
 | Chrome oder Edge | 🔵 für Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung |
 | Firefox | 🟡 optional | manuelle Vorschau; kein Ersatz für die verbindliche Finalisierung |
-| Linux + Bash | 🟠 Alpha | derzeit vor allem Ordnererstellung; [Portierungsplan](LINUX-PORTIERUNGSPLAN.md) |
+| Linux + Bash | 🟠 Alpha | derzeit vor allem Ordnererstellung; die PowerShell-/Browserkette ist nicht gleichwertig portiert; [Portierungsplan](LINUX-PORTIERUNGSPLAN.md) |
 | Git Bash | 🟡 Entwicklung | Bash-Regressionsfälle unter Windows |
+| Agent mit PNG-Auswertung | 🟡 optional | kann Screenshots zusätzlich beurteilen; persönliche Sichtprüfung bleibt Pflicht |
 
-Für die normale Nutzung brauchst du dieses Repository, gepflegte Daten unter `Private/Daten/`, einen lokal arbeitenden KI-Agenten und eine konkrete Stellenbeschreibung.
+Für die normale Nutzung brauchst du dieses Repository, gepflegte Daten unter `Private/Daten/`, einen Agenten mit Datei- und Terminalzugriff und eine konkrete Stellenbeschreibung. Die agentenspezifischen Start- und Teststände stehen in der [Kompatibilitätsübersicht](#agentenkompatibilitaet).
 
 <details>
 <summary><strong>Bewerbungsordner manuell anlegen</strong></summary>
@@ -799,23 +842,24 @@ Die Helfer erzeugen einen leeren Zielordner, einen Arbeitsordner und einen Kandi
 
 | Problem | Schnellste Prüfung | Lösung |
 | --- | --- | --- |
-| Codex findet `Prompts/` oder `Tools/` nicht | Sind diese Ordner im VS-Code-Explorer sichtbar? | über **Datei → Ordner öffnen** den geklonten Projektordner öffnen, in dem `README.md`, `Prompts/` und `Tools/` liegen |
-| `Private/Daten/` fehlt | wurden die persönlichen Daten bereits eingerichtet? | den sichtbaren Einrichtungsauftrag aus Schritt 2 an Codex senden |
+| Der Agent findet `Prompts/` oder `Tools/` nicht | Läuft die Agentensitzung wirklich im Projektstamm? | den Ordner öffnen, in dem `AGENTS.md`, `README.md`, `Prompts/` und `Tools/` liegen, und die Sitzung dort neu starten |
+| `Private/Daten/` fehlt | wurden die persönlichen Daten bereits eingerichtet? | den Einrichtungsauftrag aus Schritt 3 an den Agenten senden |
 | Ein Beispielname oder Beispielunternehmen erscheint | beide Dateien unter `Private/Daten/` durchsuchen | nicht fortfahren; alle fiktiven Werte durch eigene, wahre Angaben ersetzen oder entfernen |
-| Stammdatencheck ist rot | `[FEHLER]`-Zeilen lesen | Ausgabe an Codex geben, nur mit echten Angaben korrigieren und erneut prüfen |
-| Technische Prüfung ist rot | erste `[FEHLER]`-Meldung und betroffene Datei lesen | vollständige Ausgabe an Codex geben, Arbeitsversion korrigieren und Vorbereitung wiederholen lassen |
-| Befehl findet einen Pfad mit `FIRMA` nicht | steht noch ein großgeschriebener Platzhalter im Befehl? | exakten Arbeitsordner von Codex ausgeben lassen und diesen Pfad verwenden |
+| Stammdatencheck ist rot | `[FEHLER]`-Zeilen lesen | Ausgabe dem Agenten geben, nur mit echten Angaben korrigieren und erneut prüfen |
+| Technische Prüfung ist rot | erste `[FEHLER]`-Meldung und betroffene Datei lesen | vollständige Ausgabe dem Agenten geben, Arbeitsversion korrigieren und Vorbereitung wiederholen lassen |
+| Befehl findet einen Pfad mit `FIRMA` nicht | steht noch ein großgeschriebener Platzhalter im Befehl? | exakten Arbeitsordner vom Agenten ausgeben lassen und diesen Pfad verwenden |
 | Layoutcheck startet nicht | Ist Chrome oder Edge installiert? | zuerst `-Browser auto` verwenden; zur Diagnose den tatsächlich installierten Browser mit `-Browser chrome` oder `-Browser edge` wählen |
 | Browser scheitert in einer Sandbox | Browserfreigabe der lokalen Agentenumgebung prüfen | denselben Lauf mit lokaler Browserfreigabe wiederholen |
-| Keine PNG-Datei vorhanden | `Layoutcheck/` prüfen | noch nicht freigeben; technische Vorbereitung durch Codex wiederholen lassen |
+| Keine PNG-Datei vorhanden | `Layoutcheck/` prüfen | noch nicht freigeben; technische Vorbereitung durch den Agenten wiederholen lassen |
 | PDF-Export bricht ab | Statischen Check separat ausführen | Fehler beheben; manueller Firefox-Druck ist nur eine nicht validierte Diagnosealternative |
 | Text wirkt abgeschnitten | HTML und alle Seitenscreenshots öffnen | Inhalt fachlich kürzen oder bewusst auf zwei A4-Seiten verteilen |
-| Bewerbung für dieselbe Firma und Rolle existiert bereits | Datum, Firma und Rolle vergleichen | nicht neu anlegen; Codex mit „Setze die bestehende Bewerbung fort“ beauftragen; `-Fortsetzen` nur für exakt dieselbe Bewerbung nutzen |
+| Bewerbung für dieselbe Firma und Rolle existiert bereits | Datum, Firma und Rolle vergleichen | nicht neu anlegen; den Agenten mit „Setze die bestehende Bewerbung fort“ beauftragen; `-Fortsetzen` nur für exakt dieselbe Bewerbung nutzen |
 | PowerShell meldet „Skriptausführung deaktiviert“ | `Get-ExecutionPolicy` ausführen | nur im vertrauenswürdigen Projektterminal vorübergehend `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` verwenden; auf Firmengeräten zuerst die Administration fragen |
 | Persönliche Dateien erscheinen in Git | `git status --short --ignored` prüfen | Dateien nach `Private/` verschieben; nichts Privates in Git übernehmen |
 | Informationen fehlen | `Offene_Fragen.md` lesen | belastbare Angaben ergänzen; keine Werte raten lassen |
-| Fertige Dateien werden nicht gefunden | hat Codex die lokale Freigabe erfolgreich gemeldet? | den exakten Ordner `.../Versand/` von Codex nennen lassen |
+| Fertige Dateien werden nicht gefunden | hat der Agent die lokale Freigabe erfolgreich gemeldet? | den exakten Ordner `.../Versand/` vom Agenten nennen lassen |
 | Tokenzahlen stehen auf `nicht verfügbar` | stellt die Agentenlaufzeit maschinenlesbare Nutzungsdaten bereit? | keine Zahl schätzen; `Tokenverbrauch.json` bleibt ein nicht blockierender Bericht mit `null`-Werten |
+| Das gewählte Modell versteht den langen Ablauf nicht | fehlen Kontextlänge oder zuverlässige Werkzeugaufrufe? | leistungsfähigeres Modell wählen, neue Sitzung im Projektstamm starten und den Zustand aus Dateien rekonstruieren lassen |
 
 Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Abschnitt [Prüfen & lokal freigeben](#finalisierung).
 
@@ -825,6 +869,8 @@ Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Absc
 - Linux befindet sich im Alpha-Status und unterstützt noch nicht den gesamten Ablauf in gleicher Qualität.
 - Automatischer PDF-Export unterstützt Chrome und Edge, nicht Firefox.
 - Die öffentliche CI prüft keine echten Browserläufe; Browser-, Layout- und PDF-Prüfungen müssen deshalb auf dem eigenen Rechner ausgeführt und persönlich kontrolliert werden.
+- OpenCode, Claude Code und andere Adapter stellen den Projekteinstieg bereit; ein vollständiger Bewerbungsdurchlauf wurde nicht mit jeder Umgebung und jedem Modell wiederholt.
+- Lokale Modelle benötigen genügend Kontext und zuverlässige Werkzeugaufrufe. Fehlende Bildfähigkeit darf nicht als bestandene PNG-Prüfung ausgegeben werden.
 - Nicht jede Agentenoberfläche stellt maschinenlesbare Tokenwerte bereit oder kann Lebenslauf und Gesamtsitzung getrennt messen. In diesem Fall bleibt der Bericht ausdrücklich `unavailable`; das Projekt schätzt keine Werte.
 - HTML- und PDF-Prüfungen sind konservativ auf den unterstützten Chromium-Export ausgerichtet; ungewöhnliche Designs und andere PDF-Erzeuger benötigen zusätzliche Regressionstests.
 - Eine echte manuelle Sichtprüfung bleibt erforderlich, besonders bei neuen Designs und zweiseitigen Lebensläufen.
@@ -865,6 +911,7 @@ bewerbungs-agent/
 │  ├─ assets/readme-hero.svg
 │  └─ workflows/tests.yml
 ├─ AGENTS.md
+├─ CLAUDE.md
 ├─ GEMINI.md
 ├─ CHANGELOG.md
 ├─ LINUX-PORTIERUNGSPLAN.md
@@ -937,7 +984,7 @@ Weitere private Bereiche wie `Archiv/` oder `Bewertungen/` können lokal existie
 
 ### Prompt-System
 
-Die zentrale [`AGENTS.md`](AGENTS.md) erkennt Nutzung, Einrichtung, Entwicklung und Information und routet Bewerbungsaufträge zum fachlichen Einstieg [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md). [`GEMINI.md`](GEMINI.md) ist ausschließlich der Gemini-Adapter; fachliche Regeln werden dort nicht dupliziert. Änderungen gehören in das fachlich passende Promptmodul:
+Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine bedarfsgerechte Fähigkeitenprüfung und routet Bewerbungsaufträge zum fachlichen Einstieg [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) importieren ausschließlich die gemeinsamen Regeln; fachliche Abläufe werden dort nicht dupliziert. OpenCode liest `AGENTS.md` aus dem Projektstamm, dessen ausdrückliche Leseanweisung den kanonischen Prompt öffnet. Eine `opencode.json` wird bewusst nicht mitgeführt, weil für Erkennung, sicheren Werkzeugzugriff oder den Ollama-Launcher derzeit keine zusätzliche Projektkonfiguration erforderlich ist. Änderungen gehören in das fachlich passende Promptmodul:
 
 | Datei | Verantwortung |
 | --- | --- |
@@ -1047,7 +1094,7 @@ Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `str
 
 ### Tests & CI
 
-Die abhängigkeitsfreie Regressionstestsuite prüft Agenteneinstieg, Gemini-Adapter, README-Verweise, Tokenbericht, Prompt-/Tool-Verträge, Logistik-Snapshots, Anforderungsmatrix, Staging, Manifest, Veröffentlichung und Fehlerszenarien:
+Die abhängigkeitsfreie Regressionstestsuite prüft den kanonischen Agenteneinstieg, Claude-/Gemini-Adapter, korrekte Groß-/Kleinschreibung der Pfade, Fähigkeiten- und Fortsetzungsverträge, Schutz vor eingebetteten Fremdanweisungen, README-Verweise, Tokenbericht, Prompt-/Tool-Verträge, Logistik-Snapshots, Anforderungsmatrix, Staging, Manifest, Veröffentlichung und Fehlerszenarien:
 
 ```powershell
 .\Tests\Run-RegressionTests.ps1
@@ -1066,6 +1113,10 @@ bash Tests/Bash/test-neue-bewerbung.sh
 ```
 
 Die öffentliche CI läuft über [`.github/workflows/tests.yml`](.github/workflows/tests.yml): Windows führt die PowerShell-Suite aus, Ubuntu prüft die Bash-Skripte mit ShellCheck und Regressionstests. Browserfälle bleiben lokal optional, da Runner und Sandboxen keine identische Browserumgebung garantieren.
+
+Die dokumentierten Frischsitzungs-, CLI- und Modelltests stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md). Sie verwenden ausschließlich öffentliche Regeln beziehungsweise temporäre fiktive Fixtures und nennen nicht ausgeführte Umgebungen ausdrücklich. Ein erfolgreicher Strukturtest ersetzt keinen vollständigen Bewerbungs- und Browserlauf mit dem jeweiligen Modell.
+
+Lokaler Stand vom 05.08.2026: 42 von 42 Tests ohne Browser und 48 von 48 Tests mit lokal freigegebenem Chrome bestanden. Der Browserlauf innerhalb der verwalteten Sandbox schlug am Chrome-Prozessstart fehl und bestand nach der vorgesehenen lokalen Browserfreigabe.
 
 <details>
 <summary><strong>HTML-, PDF- und Browser-Verträge</strong></summary>
@@ -1116,7 +1167,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | Ziel | Zuständige Datei |
 | --- | --- |
 | Hauptablauf | `Prompts/00_AGENTEN_START_HIER.md` |
-| Agentenübergreifendes Routing | `AGENTS.md`, `GEMINI.md` |
+| Agentenübergreifendes Routing und Adapter | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` |
 | Lebenslauf | `Prompts/03_LEBENSLAUF_REGELN.md` |
 | Anschreiben | `Prompts/04_ANSCHREIBEN_REGELN.md` |
 | E-Mail | `Prompts/05_EMAIL_NACHRICHT_REGELN.md` |
@@ -1130,7 +1181,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | Tokenbericht | `Tools/Aktualisiere-Tokenbericht.ps1` |
 | statischer Check | `Tools/Pruefe-Bewerbung.ps1` |
 | Layout und PDF | `Tools/Layoutcheck-Bewerbung.ps1`, `Tools/Exportiere-PDF.ps1` |
-| Regressionstests | `Tests/Run-RegressionTests.ps1`, `Tests/Bash/test-neue-bewerbung.sh` |
+| Regressionstests und Agenten-Smoketests | `Tests/Run-RegressionTests.ps1`, `Tests/Bash/test-neue-bewerbung.sh`, `Tests/Agenten-Kompatibilitaet.md` |
 | Designreferenzen | `Vorlagen/Designreferenz-Lebenslauf.html`, `Vorlagen/Designreferenz-Anschreiben.html` |
 
 </details>

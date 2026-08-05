@@ -6,7 +6,7 @@ Startpunkt ist `00_AGENTEN_START_HIER.md`. Danach legt `01_DOKUMENTMODI_UND_UNIV
 
 Private Bewerberdaten stehen nicht in diesem Ordner. Sie gehören lokal nach `Private/Daten/`.
 
-Repository-kompatible Coding-Agenten erhalten die übergreifenden Routing- und Sicherheitsregeln aus der zentralen `AGENTS.md`; `GEMINI.md` importiert sie für Gemini-basierte Agenten. Der private, nicht blockierende Nutzungsbericht `Tokenverbrauch.json` wird über `Tools/Aktualisiere-Tokenbericht.ps1` nur mit exakt bereitgestellten Laufzeitwerten aktualisiert. Die fachlichen Regeln bleiben in den Modulen dieses Ordners und werden bedarfsgerecht geladen.
+Repository-kompatible Coding-Agenten erhalten die übergreifenden Routing- und Sicherheitsregeln aus der zentralen `AGENTS.md`. OpenCode nutzt diese Datei direkt; `CLAUDE.md` und `GEMINI.md` sind minimale Importadapter. Ollama stellt bei Bedarf ein Modell für OpenCode bereit und ist selbst kein ausführender Agent. Der private, nicht blockierende Nutzungsbericht `Tokenverbrauch.json` wird über `Tools/Aktualisiere-Tokenbericht.ps1` nur mit exakt bereitgestellten Laufzeitwerten aktualisiert. Fähigkeiten und ein bestehender Arbeitsstand werden anbieterunabhängig geprüft; die vollständigen fachlichen Regeln bleiben ausschließlich in `00_AGENTEN_START_HIER.md` und den bedarfsgerecht geladenen Modulen dieses Ordners.
 
 Wichtiger Standard:
 
