@@ -6,12 +6,12 @@
 
 <p align="center">
   <strong>Agentenunabhängiger KI-Bewerbungsworkflow</strong><br>
-  Für Codex, OpenCode, Claude Code, Gemini und weitere AGENTS-kompatible Agenten – von der Stellenanalyse bis zu geprüften A4-Layouts und PDFs.
+  Für Codex, OpenCode, Claude Code, Gemini und weitere AGENTS-kompatible Agenten – von der Stellenanalyse bis zur umfangsgerecht geprüften lokalen Freigabe.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Agentenregeln-AGENTS.md-0F766E?style=flat-square" alt="Agentenunabhängiger Einstieg über AGENTS.md">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.6-2563EB?style=flat-square" alt="Aktuelle Version 1.6"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.7.0-2563EB?style=flat-square" alt="Aktuelle Version 1.7.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-22C55E?style=flat-square" alt="MIT-Lizenz"></a>
   <a href="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
   <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
@@ -22,6 +22,7 @@
 <p align="center">
   <a href="#nutzung">👤 Nutzung</a> ·
   <a href="#schnellstart">🚀 Schnellstart</a> ·
+  <a href="#interaktiver-dialog">💬 Dialog</a> ·
   <a href="#ergebnisse">🗂️ Dateien</a> ·
   <a href="#entwicklung">🧰 Entwicklung</a> ·
   <a href="#lizenz">📄 Lizenz</a> ·
@@ -36,37 +37,36 @@ Dieses Repository stellt unterschiedlichen Coding-Agenten denselben spezialisier
 
 | 🎯 **Passgenau** | 🔒 **Lokal & privat** | ✅ **Geprüft** |
 | :---: | :---: | :---: |
-| Jede Bewerbung wird neu aus Stelle und Profil aufgebaut. | Echte Daten und Ergebnisse bleiben unter `Private/`. | Inhalt, A4-Layout, PDFs und ATS-Textschicht werden kontrolliert. |
+| Jede Bewerbung wird neu aus Stelle und Profil aufgebaut. | Echte Daten und Ergebnisse bleiben unter `Private/`. | Inhalt und alle für den gewählten Umfang erforderlichen Layout-, PDF-, ATS- oder Textnachweise werden kontrolliert. |
 
-Aus einer Stellenbeschreibung und deinen Profildaten entstehen - abhängig vom gewählten Dokumentmodus:
+Aus einer Stellenbeschreibung und deinen Profildaten entstehen nur die ausdrücklich gewählten Bestandteile: ein individueller oder unverändert übernommener universeller Lebenslauf, ein Anschreiben und/oder eine E-Mail-Nachricht. HTML-, PDF-, Screenshot- und ATS-Artefakte werden nur erzeugt, wenn der Umfang sie erfordert. Analyse, Anforderungsmatrix und Qualitätsnachweise bleiben im privaten Arbeitsbereich.
 
-- entweder ein neuer rollenbezogener Lebenslauf oder ein unverändert übernommener universeller Lebenslauf als HTML und PDF
-- ein passendes Anschreiben als HTML und PDF
-- eine kurze E-Mail-Nachricht
-- ein vollständiger privater Arbeits- und Prüfverlauf mit Analyse, Anforderungsmatrix, Screenshots und Qualitätsnachweisen
+### Fünf Auswahlen für den Dokumentumfang
 
-### Zwei Dokumentmodi
+| Auswahl | Ergebnis |
+| --- | --- |
+| **A – Komplette Bewerbung** | individueller Lebenslauf, Anschreiben und E-Mail-Nachricht |
+| **B – Anschreiben mit universellem Lebenslauf** | freigegebener Universal-Lebenslauf unverändert, neues Anschreiben und neue E-Mail-Nachricht |
+| **C – Individueller Lebenslauf** | nur ein stellenbezogener Lebenslauf |
+| **D – Nur Anschreiben** | nur ein Anschreiben, ohne still hinzugefügten Lebenslauf oder E-Mail-Text |
+| **E – Eigene Zusammenstellung** | frei gewählte Kombination aus Lebenslauf, Anschreiben und E-Mail-Nachricht |
 
-| Modus | Was wird neu geschrieben? | Wann verwenden? |
-| --- | --- | --- |
-| `vollbewerbung` | Lebenslauf, Anschreiben und E-Mail | Wenn der Lebenslauf sichtbar auf die konkrete Zielrolle zugeschnitten werden soll. |
-| `anschreiben_mit_universalem_lebenslauf` | nur Anschreiben und E-Mail; der freigegebene Universal-Lebenslauf bleibt inhaltlich unverändert | Wenn ein stabiler universeller Lebenslauf bereits vorhanden ist und nur das Anschreiben an die Stelle angepasst werden soll. |
-
-Im zweiten Modus friert der Bewerbungsauftrag die Universalquelle per SHA-256 ein. Die Zielrolle muss dann im Anschreiben und E-Mail-Betreff stehen, nicht im universellen Lebenslauf.
+Bei einem eindeutigen Auftrag wie `Lebenslauf und Anschreiben, aber keine E-Mail` überspringt der Agent die Auswahlfrage. Eine bloße Stellenbeschreibung legt den Umfang dagegen nicht fest. Auswahl B friert die Universalquelle per SHA-256 ein. Für eine reine E-Mail ohne Anlagen ist eine zusätzliche eindeutige Bestätigung erforderlich.
 
 > [!NOTE]
-> **Vollständig unterstützte Werkzeugkette:** Windows, PowerShell 7 und Chrome oder Edge. Die Agentenumgebung ist frei wählbar, muss aber Dateien bearbeiten und Terminalbefehle ausführen können. Die [Linux-Unterstützung befindet sich noch im Alpha-Status](LINUX-PORTIERUNGSPLAN.md).
+> **Vollständig unterstützte Werkzeugkette:** Windows und PowerShell 7 sowie für ausgewählte HTML-Dokumente Chrome oder Edge. Die Agentenumgebung ist frei wählbar, muss aber Dateien bearbeiten und Terminalbefehle ausführen können. Die [Linux-Unterstützung befindet sich noch im Alpha-Status](LINUX-PORTIERUNGSPLAN.md).
 
 ### So fließen deine Daten
 
 ```mermaid
 flowchart LR
-    A["📋 Stellenanzeige"] --> C["🧭 Auftrag & Matrix"]
-    B["🔐 Private Profildaten"] --> C
-    C --> D["📝 Kandidat"]
-    D --> E["✅ Inhalt · Layout · PDF · ATS"]
-    E --> F["👀 Sichtprüfung"]
-    F --> G["📦 Versand · Intern · Manifest"]
+    A["📋 Stellenanzeige"] --> C["💬 Umfang A–E"]
+    C --> D["🧭 Profilabgleich & Matrix"]
+    B["🔐 Private Profildaten"] --> D
+    D --> E["📝 gewählte Kandidaten"]
+    E --> F["✅ umfangsabhängige Prüfungen"]
+    F --> G["👀 Sicht- oder Textprüfung"]
+    G --> H["📦 Versand · Intern · Manifest"]
 
     classDef input fill:#dbeafe,stroke:#2563eb,color:#172554
     classDef private fill:#ede9fe,stroke:#7c3aed,color:#2e1065
@@ -75,11 +75,11 @@ flowchart LR
     classDef output fill:#fef3c7,stroke:#d97706,color:#451a03
     class A input
     class B private
-    class C agent
-    class D input
-    class E check
-    class F private
-    class G output
+    class C,D agent
+    class E input
+    class F check
+    class G private
+    class H output
 ```
 
 ## Wähle deinen Einstieg
@@ -103,7 +103,7 @@ flowchart LR
 
 ### Automatischer Projekteinstieg für Coding-Agenten
 
-Nach dem Start einer Agentensitzung im Projektstamm laden AGENTS-kompatible Agenten die Routing- und Sicherheitsregeln aus [`AGENTS.md`](AGENTS.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) sind dünne Adapter, die dieselben Regeln importieren. `AGENTS.md` weist den Agenten an, den einzigen vollständigen Workflow aus [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) zu lesen; die Module `01` bis `11` werden erst beim jeweils zuständigen Arbeitsschritt geladen. Eine zusätzliche `opencode.json` ist für diesen Einstieg nicht erforderlich.
+Nach dem Start einer Agentensitzung im Projektstamm laden AGENTS-kompatible Agenten die Routing- und Sicherheitsregeln aus [`AGENTS.md`](AGENTS.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) sind dünne Adapter, die dieselben Regeln importieren. `AGENTS.md` weist den Agenten an, den einzigen vollständigen Workflow aus [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) zu lesen; die Module `01` bis `11` werden erst beim jeweils zuständigen Arbeitsschritt geladen. Die vollständige Auswahl-, Rückfrage- und Speicherlogik liegt zentral in [`Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`](Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md). Eine zusätzliche `opencode.json` ist für diesen Einstieg nicht erforderlich.
 
 | Umgebung | Projektstatus | Automatische Projektregeln | Lokaler Teststand vom 05.08.2026 |
 | --- | --- | --- | --- |
@@ -120,7 +120,7 @@ Nach dem Start einer Agentensitzung im Projektstamm laden AGENTS-kompatible Agen
 
 Codex CLI, OpenCode und Claude Code sind **Agentenumgebungen**: Sie lesen Dateien, führen Werkzeuge aus und verwalten den Ablauf. Ollama ist dagegen ein **Modellanbieter** für lokale oder gehostete Modelle. Das Modell erzeugt und bewertet Inhalte; OpenCode bleibt auch beim Start über Ollama der ausführende Agent.
 
-Diese Dateien stellen Kontext bereit, sind aber kein Betriebssystem-Autostart: Allein durch das Öffnen des Ordners wird kein Shell-Befehl ausgeführt und keine Bewerbung gestartet. Ein kurzer eindeutiger Auftrag startet den passenden Ablauf. Ohne konkreten Auftrag nennt der Agent nur die Einstiege Vollbewerbung, Anschreiben mit Universal-Lebenslauf, Dateneinrichtung/-prüfung, Fortsetzung und Projektentwicklung.
+Diese Dateien stellen Kontext bereit, sind aber kein Betriebssystem-Autostart: Allein durch das Öffnen des Ordners wird kein Shell-Befehl ausgeführt und keine Bewerbung gestartet. Ein eindeutiger Dokumentwunsch startet ohne erneute Auswahlfrage; bei einer bloßen Stellenbeschreibung fragt der Agent zuerst A–E ab. Ohne konkreten Auftrag nennt er nur die Einstiege neue Bewerbung, Dateneinrichtung/-prüfung, Fortsetzung beziehungsweise Standabfrage und Projektentwicklung.
 
 ---
 
@@ -130,14 +130,14 @@ Diese Dateien stellen Kontext bereit, sind aber kein Betriebssystem-Autostart: A
 
 Dieser Abschnitt ist für alle, die mit dem Projekt Bewerbungen erstellen möchten. Du brauchst dafür keine Kenntnisse über den internen Code oder die Implementierung der Prüfwerkzeuge.
 
-**Direkt zum Ziel:** [Schritt-für-Schritt-Anleitung](#schnellstart) · [Ablauf verstehen](#prozess) · [Dateien verwenden](#ergebnisse) · [Private Daten](#daten) · [Prüfen & lokal freigeben](#finalisierung) · [Probleme lösen](#hilfe)
+**Direkt zum Ziel:** [Schritt-für-Schritt-Anleitung](#schnellstart) · [Interaktiven Dialog verstehen](#interaktiver-dialog) · [Ablauf verstehen](#prozess) · [Dateien verwenden](#ergebnisse) · [Private Daten](#daten) · [Prüfen & lokal freigeben](#finalisierung) · [Probleme lösen](#hilfe)
 
 <a id="schnellstart"></a>
 
 ### 🚀 Erste Bewerbung: Schritt für Schritt
 
 > [!IMPORTANT]
-> **Folge für deine erste Bewerbung den Schritten 0 bis 8 in dieser Reihenfolge.** Der geöffnete KI-Agent führt die verfügbaren technischen Schritte aus und nennt fehlende Fähigkeiten offen. Du kontrollierst persönlich deine Daten, jeden Seitenscreenshot und die fertigen Versanddateien.
+> **Folge für deine erste Bewerbung den Schritten 0 bis 8 in dieser Reihenfolge.** Der geöffnete KI-Agent führt die verfügbaren technischen Schritte aus und nennt fehlende Fähigkeiten offen. Du kontrollierst persönlich deine Daten, jeden erzeugten Seitenscreenshot beziehungsweise bei einem reinen E-Mail-Auftrag den Text und die fertigen Versanddateien.
 
 #### 0. Das brauchst du vor dem Start
 
@@ -146,7 +146,7 @@ Dieser Abschnitt ist für alle, die mit dem Projekt Bewerbungen erstellen möcht
 | Windows mit [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/install-powershell-on-windows) | vollständig unterstützte Prüf- und Freigabekette; Linux/Bash ist derzeit Alpha |
 | Git | Repository klonen und später aktualisieren; bei einem bereits vorhandenen Projektordner nicht für den Workflow selbst erforderlich |
 | eine eingerichtete Agentenumgebung | Projektregeln lesen, Dateien bearbeiten und Terminalbefehle ausführen |
-| Chrome oder Edge | verbindliche Layoutbilder und geprüfte PDFs erzeugen |
+| Chrome oder Edge | für ausgewählte HTML-Dokumente verbindliche Layoutbilder und geprüfte PDFs erzeugen |
 | vorhandener Lebenslauf, Zeugnisse oder eigene Notizen | wahre persönliche und fachliche Angaben übernehmen |
 | vollständiger Text einer Stellenanzeige | Bewerbung gezielt auf die Stelle ausrichten |
 
@@ -209,7 +209,7 @@ cd bewerbungs-agent
 ollama launch opencode
 ```
 
-Der Ollama-Launcher öffnet die Modellauswahl; eine zusätzliche Projektkonfiguration ist dafür nicht erforderlich. In einer normalen OpenCode-Sitzung steht `/models` für die Modellwahl zur Verfügung. Prüfe bei lokalen Modellen besonders Kontextlänge und zuverlässige Werkzeugaufrufe; Ollama empfiehlt für Agenten- und Coding-Aufgaben mindestens 64.000 Kontexttokens, was den Speicherbedarf erhöht. Kleine lokale Modelle können lange Regeln, korrektes JSON, HTML/CSS, mehrere Prüfberichte oder Bildrückmeldungen weniger zuverlässig verarbeiten.
+Der Ollama-Launcher öffnet die Modellauswahl; eine zusätzliche Projektkonfiguration ist dafür nicht erforderlich. In einer normalen OpenCode-Sitzung steht `/models` für die Modellwahl zur Verfügung. Prüfe bei lokalen Modellen besonders Kontextlänge und zuverlässige Werkzeugaufrufe; Ollama empfiehlt für Agenten- und Coding-Aufgaben mindestens 64.000 Kontexttokens, was den Speicherbedarf erhöht. Kleine lokale Modelle können lange Regeln, Auswahlantworten, korrektes JSON, HTML/CSS, mehrere Prüfberichte oder Bildrückmeldungen weniger zuverlässig verarbeiten. Bei einer mehrdeutigen Auswahl fragt der Workflow höchstens einmal vereinfacht nach und stoppt danach, statt Umfang oder Profilzustimmung zu erraten.
 
 Claude Code:
 
@@ -312,33 +312,39 @@ Bei einem erfolgreichen Lauf endet die Ausgabe mit `ERGEBNIS: OK`. Fehler müsse
 Kopiere möglichst den **vollständigen Text** der Stellenanzeige. Ein Link allein kann später nicht mehr erreichbar sein oder vom Agenten nicht gelesen werden.
 
 ```text
-Erstelle eine Bewerbung für folgende Stellenbeschreibung und bereite sie bis zur Sichtprüfung vor.
-Veröffentliche noch nichts. Nenne mir jede PNG-Datei, die ich persönlich prüfen muss.
+Ich möchte mich auf diese Stelle bewerben. Kläre zuerst, welche Unterlagen ich benötige, und bereite danach nur den bestätigten Umfang bis zur persönlichen Prüfung vor.
+Veröffentliche noch nichts.
 
 Stellenbeschreibung:
 
 <hier den vollständigen Text der Stellenanzeige einfügen>
 ```
 
-Dieser kurze Auftrag genügt bei Agenten, die `AGENTS.md`, `CLAUDE.md` oder `GEMINI.md` automatisch laden. Beim manuellen Fallback ergänze davor: `Lies AGENTS.md und folge für diese Bewerbung Prompts/00_AGENTEN_START_HIER.md.` Die automatische Browserauswahl bleibt im Workflow auf `-Browser auto` gesetzt.
+Dieser bewusst offene Auftrag löst die Auswahl A–E aus. Bei Agenten, die `AGENTS.md`, `CLAUDE.md` oder `GEMINI.md` automatisch laden, genügt er vollständig. Beim manuellen Fallback ergänze davor: `Lies AGENTS.md und folge für diese Bewerbung Prompts/00_AGENTEN_START_HIER.md.`
 
-Wenn du stattdessen nur ein Anschreiben zu deinem universellen Lebenslauf möchtest, genügt:
+Auch die Kurzform `Erstelle eine Bewerbung für folgende Stellenbeschreibung` ist ohne weitere Dokumentangabe bewusst offen und löst deshalb zuerst die Umfangsauswahl aus.
+
+Wenn dein Wunsch bereits feststeht, formuliere ihn direkt. Dann fragt der Agent den Umfang nicht erneut ab, beispielsweise:
 
 ```text
-Erstelle nur ein Anschreiben und verwende meinen universellen Lebenslauf.
+Erstelle einen individuellen Lebenslauf und ein Anschreiben, aber keine E-Mail-Nachricht.
 Stellenbeschreibung:
 
 <hier den vollständigen Text der Stellenanzeige einfügen>
 ```
 
-Falls die freigegebene Universalquelle nicht eindeutig ist, ergänze Modus und Pfad:
+Für Auswahl B kannst du den freigegebenen Universal-Lebenslauf ausdrücklich nennen:
 
 ```text
-Dokumentmodus: anschreiben_mit_universalem_lebenslauf.
+Verwende meinen freigegebenen universellen Lebenslauf unverändert.
 Verwende die freigegebene HTML-Quelle unter
 Private/LebenslaufUniversal/Aktiv/Lebenslauf - NACHNAME.VORNAME.html
 unverändert. Erstelle nur Anschreiben und E-Mail neu und prüfe den Lebenslauf-Snapshot trotzdem technisch mit.
 ```
+
+Die Kurzform `Erstelle nur ein Anschreiben und verwende meinen universellen Lebenslauf` wird als Einstieg mit Universal-Lebenslauf erkannt. Soll abweichend von Auswahl B keine E-Mail-Nachricht entstehen, nenne das ausdrücklich.
+
+Weitere eindeutige Beispiele sind `Erstelle nur ein Anschreiben.` und `Erstelle nur einen individuellen Lebenslauf.` Eine reine E-Mail-Nachricht ohne Lebenslauf und Anschreiben muss der Agent vor der Auftragsanlage noch einmal ausdrücklich als Auftrag ohne Anlagen bestätigen lassen.
 
 Auch diese kurzen Aufträge werden direkt erkannt:
 
@@ -354,30 +360,30 @@ Setze die zuletzt begonnene Bewerbung fort.
 Erkläre mir den aktuellen Stand dieser Bewerbung.
 ```
 
-Bei Fortsetzung oder Standabfrage rekonstruiert eine neue Agentensitzung den Zustand aus `Arbeitsnotizen.md`, `Bewerbungsauftrag.json`, Matrix, Kandidaten, Prüfberichten, `Finalisierungsbericht.json` und gegebenenfalls `Manifest.json`. Chat-Memory ist kein Zustandsnachweis. Geänderte Quellen, Kandidaten oder Screenshots entwerten die davon abhängigen Hash- und Sichtnachweise.
+Bei Fortsetzung oder Standabfrage rekonstruiert eine neue Agentensitzung zuerst den Schema-4-Umfang und den normalisierten Dialogzustand aus `Bewerbungsauftrag.json`: beantwortete und offene Rückfragen, nur auftragsbezogene Angaben, Speicherentscheidungen, Widersprüche und nachgewiesene Profiländerungen. Danach folgen `Arbeitsnotizen.md`, Matrix, Kandidaten, Prüfberichte, `Finalisierungsbericht.json` und gegebenenfalls `Manifest.json`. Ein Rohchat wird nicht gespeichert und Chat-Memory ist kein Zustandsnachweis. Beantwortete Fragen werden nicht erneut gestellt. Geänderte Quellen, Kandidaten oder Screenshots entwerten die davon abhängigen Hash- und Sichtnachweise.
 
-Der Agent erstellt jetzt den privaten Arbeitsordner, analysiert die Stelle, erzeugt die Dokumente, prüft Inhalte und Layout und bereitet PDFs vor. Die Dateien sind zu diesem Zeitpunkt **noch nicht für den Versand freigegeben**.
+Nach bestätigtem Umfang erstellt der Agent den privaten Arbeitsordner, analysiert die Stelle, erzeugt ausschließlich die ausgewählten Dokumente und führt nur die dafür erforderlichen Prüfungen aus. Die Dateien sind zu diesem Zeitpunkt **noch nicht für den Versand freigegeben**.
 
-Nach dem Lebenslauf-Kandidaten und nach der technischen Vorbereitung zeigt der Agent außerdem einen kompakten Tokenbericht. Exakte Zahlen erscheinen ausschließlich, wenn die jeweilige Laufzeit maschinenlesbare Nutzungsdaten bereitstellt. Andernfalls lautet die Ausgabe eindeutig `Tokenverbrauch: Von dieser Agentenumgebung nicht bereitgestellt.` und es wird keine Näherung berechnet.
+Ist ein Lebenslauf ausgewählt, aktualisiert der Agent nach dessen Kandidaten zusätzlich den entsprechenden Abschnitt im Tokenbericht. Nach der technischen Vorbereitung zeigt er immer eine kompakte Nutzungszusammenfassung. Exakte Zahlen erscheinen ausschließlich, wenn die jeweilige Laufzeit maschinenlesbare Nutzungsdaten bereitstellt. Andernfalls lautet die Ausgabe eindeutig `Tokenverbrauch: Von dieser Agentenumgebung nicht bereitgestellt.` und es wird keine Näherung berechnet.
 
 > [!WARNING]
-> Gehe erst zu Schritt 6, wenn der Agent den Status `bereit_zur_sichtpruefung` bestätigt und konkrete PNG-Dateien nennt. Bei einem Fehler, einer kritischen offenen Frage oder fehlenden Screenshots lässt du zuerst die Ursache beheben und die Vorbereitung vollständig wiederholen.
+> Gehe erst zu Schritt 6, wenn der Agent den Status `bereit_zur_sichtpruefung` bestätigt. Bei HTML-Dokumenten muss er jede erzeugte PNG-Datei nennen; bei einem bestätigten reinen E-Mail-Auftrag muss er stattdessen die zu prüfende Textdatei nennen. Bei einem Fehler, einer kritischen offenen Frage oder fehlenden erwarteten Prüfartefakten lässt du zuerst die Ursache beheben und die Vorbereitung vollständig wiederholen.
 
-#### 6. Jeden Seitenscreenshot öffnen
+#### 6. Jede erzeugte Vorschau persönlich prüfen
 
-Der Agent nennt dir den genauen Ordner. Er sieht ungefähr so aus:
+Enthält dein Umfang einen Lebenslauf oder ein Anschreiben, nennt der Agent den genauen Layoutordner. Er sieht ungefähr so aus:
 
 ```text
 Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck/
 ```
 
-Öffne in deinem Dateimanager, Editor oder Bildbetrachter **jede Datei mit der Endung `.png` einzeln**. Kontrolliere jede sichtbare A4-Seite:
+Öffne in deinem Dateimanager, Editor oder Bildbetrachter **jede genannte Datei mit der Endung `.png` einzeln**. Kontrolliere jede sichtbare A4-Seite:
 
 - [ ] Kein Text ist abgeschnitten, verdeckt oder überlappt.
 - [ ] Es gibt keine ungewollte leere Seite oder große zufällige Leerfläche.
 - [ ] Schrift, Abstände und Spalten sind gut lesbar.
 - [ ] Name, Firma, Rolle und Kontaktdaten stimmen.
-- [ ] Lebenslauf und Anschreiben enthalten keine Platzhalter oder erfundenen Angaben.
+- [ ] Jedes ausgewählte Dokument enthält keine Platzhalter oder erfundenen Angaben.
 
 Wenn du einen Fehler findest, sende beispielsweise:
 
@@ -387,16 +393,18 @@ Veröffentliche noch nichts. Im Screenshot <Dateiname> ist folgendes Problem sic
 Korrigiere die Kandidatendatei, wiederhole die vollständige technische Vorbereitung und nenne mir danach alle neu erzeugten PNG-Dateien zur erneuten Prüfung.
 ```
 
+Bei einem bestätigten reinen E-Mail-Auftrag gibt es kein HTML, PDF oder PNG. Öffne dann die vom Agenten genannte `Email-Nachricht--FIRMA.md` im Kandidatenordner und prüfe Betreff, Empfängerbezug, Firma, Rolle, Namen, Kontaktdaten und Text vollständig. Layout-, PDF- und ATS-Berichte stehen in diesem Fall nachvollziehbar auf `nicht_erforderlich`; das ist kein vorgetäuschter Browserlauf.
+
 #### 7. Lokale Freigabe ausdrücklich bestätigen
 
 > [!IMPORTANT]
 > **„Veröffentlichen“ bedeutet hier nur eine lokale Freigabe:** Das Tool übernimmt geprüfte Dateien in die lokalen Ordner `Versand/` und `Intern/` und erstellt `Manifest.json`. Es lädt nichts zu GitHub oder einem Unternehmen hoch, verschickt keine E-Mail und sendet keine Portalbewerbung.
 
-Sende den folgenden Auftrag **nur, wenn du wirklich jede PNG-Datei geöffnet und geprüft hast**:
+Sende den folgenden Auftrag **nur, wenn du wirklich jede genannte PNG-Datei beziehungsweise bei einem reinen E-Mail-Auftrag die genannte Textdatei geöffnet und geprüft hast**:
 
 ```text
-Ich habe jede von dir genannte PNG-Datei persönlich geöffnet und vollständig geprüft.
-Es gibt keinen abgeschnittenen oder überlappenden Text, keine problematische Leerseite und keine falschen sichtbaren Angaben.
+Ich habe jede von dir genannte PNG-Datei beziehungsweise die für diesen Umfang genannte Textdatei persönlich geöffnet und vollständig geprüft.
+Alle ausgewählten Unterlagen sind vollständig und enthalten keine falschen sichtbaren Angaben. Bei visuellen Dokumenten gibt es keinen abgeschnittenen oder überlappenden Text und keine problematische Leerseite.
 
 Veröffentliche jetzt den vorbereiteten Bewerbungssatz mit dem vorgesehenen Finalisierungswerkzeug.
 Gib ihn nur lokal frei. Lade nichts hoch und versende nichts.
@@ -416,9 +424,9 @@ Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/Versand/
 
 | Datei | Deine Aktion |
 | --- | --- |
-| `Lebenslauf - NACHNAME.VORNAME.pdf` | hochladen oder anhängen, wenn ein Lebenslauf verlangt wird |
-| `Anschreiben - NACHNAME.VORNAME.pdf` | nur hochladen oder anhängen, wenn ein Anschreiben verlangt oder zugelassen wird |
-| `Email-Nachricht--FIRMA.md` | bei einer E-Mail-Bewerbung öffnen und Betreff sowie Nachricht kopieren; nicht als Datei anhängen |
+| `Lebenslauf - NACHNAME.VORNAME.pdf` | vorhanden, wenn der Umfang einen individuellen oder universellen Lebenslauf enthält; dann nach Bedarf hochladen oder anhängen |
+| `Anschreiben - NACHNAME.VORNAME.pdf` | vorhanden, wenn ein Anschreiben ausgewählt wurde; nur hochladen oder anhängen, wenn es verlangt oder zugelassen wird |
+| `Email-Nachricht--FIRMA.md` | vorhanden, wenn eine E-Mail-Nachricht ausgewählt wurde; Betreff und Nachricht kopieren, die Markdown-Datei nicht anhängen |
 
 Verwende ausschließlich freigegebene Dateien aus `Versand/`, aber beachte immer die Anforderungen der Stellenanzeige oder des Bewerbungsportals. Wenn ausdrücklich kein Anschreiben verlangt wird, hänge es nicht ungefragt an. Bei einer Portalbewerbung brauchst du die E-Mail-Datei meistens nicht.
 
@@ -432,6 +440,32 @@ Prüfe außerdem, ob unter `Intern/` eine `Offene_Fragen.md` vorhanden ist, und 
 
 > [!TIP]
 > **Deine Bewerbungsunterlagen sind jetzt für das bewusste manuelle Hochladen oder Versenden vorbereitet.** Die folgenden Nutzerabschnitte erklären den Ablauf und alle Dateien genauer; für den normalen ersten Durchlauf musst du sie nicht vollständig lesen.
+
+<a id="interaktiver-dialog"></a>
+
+### 💬 Interaktiver Bewerbungsdialog
+
+Der Agent fragt nur dann nach dem Umfang, wenn dein Auftrag ihn noch nicht eindeutig enthält. Du kannst mit `A` bis `E`, `1` bis `5`, `ja`, `nein` oder in freiem Text antworten. Eine eindeutige freie Formulierung wie `Lebenslauf und Anschreiben, aber keine E-Mail` wird ohne zusätzliches Menü übernommen.
+
+Danach vergleicht der Agent nur die für den gewählten Umfang relevanten Stellenanforderungen mit deinem privaten Profil. Intern unterscheidet er unter anderem eindeutig, teilweise oder übertragbar belegte Angaben, nicht belegte Punkte, Widersprüche und möglicherweise vorhandene, aber noch nicht dokumentierte Erfahrung. Er fragt nur nach, wenn eine Antwort Wahrheit oder Qualität der ausgewählten Unterlagen wesentlich beeinflussen kann. Verwandte Lücken werden gebündelt; pro Dialogrunde sind höchstens drei voneinander unabhängige Fragen zulässig.
+
+Beispiel:
+
+```text
+Agent: Die Stelle verlangt TypeScript. Dazu finde ich noch keine eindeutige Angabe.
+       Haben Sie TypeScript beruflich, in privaten Projekten, in einer Weiterbildung,
+       nur theoretisch oder gar nicht eingesetzt? Eine freie Beschreibung ist möglich.
+
+Nutzer: In zwei privaten React-Projekten.
+
+Agent: Ich ordne das als praktische Erfahrung aus privaten Projekten ein.
+       Soll die Formulierung dauerhaft ins Profil übernommen werden?
+       A – Ja  B – Nein, nur für diese Bewerbung  C – Vorher anders formulieren
+```
+
+Neue Angaben gelten standardmäßig nur für die aktuelle Bewerbung. Erst nach einer wahrheitsgemäßen Einordnung bündelt der Agent langfristig relevante Angaben und zeigt die beabsichtigten Formulierungen sowie die betroffenen Profildateien. Vor deiner Zustimmung bindet der Auftrag Wortlaut, Datei, Abschnitt und aktuellen Datei-Hash; das Übernahmewerkzeug akzeptiert danach keine abweichende Formulierung oder Zieldatei. Eine dauerhafte Änderung erfolgt ausschließlich nach deiner ausdrücklichen Zustimmung. Bei einer unklaren Antwort fragt der Agent höchstens einmal vereinfacht nach; Mehrdeutigkeit ist niemals Zustimmung.
+
+Gespeichert werden nur normalisierte fachliche Aussagen, Entscheidungen, Zeitstempel und gegebenenfalls Hashnachweise – kein Rohchat und keine vollständigen Prompts. So kann eine andere Agentensitzung beantwortete Fragen erkennen und an der ersten offenen Stelle fortsetzen.
 
 <a id="prozess"></a>
 
@@ -454,46 +488,56 @@ Der Agent trennt bewusst vier Zustände. Ein **Kandidat** ist dabei nur eine noc
 > [!IMPORTANT]
 > **Für Bewerbungsanhänge verwendest du nur freigegebene Dateien aus `Versand/`.** Welche Anhänge du tatsächlich übermittelst, richtet sich nach der Stellenanzeige oder dem Bewerbungsportal. Dateien unter `_Arbeitsdateien/` sind Arbeitsstände oder Prüfnachweise; Dateien unter `Intern/` bleiben bei dir.
 
-#### Der Ablauf in sieben Phasen
+#### Der Ablauf in neun Phasen
 
-1. **Stammdaten prüfen** – Identität, Kontakt und zentrale Bewerbungsentscheidungen werden kontrolliert. Kritische Lücken stoppen den Ablauf.
-2. **Arbeitsbereich anlegen** – Der Agent erzeugt einen leeren Zielordner, einen privaten Arbeitsordner und den Bewerbungsauftrag.
-3. **Stelle analysieren** – Muss-/Kann-Anforderungen werden mit deinen belegbaren Profildaten abgeglichen und in einer Anforderungsmatrix bewertet.
-4. **Kandidaten erstellen** – In der Vollbewerbung entstehen Lebenslauf, Anschreiben und E-Mail neu. Im Anschreiben-Modus wird der universelle Lebenslauf unverändert übernommen und nur Anschreiben sowie E-Mail werden neu geschrieben. Nach dem Lebenslauf wird der nicht blockierende Nutzungsbericht aktualisiert.
-5. **Fachlich korrigieren** – Stellenbeschreibung, Profil, Matrix und alle Dokumente werden auf Wahrheit, Passung und Widerspruchsfreiheit geprüft.
-6. **Technisch vorbereiten** – A4-Screenshots, zwei PDFs sowie Layout-, PDF-, ATS- und Token-Nachweise werden erzeugt beziehungsweise aktualisiert. Noch wird nichts veröffentlicht.
-7. **Sichtprüfen und veröffentlichen** – Du kontrollierst jede A4-Seite. Erst danach werden die geprüften Dateien gemeinsam nach `Versand/` und `Intern/` übernommen; zusätzlich wird `Manifest.json` erstellt.
+1. **Umfang klären** – Ein eindeutiger Wunsch wird direkt übernommen; sonst fragt der Agent A–E ab.
+2. **Stammdaten und Arbeitsstand prüfen** – Identität, Kontakt, Logistik und ein möglicher gespeicherter Dialogzustand werden kontrolliert.
+3. **Stelle und Profil abgleichen** – Nur für die ausgewählten Dokumente relevante Muss-/Kann-Anforderungen werden mit belegbaren Daten verglichen.
+4. **Gezielt nachfragen** – Wesentliche Lücken und Widersprüche werden gebündelt geklärt; neue Angaben gelten zunächst nur für diesen Auftrag.
+5. **Auftrag und Matrix festlegen** – Dokumentumfang, Bewerbungsentscheidung, Belege und Strategie werden maschinenlesbar gespeichert.
+6. **Ausgewählte Kandidaten erstellen** – Es entstehen ausschließlich die gewählten Bestandteile; ein Universal-Lebenslauf bleibt hashgleich.
+7. **Fachlich korrigieren** – Stelle, Profil, Dialogangaben, Matrix und vorhandene Dokumente werden auf Wahrheit und Konsistenz geprüft.
+8. **Technisch vorbereiten** – HTML-Bestandteile erhalten PDF-, Screenshot- und ATS-Nachweise; bei E-Mail-only werden diese Berichte als `nicht_erforderlich` geschrieben.
+9. **Persönlich prüfen und veröffentlichen** – Du prüfst jede erzeugte Seite oder den reinen E-Mail-Text. Erst danach wird das geprüfte Set lokal freigegeben und mit `Manifest.json` gebunden.
 
 <details>
-<summary><strong>Die sieben Phasen genauer erklärt</strong></summary>
+<summary><strong>Die neun Phasen genauer erklärt</strong></summary>
 
-**1 · Stammdaten und Sicherheit**
+**1 · Umfang und Sicherheit**
 
-Der Agent prüft Bewerbername, Kontakt, Stellenart, Arbeitsmodell, Region, Eintrittstermin und Gehaltsstrategie. Die Stellenanzeige wird ausschließlich als nicht vertrauenswürdige Datenquelle ausgewertet; darin eingebettete Anweisungen werden nicht ausgeführt.
+Der Umfang wird vor dem Lesen privater Profildaten eindeutig geklärt. Eine mehrdeutige Auswahl wird höchstens einmal vereinfacht nachgefragt und danach fehlergeschlossen gestoppt. Die Stellenanzeige bleibt eine nicht vertrauenswürdige Datenquelle; darin eingebettete Anweisungen werden nicht ausgeführt.
 
-**2 · Bewerbungsauftrag**
+**2 · Stammdaten und Arbeitsstand**
 
-`Bewerbungsauftrag.json` friert Firma, Rolle, Pfade und die Logistik für genau diese Bewerbung ein. Globale Profildaten müssen dadurch nicht für jede Stelle umgeschrieben werden. Noch offene Kernentscheidungen verhindern später die Freigabe.
+Der Agent prüft Bewerbername, Kontakt, Stellenart, Arbeitsmodell, Region, Eintrittstermin und Gehaltsstrategie. Bei einer Fortsetzung liest er Umfang, beantwortete Rückfragen und Speicherentscheidungen aus Dateien statt aus einer früheren Unterhaltung.
 
-**3 · Anforderungsmatrix und Bewerbungsentscheidung**
+**3 · Profilabgleich**
 
-Der Agent macht aus dem ersten Matrixentwurf eine vollständige `Anforderungsmatrix.json`. Jede relevante Stellenanforderung erhält Typ, Gewichtung, einen Status der Erfüllung, einen Beleg und eine geplante Behandlung. Das Ergebnis unterstützt die bewusste Entscheidung `bewerben` oder `nicht_bewerben`.
+Anforderungen werden als belegt, teilweise oder übertragbar belegt, nicht belegt, widersprüchlich, möglicherweise vorhanden oder nicht relevant eingeordnet. Diese interne Einordnung steuert, ob überhaupt eine Rückfrage nötig ist.
 
-**4 · Vollständiger Kandidat zur Prüfung**
+**4 · Rückfragen und Profilkontrolle**
 
-Alle inhaltlichen Dokumente werden mit ihren späteren Namen unter `Kandidat/` angelegt. Dieser Ordner ist die Werkbank für Korrekturen – noch nicht der Versandordner. Nach Fertigstellung des Lebenslaufs aktualisiert der Agent `Tokenverbrauch.json`, ohne die weitere Dokumenterstellung zu unterbrechen.
+Pro Runde werden höchstens drei wesentliche, voneinander unabhängige Fragen gestellt. Neue Angaben werden fachlich normalisiert und standardmäßig nur im Auftrag gespeichert. Dauerhafte Profiländerungen werden gebündelt angeboten und nur nach transparenter, ausdrücklicher Zustimmung ausgeführt.
 
-**5 · Fachliche Korrekturschleife**
+**5 · Bewerbungsauftrag und Matrix**
 
-Der Agent liest Stellenbeschreibung, Analyse, private Daten, Matrix, Lebenslauf, Anschreiben und E-Mail erneut gegeneinander. Gefundene Unstimmigkeiten werden am Kandidaten korrigiert und anschließend erneut geprüft. Fehlende Belege werden nicht erfunden.
+`Bewerbungsauftrag.json` Schema 4 friert Firma, Rolle, Pfade, Logistik, den bestätigten Dokumentumfang und den normalisierten Dialogzustand für genau diese Bewerbung ein. Die vollständige `Anforderungsmatrix.json` dokumentiert Gewichtung, Beleg und Behandlung jeder relevanten Anforderung.
 
-**6 · Technische Vorbereitung**
+**6 · Umfangsgerechter Kandidat**
 
-Der erste Finalisierungslauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt einen Screenshot je A4-Seite, exportiert zwei PDFs, kontrolliert deren ATS-Textschicht und aktualisiert den Tokenbericht mindestens mit dessen Verfügbarkeitsstatus. Der Status lautet danach lediglich `bereit_zur_sichtpruefung`; fehlende Laufzeit-Nutzungsdaten blockieren ihn nicht.
+Nur ausgewählte Dokumente werden mit ihren späteren Namen unter `Kandidat/` angelegt. Dieser Ordner bleibt die Werkbank für Korrekturen. Ist ein Lebenslauf enthalten, aktualisiert der Agent danach den nicht blockierenden Lebenslauf-Messbereich in `Tokenverbrauch.json`.
 
-**7 · Sichtprüfung und gemeinsame Veröffentlichung**
+**7 · Fachliche Korrekturschleife**
 
-Änderst du nach der Vorbereitung eine Kandidatendatei, verlieren Screenshots und PDFs ihre Gültigkeit und Phase 6 muss vollständig wiederholt werden. Direkt vor der Veröffentlichung prüft das Tool erneut, ob sich seit der Vorbereitung etwas verändert hat. Scheitert eine dieser Vorprüfungen, bleibt der bisherige Zielordner unverändert. Neue Dateien werden zuerst in einem separaten Zwischenordner vorbereitet und anschließend gemeinsam übernommen, damit kein unvollständiger Endstand entsteht.
+Der Agent liest Stellenbeschreibung, Analyse, private Daten, normalisierte Dialogangaben, Matrix und alle vorhandenen Dokumente gegeneinander. Unstimmigkeiten werden am Kandidaten korrigiert und erneut geprüft; fehlende Belege werden nicht erfunden.
+
+**8 · Technische Vorbereitung**
+
+Der Finalisierungslauf leitet die erwarteten Dateien aus `dokumentumfang` ab. Für jedes HTML-Dokument erzeugt er PDF, ATS-Nachweis und einen Screenshot je A4-Seite. Ein reiner E-Mail-Auftrag erhält stattdessen nachvollziehbare `nicht_erforderlich`-Berichte. Der Status lautet danach lediglich `bereit_zur_sichtpruefung`.
+
+**9 · Persönliche Prüfung und gemeinsame Veröffentlichung**
+
+Änderst du nach der Vorbereitung eine Quelle oder Kandidatendatei, verlieren die abhängigen Nachweise ihre Gültigkeit und Phase 8 muss vollständig wiederholt werden. Direkt vor der Veröffentlichung prüft das Tool den unveränderten Stand. Neue Dateien werden zuerst in einem separaten Zwischenordner vorbereitet und anschließend gemeinsam übernommen, damit kein unvollständiger Endstand entsteht.
 
 </details>
 
@@ -501,21 +545,21 @@ Der erste Finalisierungslauf prüft Stammdaten, Inhalt und A4-Struktur, erzeugt 
 
 ### 🗂️ Welche Dateien entstehen – und wofür sind sie da?
 
-Die im Screenshot sichtbaren Ordner `Intern/`, `Versand/` und die Datei `Manifest.json` bilden den **veröffentlichten Endzustand**. Parallel bleibt unter `_Arbeitsdateien/` die private Werkstatt mit Entwürfen, Kandidaten und technischen Nachweisen erhalten.
+Die Ordner `Intern/`, `Versand/` und die Datei `Manifest.json` bilden den **veröffentlichten Endzustand**. Welche Dokumentdateien darin liegen, bestimmt der gespeicherte Dokumentumfang. Parallel bleibt unter `_Arbeitsdateien/` die private Werkstatt mit Auftrag, normalisiertem Dialogzustand, Kandidaten und technischen Nachweisen erhalten.
 
 #### Der veröffentlichte Bewerbungsordner
 
 ```text
 Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
 ├─ Versand/
-│  ├─ Lebenslauf - NACHNAME.VORNAME.pdf
-│  ├─ Anschreiben - NACHNAME.VORNAME.pdf
-│  └─ Email-Nachricht--FIRMA.md
+│  ├─ optional Lebenslauf - NACHNAME.VORNAME.pdf
+│  ├─ optional Anschreiben - NACHNAME.VORNAME.pdf
+│  └─ optional Email-Nachricht--FIRMA.md
 ├─ Intern/
 │  ├─ Stellenbeschreibung.md
 │  ├─ Analyse.md
-│  ├─ Lebenslauf - NACHNAME.VORNAME.html
-│  ├─ Anschreiben - NACHNAME.VORNAME.html
+│  ├─ optional Lebenslauf - NACHNAME.VORNAME.html
+│  ├─ optional Anschreiben - NACHNAME.VORNAME.html
 │  ├─ Qualitaetscheck.md
 │  ├─ Druck-Hinweis.md
 │  └─ optional Offene_Fragen.md
@@ -526,11 +570,11 @@ Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/
 
 | Datei | Verwendung |
 | --- | --- |
-| `Lebenslauf - NACHNAME.VORNAME.pdf` | aus `Versand/` hochladen oder anhängen, wenn ein Lebenslauf verlangt wird |
-| `Anschreiben - NACHNAME.VORNAME.pdf` | getrennt vom Lebenslauf hochladen oder anhängen, wenn ein Anschreiben verlangt oder zugelassen wird |
-| `Email-Nachricht--FIRMA.md` | bei einer E-Mail-Bewerbung Betreff und Nachricht kopieren; die Markdown-Datei nicht anhängen |
+| `Lebenslauf - NACHNAME.VORNAME.pdf` | nur vorhanden, wenn ein Lebenslauf ausgewählt wurde; aus `Versand/` hochladen oder anhängen, wenn er verlangt wird |
+| `Anschreiben - NACHNAME.VORNAME.pdf` | nur vorhanden, wenn ein Anschreiben ausgewählt wurde; gegebenenfalls getrennt vom Lebenslauf hochladen |
+| `Email-Nachricht--FIRMA.md` | nur vorhanden, wenn eine E-Mail-Nachricht ausgewählt wurde; Betreff und Nachricht kopieren, die Markdown-Datei nicht anhängen |
 
-Eine Stellenanzeige mit der Bitte um eine Bewerbung „als PDF“ verlangt nicht automatisch eine Gesamt-PDF. Lebenslauf und Anschreiben bleiben standardmäßig zwei getrennte Anlagen; zusammengeführt wird nur bei ausdrücklicher Vorgabe.
+Eine Stellenanzeige mit der Bitte um eine Bewerbung „als PDF“ verlangt nicht automatisch eine Gesamt-PDF. Sind Lebenslauf und Anschreiben ausgewählt, bleiben sie getrennte Anlagen; zusammengeführt wird nur bei ausdrücklicher Vorgabe.
 
 ##### `Intern/` – deine lesbare Dokumentation
 
@@ -538,8 +582,8 @@ Eine Stellenanzeige mit der Bitte um eine Bewerbung „als PDF“ verlangt nicht
 | --- | --- | --- |
 | `Stellenbeschreibung.md` | gespeicherte Ausgangsanzeige | später nachlesen und zur Gesprächsvorbereitung verwenden, auch wenn die Online-Anzeige nicht mehr verfügbar ist |
 | `Analyse.md` | Passung, Profilstrategie, stärkste Argumente, Risiken und bewusste Auslassungen | Bewerbungsentscheidung nachvollziehen und auf ein Vorstellungsgespräch vorbereiten |
-| `Lebenslauf - … .html` | geprüfter HTML-Stand des Lebenslaufs | im Browser ansehen und als nachvollziehbare Dokumentquelle archivieren |
-| `Anschreiben - … .html` | geprüfter HTML-Stand des Anschreibens | im Browser ansehen und als nachvollziehbare Dokumentquelle archivieren |
+| `Lebenslauf - … .html` | optionaler geprüfter HTML-Stand des Lebenslaufs | im Browser ansehen und als nachvollziehbare Dokumentquelle archivieren |
+| `Anschreiben - … .html` | optionaler geprüfter HTML-Stand des Anschreibens | im Browser ansehen und als nachvollziehbare Dokumentquelle archivieren |
 | `Qualitaetscheck.md` | fachlicher Anforderungsabgleich plus technischer Abschlussstatus | kontrollieren, was geprüft wurde und welche Warnungen dokumentiert sind |
 | `Druck-Hinweis.md` | Anleitung für das manuelle Drucken im Browser | nur verwenden, wenn du eine HTML-Datei manuell drucken oder als PDF sichern musst |
 | `Offene_Fragen.md` | nicht erfundene, noch offene oder bewusst dokumentierte Punkte | vor dem Versand lesen und verbleibende Fragen soweit möglich klären |
@@ -560,20 +604,20 @@ Alles in diesem Bereich bleibt privat und wird nicht versendet.
 
 | Datei oder Ordner | Zweck | Was du damit tun kannst |
 | --- | --- | --- |
-| `Bewerbungsauftrag.json` | eingefrorener Auftrag mit Firma, Rolle, Logistik, Darstellungsoptionen und Bewerbungsentscheidung | vor der Dokumenterstellung auf richtige Entscheidungen prüfen; nach der Vorbereitung nicht still ändern |
+| `Bewerbungsauftrag.json` | Schema-4-Auftrag mit Firma, Rolle, bestätigtem Dokumentumfang, normalisiertem Dialogzustand, Logistik, Darstellungsoptionen und Bewerbungsentscheidung | Umfang, offene Rückfragen und Speicherentscheidungen prüfen; enthält keinen Rohchat und darf nach der Vorbereitung nicht still geändert werden |
 | `Anforderungsmatrix--ENTWURF.json` | vom Ordnerhelfer erzeugtes Startgerüst | nicht als fertige Analyse verwenden; wird durch `Anforderungsmatrix.json` ersetzt |
 | `Anforderungsmatrix.json` | vollständiger Muss-/Kann-Abgleich mit Gewichtung, Belegen und Behandlung | Passung und Risiken nachvollziehen; auch zur Interviewvorbereitung nützlich |
 | `Arbeitsnotizen.md` | Zuordnung von Firma, Rolle und Ordnern | Arbeitsstand nachvollziehen; wird außerdem zur sicheren Fortsetzung einer Bewerbung benötigt |
 | `*--ENTWURF.*` | vorbereitete Schreibgerüste für Analyse, HTML, E-Mail, Qualitätscheck und offene Fragen | nur als Arbeitsgrundlage betrachten; nie versenden |
-| `Kandidat/` | vollständig benannter, aber noch nicht freigegebener Satz | hier Korrekturen vornehmen und danach alle Prüfungen erneut ausführen |
-| `Kandidat/*.pdf` | während der Vorbereitung erzeugte und validierte PDF-Kandidaten | nicht direkt versenden; erst die veröffentlichten Kopien unter `Versand/` verwenden |
+| `Kandidat/` | gemäß Dokumentumfang vollständig benannter, aber noch nicht freigegebener Satz | hier Korrekturen vornehmen und danach alle abhängigen Prüfungen erneut ausführen |
+| `Kandidat/*.pdf` | für ausgewählte HTML-Dokumente während der Vorbereitung erzeugte und validierte PDF-Kandidaten | nicht direkt versenden; erst die veröffentlichten Kopien unter `Versand/` verwenden |
 | `Stammdaten-Pruefbericht.json` | Ergebnis der Identitäts-, Kontakt- und Logistikprüfung | bei blockierenden Stammdatenfehlern zur Diagnose öffnen |
 | `Inhalts-Pruefbericht.json` | Konsistenz-, Zeitraum-, Darstellungs- und Passungsprüfung | fachliche Fehler und Warnungen nachvollziehen |
-| `Layoutcheck/*.png` | ein frischer Screenshot je expliziter A4-Seite | **jede PNG-Datei tatsächlich öffnen und visuell prüfen** |
-| `Layoutcheck/Layoutcheck-Bericht.json` | Browser, Abmessungen, Seiten, Screenshot-Hashes und Dichtehinweise | Layoutwarnungen einer konkreten Seite zuordnen |
-| `PDF-Export/PDF-Export-Bericht.json` | HTML-/PDF-Hashes, Dateigröße, Seitenzahl und A4-MediaBox | PDF-Exportfehler technisch einordnen |
-| `ATS-Pruefbericht.json` | Textabdeckung, Pflichttexte und grundlegende Lesereihenfolge der PDFs | erkennen, ob Bewerbermanagementsysteme den PDF-Text voraussichtlich auslesen können |
-| `Finalisierungsbericht.json` | Zustands- und Vorbereitungsnachweis mit den damals erfassten Quellen-, Kandidaten- und Screenshot-Hashes | Status und Prüflauf nachvollziehen; für die Integrität des veröffentlichten Endstands ist `Manifest.json` maßgeblich |
+| `Layoutcheck/*.png` | ein frischer Screenshot je expliziter A4-Seite der ausgewählten HTML-Dokumente | **jede vorhandene PNG-Datei tatsächlich öffnen und visuell prüfen** |
+| `Layoutcheck/Layoutcheck-Bericht.json` | Browser, Abmessungen, Seiten, Screenshot-Hashes und Dichtehinweise; bei E-Mail-only `nicht_erforderlich` | Layoutwarnungen einer konkreten Seite oder den bewusst entfallenen Lauf nachvollziehen |
+| `PDF-Export/PDF-Export-Bericht.json` | HTML-/PDF-Hashes, Dateigröße, Seitenzahl und A4-MediaBox; bei E-Mail-only `nicht_erforderlich` | PDF-Exportfehler oder den bewusst entfallenen Export technisch einordnen |
+| `ATS-Pruefbericht.json` | Textabdeckung, Pflichttexte und Lesereihenfolge vorhandener PDFs; bei E-Mail-only `nicht_erforderlich` | ATS-Lesbarkeit oder den bewusst entfallenen PDF-Test nachvollziehen |
+| `Finalisierungsbericht.json` | Schema-4-Vorbereitungsnachweis mit Dokumentumfang, persönlicher Prüfart und Hashes der tatsächlich erwarteten Artefakte | Status und Prüflauf nachvollziehen; für die Integrität des veröffentlichten Endstands ist `Manifest.json` maßgeblich |
 | `Tokenverbrauch.json` | anbieterneutraler Nutzungsbericht mit exakten Laufzeitwerten oder eindeutiger Nichtverfügbarkeit | Diagnose und Kosten nachvollziehen; niemals als Qualitäts- oder Versandnachweis verwenden |
 
 Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner liegen. Sie sind keine zweite freigegebene Bewerbung. Maschinenlesbare Berichte und Screenshots werden absichtlich **nicht** nach `Intern/` kopiert.
@@ -583,8 +627,8 @@ Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner lieg
 #### Welche Datei nutze ich für welchen Zweck?
 
 - 📤 **Bewerbung verschicken:** nur freigegebene Dateien aus `Versand/` verwenden und die verlangten Anlagen der Stellenanzeige beachten.
-- ✉️ **E-Mail verfassen:** Betreff und Text aus `Versand/Email-Nachricht--FIRMA.md` kopieren.
-- 👀 **Layout freigeben:** jede PNG-Datei unter `_Arbeitsdateien/.../Layoutcheck/` öffnen.
+- ✉️ **E-Mail verfassen:** falls ausgewählt, Betreff und Text aus `Versand/Email-Nachricht--FIRMA.md` kopieren.
+- 👀 **Persönlich freigeben:** jede vorhandene PNG-Datei unter `_Arbeitsdateien/.../Layoutcheck/` öffnen; bei E-Mail-only stattdessen die Textdatei prüfen.
 - 🔎 **Stellenpassung verstehen:** `Intern/Analyse.md` und bei Bedarf die private `Anforderungsmatrix.json` lesen.
 - ✏️ **Dokument korrigieren:** den Agenten um eine Korrektur der Arbeitsversion unter `Kandidat/` bitten; danach Vorbereitung und Sichtprüfung vollständig wiederholen.
 - 🧪 **Fehler untersuchen:** die passenden JSON-Berichte unter `_Arbeitsdateien/` öffnen.
@@ -593,11 +637,11 @@ Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner lieg
 - 🗄️ **Bewerbung nachvollziehbar archivieren:** finalen Ordner **und** zugehörigen Arbeitsordner behalten.
 
 > [!WARNING]
-> Lösche `_Arbeitsdateien` nicht vorschnell. Die zum Versand bestimmten PDFs bleiben zwar im finalen Ordner, aber du verlierst Kandidaten, Anforderungsmatrix, Screenshots, technische Nachweise und die saubere Grundlage für spätere Korrekturen.
+> Lösche `_Arbeitsdateien` nicht vorschnell. Die freigegebenen Versanddateien bleiben zwar im finalen Ordner, aber du verlierst Dialogzustand, Kandidaten, Anforderungsmatrix, Screenshots, technische Nachweise und die saubere Grundlage für spätere Korrekturen.
 
 #### Offene Fragen
 
-Fehlen belastbare Informationen, legt der Agent `Offene_Fragen.md` an. Das betrifft zum Beispiel einen unklaren Eintrittstermin, einen fehlenden Ansprechpartner, eine nicht belegte Technologie oder eine offene Gehaltsstrategie.
+Fehlen belastbare Informationen, legt der Agent `Offene_Fragen.md` an. Das betrifft zum Beispiel einen unklaren Eintrittstermin, einen fehlenden Ansprechpartner oder eine offene Gehaltsstrategie. Beantwortete Dialogfragen und normalisierte neue Angaben werden dagegen strukturiert im privaten Bewerbungsauftrag fortgeführt und nicht als Rohchat in diese Markdown-Datei kopiert.
 
 Kritische Fragen blockieren die Veröffentlichung, wenn sonst Identität, Wahrheit oder zentrale Bewerbungsentscheidungen gefährdet wären. Bleibt eine nicht blockierende `Offene_Fragen.md` im veröffentlichten Satz erhalten, lies sie vor dem Versand. Unbekannte Angaben werden niemals geraten oder als Platzhalter in finale Dokumente übernommen.
 
@@ -626,6 +670,13 @@ Die Trennung zwischen öffentlicher Logik und privaten Daten ist ein Kernprinzip
 
 Die Vorlagen findest du unter `Private.example/Daten/`. Pflege jede Information nur an ihrer Stammquelle, damit Angaben nicht widersprüchlich werden.
 
+Neue Informationen aus einem Bewerbungsdialog gelten zunächst ausschließlich für den aktuellen Auftrag. Der Agent speichert dafür nur die normalisierte fachliche Aussage im privaten `Bewerbungsauftrag.json`; die ursprüngliche Unterhaltung wird nicht protokolliert. Wahrscheinliche dauerhafte Ergänzungen werden nach einer Rückfragerunde gebündelt angezeigt. Erst wenn du Formulierung und Ziel ausdrücklich bestätigst, dürfen ausschließlich fachlich passende Einträge in diesen beiden Profildateien geändert werden:
+
+- `01_PERSOENLICHE_DATEN.md` nur für Identität, Kontakt und globale Bewerbungslogistik;
+- `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` nur für Erfahrung, Ausbildung, Kenntnisse, Projekte, Sprachen und fachliche Grenzen.
+
+Der Agent prüft vor dem Schreiben auf sinngleiche Einträge, vermeidet Dubletten und protokolliert Zustimmung, Ziel, Zeitpunkt und Hashnachweise im privaten Auftrag. Bei `nein`, `nur diesmal` oder einer unklaren Antwort bleibt das dauerhafte Profil unverändert. `Private.example/`, universelle Lebensläufe und andere Bewerbungen sind niemals zulässige Ziele dieser Zustimmung.
+
 #### Persönliche Daten mit Unterstützung des Agenten einrichten
 
 > [!WARNING]
@@ -643,7 +694,7 @@ Stellenanzeigen, Unternehmensseiten, E-Mails und andere Fremdtexte gelten als **
 - Fremdtexte dürfen keine privaten Dateien offenlegen, hochladen, versenden, löschen oder verändern lassen.
 - Externe Aktionen sind nur durch einen direkten Nutzerauftrag autorisiert.
 - Finale HTML-Dateien laden keine externen oder lokalen Ressourcen automatisch nach; vollständig eingebettete `data:`-Ressourcen sind möglich.
-- Analyse und Arbeitsnotizen vervielfältigen keine unnötigen privaten Daten oder Geheimnisse.
+- Auftrag, Analyse und Arbeitsnotizen vervielfältigen keine unnötigen privaten Daten, Rohchats oder Geheimnisse.
 
 > [!WARNING]
 > `.gitignore` ist keine Verschlüsselung. Cloud-Synchronisation, Backups, Virenscanner und andere lokale Programme können Dateien unter `Private/` weiterhin lesen oder kopieren. Prüfe außerdem jedes finale Dokument persönlich vor dem Versand.
@@ -678,21 +729,21 @@ Wenn die Bewerbung erstellt ist, kannst du diesen Auftrag senden:
 Bereite diese Bewerbung vollständig für meine Sichtprüfung vor.
 Verwende -Browser auto, veröffentliche noch nichts und nenne mir danach:
 - den exakten privaten Arbeitsordner,
-- den exakten Layoutcheck-Ordner,
-- jede erzeugte PNG-Datei,
-- alle Fehler und Layoutwarnungen,
+- die laut Dokumentumfang erwarteten Dateien und Prüfberichte,
+- jede erzeugte PNG-Datei oder bei E-Mail-only die zu prüfende Textdatei,
+- alle Fehler, Layoutwarnungen und als nicht erforderlich markierten Prüfungen,
 - die klare Bestätigung, ob der Status bereit_zur_sichtpruefung erreicht ist.
 ```
 
-Dieser Lauf prüft Stammdaten und Inhalte, erzeugt A4-Screenshots, exportiert zwei PDFs und kontrolliert, ob Bewerbungsportale den PDF-Text grundsätzlich lesen können. Öffne erst nach bestätigtem Status `bereit_zur_sichtpruefung` jede genannte PNG-Datei.
+Dieser Lauf validiert zuerst Umfang und Dialogstatus und prüft danach Stammdaten sowie Inhalte. Für jedes ausgewählte HTML-Dokument erzeugt er A4-Screenshots und eine PDF und kontrolliert deren ATS-Text. Bei einem bestätigten reinen E-Mail-Auftrag startet er keinen Browser und schreibt Layout-, PDF- und ATS-Bericht mit `nicht_erforderlich`. Öffne erst nach bestätigtem Status `bereit_zur_sichtpruefung` jede genannte PNG- beziehungsweise Textdatei.
 
 Der Lauf aktualisiert außerdem `Tokenverbrauch.json` im privaten Arbeitsordner. Das Tool selbst kennt keine Nutzungsdaten des übergeordneten Agenten und schreibt deshalb ohne maschinenlesbare Laufzeitwerte `unavailable` und `null`. Ein kompatibler Agent darf diese Felder anschließend nur mit tatsächlich von seiner Laufzeit bereitgestellten exakten Werten aktualisieren. Der Bericht beeinflusst den Finalisierungsstatus nicht.
 
 Nach deiner tatsächlichen Sichtprüfung sendest du:
 
 ```text
-Ich habe jede PNG-Datei im genannten Layoutcheck-Ordner persönlich geprüft.
-Kein Text ist abgeschnitten oder verdeckt, die Seiten wirken vollständig und die sichtbaren Angaben sind korrekt.
+Ich habe jede für diesen Umfang genannte PNG- beziehungsweise Textdatei persönlich geprüft.
+Die ausgewählten Unterlagen sind vollständig und die sichtbaren Angaben sind korrekt. Bei HTML-Dokumenten ist kein Text abgeschnitten oder verdeckt.
 
 Gib den unveränderten geprüften Satz jetzt lokal frei. Lade nichts hoch und versende nichts.
 Falls sich seit der Vorbereitung eine Quelle oder die Arbeitsversion unter Kandidat/ geändert hat, gib nichts frei. Wiederhole nur die vollständige Vorbereitung, nenne mir alle neu erzeugten PNG-Dateien und stoppe danach. Warte auf meine erneute persönliche Sichtprüfung; verwende meine alte Bestätigung nicht für den neuen Stand.
@@ -735,12 +786,12 @@ Bei Layoutwarnungen gilt auch hier zusätzlich `-VisuelleFreigabeNotiz "..."`.
 
 #### Visuelle Kurzcheckliste
 
-- [ ] Jede erwartete A4-Seite ist als frischer Screenshot vorhanden.
+- [ ] Jede erwartete A4-Seite eines ausgewählten HTML-Dokuments ist als frischer Screenshot vorhanden; bei E-Mail-only ist die Textdatei genannt.
 - [ ] Kein Text ist abgeschnitten oder verdeckt.
 - [ ] Es gibt keine ungewollte Leerseite oder große zufällige Leerfläche.
 - [ ] Schrift, Abstände und Spalten sind professionell lesbar.
-- [ ] Lebenslauf, Anschreiben und E-Mail enthalten dieselben Kerndaten.
-- [ ] Es stehen keine Platzhalter oder erfundenen Angaben in den Dateien.
+- [ ] Alle tatsächlich ausgewählten Dokumente enthalten dieselben Kerndaten.
+- [ ] Es stehen keine Platzhalter oder erfundenen Angaben in den ausgewählten Dateien.
 
 <details>
 <summary><strong>Einzelne Diagnose-, Layout- und Exportbefehle</strong></summary>
@@ -752,13 +803,18 @@ In den folgenden Beispielen liegen die prüfbaren HTML-Dateien im Kandidatenordn
 **Statischer Check**
 
 ```powershell
-.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat"
+.\Tools\Pruefe-Bewerbung.ps1 `
+  -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
 ```
 
 Warnungen können streng als Fehler behandelt werden:
 
 ```powershell
-.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" -WarnungenAlsFehler
+.\Tools\Pruefe-Bewerbung.ps1 `
+  -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
+  -WarnungenAlsFehler
 ```
 
 **Layout-Screenshots**
@@ -775,11 +831,12 @@ Warnungen können streng als Fehler behandelt werden:
 ```powershell
 .\Tools\Exportiere-PDF.ps1 `
   -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
   -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export" `
   -Browser auto
 ```
 
-Der statische Prüfer kontrolliert Pflichtdateien, Dateinamen, Platzhalter, A4-Geometrie, eingebettetes CSS, unerlaubte Ressourcen und den E-Mail-Betreff. Layout- und Exporttools validieren zusätzlich PNG-/PDF-Signaturen, Abmessungen, Seitenzahlen und Aktualität.
+Der statische Prüfer leitet Pflichtdateien aus dem Schema-4-Auftrag ab und kontrolliert Dateinamen, Platzhalter, A4-Geometrie, eingebettetes CSS, unerlaubte Ressourcen und gegebenenfalls den E-Mail-Betreff. Layout- und Exporttools verarbeiten die vorhandenen ausgewählten HTML-Dokumente und validieren zusätzlich PNG-/PDF-Signaturen, Abmessungen, Seitenzahlen und Aktualität.
 
 </details>
 
@@ -797,7 +854,7 @@ Wenn kein unterstützter Headless-Export verfügbar ist, kannst du zu Diagnosezw
 Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgeschnittenes Einseiten-Dokument.
 
 > [!CAUTION]
-> Dieser manuelle Export ist **kein gleichwertiger Ersatz** für den verbindlichen Finalisierungsworkflow: PDF-Struktur, ATS-Textschicht und Hashnachweise werden dabei nicht automatisch validiert. Eine vollständig geprüfte Veröffentlichung benötigt Chrome oder Edge.
+> Dieser manuelle Export ist **kein gleichwertiger Ersatz** für den verbindlichen Finalisierungsworkflow: PDF-Struktur, ATS-Textschicht und Hashnachweise werden dabei nicht automatisch validiert. Eine vollständig geprüfte Veröffentlichung mit ausgewählten HTML-Dokumenten benötigt Chrome oder Edge; für einen bestätigten reinen E-Mail-Auftrag ist kein Browserlauf vorgesehen.
 
 </details>
 
@@ -807,13 +864,13 @@ Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgesch
 | --- | --- | --- |
 | Windows + PowerShell 7 | 🟢 primär unterstützt | am umfassendsten geprüfter Projektablauf |
 | PowerShell-Werkzeuge unter `Tools/` | 🟢 Kernworkflow | Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Freigabeprüfungen |
-| Chrome oder Edge | 🔵 für Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung |
+| Chrome oder Edge | 🔵 für HTML-Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung für ausgewählte HTML-Dokumente; nicht für E-Mail-only |
 | Firefox | 🟡 optional | manuelle Vorschau; kein Ersatz für die verbindliche Finalisierung |
 | Linux + Bash | 🟠 Alpha | derzeit vor allem Ordnererstellung; die PowerShell-/Browserkette ist nicht gleichwertig portiert; [Portierungsplan](LINUX-PORTIERUNGSPLAN.md) |
 | Git Bash | 🟡 Entwicklung | Bash-Regressionsfälle unter Windows |
 | Agent mit PNG-Auswertung | 🟡 optional | kann Screenshots zusätzlich beurteilen; persönliche Sichtprüfung bleibt Pflicht |
 
-Für die normale Nutzung brauchst du dieses Repository, gepflegte Daten unter `Private/Daten/`, einen Agenten mit Datei- und Terminalzugriff und eine konkrete Stellenbeschreibung. Die agentenspezifischen Start- und Teststände stehen in der [Kompatibilitätsübersicht](#agentenkompatibilitaet).
+Für die normale Nutzung brauchst du dieses Repository, gepflegte Daten unter `Private/Daten/`, einen Agenten mit Datei- und Terminalzugriff und eine konkrete Stellenbeschreibung. Beide Ordnerhelfer verlangen die vorhandenen, regulären Quelldateien `Private/Daten/01_PERSOENLICHE_DATEN.md` und `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`, bevor sie Ordner anlegen; abweichende Pfade können ausdrücklich übergeben werden. Der Bash-Helfer benötigt außerdem `sha256sum` oder `shasum` sowie zum verbindlichen JSON-Parsing eines der Programme `jq`, Python 3, Python, Node.js oder PowerShell 7. Die agentenspezifischen Start- und Teststände stehen in der [Kompatibilitätsübersicht](#agentenkompatibilitaet).
 
 <details>
 <summary><strong>Bewerbungsordner manuell anlegen</strong></summary>
@@ -823,16 +880,24 @@ Normalerweise übernimmt der Agent diesen Schritt.
 Windows / PowerShell:
 
 ```powershell
-.\Tools\Neue-Bewerbung.ps1 -Firma "Muster GmbH" -Rolle "Junior Webentwickler"
+.\Tools\Neue-Bewerbung.ps1 `
+  -Firma "Muster GmbH" `
+  -Rolle "Junior Webentwickler" `
+  -UmfangAuswahl A `
+  -UmfangQuelle direkter_auftrag
 ```
 
 Linux / Bash (Alpha):
 
 ```bash
-bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Junior Webentwickler"
+bash Tools/neue-bewerbung.sh \
+  --firma "Muster GmbH" \
+  --rolle "Junior Webentwickler" \
+  --umfang A \
+  --umfang-quelle direkter_auftrag
 ```
 
-Die Helfer erzeugen einen leeren Zielordner, einen Arbeitsordner und einen Kandidatenordner. Eine vorhandene Kombination aus Firma, Datum und Rolle wird nicht überschrieben. `-Fortsetzen` beziehungsweise `--fortsetzen` ist nur für dieselbe, über `Arbeitsnotizen.md` nachweisbare Bewerbung vorgesehen.
+Für Auswahl E werden die Bestandteile unter PowerShell mit `-Dokumente lebenslauf,anschreiben` beziehungsweise unter Bash mit `--dokumente lebenslauf,anschreiben` angegeben. Eine reine E-Mail verwendet zusätzlich `-EmailAlleinBestaetigt` beziehungsweise `--email-allein-bestaetigt`, aber nur nach der ausdrücklichen Nutzerbestätigung; ihr Startentwurf behauptet keine nicht ausgewählte Anlage. Die Helfer erzeugen einen leeren Zielordner, einen Arbeitsordner, einen Kandidatenordner und den Schema-4-Auftrag. Eine vorhandene Kombination aus Firma, Datum und Rolle wird nicht überschrieben. `-Fortsetzen` beziehungsweise `--fortsetzen` ist nur für denselben Umfang und dieselbe, über Auftrag und Arbeitsnotizen nachweisbare Bewerbung vorgesehen; im Universalmodus bleiben Quellpfad, Dateiname und SHA-256 gebunden.
 
 </details>
 
@@ -850,16 +915,16 @@ Die Helfer erzeugen einen leeren Zielordner, einen Arbeitsordner und einen Kandi
 | Befehl findet einen Pfad mit `FIRMA` nicht | steht noch ein großgeschriebener Platzhalter im Befehl? | exakten Arbeitsordner vom Agenten ausgeben lassen und diesen Pfad verwenden |
 | Layoutcheck startet nicht | Ist Chrome oder Edge installiert? | zuerst `-Browser auto` verwenden; zur Diagnose den tatsächlich installierten Browser mit `-Browser chrome` oder `-Browser edge` wählen |
 | Browser scheitert in einer Sandbox | Browserfreigabe der lokalen Agentenumgebung prüfen | denselben Lauf mit lokaler Browserfreigabe wiederholen |
-| Keine PNG-Datei vorhanden | `Layoutcheck/` prüfen | noch nicht freigeben; technische Vorbereitung durch den Agenten wiederholen lassen |
+| Keine PNG-Datei vorhanden | enthält der bestätigte Umfang überhaupt ein HTML-Dokument? | bei HTML nicht freigeben und Vorbereitung wiederholen; bei E-Mail-only stattdessen die genannte Textdatei und `nicht_erforderlich`-Berichte prüfen |
 | PDF-Export bricht ab | Statischen Check separat ausführen | Fehler beheben; manueller Firefox-Druck ist nur eine nicht validierte Diagnosealternative |
 | Text wirkt abgeschnitten | HTML und alle Seitenscreenshots öffnen | Inhalt fachlich kürzen oder bewusst auf zwei A4-Seiten verteilen |
 | Bewerbung für dieselbe Firma und Rolle existiert bereits | Datum, Firma und Rolle vergleichen | nicht neu anlegen; den Agenten mit „Setze die bestehende Bewerbung fort“ beauftragen; `-Fortsetzen` nur für exakt dieselbe Bewerbung nutzen |
 | PowerShell meldet „Skriptausführung deaktiviert“ | `Get-ExecutionPolicy` ausführen | nur im vertrauenswürdigen Projektterminal vorübergehend `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` verwenden; auf Firmengeräten zuerst die Administration fragen |
 | Persönliche Dateien erscheinen in Git | `git status --short --ignored` prüfen | Dateien nach `Private/` verschieben; nichts Privates in Git übernehmen |
-| Informationen fehlen | `Offene_Fragen.md` lesen | belastbare Angaben ergänzen; keine Werte raten lassen |
+| Informationen fehlen | Dialogstatus im Auftrag und `Offene_Fragen.md` prüfen | nur wesentliche offene Punkte beantworten; keine Werte raten lassen |
 | Fertige Dateien werden nicht gefunden | hat der Agent die lokale Freigabe erfolgreich gemeldet? | den exakten Ordner `.../Versand/` vom Agenten nennen lassen |
 | Tokenzahlen stehen auf `nicht verfügbar` | stellt die Agentenlaufzeit maschinenlesbare Nutzungsdaten bereit? | keine Zahl schätzen; `Tokenverbrauch.json` bleibt ein nicht blockierender Bericht mit `null`-Werten |
-| Das gewählte Modell versteht den langen Ablauf nicht | fehlen Kontextlänge oder zuverlässige Werkzeugaufrufe? | leistungsfähigeres Modell wählen, neue Sitzung im Projektstamm starten und den Zustand aus Dateien rekonstruieren lassen |
+| Das gewählte Modell versteht Auswahl oder langen Ablauf nicht | fehlen eindeutige Auswahl, Kontextlänge oder zuverlässige Werkzeugaufrufe? | höchstens eine vereinfachte Klärung zulassen; bei weiterer Mehrdeutigkeit nichts speichern, leistungsfähigeres Modell wählen und den Zustand aus Dateien rekonstruieren lassen |
 
 Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Abschnitt [Prüfen & lokal freigeben](#finalisierung).
 
@@ -870,7 +935,8 @@ Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Absc
 - Automatischer PDF-Export unterstützt Chrome und Edge, nicht Firefox.
 - Die öffentliche CI prüft keine echten Browserläufe; Browser-, Layout- und PDF-Prüfungen müssen deshalb auf dem eigenen Rechner ausgeführt und persönlich kontrolliert werden.
 - OpenCode, Claude Code und andere Adapter stellen den Projekteinstieg bereit; ein vollständiger Bewerbungsdurchlauf wurde nicht mit jeder Umgebung und jedem Modell wiederholt.
-- Lokale Modelle benötigen genügend Kontext und zuverlässige Werkzeugaufrufe. Fehlende Bildfähigkeit darf nicht als bestandene PNG-Prüfung ausgegeben werden.
+- Lokale Modelle benötigen genügend Kontext und zuverlässige Werkzeugaufrufe. Uneindeutige Auswahl- oder Speicherantworten müssen fehlergeschlossen bleiben; fehlende Bildfähigkeit darf nicht als bestandene PNG-Prüfung ausgegeben werden.
+- Der Dialogvertrag und seine fiktiven Fixtures sind dokumentiert. Für den Nachweis von Version 1.7.0 wurde kein neuer realer Ollama-Modelllauf für die A–E-Auswahl oder Profilzustimmung ausgeführt.
 - Nicht jede Agentenoberfläche stellt maschinenlesbare Tokenwerte bereit oder kann Lebenslauf und Gesamtsitzung getrennt messen. In diesem Fall bleibt der Bericht ausdrücklich `unavailable`; das Projekt schätzt keine Werte.
 - HTML- und PDF-Prüfungen sind konservativ auf den unterstützten Chromium-Export ausgerichtet; ungewöhnliche Designs und andere PDF-Erzeuger benötigen zusätzliche Regressionstests.
 - Eine echte manuelle Sichtprüfung bleibt erforderlich, besonders bei neuen Designs und zweiseitigen Lebensläufen.
@@ -945,9 +1011,9 @@ Private/
       │     ├─ Arbeitsnotizen.md
       │     ├─ ggf. Stellenbeschreibung--ENTWURF.md
       │     ├─ Analyse--ENTWURF.md
-      │     ├─ Lebenslauf--FIRMA--ENTWURF.html
-      │     ├─ Anschreiben--FIRMA--ENTWURF.html
-      │     ├─ Email-Nachricht--FIRMA--ENTWURF.md
+      │     ├─ optional Lebenslauf--FIRMA--ENTWURF.html
+      │     ├─ optional Anschreiben--FIRMA--ENTWURF.html
+      │     ├─ optional Email-Nachricht--FIRMA--ENTWURF.md
       │     ├─ Qualitaetscheck--ENTWURF.md
       │     ├─ Offene_Fragen--ENTWURF.md
       │     ├─ Stammdaten-Pruefbericht.json
@@ -958,13 +1024,13 @@ Private/
       │     ├─ Kandidat/
       │     │  ├─ Stellenbeschreibung.md
       │     │  ├─ Analyse.md
-      │     │  ├─ Lebenslauf - NACHNAME.VORNAME.html
-      │     │  ├─ Anschreiben - NACHNAME.VORNAME.html
-      │     │  ├─ Email-Nachricht--FIRMA.md
+      │     │  ├─ optional Lebenslauf - NACHNAME.VORNAME.html
+      │     │  ├─ optional Anschreiben - NACHNAME.VORNAME.html
+      │     │  ├─ optional Email-Nachricht--FIRMA.md
       │     │  ├─ Qualitaetscheck.md
       │     │  ├─ Druck-Hinweis.md
       │     │  ├─ optional Offene_Fragen.md
-      │     │  └─ zwei PDFs nach der Vorbereitung
+      │     │  └─ eine PDF je ausgewähltem HTML-Dokument
       │     ├─ Layoutcheck/
       │     │  ├─ Layoutcheck-Bericht.json
       │     │  └─ eine *--seite-X-von-Y--BROWSER.png je A4-Seite
@@ -978,7 +1044,7 @@ Private/
 
 `Anforderungsmatrix--ENTWURF.json` ist nur das Startgerüst; verbindlich ist anschließend `Anforderungsmatrix.json`. Entwurfsgerüste können im privaten Arbeitsordner verbleiben, dürfen aber weder als Kandidat noch als Veröffentlichung interpretiert werden.
 
-Weitere private Bereiche wie `Archiv/` oder `Bewertungen/` können lokal existieren. `LebenslaufUniversal/` ist die optionale, technisch eingebundene Quelle für den Anschreiben-Modus.
+Weitere private Bereiche wie `Archiv/` oder `Bewertungen/` können lokal existieren. `LebenslaufUniversal/` ist die optionale, technisch eingebundene Quelle, wenn `dokumentumfang.lebenslauf` auf `universal_unveraendert` steht. Umfang und normalisierter Dialogzustand liegen direkt im `Bewerbungsauftrag.json`; es gibt keine zweite Chatprotokolldatei.
 
 </details>
 
@@ -988,7 +1054,7 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine
 
 | Datei | Verantwortung |
 | --- | --- |
-| `01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` | Vollbewerbung versus Anschreiben mit unverändertem Universal-Lebenslauf |
+| `01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` | zentrale A–E-Auswahl, relevanzgefilterter Profildialog, Speicherzustimmung, Dokumentumfang und universeller Lebenslauf |
 | `02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md` | Stammdaten-Gate, Auftrag und gewichtete Muss-/Kann-Matrix |
 | `03_LEBENSLAUF_REGELN.md` | deutscher CV-Standard, Priorisierung und A4-Seitenstrategie |
 | `04_ANSCHREIBEN_REGELN.md` | Struktur, Ton, Gehaltswunsch und Grenzen |
@@ -1004,16 +1070,22 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine
 
 | Tool | Aufgabe | Typischer Einstieg |
 | --- | --- | --- |
-| `Neue-Bewerbung.ps1` | Arbeits- und Zielstruktur erzeugen | `-Firma "..." -Rolle "..."` |
-| `neue-bewerbung.sh` | Bash-Variante des Ordnerhelfers | `--firma "..." --rolle "..."` |
+| `Neue-Bewerbung.ps1` | Arbeits- und Zielstruktur samt Schema-4-Umfang erzeugen | `-Firma "..." -Rolle "..." -UmfangAuswahl A` |
+| `neue-bewerbung.sh` | Bash-Variante des umfangsabhängigen Ordnerhelfers | `--firma "..." --rolle "..." --umfang A` |
+| `Pruefe-Dialogstatus.ps1` | Umfang, Rückfragen, Angaben, Widersprüche und Speicherentscheidungen validieren | `-AuftragPath ".../Bewerbungsauftrag.json" -FuerDokumenterstellung` |
+| `Uebernehme-Dialogangabe.ps1` | bestätigte Angabe nur auftragsbezogen markieren oder kontrolliert ins zulässige Profilziel übernehmen | `-AuftragPath "..." -AngabeId "..." -Speicherentscheidung nur_auftrag` |
 | `Pruefe-Stammdaten.ps1` | Identität, Kontakt und Logistik prüfen | ohne Parameter oder mit Auftragspfad |
 | `Pruefe-Bewerbungsinhalt.ps1` | Inhalt gegen Auftrag und Matrix prüfen | `-Ordner "..." -AuftragPath "..." -AnforderungsmatrixPath "..."` |
-| `Pruefe-Bewerbung.ps1` | statischen Mindestcheck ausführen | `-Ordner "..."` |
+| `Pruefe-Bewerbung.ps1` | umfangsabhängigen statischen Mindestcheck ausführen | `-Ordner "..." -AuftragPath "..."` |
 | `Layoutcheck-Bewerbung.ps1` | A4-Screenshots und Dichtebericht erzeugen | Kandidaten- und `-OutputRoot`-Pfad übergeben |
-| `Exportiere-PDF.ps1` | zwei PDFs sicher exportieren und prüfen | Kandidaten- und `-OutputRoot`-Pfad übergeben |
-| `Pruefe-ATS.ps1` | Unicode-Textschicht und Lesereihenfolge prüfen | Bestandteil der Finalisierung |
+| `Exportiere-PDF.ps1` | je ausgewähltem HTML-Dokument eine PDF sicher exportieren und prüfen | Kandidaten-, Auftrags- und `-OutputRoot`-Pfad übergeben |
+| `Pruefe-ATS.ps1` | Unicode-Textschicht und Lesereihenfolge vorhandener PDFs prüfen | Bestandteil der Finalisierung für HTML-Dokumente |
 | `Finalisiere-Bewerbung.ps1` | verbindliches Prepare-/Publish-Gate | `-Arbeitsordner "..."` |
 | `Aktualisiere-Tokenbericht.ps1` | exakte Laufzeitwerte oder eindeutige Nichtverfügbarkeit standardisiert speichern | `-Arbeitsordner "..." -Messbereich lebenslauf` |
+
+`Neue-Bewerbung.ps1` nimmt die Standardauswahl mit `-UmfangAuswahl A` bis `E` entgegen. Nur E verwendet zusätzlich `-Dokumente` mit `lebenslauf`, `anschreiben` und/oder `email_nachricht`; E-Mail-only verlangt `-EmailAlleinBestaetigt`. Die Bash-Namen lauten `--umfang`, `--dokumente` und `--email-allein-bestaetigt`. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle.
+
+`Uebernehme-Dialogangabe.ps1` darf eine dauerhafte Änderung nur mit `-Speicherentscheidung dauerhaft`, zulässigem `-ProfilPath`, `-Abschnitt`, der zuvor gezeigten `-Formulierung`, `-ErwarteterDateiHash` und `-ZustimmungBestaetigt` ausführen. Alle vier Inhaltsparameter müssen exakt zum vor der Zustimmung gespeicherten Pending-Snapshot passen; dessen `fachlicherZieltyp` bindet Datei 01 an persönliche Daten und Bewerbungslogistik beziehungsweise Datei 02 an das fachliche Bewerberprofil. Eine erstmalige Übernahme nach Beginn oder Abschluss der Dokumenterstellung wird abgelehnt. Ohne dauerhafte Zustimmung wird ausschließlich `-Speicherentscheidung nur_auftrag` verwendet; dann darf das Werkzeug keine Profildatei lesen oder verändern und entfernt den nicht mehr benötigten Vorschlagssnapshot.
 
 <a id="dateivertraege"></a>
 
@@ -1023,11 +1095,19 @@ Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Fü
 
 | Artefaktgruppe | Erzeuger | Verbindlichkeit | Hauptverbraucher |
 | --- | --- | --- | --- |
-| `Bewerbungsauftrag.json` | Ordnerhelfer, danach Agent | Pflichtquelle für Pfade, Logistik, Darstellungsoptionen und Bewerbungsentscheidung | Stammdaten-, Inhalts- und Finalisierungswerkzeug |
+| `Bewerbungsauftrag.json` | Ordnerhelfer, danach Agent | Schema-4-Pflichtquelle für Pfade, `dokumentumfang`, normalisierte Rückfragen und Angaben, Speicherentscheidungen, Logistik, Darstellungsoptionen und Bewerbungsentscheidung | Dialog-, Stammdaten-, Inhalts- und Finalisierungswerkzeug |
 | `Anforderungsmatrix.json` | Agent aus dem Entwurfsgerüst | Pflicht vor Dokumenterstellung und Finalisierung | Inhaltsprüfer und fachlicher Abschlusstest |
-| `Kandidat/*` | Agent; PDFs durch Exporttool | vollständiger Release Candidate mit späteren Dateinamen | statischer Prüfer, Inhaltsprüfer, Layout, PDF, ATS und Publisher |
-| Prüfberichte und Screenshots | jeweiliges Prüfwerkzeug | im Standard-Finalisierungsworkflow verpflichtende Nachweise | `Finalisiere-Bewerbung.ps1` und menschliche Sichtprüfung |
+| `Kandidat/*` | Agent; PDFs durch Exporttool | gemäß Umfang vollständiger Release Candidate mit späteren Dateinamen | statischer Prüfer, Inhaltsprüfer, gegebenenfalls Layout, PDF und ATS sowie Publisher |
+| Prüfberichte und Screenshots | jeweiliges Prüfwerkzeug | umfangsabhängige Nachweise; nicht benötigte Browserprüfungen werden als `nicht_erforderlich` dokumentiert | `Finalisiere-Bewerbung.ps1` und persönliche Sicht- oder Textprüfung |
 | `Versand/`, `Intern/`, `Manifest.json` | Finalisierungswerkzeug über privates Staging | einziger veröffentlichter Vertrag | Nutzer, Archivierung und nachträglicher statischer Check |
+
+#### Schema 4: Dokumentumfang und Dialogzustand
+
+`dokumentumfang` ist ab Schema 4 die verbindliche Quelle für erwartete Dateien. `lebenslauf` ist `individuell`, `universal_unveraendert` oder `nicht_enthalten`; `anschreiben` und `emailNachricht` sind echte JSON-Bools. `bestaetigt` muss wahr sein. `auswahl`, `kennung`, `quelle`, `bestaetigtAtUtc` und das E-Mail-only-Gate `emailAlleinBestaetigt` machen Herkunft und Freigabe nachvollziehbar. Aufträge bis einschließlich Schema 3 bleiben über ihre beiden alten `dokumentmodus`-Werte rückwärtskompatibel lesbar, dürfen aber keinen engeren Umfang aus fehlenden Dateien ableiten.
+
+`dialog` verwendet `schemaVersion = 1` und enthält einen technischen `status`, `rueckfragen[]`, `angaben[]` und `updatedAtUtc`. Zulässige Zustände sind `profilabgleich_ausstehend`, `rueckfragen_offen`, `speicherentscheidung_offen`, `bereit_zur_dokumenterstellung`, `dokumenterstellung` und `abgeschlossen`. Rückfragen haben stabile IDs, eine positive Rundennummer und den Status `offen`, `beantwortet` oder `entfallen`; die Rundennummer ermöglicht die Prüfung auf höchstens drei unabhängige Fragen. Widersprüche bleiben mit `art = widerspruch` und einem ausdrücklichen Klärungsstatus sichtbar.
+
+Jede normalisierte Angabe verwendet `speicherentscheidung = ausstehend`, `nur_auftrag` oder `dauerhaft`. `profilaktualisierung.status` ist `ausstehend`, `nicht_geaendert`, `aktualisiert` oder `bereits_vorhanden`. Eine offene Speicherentscheidung ist nur für eine bestätigte Wahrheitsebene zulässig und bindet Datei, Abschnitt, `vorgeschlageneFormulierung`, `fachlicherZieltyp` und Vorher-Hash vor der Zustimmung. Dauerhaft gespeicherte Angaben ergänzen den identischen bestätigten Wortlaut, Zustimmungszeitpunkt, Nachher-Hash und Aktualisierungszeit; bei `nur_auftrag` bleibt nur der Nichtänderungsstatus. Rohchatfelder, vollständige Prompts und unnötige sensible Details sind verboten. `Pruefe-Dialogstatus.ps1 -FuerDokumenterstellung` blockiert einen ungültigen Gesamtstatus, offene Rückfragen nur dann, wenn `blockiertDokumenterstellung = true` ist, sowie ungeklärte Widersprüche und tatsächlich ausstehende Speicherentscheidungen.
 
 #### Maschinenlesbare Berichte
 
@@ -1035,11 +1115,11 @@ Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Fü
 | --- | --- | --- |
 | `Stammdaten-Pruefbericht.json` | `Pruefe-Stammdaten.ps1` | Status, Fehler/Warnungen, Feldzustände sowie aufgelöste Bewerbungslogistik und deren Quelle |
 | `Inhalts-Pruefbericht.json` | `Pruefe-Bewerbungsinhalt.ps1` | formale Zeiträume, Darstellungsmodi, Profil-Links, gewichtete Eignung sowie Fehler/Warnungen |
-| `Layoutcheck/Layoutcheck-Bericht.json` | `Layoutcheck-Bewerbung.ps1` | Browser, Abmessungen, HTML- und Screenshot-Hashes, Seite/Seitenzahl und Dichtehinweise |
-| `PDF-Export/PDF-Export-Bericht.json` | `Exportiere-PDF.ps1` | HTML-/PDF-Hashes, PDF-Größe, Seitenzahl und A4-MediaBox |
-| `ATS-Pruefbericht.json` | `Pruefe-ATS.ps1` | extrahierbare Zeichen, Textabdeckung, Pflichttexte, Lesereihenfolge und Ergebnis je PDF |
+| `Layoutcheck/Layoutcheck-Bericht.json` | `Layoutcheck-Bewerbung.ps1` beziehungsweise Finalisierung | Browser, Abmessungen, HTML- und Screenshot-Hashes, Seite/Seitenzahl und Dichtehinweise oder Status `nicht_erforderlich` |
+| `PDF-Export/PDF-Export-Bericht.json` | `Exportiere-PDF.ps1` beziehungsweise Finalisierung | HTML-/PDF-Hashes, PDF-Größe, Seitenzahl und A4-MediaBox oder Status `nicht_erforderlich` |
+| `ATS-Pruefbericht.json` | `Pruefe-ATS.ps1` beziehungsweise Finalisierung | extrahierbare Zeichen, Textabdeckung, Pflichttexte, Lesereihenfolge und Ergebnis je PDF oder Status `nicht_erforderlich` |
 | `Tokenverbrauch.json` | Agent beziehungsweise `Aktualisiere-Tokenbericht.ps1` | Anbieter, Modell, optionale nicht sensible Vorgangs-ID, Messquelle, Messzeiten und ausschließlich exakt bereitgestellte Tokenfelder je Messbereich; andernfalls `unavailable` und `null` |
-| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Release-Status, Pfade, erwartete Screenshots, Warnungen, optionale nicht blockierende Tokenbericht-Referenz sowie die bei der Vorbereitung erfassten Hashes der vier Quellen, flachen Kandidatendateien und PNGs |
+| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Schema-4-Release-Status, Dokumentumfang, persönliche Prüfart, Pfade, erwartete Screenshots, Warnungen, optionale Tokenbericht-Referenz sowie Hashes der vier Quellen, der drei technischen Prüfberichte und der tatsächlich erwarteten Kandidatenartefakte |
 
 `Pruefe-Bewerbung.ps1` schreibt bewusst keinen eigenen JSON-Bericht; sein Vertrag sind Konsolenausgabe und Exitcode.
 
@@ -1049,12 +1129,12 @@ Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Fü
 | --- | --- | --- |
 | Ablage | finaler Bewerbungsordner | privater Arbeitsordner |
 | Entstehung | während der gemeinsamen Veröffentlichung | nach der technischen Vorbereitung, danach bei Veröffentlichung aktualisiert |
-| Dateiumfang | nur veröffentlichte Dateien in `Versand/` und `Intern/`, ohne das Manifest selbst | vier Quellartefakte sowie alle bei der Vorbereitung vorhandenen Kandidatendateien einschließlich PDFs und Layout-PNGs |
-| Nachweise | relativer Pfad, Bytezahl und SHA-256 je veröffentlichter Datei; Namen und Hashes der vier Quellartefakte als Provenienz | absolute Prüfpfade, vorbereitete Artefakte und SHA-256-Werte, Layoutwarnungen und Sichtfreigabenotiz |
+| Dateiumfang | gespeicherter `dokumentumfang` und nur die dazu veröffentlichten Dateien in `Versand/` und `Intern/`, ohne das Manifest selbst | vier Quellartefakte sowie alle laut Umfang bei der Vorbereitung erwarteten Kandidatendateien, PDFs und Layout-PNGs |
+| Nachweise | relativer Pfad, Bytezahl und SHA-256 je veröffentlichter Datei; Namen und Hashes der vier Quellartefakte als Provenienz | absolute Prüfpfade, vorbereitete Artefakte und SHA-256-Werte, persönliche Prüfart, Layoutwarnungen und Freigabenotiz |
 | Statusfunktion | Integrität des veröffentlichten Satzes | Gate `bereit_zur_sichtpruefung` beziehungsweise `veroeffentlicht` |
-| Prüfung | `Pruefe-Bewerbung.ps1` validiert Pfade, Größen und Hashes aus `files[]`; `sourceInputs` wird nicht erneut gegen die privaten Quellen geprüft | vor dem Zieltausch verweigert der Veröffentlichungslauf geänderte oder neue Quellen-, Kandidaten- und Screenshot-Artefakte |
+| Prüfung | `Pruefe-Bewerbung.ps1` validiert Pfade, Größen und Hashes aus `files[]`, die exakte HTML-/PDF-Namensbindung sowie Aufbau, Namen und Hashformat der genau vier `sourceInputs`; deren Hashes werden nicht erneut gegen die privaten Quelldateien geprüft | vor dem Zieltausch verweigert der Veröffentlichungslauf geänderte oder neue Quellen-, technische Berichts-, Kandidaten- und Screenshot-Artefakte und prüft zusätzlich deren semantische Pfad-, Hash-, Seiten- und Ergebnisbindungen |
 
-Nach erfolgreicher Veröffentlichung ergänzt der Finalisierungsbericht Pfad und SHA-256 des veröffentlichten Manifests. Die Hashes der Kandidatendateien dokumentieren den Zustand der technischen Vorbereitung; da `Qualitaetscheck.md` bei der Freigabe noch auf `bestaetigt` aktualisiert wird, ist für den tatsächlich veröffentlichten Dateistand anschließend das Manifest maßgeblich. Arbeitsberichte oder Screenshots werden nicht Bestandteil des Manifests.
+Nach erfolgreicher Veröffentlichung ergänzt der Finalisierungsbericht Pfad und SHA-256 des veröffentlichten Manifests. Während derselben Transaktion setzt die Finalisierung `Qualitaetscheck.md` auf `bestaetigt`, wiederholt die abschließenden Prüfungen und berechnet danach die Kandidatenartefakte neu. Seine Kandidatenhashes passen deshalb auch nach der Freigabe zum aktuellen Arbeitsstand. Das Manifest bindet unabhängig davon den tatsächlich veröffentlichten Satz unter `Versand/` und `Intern/`. Arbeitsberichte oder Screenshots werden nicht Bestandteil des Manifests.
 
 `Tokenverbrauch.json` ist bewusst nicht hashgebundener Bestandteil des Veröffentlichungs-Gates: Der Bericht darf nach einzelnen Messabschnitten aktualisiert werden, ist kein Qualitätsnachweis, blockiert die Finalisierung nicht und wird weder nach `Versand/` beziehungsweise `Intern/` kopiert noch standardmäßig in `Manifest.json` aufgenommen.
 
@@ -1063,10 +1143,10 @@ Nach erfolgreicher Veröffentlichung ergänzt der Finalisierungsbericht Pfad und
 
 - `Offene_Fragen.md` ist als finale Kandidatendatei nur bei echten offenen Punkten vorhanden.
 - Der Layoutcheck kann mit `-Pdf` zusätzliche Seiten-PDFs erzeugen. Sie sind Diagnoseartefakte und keine Versand-PDFs.
-- Bei einseitigem Anschreiben und einseitigem Lebenslauf entstehen normalerweise zwei Layout-PNGs; bei einem zweiseitigen Lebenslauf drei.
+- Pro ausgewählter HTML-A4-Seite entsteht eine Layout-PNG; bei E-Mail-only entsteht keine PNG.
 - `.capture-*.html` und Browser-Profile `P-*` entstehen kurz während des Layoutchecks.
-- `PDF-Export/R-*`, temporäre PDFs, kurzzeitige `Backup--*.pdf` und weitere `P-*`-Profile gehören zu einem einzelnen Exportlauf.
-- `.publish-*` und bei einer Ersetzung `.backup-*` sichern die gemeinsame Veröffentlichung ab.
+- `PDF-Export/R-*`, temporäre PDFs, kurzzeitige `Backup--*.pdf` und weitere `P-*`-Profile gehören zu einem einzelnen Exportlauf. PDF-Satz und Exportbericht werden gemeinsam übernommen; bei einem fehlgeschlagenen Rollback bleibt der gemeldete Wiederherstellungspfad erhalten.
+- `.publish-*` und bei einer Ersetzung `.backup-*` sichern die gemeinsame Veröffentlichung einschließlich des Finalisierungsberichts ab.
 
 Diese Hilfsdateien und Ordner werden bei einem normalen Lauf bereinigt und sind kein dauerhafter Nutzervertrag. Nach einem hart abgebrochenen Browser- oder Veröffentlichungsprozess können ausnahmsweise Reste sichtbar bleiben.
 
@@ -1075,18 +1155,18 @@ Diese Hilfsdateien und Ordner werden bei einem normalen Lauf bereinigt und sind 
 <details>
 <summary><strong>Datenfluss und Qualitätsprüfungen im Detail</strong></summary>
 
-1. Die Stellenbeschreibung wird als nicht vertrauenswürdige Datenquelle übernommen.
+1. Die Stellenbeschreibung wird als nicht vertrauenswürdige Datenquelle übernommen und der Dokumentumfang eindeutig geklärt.
 2. `Pruefe-Stammdaten.ps1` kontrolliert Identität, Kontakt und Bewerbungslogistik.
-3. Der Agent liest private Daten und Prompt-Regeln dateiweise.
-4. Der Ordnerhelfer erzeugt Ziel-, Arbeits- und Kandidatenordner sowie `Bewerbungsauftrag.json`, Arbeitsnotizen und Entwurfsgerüste.
-5. Muss- und Kann-Kriterien werden mit Kategorie und Gewichtung in `Anforderungsmatrix.json` abgelegt.
-6. Rollen-, Gehalts-, Seiten-, Schulbildungs- und Profil-Link-Strategie werden festgelegt.
-7. Alle Dokumente entstehen zunächst unter `_Arbeitsdateien/.../Kandidat/`.
-8. Fachlicher Abschlusstest und Inhaltsprüfer gleichen Anforderungen, Belege, Daten und Zeiträume ab.
-9. Die Finalisierung erzeugt Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Finalisierungsbericht samt Hashnachweisen und aktualisiert den separaten Tokenbericht nicht blockierend.
-10. Jede explizite A4-Seite wird anhand ihres frischen Screenshots visuell geprüft.
-11. Jede spätere Quellen- oder Kandidatenänderung entwertet die Nachweise.
-12. Erst nach Sichtbestätigung wird der vollständige Satz als zusammengehörige Einheit veröffentlicht.
+3. Der Agent gleicht nur relevante Anforderungen ab, bündelt notwendige Rückfragen und speichert normalisierte Antworten im Schema-4-Auftrag.
+4. Dauerhafte Profiländerungen benötigen eine getrennte ausdrückliche Zustimmung und werden mit Ziel- und Hashnachweis protokolliert.
+5. Der Ordnerhelfer erzeugt Ziel-, Arbeits- und Kandidatenordner, `Bewerbungsauftrag.json`, Arbeitsnotizen und nur passende Entwurfsgerüste.
+6. Muss- und Kann-Kriterien werden mit Kategorie und Gewichtung in `Anforderungsmatrix.json` abgelegt; Rollen- und Darstellungsstrategie werden umfangsabhängig festgelegt.
+7. Ausschließlich ausgewählte Dokumente entstehen unter `_Arbeitsdateien/.../Kandidat/`.
+8. Dialog-, fachlicher und statischer Prüfer gleichen Umfang, Anforderungen, Belege, Daten und vorhandene Dokumente ab.
+9. Die Finalisierung erzeugt die erforderlichen Berichte und Hashnachweise; für E-Mail-only markiert sie Browser-, PDF- und ATS-Schritte als nicht erforderlich.
+10. Jede erzeugte A4-Seite wird anhand ihres frischen Screenshots visuell geprüft; ohne HTML wird der ausgewählte Text persönlich geprüft.
+11. Jede spätere Quellen- oder Kandidatenänderung entwertet die davon abhängigen Nachweise.
+12. Erst nach der persönlichen Bestätigung wird der umfangsgerechte Satz als zusammengehörige Einheit veröffentlicht.
 
 Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `stretch` ausgewiesen. Nicht vollständig belegte Muss-Anforderungen bleiben sichtbar und erfordern eine dokumentierte Behandlung sowie ehrliche, an Belegen orientierte Formulierungen.
 
@@ -1094,7 +1174,7 @@ Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `str
 
 ### Tests & CI
 
-Die abhängigkeitsfreie Regressionstestsuite prüft den kanonischen Agenteneinstieg, Claude-/Gemini-Adapter, korrekte Groß-/Kleinschreibung der Pfade, Fähigkeiten- und Fortsetzungsverträge, Schutz vor eingebetteten Fremdanweisungen, README-Verweise, Tokenbericht, Prompt-/Tool-Verträge, Logistik-Snapshots, Anforderungsmatrix, Staging, Manifest, Veröffentlichung und Fehlerszenarien:
+Die abhängigkeitsfreie Regressionstestsuite prüft den kanonischen Agenteneinstieg, Claude-/Gemini-Adapter, korrekte Groß-/Kleinschreibung der Pfade, Fähigkeiten- und Fortsetzungsverträge, Schutz vor eingebetteten Fremdanweisungen, README-Verweise, Tokenbericht, Prompt-/Tool-Verträge, Schema-4-Umfang, Dialogstatus, Profilhash- und Deduplizierungsgrenzen, dynamische Artefaktmengen, Logistik-Snapshots, Anforderungsmatrix, technische Berichts- und HTML-/PDF-Namensbindungen, Staging, Manifest, Veröffentlichung und Fehlerszenarien:
 
 ```powershell
 .\Tests\Run-RegressionTests.ps1
@@ -1114,21 +1194,21 @@ bash Tests/Bash/test-neue-bewerbung.sh
 
 Die öffentliche CI läuft über [`.github/workflows/tests.yml`](.github/workflows/tests.yml): Windows führt die PowerShell-Suite aus, Ubuntu prüft die Bash-Skripte mit ShellCheck und Regressionstests. Browserfälle bleiben lokal optional, da Runner und Sandboxen keine identische Browserumgebung garantieren.
 
-Die dokumentierten Frischsitzungs-, CLI- und Modelltests stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md). Sie verwenden ausschließlich öffentliche Regeln beziehungsweise temporäre fiktive Fixtures und nennen nicht ausgeführte Umgebungen ausdrücklich. Ein erfolgreicher Strukturtest ersetzt keinen vollständigen Bewerbungs- und Browserlauf mit dem jeweiligen Modell.
+Die dokumentierten Frischsitzungs-, CLI- und Modelltests stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md). Die neun Dialogfälle mit Eingabe, erwartetem Datei-/Dialogzustand und getrenntem Automatisierungsstatus stehen in [`Tests/Interaktiver-Bewerbungsdialog.md`](Tests/Interaktiver-Bewerbungsdialog.md). Beide Kataloge verwenden ausschließlich öffentliche Regeln beziehungsweise temporäre fiktive Fixtures und nennen nicht ausgeführte Umgebungen ausdrücklich. Die deterministischen Dialogverträge sind kein Beleg für natürliches Sprachverständnis eines konkreten Modells; ein neuer realer Ollama-Dialogtest wurde für Version 1.7.0 nicht ausgeführt.
 
-Lokaler Stand vom 05.08.2026: 42 von 42 Tests ohne Browser und 48 von 48 Tests mit lokal freigegebenem Chrome bestanden. Der Browserlauf innerhalb der verwalteten Sandbox schlug am Chrome-Prozessstart fehl und bestand nach der vorgesehenen lokalen Browserfreigabe.
+Lokaler Stand vom 05.08.2026 für Version 1.7.0: **59 von 59 Tests ohne Browser** und **66 von 66 Tests mit lokal freigegebenem Chrome-Browserlauf** bestanden. Die in der PowerShell-Suite enthaltene Bash-Regressionssuite sowie ihr separater Aufruf bestanden ebenfalls. Die Browserfälle wurden nach der vorgesehenen lokalen Browserfreigabe ausgeführt. Ein realer Dialog mit einem Ollama-Modell, ShellCheck und PSScriptAnalyzer waren nicht Bestandteil dieses Laufs; ShellCheck und PSScriptAnalyzer waren lokal nicht installiert.
 
 <details>
 <summary><strong>HTML-, PDF- und Browser-Verträge</strong></summary>
 
-Finale HTML-Dateien müssen eigenständig funktionieren:
+Jede laut Dokumentumfang vorhandene finale HTML-Datei muss eigenständig funktionieren:
 
 - CSS liegt direkt im HTML; es gibt keine Skripte oder CDNs.
 - Externe oder lokale Ressourcen werden nicht automatisch geladen.
 - `@page { size: A4; margin: 0; }` ist gesetzt.
 - Jede `.page` misst exakt `210mm × 297mm`.
 - `overflow: hidden` ist nur auf der äußeren `.page` zulässig.
-- Ein Lebenslauf nutzt bewusst eine oder zwei explizite A4-Seiten.
+- Ein ausgewählter Lebenslauf nutzt bewusst eine oder zwei explizite A4-Seiten; ein Anschreiben genau eine.
 
 Der Browserlauf gilt nur als erfolgreich, wenn er rechtzeitig mit Exitcode `0` endet und alle erwarteten Dateien frisch erzeugt. PNGs benötigen gültige Signatur und Abmessungen. PDFs benötigen Header, EOF-Marker, DIN-A4-MediaBox, passende Seitenzahl und eine ATS-lesbare Unicode-Textschicht.
 
@@ -1139,7 +1219,7 @@ Chrome oder Edge übernimmt den automatischen PDF-Export. Firefox ist für manue
 <details>
 <summary><strong>Dateinamen, Ordner- und Slug-Regeln</strong></summary>
 
-Finale HTML- und PDF-Dokumente werden nach Bewerbername benannt:
+Vorhandene finale HTML- und PDF-Dokumente werden nach Bewerbername benannt:
 
 ```text
 Lebenslauf - NACHNAME.VORNAME.html
@@ -1168,6 +1248,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | --- | --- |
 | Hauptablauf | `Prompts/00_AGENTEN_START_HIER.md` |
 | Agentenübergreifendes Routing und Adapter | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` |
+| Interaktiver Dialog, Dokumentumfang und Profilzustimmung | `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` |
 | Lebenslauf | `Prompts/03_LEBENSLAUF_REGELN.md` |
 | Anschreiben | `Prompts/04_ANSCHREIBEN_REGELN.md` |
 | E-Mail | `Prompts/05_EMAIL_NACHRICHT_REGELN.md` |
@@ -1175,13 +1256,14 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | HTML/CSS | `Prompts/08_HTML_CSS_DESIGNREGELN.md` |
 | Qualität und Dateiregeln | `Prompts/09_QUALITAETSCHECK.md`, `Prompts/10_DATEI_UND_ORDNER_REGELN.md` |
 | technischer Workflow | `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md` |
-| Ordnererstellung | `Tools/Neue-Bewerbung.ps1`, `Tools/neue-bewerbung.sh` |
+| Ordnererstellung und Schema-4-Umfang | `Tools/Neue-Bewerbung.ps1`, `Tools/neue-bewerbung.sh` |
+| Dialogzustand und kontrollierte Profilübernahme | `Tools/Pruefe-Dialogstatus.ps1`, `Tools/Uebernehme-Dialogangabe.ps1` |
 | Stammdaten und Inhalt | `Tools/Pruefe-Stammdaten.ps1`, `Tools/Pruefe-Bewerbungsinhalt.ps1` |
 | Finalisierung | `Tools/Finalisiere-Bewerbung.ps1` |
 | Tokenbericht | `Tools/Aktualisiere-Tokenbericht.ps1` |
 | statischer Check | `Tools/Pruefe-Bewerbung.ps1` |
 | Layout und PDF | `Tools/Layoutcheck-Bewerbung.ps1`, `Tools/Exportiere-PDF.ps1` |
-| Regressionstests und Agenten-Smoketests | `Tests/Run-RegressionTests.ps1`, `Tests/Bash/test-neue-bewerbung.sh`, `Tests/Agenten-Kompatibilitaet.md` |
+| Regressionstests, Dialogkatalog und Agenten-Smoketests | `Tests/Run-RegressionTests.ps1`, `Tests/Bash/test-neue-bewerbung.sh`, `Tests/Interaktiver-Bewerbungsdialog.md`, `Tests/Agenten-Kompatibilitaet.md` |
 | Designreferenzen | `Vorlagen/Designreferenz-Lebenslauf.html`, `Vorlagen/Designreferenz-Anschreiben.html` |
 
 </details>

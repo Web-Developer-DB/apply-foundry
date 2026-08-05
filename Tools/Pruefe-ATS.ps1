@@ -259,15 +259,56 @@ $shippingFolder = Join-Path $resolvedFolder "Versand"
 $structured = (Test-Path -LiteralPath $internalFolder -PathType Container) -and (Test-Path -LiteralPath $shippingFolder -PathType Container)
 $htmlFolder = if ($structured) { $internalFolder } else { $resolvedFolder }
 $pdfFolder = if ($structured) { $shippingFolder } else { $resolvedFolder }
+$auftrag = Get-Content -LiteralPath $AuftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$auftragSchemaValue = Get-JsonProperty -Object $auftrag -Name "schemaVersion"
+if ($auftragSchemaValue -isnot [int] -and $auftragSchemaValue -isnot [long]) {
+  Write-Host "[FEHLER] Bewerbungsauftrag enthält keine ganzzahlige schemaVersion." -ForegroundColor Red
+  exit 1
+}
+$auftragSchema = [int]$auftragSchemaValue
+$documentScope = Get-JsonProperty -Object $auftrag -Name "dokumentumfang"
+$expectedCv = $true
+$expectedLetter = $true
+$cvKind = if ([string](Get-JsonProperty -Object $auftrag -Name "dokumentmodus") -eq "anschreiben_mit_universalem_lebenslauf") { "universal_unveraendert" } else { "individuell" }
+if ($auftragSchema -lt 1 -or $auftragSchema -gt 4) {
+  Write-Host "[FEHLER] Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 4." -ForegroundColor Red
+  exit 1
+}
+if ($auftragSchema -eq 4) {
+  if ($null -eq $documentScope) {
+    Write-Host "[FEHLER] Bewerbungsauftrag mit schemaVersion 4 enthält keinen dokumentumfang." -ForegroundColor Red
+    exit 1
+  }
+  $cvKind = [string](Get-JsonProperty -Object $documentScope -Name "lebenslauf")
+  $letterValue = Get-JsonProperty -Object $documentScope -Name "anschreiben"
+  $emailValue = Get-JsonProperty -Object $documentScope -Name "emailNachricht"
+  if ($cvKind -notin @("individuell", "universal_unveraendert", "nicht_enthalten") -or
+      $letterValue -isnot [bool] -or $emailValue -isnot [bool]) {
+    Write-Host "[FEHLER] dokumentumfang enthält ungültige oder nicht typisierte Werte." -ForegroundColor Red
+    exit 1
+  }
+  $expectedCv = $cvKind -ne "nicht_enthalten"
+  $expectedLetter = [bool]$letterValue
+  if (-not ($expectedCv -or $expectedLetter -or [bool]$emailValue)) {
+    Write-Host "[FEHLER] dokumentumfang wählt kein Dokument aus." -ForegroundColor Red
+    exit 1
+  }
+}
+$expectedHtmlCount = [int]$expectedCv + [int]$expectedLetter
 $htmlFiles = @(Get-ChildItem -LiteralPath $htmlFolder -File -Filter "*.html" | Where-Object { $_.Name -match '^(Lebenslauf|Anschreiben) - ' } | Sort-Object Name)
 $pdfFiles = @(Get-ChildItem -LiteralPath $pdfFolder -File -Filter "*.pdf" | Where-Object { $_.Name -match '^(Lebenslauf|Anschreiben) - ' } | Sort-Object Name)
-if ($htmlFiles.Count -ne 2 -or $pdfFiles.Count -ne 2) {
-  Write-Host "[FEHLER] ATS-Prüfung erwartet genau zwei HTML- und zwei PDF-Dateien." -ForegroundColor Red
+if ($expectedHtmlCount -eq 0) {
+  Write-Host "[FEHLER] ATS-Prüfung ist für einen Dokumentumfang ohne HTML/PDF nicht erforderlich und darf dafür nicht aufgerufen werden." -ForegroundColor Red
+  exit 1
+}
+if ($htmlFiles.Count -ne $expectedHtmlCount -or $pdfFiles.Count -ne $expectedHtmlCount -or
+    @($htmlFiles | Where-Object { $_.Name -like 'Lebenslauf -*' }).Count -ne [int]$expectedCv -or
+    @($htmlFiles | Where-Object { $_.Name -like 'Anschreiben -*' }).Count -ne [int]$expectedLetter) {
+  Write-Host "[FEHLER] ATS-Prüfung erwartet genau die $expectedHtmlCount laut Dokumentumfang ausgewählten HTML- und PDF-Dateien." -ForegroundColor Red
   exit 1
 }
 
 $fields = Get-MarkdownFields -Path $StammdatenPath
-$auftrag = Get-Content -LiteralPath $AuftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $fullName = [string]$fields["Vollständiger Name"]
 $role = [string](Get-JsonProperty -Object $auftrag -Name "rolle")
 $company = [string](Get-JsonProperty -Object $auftrag -Name "firma")
@@ -289,7 +330,9 @@ foreach ($html in $htmlFiles) {
     $coverage = if ($sourceLength -gt 0) { [math]::Round(([math]::Min($sourceLength, $pdfLength) / $sourceLength) * 100.0, 1) } else { 0.0 }
     $requiredValues = New-Object System.Collections.Generic.List[string]
     $requiredValues.Add($fullName) | Out-Null
-    $requiredValues.Add($role) | Out-Null
+    if ($html.Name -notlike "Lebenslauf -*" -or $cvKind -ne "universal_unveraendert") {
+      $requiredValues.Add($role) | Out-Null
+    }
     if ($html.Name -like "Anschreiben -*") { $requiredValues.Add($company) | Out-Null }
     if ($html.Name -like "Lebenslauf -*") {
       foreach ($period in [regex]::Matches($sourceText, '(?i)\b(?:0[1-9]|1[0-2])/\d{4}\s*[-–—]\s*(?:(?:0[1-9]|1[0-2])/\d{4}|fortlaufend)\b') | ForEach-Object { $_.Value } | Sort-Object -Unique) {
@@ -306,9 +349,15 @@ foreach ($html in $htmlFiles) {
     $normalizedPdf = Normalize-Text -Text $pdfText
     $nameIndex = $normalizedPdf.IndexOf((Normalize-Text -Text $fullName), [System.StringComparison]::Ordinal)
     $roleIndex = $normalizedPdf.IndexOf((Normalize-Text -Text $role), [System.StringComparison]::Ordinal)
-    $readingOrderPlausible = ($nameIndex -ge 0) -and ($roleIndex -ge $nameIndex) -and ($roleIndex -lt [math]::Max(80, [int]($normalizedPdf.Length * 0.3)))
+    $roleRequiredInDocument = -not ($html.Name -like "Lebenslauf -*" -and $cvKind -eq "universal_unveraendert")
+    $readingOrderPlausible = if ($roleRequiredInDocument) {
+      ($nameIndex -ge 0) -and ($roleIndex -ge $nameIndex) -and ($roleIndex -lt [math]::Max(80, [int]($normalizedPdf.Length * 0.3)))
+    } else {
+      ($nameIndex -ge 0) -and ($nameIndex -lt [math]::Max(80, [int]($normalizedPdf.Length * 0.3)))
+    }
     if (-not $readingOrderPlausible) {
-      Add-WarningMessage "$($pdf[0].Name): Name und Zielrolle liegen in der extrahierten Lesereihenfolge nicht früh genug."
+      $readingOrderLabel = if ($roleRequiredInDocument) { "Name und Zielrolle liegen" } else { "Der Name liegt" }
+      Add-WarningMessage "$($pdf[0].Name): $readingOrderLabel in der extrahierten Lesereihenfolge nicht früh genug."
     }
     if ($coverage -ge $MinTextabdeckungProzent -and $missing.Count -eq 0) {
       Add-OkMessage "$($pdf[0].Name): Unicode-Textschicht extrahierbar, Pflichttexte vorhanden, Abdeckung $coverage %."

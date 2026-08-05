@@ -38,15 +38,17 @@ Vorbereitung mit allen maschinellen Prüfungen:
 Dieser Lauf:
 
 - verlangt eine vollständige `Anforderungsmatrix.json`
+- validiert den bestätigten Schema-4-Dokumentumfang und den fortsetzbaren Dialogzustand
 - sperrt ungeklärte zentrale Bewerbungslogistik
 - führt Stammdaten-, Inhalts- und statischen HTML-Check aus
 - erzeugt frische Layoutscreenshots samt Dichtehinweisen
-- exportiert und validiert beide PDFs
+- exportiert und validiert genau die laut Dokumentumfang ausgewählten HTML-Dokumente als PDFs
 - prüft die PDF-Textschicht und Lesbarkeit für ATS
 - schreibt Hashnachweise für Quellen, sämtliche Kandidatendateien, PDFs und Seitenscreenshots
 - aktualisiert den nicht blockierenden Diagnosebericht `Tokenverbrauch.json` im Arbeitsordner mindestens mit dem Verfügbarkeitsstatus und referenziert ihn optional im `Finalisierungsbericht.json`
 - veröffentlicht noch keine Datei
-- prüft ab Schema 3 den Dokumentmodus; im Anschreiben-Modus zusätzlich den SHA-256-Snapshot des universellen Lebenslaufs
+- leitet ab Schema 4 alle erwarteten Dateien aus `dokumentumfang` ab; bei universellem Lebenslauf prüft er zusätzlich dessen SHA-256-Snapshot
+- schreibt bei einem bestätigten reinen E-Mail-Auftrag Layout-, PDF- und ATS-Berichte mit `nicht_erforderlich`, statt einen Browserlauf vorzutäuschen
 
 Nach der tatsächlichen Sichtprüfung:
 
@@ -56,7 +58,7 @@ Nach der tatsächlichen Sichtprüfung:
 
 Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbewertung angegeben werden, zum Beispiel `-VisuelleFreigabeNotiz "Alle markierten Seiten geprüft; kein Beschnitt und keine Überlappung."`.
 
-Die Veröffentlichung wird verweigert, wenn Quellen, Kandidatendateien oder Screenshots nach der Vorbereitung verändert wurden. Sie kopiert nicht dateiweise in den Zielordner, sondern veröffentlicht das validierte Set über einen privaten Staging-Ordner gemeinsam. Das Ergebnis trennt `Versand/` mit genau zwei PDF-Anlagen und E-Mail-Text von `Intern/` mit HTML-Quellen und Nachweisen. `Manifest.json` bindet jede veröffentlichte Datei an ihren SHA-256-Wert.
+Die Veröffentlichung wird verweigert, wenn Quellen, Auftrag, Kandidatendateien oder Screenshots nach der Vorbereitung verändert wurden. Sie kopiert nicht dateiweise in den Zielordner, sondern veröffentlicht das validierte Set über einen privaten Staging-Ordner gemeinsam. `Versand/` enthält ausschließlich die ausgewählten PDF-Anlagen und gegebenenfalls den E-Mail-Text; `Intern/` enthält vorhandene HTML-Quellen und Nachweise. `Manifest.json` bindet Dokumentumfang und jede veröffentlichte Datei an ihren SHA-256-Wert.
 
 Die nachfolgenden Einzelwerkzeuge bleiben für Diagnose, Entwicklung und gezielte Wiederholungen verfügbar. Für neue Bewerbungen ersetzt ihre manuelle Verkettung nicht den verbindlichen Finalisierungsworkflow.
 
@@ -81,13 +83,13 @@ Zulässige Messbereiche sind `lebenslauf`, `gesamte_bewerbung` und `technische_v
 Nach dem Erstellen der finalen Bewerbungsdateien soll, sofern eine PowerShell-Umgebung verfügbar ist, dieser statische Prüfer ausgeführt werden:
 
 ```powershell
-.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
 ```
 
 Der Prüfer kontrolliert:
 
 - nichtleere Pflichtdateien im finalen Bewerbungsordner; Verzeichnisse mit Dateinamen zählen nicht
-- korrekte Versanddateien für Lebenslauf und Anschreiben
+- genau die laut Dokumentumfang ausgewählten Versanddateien
 - keine sichtbaren Platzhalter oder Entwurfsmarker
 - keine Entwurfsdateien im finalen Bewerbungsordner
 - exakte A4-Grundstruktur mit `width: 210mm` und `height: 297mm`
@@ -118,7 +120,7 @@ Der Layoutcheck:
 - beendet hängende Browser nach dem konfigurierten Timeout
 - meldet Fehler sichtbar, statt stille Browserfehler zu übergehen
 
-Als Einzelwerkzeug ist der Browser-Layoutcheck für Diagnose optional. Im verbindlichen Finalisierungsworkflow ist er Voraussetzung für die Veröffentlichung. Wenn er wegen lokaler Browser- oder Sandbox-Einschränkungen nicht läuft, darf der statische Check zwar separat ausgewertet, die Bewerbung aber nicht als vollständig finalisiert veröffentlicht werden.
+Als Einzelwerkzeug ist der Browser-Layoutcheck für Diagnose optional. Im verbindlichen Finalisierungsworkflow ist er für jeden ausgewählten HTML-Bestandteil Voraussetzung. Enthält ein ausdrücklich bestätigter Umfang nur eine E-Mail, gibt es keinen Browserlauf; stattdessen bleibt die persönliche Textprüfung Pflicht. Wenn ein erforderlicher Browserlauf wegen lokaler Browser- oder Sandbox-Einschränkungen nicht läuft, darf die Bewerbung nicht veröffentlicht werden.
 
 ## Standardweg unter Windows 11 / PowerShell
 
@@ -170,10 +172,10 @@ Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären
 
 ## Automatischer PDF-Export
 
-Wenn die finalen HTML-Dateien technisch im grünen Bereich sind, können Lebenslauf und Anschreiben automatisch als PDF exportiert werden:
+Wenn ausgewählte finale HTML-Dateien technisch im grünen Bereich sind, werden genau diese automatisch als PDF exportiert:
 
 ```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
 ```
 
 Der PDF-Export:
@@ -186,7 +188,7 @@ Der PDF-Export:
 - prüft, ob jede PDF-Datei existiert, nicht leer ist und einen PDF-Header enthält
 - prüft, ob die PDF-MediaBox DIN A4 entspricht, sofern das Exporttool dies unterstützt
 - prüft, ob jede PDF frisch erzeugt wurde, korrekt endet und genauso viele Seiten wie das HTML explizite A4-Seitencontainer enthält
-- exportiert und validiert zunächst beide PDFs in einem eindeutigen privaten Arbeitslauf
+- exportiert und validiert zunächst den vollständigen ausgewählten PDF-Satz in einem eindeutigen privaten Arbeitslauf
 - ersetzt bestehende finale PDFs erst danach gemeinsam und stellt sie bei einem Veröffentlichungsfehler wieder her
 - nutzt einen privaten Arbeitsordner unter `_Arbeitsdateien/.../PDF-Export` für Browserprofile und Zwischenexporte
 
@@ -202,13 +204,13 @@ Anschreiben - Nachname.Vorname.pdf
 Optional kann der PDF-Export vorher auch den Browser-Layoutcheck ausführen:
 
 ```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -MitLayoutcheck
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" -MitLayoutcheck
 ```
 
 Unter Windows 11 mit PowerShell und Chrome kann der Export gezielt mit Chrome ausgeführt werden:
 
 ```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser chrome
+.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" -Browser chrome
 ```
 
 Wenn kein Chrome oder Edge verfügbar ist, wird kein PDF-Export als bestanden gemeldet. Dann bleibt der manuelle PDF-Export über Firefox oder einen anderen Browser möglich, muss aber offen dokumentiert werden.
@@ -222,15 +224,15 @@ Der verbindliche Finalisierungsworkflow führt nach dem PDF-Export `Tools/Pruefe
 - Textabdeckung zwischen HTML und PDF
 - eine grundlegende, nachvollziehbare Lesereihenfolge
 
-Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versandfertig. Die ATS-Prüfung ersetzt weiterhin nicht die Sichtprüfung. Lebenslauf und Anschreiben bleiben zwei getrennte PDFs; eine Formatforderung „PDF“ wird nicht als Gesamt-PDF interpretiert.
+Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versandfertig. Die ATS-Prüfung ersetzt weiterhin nicht die Sichtprüfung. Mehrere ausgewählte Dokumente bleiben getrennte PDFs; eine Formatforderung „PDF“ wird nicht als Gesamt-PDF interpretiert.
 
 ## Reihenfolge im Abschluss
 
-1. Stammdaten prüfen und `Anforderungsmatrix.json` vervollständigen.
-2. Versandfertig benannte Dateien im privaten Kandidatenordner erzeugen. Im Anschreiben-Modus übernimmt der Ordnerhelfer den universellen Lebenslauf; der Agent darf ihn nicht verändern.
-3. Nach Fertigstellung des Lebenslauf-Kandidaten den Abschnitt `lebenslauf` in `Tokenverbrauch.json` aktualisieren, ohne den Workflow zu unterbrechen.
+1. Bestätigten Dokumentumfang und Dialogstatus prüfen, danach Stammdaten prüfen und `Anforderungsmatrix.json` vervollständigen.
+2. Nur ausgewählte Dateien im privaten Kandidatenordner erzeugen. Einen universellen Lebenslauf übernimmt der Ordnerhelfer unverändert.
+3. Nur nach Fertigstellung eines ausgewählten Lebenslauf-Kandidaten den Abschnitt `lebenslauf` in `Tokenverbrauch.json` aktualisieren, ohne den Workflow zu unterbrechen.
 4. Finalisierung ohne Veröffentlichung vorbereiten, danach `gesamte_bewerbung` aktualisieren und `technische_vorbereitung` nur bei isoliert verfügbaren Laufzeitwerten mit Zahlen befüllen.
-5. Jeden Seitenscreenshot visuell öffnen und prüfen.
+5. Jeden erzeugten Seitenscreenshot visuell öffnen und prüfen; ohne HTML die ausgewählten Textdateien persönlich prüfen.
 6. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.
 7. Bei Dichte- oder Layoutwarnungen die Sichtbewertung als Freigabenotiz dokumentieren.
 8. Erst nach neuer eindeutiger Sichtprüfungsbestätigung mit `-Veroeffentlichen -VisuellGeprueft` atomar veröffentlichen.

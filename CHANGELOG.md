@@ -4,6 +4,53 @@
 
 Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Die Struktur orientiert sich an „Keep a Changelog“ und verwendet die im Projekt geführten Versionsnummern.
 
+## Version 1.7.0 - 2026-08-05
+
+### Hinzugefügt
+
+- Zentraler, agentenunabhängiger Bewerbungsdialog in `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` mit Auswahl A–E, Zahlen- und Freitextantworten, direkter Übernahme eindeutiger Aufträge und höchstens einer vereinfachten Wiederholung bei Mehrdeutigkeit.
+- Schema 4 für `Bewerbungsauftrag.json` mit verbindlichem `dokumentumfang`, E-Mail-only-Bestätigung sowie normalisierten `dialog.rueckfragen` und `dialog.angaben` für eine Fortsetzung ohne Chatverlauf.
+- Relevanzfilter für Profilrückfragen, höchstens drei voneinander unabhängige Fragen pro Dialogrunde und wahrheitsgemäße Klassifikation von belegter, teilweiser, übertragbarer, fehlender, widersprüchlicher oder möglicherweise vorhandener Erfahrung.
+- `Tools/Pruefe-Dialogstatus.ps1` für Umfangs-, Rückfrage-, Widerspruchs-, Speicher- und Rohchatprüfungen vor der Dokumenterstellung.
+- `Tools/Uebernehme-Dialogangabe.ps1` für die kontrollierte Kennzeichnung als nur auftragsbezogen oder die ausdrücklich bestätigte, hashgebundene Übernahme in ein zulässiges privates Profilziel mit Wiederherstellung bei erkannten Schreibfehlern.
+- Dokumentierter Katalog der neun Nutzerfälle unter `Tests/Interaktiver-Bewerbungsdialog.md` mit getrenntem Status für deterministische Verträge, dokumentierte Sprachszenarien und nicht ausgeführte reale Modelltests.
+
+### Geändert
+
+- Eine bloße Stellenbeschreibung oder ein allgemeiner Bewerbungswunsch startet nicht mehr ungefragt eine Vollbewerbung. Ein bereits eindeutig genannter Umfang überspringt dagegen die allgemeine Auswahlfrage.
+- PowerShell- und Bash-Ordnerhelfer akzeptieren A–E, freie Kombinationen und die ausdrückliche Bestätigung eines reinen E-Mail-Auftrags und erzeugen nur passende Entwurfs- und Kandidatendateien.
+- Statischer Prüfer, Inhaltsprüfung, PDF-Export, ATS-Prüfung, Finalisierung, Manifest und Prüfberichte leiten ihre erwarteten Dateien aus dem Schema-4-Dokumentumfang ab; der Layoutcheck verarbeitet den von der Finalisierung umfangsgerecht ausgewählten Kandidatenbestand.
+- Ein bestätigter reiner E-Mail-Auftrag erreicht das persönliche Freigabe-Gate ohne vorgetäuschten Browserlauf; Layout-, PDF- und ATS-Berichte werden dabei als `nicht_erforderlich` geschrieben und die E-Mail muss persönlich als Text geprüft werden.
+- Die dateibasierte Fortsetzung berücksichtigt Umfang, beantwortete und offene Rückfragen, nur auftragsbezogene Angaben, Speicherentscheidungen, Widersprüche sowie Hashnachweise bereits ausgeführter Profiländerungen.
+- Bestehende Aufträge bis Schema 3 bleiben über die beiden alten `dokumentmodus`-Werte rückwärtskompatibel lesbar. Fehlende Dateien werden nicht als nachträglich eingeschränkter Dokumentumfang interpretiert.
+- README, Promptübersicht, Datei-/Ordnerregeln, Qualitätsregeln und technischer Workflow beschreiben dynamische Ausgaben, Sicht- beziehungsweise Textprüfung und die neuen Werkzeuge und Dateiverträge.
+
+### Behoben
+
+- Reine E-Mail-Aufträge erzeugen erst nach ausdrücklicher Bestätigung einen Entwurf und behaupten darin keine nicht vorhandenen Bewerbungsanlagen.
+- PowerShell- und Bash-Fortsetzungen behandeln den ausdrücklich gespeicherten Universalmodus in allen lesbaren Legacy-Schemata als Auswahl B und verweigern abweichende Quellpfade, Dateinamen oder Hashes.
+- Der Bash-Ordnerhelfer maskiert Steuerzeichen aus CRLF-Stammdaten JSON-konform, parst den erzeugten Auftrag vor der Erfolgsmeldung und verlangt hashbare Quelldateien vor jeder Ordneranlage.
+- PDF-Satz und Exportbericht sowie veröffentlichter Zielsatz und Finalisierungsbericht werden gemeinsam übernommen; bei einem Fehler wird der alte Stand wiederhergestellt oder ein verbliebener Wiederherstellungspfad ausdrücklich erhalten.
+- Der Finalisierungsbericht bindet Layout-, PDF- und ATS-Bericht zusätzlich per SHA-256, prüft deren semantische Artefaktzuordnung und verweigert veraltete, unvollständige oder um fremde Kandidatendateien erweiterte Nachweise.
+- Versand-PDFs müssen auch bei einem intern konsistenten Manifest exakt zu den ausgewählten HTML-Dateinamen passen; zusätzliche, abgewählte, falsch benannte oder falsch platzierte PDFs werden abgelehnt.
+
+### Sicherheit und Datenschutz
+
+- Neue Nutzerangaben gelten standardmäßig nur für den aktuellen Bewerbungsauftrag. Dauerhafte Änderungen werden gebündelt angeboten und benötigen die transparente Zielformulierung sowie eine eindeutige ausdrückliche Zustimmung.
+- Als dauerhafte Profilziele sind ausschließlich `Private/Daten/01_PERSOENLICHE_DATEN.md` für Identität, Kontakt und globale Logistik sowie `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` für fachliche Angaben zulässig.
+- Der Agentenworkflow prüft vor einer Profilübernahme auf sinngleiche Einträge; das Werkzeug verhindert im gewählten Zielabschnitt exakte Dubletten, bindet die bestätigte Formulierung an Vorher-/Nachher-Hashes und verändert keine anderen Profildateien, Universal-Lebensläufe oder Bewerbungen.
+- Vor einer dauerhaften Profilzustimmung bindet ein Pending-Snapshot Zieltyp, Datei, Abschnitt, offengelegte Formulierung und Ausgangshash. Das Übernahmewerkzeug akzeptiert nur exakt diese bestätigten Werte, schließt die verknüpfte Speicherfrage atomar und leitet den verbleibenden Dialogstatus neu ab.
+- Unklare oder widersprüchliche Wahrheitsebenen, fehlende Zustimmung, falsche Profilziele, geänderte Formulierungen, veraltete Hashes und erstmalige Übernahmen nach Beginn der Dokumenterstellung werden fehlergeschlossen abgelehnt.
+- Der Dialogzustand speichert nur normalisierte fachliche Angaben und Entscheidungsnachweise; Rohchats, vollständige Prompts und unnötige sensible Details sind unzulässig.
+- Mehrdeutige Umfangs- oder Speicherantworten bleiben fehlergeschlossen: Nach höchstens einer vereinfachten Nachfrage werden weder Kandidatendateien erzeugt noch Profildaten verändert.
+
+### Tests und Verifikation
+
+- Die Regressionssuite wurde um deterministische Schema-4-, Auswahl-, E-Mail-only-, Profilhash-, Deduplizierungs-, Widerspruchs-, Fortsetzungs- und Fail-closed-Verträge sowie negative Zustimmungs-, Zielbindungs-, Frage- und Statusfälle erweitert.
+- Die neun Dialogszenarien trennen statische beziehungsweise fixturebasierte Nachweise ausdrücklich vom noch offenen natürlichen Sprachverhalten realer Agenten und Modelle.
+- Am 05.08.2026 bestanden 59 von 59 Tests der Kern-Regressionssuite und 66 von 66 Tests der lokal freigegebenen Browser-Suite. Der separate Bash-Regressionslauf und die PowerShell-Parserprüfung bestanden ebenfalls.
+- Ein realer Ollama-Dialogtest wurde nicht ausgeführt. ShellCheck und PSScriptAnalyzer waren lokal nicht installiert und werden für diesen Stand nicht als ausgeführt behauptet.
+
 ## Version 1.6 - 2026-08-05
 
 ### Hinzugefügt

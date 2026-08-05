@@ -13,9 +13,9 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 5. Stellenart immer; Eintritt und Gehaltswunsch nach Bewerbungsauftrag und Stellenanzeige
 6. Abschluss mit Gesprächsbereitschaft
 
-## Verbindlicher Lebenslauf-zu-Anschreiben-Abgleich
+## Verbindlicher Quellen-zu-Anschreiben-Abgleich
 
-Im Modus `vollbewerbung` wird der Lebenslauf vor dem Anschreiben erstellt. Im Modus `anschreiben_mit_universalem_lebenslauf` wird stattdessen der unverändert übernommene universelle Lebenslauf vollständig geprüft. Erst danach schreibt der Agent den ersten Anschreibenentwurf.
+Ist ein Lebenslauf ausgewählt, wird der individuelle Kandidat vor dem Anschreiben erstellt beziehungsweise der unverändert übernommene universelle Lebenslauf vollständig geprüft. Ist kein Lebenslauf ausgewählt, gleicht der Agent das Anschreiben unmittelbar gegen private Profildaten, normalisierte Dialogangaben, Anforderungsmatrix und Stellenbeschreibung ab. Erst danach schreibt er den ersten Anschreibenentwurf.
 
 Folgende Bereiche sind einzeln zu prüfen:
 
@@ -32,7 +32,7 @@ Folgende Bereiche sind einzeln zu prüfen:
 Für jeden Bereich wird in `Analyse.md` eine Inhaltsentscheidung dokumentiert:
 
 - `Anschreiben`: Der Bereich liefert einen starken, rollenrelevanten Beleg oder erklärt die Motivation und wird im Anschreiben aufgegriffen.
-- `nur Lebenslauf`: Der Bereich ist für die Bewerbung relevant, aber im Lebenslauf ausreichend sichtbar oder würde das Anschreiben unnötig wiederholen.
+- `nur Lebenslauf`: Der Bereich ist für die Bewerbung relevant, aber in einem ausgewählten Lebenslauf ausreichend sichtbar oder würde das Anschreiben unnötig wiederholen. Ohne ausgewählten Lebenslauf ist diese Entscheidung unzulässig.
 - `weggelassen mit Begründung`: Der Bereich ist für die konkrete Rolle nicht relevant, schwächt die Positionierung oder muss aus Platz- beziehungsweise Fokusgründen entfallen. Die Begründung muss konkret sein.
 - `keine belegte Angabe`: Zu diesem Bereich liegt keine belastbare Information vor; es darf nichts ergänzt oder erfunden werden.
 
@@ -43,8 +43,8 @@ Pflichtregeln:
 - Formale Chronologie gehört grundsätzlich in den Lebenslauf. Schulbildung, ältere Stationen oder Abschlüsse werden im Anschreiben nur erwähnt, wenn sie für Motivation, Quereinstieg oder eine formale Stellenanforderung einen konkreten Erklärungswert besitzen.
 - Soft Skills werden im Anschreiben bevorzugt durch ein konkretes Beispiel aus Berufserfahrung, Weiterbildung oder Projektpraxis gezeigt, nicht als bloße Eigenschaftsliste.
 - Besondere Stärken und Motivation müssen mit der Zielrolle verbunden werden. Allgemeine Aussagen ohne Beleg oder konkreten Bezug reichen nicht.
-- Widersprüche oder relevante Lücken zwischen Lebenslauf und Anschreiben werden vor der Finalisierung korrigiert oder in `Offene_Fragen.md` dokumentiert.
-- Im Anschreiben-Modus werden Lücken nicht durch Änderungen am universellen Lebenslauf behoben. Belegte, wichtige Passungen werden im Anschreiben erklärt; reicht dies nicht, wird ein Wechsel zur Vollbewerbung empfohlen.
+- Widersprüche oder relevante Lücken zwischen den ausgewählten Quellen und dem Anschreiben werden vor der Finalisierung korrigiert oder in `Offene_Fragen.md` dokumentiert.
+- Bei unverändertem universellem Lebenslauf werden Lücken nicht durch Änderungen an diesem Snapshot behoben. Belegte, wichtige Passungen werden im Anschreiben erklärt; reicht dies nicht, wird ein individueller Lebenslauf empfohlen, ohne den Umfang stillschweigend zu wechseln.
 
 ## Stil
 
@@ -52,8 +52,8 @@ Pflichtregeln:
 - Natürliches Deutsch, keine gestelzten Phrasen.
 - Keine erfundenen Unternehmensdetails.
 - Keine Übertreibungen wie „perfekt“, wenn die Daten das nicht tragen.
-- Nicht den Lebenslauf wiederholen, sondern die Passung erklären.
-- Die im Lebenslauf-zu-Anschreiben-Abgleich als `Anschreiben` markierten Bereiche gezielt aufgreifen und die als `nur Lebenslauf` markierten Inhalte nicht unnötig wiederholen.
+- Einen ausgewählten Lebenslauf nicht wiederholen, sondern die Passung erklären.
+- Die im Quellenabgleich als `Anschreiben` markierten Bereiche gezielt aufgreifen und vorhandene `nur Lebenslauf`-Inhalte nicht unnötig wiederholen.
 - Visuell ruhig und passend zum Lebenslauf, aber ohne dekorative Karten- oder Marketingoptik.
 - In Firefox druckstabil als eine feste A4-Seite anlegen, nicht als wachsendes Dokument mit zufälligem Umbruch.
 

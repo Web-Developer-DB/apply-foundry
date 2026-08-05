@@ -1,9 +1,9 @@
 # Übergabeplan: gleichwertiger Windows-/Linux-Betrieb
 
 Stand: 2026-07-21  
-Status: **nur Planung; noch keine Portierungsänderungen umgesetzt**
+Status: **Planung; vollständige technische Parität noch nicht umgesetzt**
 
-Hinweis vom 05.08.2026: Der agentenunabhängige Root-Einstieg und die anbieterneutrale Fähigkeitenprüfung sind inzwischen in `AGENTS.md` und `Prompts/00_AGENTEN_START_HIER.md` umgesetzt. Das stellt noch keine technische Linux-Parität her; insbesondere bleiben die unten geplanten Module, Browseranpassungen und vollständigen Linux-Prüfläufe offen.
+Hinweis vom 05.08.2026: Der agentenunabhängige Root-Einstieg und die anbieterneutrale Fähigkeitenprüfung sind inzwischen in `AGENTS.md` und `Prompts/00_AGENTEN_START_HIER.md` umgesetzt. Der Bash-Ordnerhelfer unterstützt außerdem den Schema-4-Dokumentumfang und prüft Quellhashes sowie sein JSON. Das stellt noch keine technische Linux-Parität her; insbesondere bleiben die unten geplanten gemeinsamen Module, Browseranpassungen, die vollständige PowerShell-Prüfkette unter Linux und vollständige Linux-Prüfläufe offen.
 
 ## 1. Ziel und Definition von „gleichwertig"
 
@@ -12,7 +12,7 @@ Das Repository soll auf Windows und Linux denselben vollständigen Bewerbungswor
 1. Bewerbung und privaten Arbeitsordner anlegen.
 2. Stammdaten, Inhalt und Dateistruktur prüfen.
 3. jede explizite A4-Seite als Screenshot rendern und die Layoutdichte prüfen.
-4. genau zwei PDFs erzeugen und technisch validieren.
+4. genau die laut Dokumentumfang ausgewählten HTML-Dokumente als getrennte PDFs erzeugen und technisch validieren; bei E-Mail-only die Schritte nachvollziehbar als nicht erforderlich ausweisen.
 5. die PDF-Textschicht per ATS-Prüfung kontrollieren.
 6. nach einer echten Sichtprüfung atomar nach `Versand/` und `Intern/` veröffentlichen.
 

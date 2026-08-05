@@ -22,10 +22,12 @@ Ungeklärte zentrale Bewerbungslogistik im Bewerbungsauftrag wird bei der Finali
 
 `Tools/Neue-Bewerbung.ps1` beziehungsweise `Tools/neue-bewerbung.sh` erzeugt im privaten Arbeitsordner eine Datei `Bewerbungsauftrag.json`.
 
-Sie enthält mindestens:
+Ab Schema 4 enthält sie mindestens:
 
-- Dokumentmodus: `vollbewerbung` oder `anschreiben_mit_universalem_lebenslauf`
-- im Anschreiben-Modus: Pfad, Dateiname und SHA-256-Snapshot der freigegebenen Universal-Lebenslauf-HTML
+- den vom Nutzer bestätigten `dokumentumfang` mit Lebenslaufart, Anschreiben- und E-Mail-Auswahl, Quelle und Zeitstempel
+- die technische Kompatibilitätsangabe `dokumentmodus`
+- bei `lebenslauf = universal_unveraendert`: Pfad, Dateiname und SHA-256-Snapshot der freigegebenen Universal-Lebenslauf-HTML
+- den normalisierten Dialogstatus mit stabilen IDs, offenen/beantworteten Rückfragen, auftragsbezogenen Angaben, Speicherentscheidungen und gegebenenfalls Profiländerungsnachweisen
 - Firma und technischer Firmenslug
 - Zielrolle und technischer Rollenslug
 - Bewerbungsdatum
@@ -41,21 +43,23 @@ Sie enthält mindestens:
 
 Vor der Inhaltsprüfung müssen folgende Werte endgültig gesetzt sein:
 
-- `seitenstrategie`: `eine_seite` oder `zwei_seiten`
+- bei ausgewähltem Lebenslauf `seitenstrategie`: `eine_seite` oder `zwei_seiten`; sonst `nicht_erforderlich`
 - `bewerbungsentscheidung`: `bewerben` oder `nicht_bewerben`
-- `darstellungsoptionen.schulbildungsmodus`: `vollstaendig` oder `recruiter_kompakt`
-- `darstellungsoptionen.profillinksModus`: `alle`, `rollenrelevant` oder `keine`
+- bei ausgewähltem Lebenslauf `darstellungsoptionen.schulbildungsmodus`: `vollstaendig` oder `recruiter_kompakt`; sonst `nicht_erforderlich`
+- bei ausgewähltem Lebenslauf `darstellungsoptionen.profillinksModus`: `alle`, `rollenrelevant` oder `keine`; sonst `nicht_erforderlich`
 - bei `rollenrelevant`: `profillinksAuswahl` mit den tatsächlich verwendeten Feldnamen aus Datei `01`
 
 Die Werte `noch_festzulegen` sind nur im initialen Arbeitsauftrag erlaubt und blockieren die Finalisierung. `nicht_bewerben` dokumentiert einen bewussten Abbruch und darf nicht veröffentlicht werden.
 
-Ab Schema 3 ist der Dokumentmodus Pflicht. Im Anschreiben-Modus darf der eingefrorene universelle Lebenslauf nicht verändert werden. Die Zielrollenprüfung gilt dann für Anschreiben und E-Mail-Betreff, nicht für den universellen Lebenslauf.
+Ab Schema 4 ist `dokumentumfang` Pflicht und steuert alle erwarteten Kandidaten-, Prüf- und Versandartefakte. Die alte Schema-3-Abbildung bleibt nach Prompt 01 rückwärtskompatibel. Ein eingefrorener universeller Lebenslauf darf nicht verändert werden; die Zielrollenprüfung gilt für die zusätzlich ausgewählten stellenbezogenen Dokumente, nicht für den universellen Snapshot.
+
+Vor der Dokumenterstellung müssen alle blockierenden Rückfragen und Widersprüche geklärt sein. Neue Angaben bleiben standardmäßig `nur_auftrag`. Eine dauerhafte Profilaktualisierung benötigt die bestätigte Formulierung, die zulässige Zieldatei, ausdrückliche Zustimmung sowie einen konsistenten Vorher-/Nachher-Hash; Rohchats werden nicht gespeichert.
 
 Firma, Rolle und Pfade in dieser Datei dürfen nach der Dokumenterstellung nicht stillschweigend geändert werden.
 
 ## Anforderungsmatrix
 
-Vor Lebenslauf und Anschreiben muss aus `Anforderungsmatrix--ENTWURF.json` eine geprüfte `Anforderungsmatrix.json` entstehen.
+Vor der Erstellung der ausgewählten Bewerbungsdokumente muss aus `Anforderungsmatrix--ENTWURF.json` eine geprüfte `Anforderungsmatrix.json` entstehen.
 
 Jede relevante Anforderung erhält:
 

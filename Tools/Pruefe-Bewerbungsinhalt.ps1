@@ -67,6 +67,38 @@ function Get-JsonProperty {
   return $property.Value
 }
 
+function Convert-ToSlug {
+  param([string]$Value)
+  $slug = $Value.Trim()
+  foreach ($replacement in @(
+    @{ From = "ä"; To = "ae" }, @{ From = "ö"; To = "oe" }, @{ From = "ü"; To = "ue" },
+    @{ From = "Ä"; To = "Ae" }, @{ From = "Ö"; To = "Oe" }, @{ From = "Ü"; To = "Ue" },
+    @{ From = "ß"; To = "ss" }, @{ From = "&"; To = "und" }
+  )) {
+    $slug = $slug.Replace($replacement.From, $replacement.To)
+  }
+  return (($slug -replace '[^A-Za-z0-9]+', '-').Trim('-'))
+}
+
+function Add-DocumentCountResult {
+  param(
+    [array]$Files,
+    [bool]$Expected,
+    [string]$Label
+  )
+  if ($Expected -and $Files.Count -eq 1) {
+    Add-OkMessage "$Label ist laut Dokumentumfang genau einmal vorhanden."
+  } elseif ($Expected -and $Files.Count -eq 0) {
+    Add-ErrorMessage "$Label ist ausgewählt, fehlt aber im Kandidatensatz."
+  } elseif ($Expected) {
+    Add-ErrorMessage "$Label ist ausgewählt, aber mehrfach vorhanden: $($Files.Name -join ', ')"
+  } elseif ($Files.Count -gt 0) {
+    Add-ErrorMessage "$Label ist nicht ausgewählt, aber im Kandidatensatz vorhanden: $($Files.Name -join ', ')"
+  } else {
+    Add-OkMessage "$Label ist laut Dokumentumfang nicht erforderlich."
+  }
+}
+
 function Convert-HtmlToText {
   param([string]$Html)
   $withoutStyle = [regex]::Replace($Html, '(?is)<style\b[^>]*>.*?</style>', ' ')
@@ -97,7 +129,8 @@ function Write-JsonReport {
     [object]$FitAssessment,
     [string]$SchoolMode,
     [string]$ProfileLinksMode,
-    [string]$DocumentMode
+    [string]$DocumentMode,
+    [object]$DocumentScope
   )
   if ([string]::IsNullOrWhiteSpace($Path)) { return }
   $fullPath = [System.IO.Path]::GetFullPath($Path)
@@ -119,6 +152,7 @@ function Write-JsonReport {
     schoolMode = $SchoolMode
     profileLinksMode = $ProfileLinksMode
     documentMode = $DocumentMode
+    documentScope = $DocumentScope
     fitAssessment = $FitAssessment
   }
   Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 6)
@@ -141,32 +175,76 @@ $shippingFolder = Join-Path -Path $resolvedFolder -ChildPath "Versand"
 $isStructuredPublication = (Test-Path -LiteralPath $internalFolder -PathType Container) -and (Test-Path -LiteralPath $shippingFolder -PathType Container)
 $documentFolder = if ($isStructuredPublication) { $internalFolder } else { $resolvedFolder }
 $emailFolder = if ($isStructuredPublication) { $shippingFolder } else { $resolvedFolder }
-$cvFiles = @(Get-ChildItem -LiteralPath $documentFolder -File -Filter "Lebenslauf - *.html")
-$letterFiles = @(Get-ChildItem -LiteralPath $documentFolder -File -Filter "Anschreiben - *.html")
-$emailFiles = @(Get-ChildItem -LiteralPath $emailFolder -File -Filter "Email-Nachricht--*.md")
-if ($cvFiles.Count -ne 1 -or $letterFiles.Count -ne 1 -or $emailFiles.Count -ne 1) {
-  Write-Host "[FEHLER] Inhaltsprüfung erwartet genau einen Lebenslauf, ein Anschreiben und eine E-Mail-Nachricht." -ForegroundColor Red
-  exit 1
-}
-
-$cvHtml = Get-Content -LiteralPath $cvFiles[0].FullName -Raw -Encoding UTF8
-$letterHtml = Get-Content -LiteralPath $letterFiles[0].FullName -Raw -Encoding UTF8
-$emailText = Get-Content -LiteralPath $emailFiles[0].FullName -Raw -Encoding UTF8
-$cvText = Convert-HtmlToText -Html $cvHtml
-$letterText = Convert-HtmlToText -Html $letterHtml
 $profileText = Get-Content -LiteralPath $ProfilPath -Raw -Encoding UTF8
 $fields = Get-MarkdownFields -Path $StammdatenPath
 $auftrag = Get-Content -LiteralPath $AuftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $matrix = Get-Content -LiteralPath $AnforderungsmatrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$auftragSchemaValue = Get-JsonProperty -Object $auftrag -Name "schemaVersion"
+if ($auftragSchemaValue -isnot [int] -and $auftragSchemaValue -isnot [long]) {
+  Write-Host "[FEHLER] Bewerbungsauftrag enthält keine ganzzahlige schemaVersion." -ForegroundColor Red
+  exit 1
+}
+$auftragSchema = [int]$auftragSchemaValue
+$documentMode = [string](Get-JsonProperty -Object $auftrag -Name "dokumentmodus")
+$configuredScope = Get-JsonProperty -Object $auftrag -Name "dokumentumfang"
+$expectedCv = $true
+$expectedLetter = $true
+$expectedEmail = $true
+$cvKind = if ($documentMode -eq "anschreiben_mit_universalem_lebenslauf") { "universal_unveraendert" } else { "individuell" }
+if ($auftragSchema -lt 1 -or $auftragSchema -gt 4) {
+  Write-Host "[FEHLER] Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 4." -ForegroundColor Red
+  exit 1
+}
+if ($auftragSchema -eq 4) {
+  if ($null -eq $configuredScope) {
+    Write-Host "[FEHLER] Bewerbungsauftrag mit schemaVersion 4 enthält keinen dokumentumfang." -ForegroundColor Red
+    exit 1
+  }
+  $cvKind = [string](Get-JsonProperty -Object $configuredScope -Name "lebenslauf")
+  $letterValue = Get-JsonProperty -Object $configuredScope -Name "anschreiben"
+  $emailValue = Get-JsonProperty -Object $configuredScope -Name "emailNachricht"
+  if ($cvKind -notin @("individuell", "universal_unveraendert", "nicht_enthalten") -or
+      $letterValue -isnot [bool] -or $emailValue -isnot [bool]) {
+    Write-Host "[FEHLER] dokumentumfang enthält ungültige oder nicht typisierte Werte." -ForegroundColor Red
+    exit 1
+  }
+  $expectedCv = $cvKind -ne "nicht_enthalten"
+  $expectedLetter = [bool]$letterValue
+  $expectedEmail = [bool]$emailValue
+  if (-not ($expectedCv -or $expectedLetter -or $expectedEmail)) {
+    Write-Host "[FEHLER] dokumentumfang wählt kein Dokument aus." -ForegroundColor Red
+    exit 1
+  }
+}
+$effectiveScope = [ordered]@{
+  lebenslauf = $cvKind
+  anschreiben = $expectedLetter
+  emailNachricht = $expectedEmail
+}
+$cvFiles = @(Get-ChildItem -LiteralPath $documentFolder -File -Filter "Lebenslauf - *.html")
+$letterFiles = @(Get-ChildItem -LiteralPath $documentFolder -File -Filter "Anschreiben - *.html")
+$emailFiles = @(Get-ChildItem -LiteralPath $emailFolder -File -Filter "Email-Nachricht--*.md")
+Add-DocumentCountResult -Files $cvFiles -Expected $expectedCv -Label "Lebenslauf"
+Add-DocumentCountResult -Files $letterFiles -Expected $expectedLetter -Label "Anschreiben"
+Add-DocumentCountResult -Files $emailFiles -Expected $expectedEmail -Label "E-Mail-Nachricht"
+
+$cvHtml = if ($expectedCv -and $cvFiles.Count -eq 1) { Get-Content -LiteralPath $cvFiles[0].FullName -Raw -Encoding UTF8 } else { "" }
+$letterHtml = if ($expectedLetter -and $letterFiles.Count -eq 1) { Get-Content -LiteralPath $letterFiles[0].FullName -Raw -Encoding UTF8 } else { "" }
+$emailText = if ($expectedEmail -and $emailFiles.Count -eq 1) { Get-Content -LiteralPath $emailFiles[0].FullName -Raw -Encoding UTF8 } else { "" }
+$cvText = Convert-HtmlToText -Html $cvHtml
+$letterText = Convert-HtmlToText -Html $letterHtml
 
 Write-Host "Pruefe Bewerbungsinhalt: $resolvedFolder"
 
 $fullName = if ($fields.Contains("Vollständiger Name")) { [string]$fields["Vollständiger Name"] } else { "" }
 $fileNamePerson = if ($fields.Contains("Dateiname-Name")) { [string]$fields["Dateiname-Name"] } else { "" }
 $firma = [string](Get-JsonProperty -Object $auftrag -Name "firma")
+$firmaSlug = [string](Get-JsonProperty -Object $auftrag -Name "firmaSlug")
+if ([string]::IsNullOrWhiteSpace($firmaSlug) -and -not [string]::IsNullOrWhiteSpace($firma)) {
+  $firmaSlug = Convert-ToSlug -Value $firma
+}
 $rolle = [string](Get-JsonProperty -Object $auftrag -Name "rolle")
 $pageStrategy = [string](Get-JsonProperty -Object $auftrag -Name "seitenstrategie")
-$auftragSchema = [int](Get-JsonProperty -Object $auftrag -Name "schemaVersion")
 $applicationLogistics = Get-JsonProperty -Object $auftrag -Name "bewerbungslogistik"
 $displayOptions = Get-JsonProperty -Object $auftrag -Name "darstellungsoptionen"
 $schoolMode = [string](Get-JsonProperty -Object $displayOptions -Name "schulbildungsmodus")
@@ -188,11 +266,15 @@ if ($auftragSchema -ge 2) {
   } else {
     Add-OkMessage "Bewerbungsentscheidung ist ausdrücklich auf bewerben gesetzt."
   }
-  if ($schoolMode -notin @("vollstaendig", "recruiter_kompakt")) {
-    Add-ErrorMessage "Schulbildungsmodus ist nicht endgültig festgelegt. Erlaubt: vollstaendig oder recruiter_kompakt."
-  }
-  if ($profileLinksMode -notin @("alle", "rollenrelevant", "keine")) {
-    Add-ErrorMessage "Profillinks-Modus ist nicht endgültig festgelegt. Erlaubt: alle, rollenrelevant oder keine."
+  if ($expectedCv) {
+    if ($schoolMode -notin @("vollstaendig", "recruiter_kompakt")) {
+      Add-ErrorMessage "Schulbildungsmodus ist nicht endgültig festgelegt. Erlaubt: vollstaendig oder recruiter_kompakt."
+    }
+    if ($profileLinksMode -notin @("alle", "rollenrelevant", "keine")) {
+      Add-ErrorMessage "Profillinks-Modus ist nicht endgültig festgelegt. Erlaubt: alle, rollenrelevant oder keine."
+    }
+  } elseif ($auftragSchema -ge 4 -and ($schoolMode -ne "nicht_erforderlich" -or $profileLinksMode -ne "nicht_erforderlich")) {
+    Add-ErrorMessage "Ohne ausgewählten Lebenslauf müssen CV-Darstellungsoptionen auf nicht_erforderlich stehen."
   }
 } else {
   if ([string]::IsNullOrWhiteSpace($schoolMode)) { $schoolMode = "vollstaendig" }
@@ -200,29 +282,36 @@ if ($auftragSchema -ge 2) {
 }
 
 if ($auftragSchema -ge 3) {
-  if ($documentMode -notin @("vollbewerbung", "anschreiben_mit_universalem_lebenslauf")) {
-    Add-ErrorMessage "Dokumentmodus ist ungültig. Erlaubt: vollbewerbung oder anschreiben_mit_universalem_lebenslauf."
+  $allowedModes = if ($auftragSchema -ge 4) { @("vollbewerbung", "anschreiben_mit_universalem_lebenslauf", "individuelle_auswahl") } else { @("vollbewerbung", "anschreiben_mit_universalem_lebenslauf") }
+  if ($documentMode -notin $allowedModes) {
+    Add-ErrorMessage "Dokumentmodus ist für das Auftragsschema ungültig."
   } else {
     Add-OkMessage "Dokumentmodus ist eindeutig festgelegt: $documentMode."
   }
 }
 
-$cvPageCount = [regex]::Matches($cvHtml, '(?is)<main\b[^>]*class\s*=\s*["''][^"'']*\bpage\b[^"'']*["'']').Count
-if ($pageStrategy -eq "eine_seite" -and $cvPageCount -eq 1) {
-  Add-OkMessage "Seitenstrategie stimmt mit einem Lebenslauf-Seitencontainer überein."
-} elseif ($pageStrategy -eq "zwei_seiten" -and $cvPageCount -eq 2) {
-  Add-OkMessage "Seitenstrategie stimmt mit zwei Lebenslauf-Seitencontainern überein."
-} elseif ($pageStrategy -notin @("eine_seite", "zwei_seiten")) {
-  Add-ErrorMessage "Bewerbungsauftrag enthält keine final festgelegte Seitenstrategie. Erlaubt: eine_seite oder zwei_seiten."
+if ($expectedCv) {
+  $cvPageCount = [regex]::Matches($cvHtml, '(?is)<main\b[^>]*class\s*=\s*["''][^"'']*\bpage\b[^"'']*["'']').Count
+  if ($pageStrategy -eq "eine_seite" -and $cvPageCount -eq 1) {
+    Add-OkMessage "Seitenstrategie stimmt mit einem Lebenslauf-Seitencontainer überein."
+  } elseif ($pageStrategy -eq "zwei_seiten" -and $cvPageCount -eq 2) {
+    Add-OkMessage "Seitenstrategie stimmt mit zwei Lebenslauf-Seitencontainern überein."
+  } elseif ($pageStrategy -notin @("eine_seite", "zwei_seiten")) {
+    Add-ErrorMessage "Bewerbungsauftrag enthält keine final festgelegte Seitenstrategie. Erlaubt: eine_seite oder zwei_seiten."
+  } else {
+    Add-ErrorMessage "Seitenstrategie im Bewerbungsauftrag stimmt nicht mit den Lebenslauf-Seitencontainern überein."
+  }
+} elseif ($auftragSchema -ge 4 -and $pageStrategy -ne "nicht_erforderlich") {
+  Add-ErrorMessage "Ohne ausgewählten Lebenslauf muss die Seitenstrategie nicht_erforderlich sein."
 } else {
-  Add-ErrorMessage "Seitenstrategie im Bewerbungsauftrag stimmt nicht mit den Lebenslauf-Seitencontainern überein."
+  Add-OkMessage "Lebenslauf-Seitenstrategie ist laut Dokumentumfang nicht erforderlich."
 }
 
-foreach ($document in @(
-  [pscustomobject]@{ Name = "Lebenslauf"; Text = $cvText },
-  [pscustomobject]@{ Name = "Anschreiben"; Text = $letterText },
-  [pscustomobject]@{ Name = "E-Mail-Nachricht"; Text = $emailText }
-)) {
+$selectedDocuments = @()
+if ($expectedCv) { $selectedDocuments += [pscustomobject]@{ Name = "Lebenslauf"; Text = $cvText } }
+if ($expectedLetter) { $selectedDocuments += [pscustomobject]@{ Name = "Anschreiben"; Text = $letterText } }
+if ($expectedEmail) { $selectedDocuments += [pscustomobject]@{ Name = "E-Mail-Nachricht"; Text = $emailText } }
+foreach ($document in $selectedDocuments) {
   if (Test-ContainsText -Haystack $document.Text -Needle $fullName) {
     Add-OkMessage "$($document.Name) enthält den Bewerbernamen."
   } else {
@@ -230,14 +319,14 @@ foreach ($document in @(
   }
 }
 
-if ($cvFiles[0].BaseName -ne "Lebenslauf - $fileNamePerson") {
+if ($expectedCv -and $cvFiles.Count -eq 1 -and $cvFiles[0].BaseName -ne "Lebenslauf - $fileNamePerson") {
   Add-ErrorMessage "Lebenslauf-Dateiname stimmt nicht mit Dateiname-Name aus den Stammdaten überein."
 }
-if ($letterFiles[0].BaseName -ne "Anschreiben - $fileNamePerson") {
+if ($expectedLetter -and $letterFiles.Count -eq 1 -and $letterFiles[0].BaseName -ne "Anschreiben - $fileNamePerson") {
   Add-ErrorMessage "Anschreiben-Dateiname stimmt nicht mit Dateiname-Name aus den Stammdaten überein."
 }
 
-if ($documentMode -eq "anschreiben_mit_universalem_lebenslauf") {
+if ($expectedCv -and $cvKind -eq "universal_unveraendert" -and $cvFiles.Count -eq 1) {
   $expectedUniversalHash = [string](Get-JsonProperty -Object $universalCv -Name "sourceHtmlSha256BeiAnlage")
   $expectedUniversalName = [string](Get-JsonProperty -Object $universalCv -Name "kandidatDatei")
   if ([string]::IsNullOrWhiteSpace($expectedUniversalHash) -or [string]::IsNullOrWhiteSpace($expectedUniversalName)) {
@@ -254,18 +343,39 @@ if ($documentMode -eq "anschreiben_mit_universalem_lebenslauf") {
   }
 }
 
-if (Test-ContainsText -Haystack $letterText -Needle $firma) {
-  Add-OkMessage "Anschreiben enthält die Firma aus dem Bewerbungsauftrag."
-} else {
-  Add-ErrorMessage "Anschreiben enthält die Firma aus dem Bewerbungsauftrag nicht."
+if ($expectedLetter) {
+  if (Test-ContainsText -Haystack $letterText -Needle $firma) {
+    Add-OkMessage "Anschreiben enthält die Firma aus dem Bewerbungsauftrag."
+  } else {
+    Add-ErrorMessage "Anschreiben enthält die Firma aus dem Bewerbungsauftrag nicht."
+  }
 }
-$roleDocuments = @(
-  [pscustomobject]@{ Name = "Anschreiben"; Text = $letterText },
-  [pscustomobject]@{ Name = "E-Mail-Betreff"; Text = ($emailText -split "`r?`n", 2)[0] }
-)
-if ($documentMode -eq "vollbewerbung") {
+if ($expectedEmail -and $emailFiles.Count -eq 1) {
+  $emailSubject = ($emailText -split "`r?`n", 2)[0].TrimStart([char]0xFEFF)
+  if (Test-ContainsText -Haystack $emailSubject -Needle $rolle) {
+    Add-OkMessage "E-Mail-Betreff enthält die Zielrolle."
+  } else {
+    Add-ErrorMessage "E-Mail-Betreff enthält die Zielrolle aus dem Bewerbungsauftrag nicht."
+  }
+  if (Test-ContainsText -Haystack $emailSubject -Needle $fullName) {
+    Add-OkMessage "E-Mail-Betreff enthält den Bewerbernamen."
+  } else {
+    Add-ErrorMessage "E-Mail-Betreff enthält den Bewerbernamen aus den Stammdaten nicht."
+  }
+  if (Test-ContainsText -Haystack $emailText -Needle $firma) {
+    Add-OkMessage "E-Mail-Nachricht enthält die Firma aus dem Bewerbungsauftrag."
+  } else {
+    Add-ErrorMessage "E-Mail-Nachricht enthält die Firma aus dem Bewerbungsauftrag nicht."
+  }
+  if (-not [string]::IsNullOrWhiteSpace($firmaSlug) -and $emailFiles[0].Name -cne "Email-Nachricht--$firmaSlug.md") {
+    Add-ErrorMessage "E-Mail-Dateiname stimmt nicht mit dem Firmen-Slug aus dem Bewerbungsauftrag überein."
+  }
+}
+$roleDocuments = @()
+if ($expectedLetter) { $roleDocuments += [pscustomobject]@{ Name = "Anschreiben"; Text = $letterText } }
+if ($expectedCv -and $cvKind -eq "individuell") {
   $roleDocuments = @([pscustomobject]@{ Name = "Lebenslauf"; Text = $cvText }) + $roleDocuments
-} else {
+} elseif ($expectedCv) {
   Add-OkMessage "Zielrollenprüfung im universellen Lebenslauf ist im Anschreiben-Modus bewusst ausgenommen."
 }
 foreach ($document in $roleDocuments) {
@@ -284,7 +394,9 @@ $schoolPeriods = if ($schoolSectionMatch.Success) {
 } else {
   @()
 }
-$requiredPeriods = if ($schoolMode -eq "recruiter_kompakt") {
+$requiredPeriods = if (-not $expectedCv) {
+  @()
+} elseif ($schoolMode -eq "recruiter_kompakt") {
   @($periods | Where-Object { $_ -notin $schoolPeriods })
 } else {
   @($periods)
@@ -298,7 +410,7 @@ foreach ($period in $requiredPeriods) {
     Add-ErrorMessage "Formaler Zeitraum aus dem Profil fehlt im Lebenslauf: $period"
   }
 }
-if ($schoolMode -eq "recruiter_kompakt") {
+if ($expectedCv -and $schoolMode -eq "recruiter_kompakt") {
   if ($cvText -match '(?i)Schulbildung|Schule|Hochschulzugangsberechtigung') {
     Add-OkMessage "Recruiter-kompakter Schulbildungsmodus ist gewählt und eine zusammengefasste Schulbildungsangabe bleibt sichtbar."
   } else {
@@ -440,22 +552,23 @@ function Get-EffectiveLogisticsValue {
   return ""
 }
 
+$selectedCombinedText = ($selectedDocuments | ForEach-Object { $_.Text }) -join " "
 $availability = Get-EffectiveLogisticsValue -ApplicationProperty "verfuegbarkeit" -MasterField "Verfügbarkeit"
 if (-not [string]::IsNullOrWhiteSpace($availability)) {
-  if ((Test-ContainsText -Haystack $cvText -Needle $availability) -or (Test-ContainsText -Haystack $letterText -Needle $availability)) {
+  if (Test-ContainsText -Haystack $selectedCombinedText -Needle $availability) {
     Add-OkMessage "Verfügbarkeit ist konsistent sichtbar."
   } else {
-    Add-WarningMessage "Verfügbarkeit aus den Stammdaten ist weder im Lebenslauf noch im Anschreiben sichtbar."
+    Add-WarningMessage "Verfügbarkeit aus den Stammdaten ist in den ausgewählten Unterlagen nicht sichtbar."
   }
 }
 
 $employmentType = Get-EffectiveLogisticsValue -ApplicationProperty "stellenart" -MasterField "Gewünschte Stellenart"
 if (-not [string]::IsNullOrWhiteSpace($employmentType)) {
   if ($employmentType -notmatch '(?i)^\s*(\[|nicht festgelegt|offen|unbekannt)') {
-    if ((Test-ContainsText -Haystack $cvText -Needle $employmentType) -or (Test-ContainsText -Haystack $letterText -Needle $employmentType)) {
+    if (Test-ContainsText -Haystack $selectedCombinedText -Needle $employmentType) {
       Add-OkMessage "Gewünschte Stellenart ist in den Unterlagen berücksichtigt."
     } else {
-      Add-WarningMessage "Gewünschte Stellenart ist nicht in Lebenslauf oder Anschreiben erkennbar."
+      Add-WarningMessage "Gewünschte Stellenart ist in den ausgewählten Unterlagen nicht erkennbar."
     }
   }
 }
@@ -470,7 +583,7 @@ foreach ($profileFieldName in $profileFieldNames) {
     }
   }
 }
-if ($auftragSchema -ge 2 -and $profileLinksMode -in @("alle", "rollenrelevant", "keine")) {
+if ($expectedCv -and $auftragSchema -ge 2 -and $profileLinksMode -in @("alle", "rollenrelevant", "keine")) {
   $selectedNames = @($profileLinksSelection | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
   if ($profileLinksMode -eq "alle") {
     $selectedNames = @($availableProfileLinks.Keys)
@@ -503,12 +616,12 @@ $defensivePatterns = @(
   '(?i)ich erfülle .* nicht'
 )
 foreach ($pattern in $defensivePatterns) {
-  if ($letterText -match $pattern) {
+  if ($expectedLetter -and $letterText -match $pattern) {
     Add-WarningMessage "Anschreiben enthält eine potenziell defensive Metaformulierung: $($Matches[0])"
   }
 }
 
-Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode -DocumentMode $documentMode
+Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode -DocumentMode $documentMode -DocumentScope $effectiveScope
 
 Write-Host ""
 Write-Host "Zusammenfassung:"

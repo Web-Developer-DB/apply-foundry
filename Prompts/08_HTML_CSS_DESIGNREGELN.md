@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Lebenslauf und Anschreiben werden als eigenständige HTML-Dateien erzeugt. Sie müssen in Firefox sichtbar gut aussehen und in der Druckansicht dieselben Proportionen behalten.
+Ein laut Dokumentumfang ausgewählter Lebenslauf oder ein ausgewähltes Anschreiben wird jeweils als eigenständige HTML-Datei erzeugt. Jedes vorhandene HTML-Dokument muss in Firefox sichtbar gut aussehen und in der Druckansicht dieselben Proportionen behalten.
 
 ## Grundregeln
 

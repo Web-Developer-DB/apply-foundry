@@ -1,6 +1,7 @@
 # Qualitätscheck
 
 Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als `Qualitaetscheck.md` speichern.
+Dokumentspezifische Abschnitte gelten nur für die im bestätigten `dokumentumfang` ausgewählten Bestandteile; ein absichtlich abgewähltes Dokument ist kein Fehler.
 
 ## Inhalt
 
@@ -14,7 +15,9 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 - Wurde vor dem Schreiben eine vollständige `Anforderungsmatrix.json` mit Muss-/Kann-Typ, Kategorie, Gewichtung, Status, Belegart, Beleg und Behandlung erstellt?
 - Wurde die gewichtete Eignungsklasse geprüft und die Bewerbungsentscheidung ausdrücklich im Bewerbungsauftrag dokumentiert?
 - Stimmt jede in Analyse oder Qualitätscheck genannte Eignungskennzahl exakt mit dem maschinell berechneten Wert aus `Inhalts-Pruefbericht.json` überein?
-- Ist der Dokumentmodus eindeutig festgelegt und über den gesamten Workflow unverändert geblieben?
+- Ist der vom Nutzer bestätigte `dokumentumfang` eindeutig gespeichert und über den Workflow unverändert geblieben?
+- Sind nur relevante Informationslücken erfragt, höchstens drei Fragen pro Runde gestellt und beantwortete Fragen nicht wiederholt worden?
+- Wurden neue Angaben zunächst nur auftragsbezogen behandelt und dauerhafte Profiländerungen ausschließlich nach transparenter Formulierung und ausdrücklicher Zustimmung vorgenommen?
 - Gibt es keine stillschweigend vermischten Dopplungen oder Widersprüche zwischen Datei `01` und Datei `02`?
 - Sind die wichtigsten Anforderungen der Stelle sichtbar?
 - Sind irrelevante Profilteile für die konkrete Zielrolle entfernt oder reduziert?
@@ -29,16 +32,16 @@ Vor der finalen Ausgabe muss der Agent diese Punkte prüfen und das Ergebnis als
 
 ## Fachlicher Abschlusstest
 
-Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachricht auszuführen und bei Korrekturen zu wiederholen.
+Dieser Test ist nach der Erstellung aller laut `dokumentumfang` ausgewählten Unterlagen auszuführen und bei Korrekturen zu wiederholen.
 
-- Wurden `Stellenbeschreibung.md`, `Analyse.md`, Datei `01`, Datei `02`, Lebenslauf, Anschreiben und E-Mail-Nachricht erneut gegeneinander geprüft?
+- Wurden `Stellenbeschreibung.md`, `Analyse.md`, Datei `01`, Datei `02`, normalisierte Dialogangaben und alle ausgewählten Dokumente erneut gegeneinander geprüft?
 - Gibt es in `Qualitaetscheck.md` einen kurzen Anforderungsabgleich mit den wichtigsten Muss- und Kann-Anforderungen der Stelle?
 - Ist je Hauptanforderung erkennbar, ob sie im Lebenslauf sichtbar belegt, im Anschreiben sinnvoll aufgegriffen, nur indirekt passend oder als offene Frage/Risiko dokumentiert ist?
-- Sind alle Aussagen in Lebenslauf und Anschreiben durch Datei `01` oder Datei `02` gedeckt?
+- Sind alle Aussagen in den ausgewählten Dokumenten durch Datei `01`, Datei `02` oder eine bestätigte auftragsbezogene Dialogangabe gedeckt?
 - Wurden Anforderungen, zu denen keine private Datengrundlage existiert, nicht erfunden, sondern neutral ausgelassen oder in `Offene_Fragen.md` dokumentiert?
 - Besitzt jede nicht vollständig erfüllte Muss-Anforderung eine klare Behandlung in Analyse, offenen Fragen oder Positionierungsstrategie?
-- Stimmen Lebenslauf, Anschreiben, E-Mail-Nachricht, Dateinamen, Zielrolle, Firma und Ansprechpartner widerspruchsfrei überein?
-- Stimmen Stellenart, Arbeitsmodell, Eintrittstermin und Gehaltsangabe mit Bewerbungsauftrag, Stellenanzeige, Lebenslauf und Anschreiben überein?
+- Stimmen alle ausgewählten Dokumente, Dateinamen, Zielrolle, Firma und Ansprechpartner widerspruchsfrei überein?
+- Stimmen Stellenart, Arbeitsmodell, Eintrittstermin und Gehaltsangabe mit Bewerbungsauftrag, Stellenanzeige und den ausgewählten Dokumenten überein?
 - Sind fehlende Daten die einzigen offenen Punkte und werden sie nicht als sichtbare Platzhalter in finalen Dateien geführt?
 - Wurden bei gefundenen Unstimmigkeiten die finalen Dateien korrigiert und danach erneut geprüft?
 
@@ -84,8 +87,8 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Entsprechen die sichtbaren Profil-Links exakt dem Modus und der Auswahl im Bewerbungsauftrag und besitzt jeder rollenbezogen ausgewählte Link Recruiter-Nutzen?
 - Sind finale sichtbare Platzhalter vollständig entfernt?
 - Sind fehlende Daten stattdessen in `Offene_Fragen.md` dokumentiert?
-- Im Modus `vollbewerbung`: Enthält der Lebenslauf die exakte Zielrolle aus dem Bewerbungsauftrag?
-- Im Modus `anschreiben_mit_universalem_lebenslauf`: Ist der Lebenslauf hashgleich zum eingefrorenen Universal-Snapshot und frei von nachträglichen Stellenanpassungen?
+- Bei individuellem Lebenslauf: Enthält er die exakte Zielrolle aus dem Bewerbungsauftrag?
+- Bei universellem Lebenslauf: Ist er hashgleich zum eingefrorenen Universal-Snapshot und frei von nachträglichen Stellenanpassungen?
 
 ## A4-Fit-Check
 
@@ -118,7 +121,7 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 ## Anschreiben
 
 - Passt das Anschreiben zur Rolle?
-- Wurde der Lebenslauf vor dem Anschreiben vollständig geprüft?
+- Wurde ein ausgewählter Lebenslauf vor dem Anschreiben vollständig geprüft; wurde ohne Lebenslauf stattdessen direkt gegen Profil, Dialogangaben, Matrix und Stelle abgeglichen?
 - Ist in `Analyse.md` für Schulbildung, Berufsausbildung/Studium/Umschulung, Weiterbildungen/Zertifikate, Berufserfahrung, technische Kenntnisse, KI-/Softwarekenntnisse, Projekte, Soft Skills sowie besondere Stärken/Motivation jeweils eine Inhaltsentscheidung dokumentiert?
 - Ist jede Inhaltsentscheidung als `Anschreiben`, `nur Lebenslauf`, `weggelassen mit Begründung` oder `keine belegte Angabe` nachvollziehbar?
 - Fehlt keine relevante Information ohne konkrete Begründung?
@@ -135,7 +138,7 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Wurde ein manuell gepflegter Gehaltswunsch aus dem Bewerbungsauftrag bevorzugt?
 - Ist eine automatische Gehaltsschätzung ausdrücklich aktiviert, durch eine aktuelle Quelle mit Stand belegt, ohne geschützte persönliche Merkmale abgeleitet und nicht scheingenau formuliert?
 - Wurde bei fehlender Grundlage für eine verlangte Gehaltsangabe `Offene_Fragen.md` genutzt?
-- Im Anschreiben-Modus: Ergänzt das Anschreiben die wichtigsten belegten Stellenpassungen, ohne Änderungen am universellen Lebenslauf vorauszusetzen?
+- Bei universellem Lebenslauf: Ergänzt das Anschreiben die wichtigsten belegten Stellenpassungen, ohne Änderungen am Snapshot vorauszusetzen?
 
 ## E-Mail-Nachricht
 
@@ -178,7 +181,7 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Jede erzeugte PDF-Datei wurde auf Existenz, sinnvolle Dateigröße und PDF-Header geprüft.
 - Jede erzeugte PDF-Datei wurde auf DIN-A4-MediaBox geprüft, sofern das Exporttool dies unterstützt.
 - Die PDF-Seitenzahl entspricht der Zahl expliziter A4-Seitencontainer im HTML.
-- Vorhandene finale PDFs wurden erst ersetzt, nachdem beide neuen Dateien vollständig validiert waren.
+- Vorhandene finale PDFs wurden erst ersetzt, nachdem der vollständige laut Dokumentumfang erwartete neue Satz validiert war.
 - Wenn der automatische PDF-Export nicht möglich war, ist dies offen dokumentiert.
 - Die ATS-Prüfung hat eine extrahierbare Unicode-Textschicht, Pflichttexte, ausreichende HTML-zu-PDF-Textabdeckung und grundlegende Lesereihenfolge bestätigt.
 - Eine Bitte um das Datenformat PDF wurde nicht fälschlich als Forderung nach einer einzigen Gesamt-PDF interpretiert; standardmäßig bleiben Anschreiben und Lebenslauf zwei getrennte Anlagen.
@@ -188,7 +191,7 @@ Dieser Test ist nach der Erstellung von Lebenslauf, Anschreiben und E-Mail-Nachr
 - Versanddateien liegen unter `Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME/Versand/`; HTML-Quellen, Analyse und Prüfdokumente unter `Intern/`.
 - Versandfertig benannte Dateien lagen bis zur Freigabe ausschließlich im privaten Unterordner `_Arbeitsdateien/.../Kandidat/`.
 - Der finale Zielordner wurde erst nach Stammdaten-, Inhalts-, Struktur-, Layout-, Sicht- und PDF-Prüfung atomar veröffentlicht.
-- `Manifest.json` weist jede veröffentlichte Datei mit relativem Pfad, Größe und SHA-256 nach; `Versand/` enthält nur die beiden PDF-Anlagen und die E-Mail-Nachricht.
+- `Manifest.json` weist Dokumentumfang und jede veröffentlichte Datei mit relativem Pfad, Größe und SHA-256 nach; `Versand/` enthält ausschließlich die ausgewählten PDF-Anlagen und gegebenenfalls die E-Mail-Nachricht.
 - HTML-Hash, Screenshot-Hash und PDF-Hash stammen aus demselben Vorbereitungslauf; nachträgliche HTML-Änderungen haben eine erneute Vorbereitung ausgelöst.
 - Temporäre Dateien und Entwürfe liegen nur unter `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/`.
 - Es liegen keine losen temporären Dateien direkt unter `Private/Bewerbungen/`.

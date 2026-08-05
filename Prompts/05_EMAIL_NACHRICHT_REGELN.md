@@ -15,8 +15,9 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 - Nach der Betreffzeile folgt eine Leerzeile, danach beginnt die eigentliche E-Mail-Nachricht.
 - Neutrale oder konkrete Anrede.
 - Kurzer Hinweis auf Bewerbung und Zielrolle.
-- Hinweis auf die beiden getrennten PDF-Anlagen für Lebenslauf und Anschreiben.
-- Im Anschreiben-Modus wird weiterhin auf zwei Anlagen verwiesen: den unveränderten universellen Lebenslauf und das neu erstellte Anschreiben.
+- Hinweis ausschließlich auf die laut `dokumentumfang` tatsächlich ausgewählten PDF-Anlagen. Bei Lebenslauf und Anschreiben werden beide als getrennte Anlagen genannt; bei nur einer Anlage wird nur diese genannt.
+- Bei einer ausdrücklich bestätigten E-Mail ohne Anlagen darf die Nachricht keine Anlage behaupten. Sie muss inhaltlich zum bestätigten Versandzweck passen.
+- Bei universellem Lebenslauf und Anschreiben wird auf den unveränderten Lebenslauf und das neu erstellte Anschreiben als zwei getrennte Anlagen verwiesen.
 - Freundlicher Abschluss mit Name aus den privaten Daten.
 - Wenn die Stellenanzeige eine konkrete Bewerbungsfrage enthält, darf sie nur kurz und sachlich aufgegriffen werden, sofern die Antwort aus den Nutzerdaten oder der Stellenbeschreibung ableitbar ist.
 
@@ -29,7 +30,7 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 - Keine erfundene Kennziffer, Referenznummer oder Job-ID im Betreff.
 - Keine Wiederholung des Anschreibens.
 
-Eine Bitte um Bewerbung „als PDF“ beschreibt ohne weitere Präzisierung das Dateiformat. Sie ist kein automatischer Auftrag, Lebenslauf und Anschreiben zu einer einzigen PDF zusammenzuführen. Die Standard-E-Mail verweist daher auf zwei PDF-Anlagen; eine Gesamt-PDF wird nur bei ausdrücklicher Forderung erstellt.
+Eine Bitte um Bewerbung „als PDF“ beschreibt ohne weitere Präzisierung das Dateiformat. Sie ist kein automatischer Auftrag, mehrere ausgewählte Dokumente zu einer einzigen PDF zusammenzuführen. Die E-Mail nennt die tatsächlich vorhandenen Anlagen; eine Gesamt-PDF wird nur bei ausdrücklicher Forderung erstellt.
 
 ## Beispielstruktur
 

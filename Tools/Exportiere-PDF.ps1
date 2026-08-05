@@ -3,6 +3,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$Ordner,
 
+  [string]$AuftragPath,
+
   [ValidateSet("auto", "chrome", "edge")]
   [string]$Browser = "auto",
 
@@ -95,7 +97,7 @@ function Write-ExportReport {
     $pdfInfo = Get-Item -LiteralPath $item.FinalPath
     $items += [ordered]@{
       htmlFile = $item.HtmlFile.Name
-      htmlSha256 = (Get-FileHash -LiteralPath $item.HtmlFile.FullName -Algorithm SHA256).Hash
+      htmlSha256 = $item.HtmlSha256Snapshot
       pdfFile = [System.IO.Path]::GetFileName($item.FinalPath)
       pdfPath = $item.FinalPath
       pdfSha256 = (Get-FileHash -LiteralPath $item.FinalPath -Algorithm SHA256).Hash
@@ -112,6 +114,37 @@ function Write-ExportReport {
     results = $items
   }
   Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 8)
+}
+
+function Get-HtmlSnapshotError {
+  param(
+    [System.IO.FileInfo]$HtmlFile,
+    [string]$ExpectedSha256
+  )
+
+  if (-not (Test-Path -LiteralPath $HtmlFile.FullName -PathType Leaf)) {
+    return "HTML-Datei fehlt seit Beginn des Exportlaufs: $($HtmlFile.FullName)"
+  }
+  try {
+    $actualSha256 = (Get-FileHash -LiteralPath $HtmlFile.FullName -Algorithm SHA256).Hash
+  } catch {
+    return "HTML-Datei konnte nicht erneut gehasht werden: $($HtmlFile.FullName) ($($_.Exception.Message))"
+  }
+  if ($actualSha256 -ne $ExpectedSha256) {
+    return "HTML-Datei wurde während des Exportlaufs verändert; PDF und Bericht wurden nicht veröffentlicht: $($HtmlFile.FullName)"
+  }
+  return $null
+}
+
+function Assert-PdfSetHtmlSnapshotsUnchanged {
+  param([object[]]$PdfSet)
+
+  foreach ($item in $PdfSet) {
+    $snapshotError = Get-HtmlSnapshotError -HtmlFile $item.HtmlFile -ExpectedSha256 $item.HtmlSha256Snapshot
+    if ($snapshotError) {
+      throw $snapshotError
+    }
+  }
 }
 
 function Get-PowerShellExecutable {
@@ -371,12 +404,21 @@ function Export-HtmlToPdf {
 function Publish-PdfSet {
   param(
     [object[]]$PdfSet,
-    [string]$RunDirectory
+    [string]$RunDirectory,
+    [string]$ReportPath,
+    [string]$BrowserName
   )
 
   $backups = New-Object System.Collections.Generic.List[object]
   $published = New-Object System.Collections.Generic.List[string]
+  $reportFullPath = [System.IO.Path]::GetFullPath($ReportPath)
+  $reportTemporaryPath = Join-Path -Path $RunDirectory -ChildPath ("Report--" + [guid]::NewGuid().ToString("N") + ".json")
+  $reportBackupPath = Join-Path -Path $RunDirectory -ChildPath ("Backup--Report--" + [guid]::NewGuid().ToString("N") + ".json")
+  $reportBackedUp = $false
+  $reportPublished = $false
   try {
+    Assert-PdfSetHtmlSnapshotsUnchanged -PdfSet $PdfSet
+
     foreach ($item in $PdfSet) {
       if (Test-Path -LiteralPath $item.FinalPath -PathType Leaf) {
         $backupPath = Join-Path -Path $RunDirectory -ChildPath ("Backup--" + [System.IO.Path]::GetFileName($item.FinalPath))
@@ -390,19 +432,59 @@ function Publish-PdfSet {
       $published.Add($item.FinalPath) | Out-Null
     }
 
-    foreach ($backup in $backups) {
-      Remove-Item -LiteralPath $backup.BackupPath -Force -ErrorAction SilentlyContinue
+    Write-ExportReport -Path $reportTemporaryPath -BrowserName $BrowserName -PdfSet $PdfSet
+    $preparedReport = Get-Content -LiteralPath $reportTemporaryPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ([int]$preparedReport.schemaVersion -ne 1 -or @($preparedReport.results).Count -ne $PdfSet.Count) {
+      throw "Temporärer PDF-Export-Bericht ist unvollständig."
     }
+    Assert-PdfSetHtmlSnapshotsUnchanged -PdfSet $PdfSet
+    $reportParent = Split-Path -Path $reportFullPath -Parent
+    if ((Test-Path -LiteralPath $reportFullPath) -and -not (Test-Path -LiteralPath $reportFullPath -PathType Leaf)) {
+      throw "PDF-Export-Berichtspfad existiert, ist aber keine reguläre Datei: $reportFullPath"
+    }
+    if (-not (Test-Path -LiteralPath $reportParent -PathType Container)) {
+      New-Item -Path $reportParent -ItemType Directory -Force | Out-Null
+    }
+    if (Test-Path -LiteralPath $reportFullPath -PathType Leaf) {
+      Move-Item -LiteralPath $reportFullPath -Destination $reportBackupPath -Force
+      $reportBackedUp = $true
+    }
+    Move-Item -LiteralPath $reportTemporaryPath -Destination $reportFullPath -Force
+    $reportPublished = $true
   } catch {
+    $publishError = $_.Exception.Message
+    $rollbackErrors = New-Object System.Collections.Generic.List[string]
+    if ($reportPublished -and (Test-Path -LiteralPath $reportFullPath -PathType Leaf)) {
+      try { Remove-Item -LiteralPath $reportFullPath -Force } catch { $rollbackErrors.Add("neuer Bericht: $($_.Exception.Message)") | Out-Null }
+    }
+    if ($reportBackedUp -and (Test-Path -LiteralPath $reportBackupPath -PathType Leaf)) {
+      try { Move-Item -LiteralPath $reportBackupPath -Destination $reportFullPath -Force } catch { $rollbackErrors.Add("alter Bericht: $($_.Exception.Message)") | Out-Null }
+    }
     foreach ($path in $published) {
-      Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+      if (Test-Path -LiteralPath $path -PathType Leaf) {
+        try { Remove-Item -LiteralPath $path -Force } catch { $rollbackErrors.Add("neue PDF: $path ($($_.Exception.Message))") | Out-Null }
+      }
     }
     foreach ($backup in $backups) {
       if (Test-Path -LiteralPath $backup.BackupPath -PathType Leaf) {
-        Move-Item -LiteralPath $backup.BackupPath -Destination $backup.FinalPath -Force -ErrorAction SilentlyContinue
+        try { Move-Item -LiteralPath $backup.BackupPath -Destination $backup.FinalPath -Force } catch { $rollbackErrors.Add("alte PDF: $($backup.FinalPath) ($($_.Exception.Message))") | Out-Null }
       }
     }
-    throw
+    if (Test-Path -LiteralPath $reportTemporaryPath -PathType Leaf) {
+      try { Remove-Item -LiteralPath $reportTemporaryPath -Force } catch { $rollbackErrors.Add("temporärer Bericht: $($_.Exception.Message)") | Out-Null }
+    }
+    $rollbackSuffix = if ($rollbackErrors.Count -gt 0) { " Rollback unvollständig: $($rollbackErrors -join ' | ')" } else { " Alte PDFs und der vorherige Bericht wurden wiederhergestellt." }
+    throw "PDF-/Berichtstransaktion fehlgeschlagen: $publishError.$rollbackSuffix"
+  }
+
+  foreach ($backupPath in @($backups | ForEach-Object { $_.BackupPath }) + @($reportBackupPath)) {
+    if (Test-Path -LiteralPath $backupPath -PathType Leaf) {
+      try {
+        Remove-Item -LiteralPath $backupPath -Force
+      } catch {
+        Add-Warn "PDF-Export war erfolgreich, aber eine Sicherungsdatei konnte nicht entfernt werden: $backupPath ($($_.Exception.Message))"
+      }
+    }
   }
 }
 
@@ -420,7 +502,11 @@ if (-not (Test-Path -LiteralPath $checkerPath -PathType Leaf)) {
   exit 1
 }
 
-Invoke-ToolScript -ScriptPath $checkerPath -Arguments @("-Ordner", $resolvedFolder)
+$checkerArguments = @("-Ordner", $resolvedFolder)
+if (-not [string]::IsNullOrWhiteSpace($AuftragPath)) {
+  $checkerArguments += @("-AuftragPath", $AuftragPath)
+}
+Invoke-ToolScript -ScriptPath $checkerPath -Arguments $checkerArguments
 
 if ($MitLayoutcheck) {
   if (-not (Test-Path -LiteralPath $layoutcheckPath -PathType Leaf)) {
@@ -434,8 +520,8 @@ $htmlFiles = @(Get-ChildItem -LiteralPath $resolvedFolder -File -Filter "*.html"
   $_.Name -match '^(Lebenslauf|Anschreiben) - .+\.html$'
 } | Sort-Object Name)
 
-if ($htmlFiles.Count -ne 2) {
-  Add-Fail "Genau zwei finale HTML-Dateien werden erwartet; gefunden: $($htmlFiles.Count)."
+if ($htmlFiles.Count -lt 1 -or $htmlFiles.Count -gt 2) {
+  Add-Fail "Es werden ein oder zwei laut Dokumentumfang ausgewählte finale HTML-Dateien erwartet; gefunden: $($htmlFiles.Count)."
   exit 1
 }
 
@@ -478,6 +564,19 @@ if ($NichtUeberschreiben) {
   }
 }
 
+$htmlSnapshots = @($htmlFiles | ForEach-Object {
+  [pscustomobject]@{
+    HtmlFile = $_
+    Sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
+  }
+})
+foreach ($snapshot in $htmlSnapshots) {
+  if ($snapshot.Sha256 -notmatch '^[A-Fa-f0-9]{64}$') {
+    Add-Fail "HTML-Datei konnte vor dem Browserlauf nicht mit gültigem SHA-256 gebunden werden: $($snapshot.HtmlFile.FullName)"
+    exit 1
+  }
+}
+
 Add-Info "Finaler Bewerbungsordner: $resolvedFolder"
 Add-Info "PDF-Export-Arbeitsordner: $workDir"
 Add-Info "HTML-Dateien: $($htmlFiles.Name -join ', ')"
@@ -501,12 +600,20 @@ foreach ($candidate in $browserCandidates) {
 
   $pdfSet = @()
   $candidateOk = $true
-  foreach ($html in $htmlFiles) {
+  foreach ($snapshot in $htmlSnapshots) {
+    $html = $snapshot.HtmlFile
     $safeBase = Convert-ToSafeFilePart -Value $html.BaseName
     $temporaryPdfPath = Join-Path -Path $runDir -ChildPath "$safeBase.pdf"
     $finalPdfPath = [System.IO.Path]::ChangeExtension($html.FullName, ".pdf")
     $profileDir = Join-Path -Path $runDir -ChildPath ("P-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
     $errorMessage = Export-HtmlToPdf -BrowserInfo $candidate -HtmlFile $html -TemporaryPdfPath $temporaryPdfPath -ProfileDir $profileDir -MinPdfBytes $MinPdfBytes -TimeoutSeconds $TimeoutSeconds
+
+    $snapshotError = Get-HtmlSnapshotError -HtmlFile $html -ExpectedSha256 $snapshot.Sha256
+    if ($snapshotError) {
+      $candidateOk = $false
+      $browserErrors.Add("$($candidate.Name): $snapshotError") | Out-Null
+      break
+    }
 
     if ($errorMessage) {
       $candidateOk = $false
@@ -516,6 +623,7 @@ foreach ($candidate in $browserCandidates) {
 
     $pdfSet += [pscustomobject]@{
       HtmlFile = $html
+      HtmlSha256Snapshot = $snapshot.Sha256
       TemporaryPath = $temporaryPdfPath
       FinalPath = $finalPdfPath
     }
@@ -525,8 +633,7 @@ foreach ($candidate in $browserCandidates) {
 
   if ($candidateOk -and ($pdfSet.Count -eq $htmlFiles.Count)) {
     try {
-      Publish-PdfSet -PdfSet $pdfSet -RunDirectory $runDir
-      Write-ExportReport -Path $BerichtPath -BrowserName $candidate.Name -PdfSet $pdfSet
+      Publish-PdfSet -PdfSet $pdfSet -RunDirectory $runDir -ReportPath $BerichtPath -BrowserName $candidate.Name
       Add-Ok "PDF-Export vollständig und atomar veröffentlicht mit Browser: $($candidate.Name)"
       Write-Host ""
       Write-Host "Erzeugte PDFs:"
@@ -541,8 +648,14 @@ foreach ($candidate in $browserCandidates) {
       Write-Host "ERGEBNIS: OK" -ForegroundColor Green
       exit 0
     } catch {
-      $browserErrors.Add("$($candidate.Name): Veröffentlichung der validierten PDFs fehlgeschlagen: $($_.Exception.Message)") | Out-Null
-      $candidateOk = $false
+      $recoveryFiles = @(Get-ChildItem -LiteralPath $runDir -File -Filter "Backup--*" -ErrorAction SilentlyContinue)
+      if ($recoveryFiles.Count -eq 0) {
+        Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
+      } else {
+        Add-Warn "Rollback-Sicherungen bleiben zur manuellen Wiederherstellung erhalten: $runDir"
+      }
+      Add-Fail "$($candidate.Name): Veröffentlichung der validierten PDFs fehlgeschlagen: $($_.Exception.Message)"
+      exit 1
     }
   }
 
@@ -553,5 +666,5 @@ foreach ($candidate in $browserCandidates) {
 foreach ($message in $browserErrors) {
   Add-Fail $message
 }
-Add-Fail "PDF-Export fehlgeschlagen: Kein Browser hat beide PDFs frisch, seitenrichtig und vollständig erzeugt."
+Add-Fail "PDF-Export fehlgeschlagen: Kein Browser hat den laut Dokumentumfang ausgewählten PDF-Satz frisch, seitenrichtig und vollständig erzeugt."
 exit 1
