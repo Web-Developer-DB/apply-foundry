@@ -3,6 +3,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$Ordner,
 
+  [string]$AuftragPath,
+
   [switch]$WarnungenAlsFehler
 )
 
@@ -12,6 +14,8 @@ $ErrorActionPreference = "Stop"
 $errors = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
 $oks = New-Object System.Collections.Generic.List[string]
+$script:PathComparison = if ($env:OS -eq "Windows_NT") { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+$script:PathComparer = if ($env:OS -eq "Windows_NT") { [System.StringComparer]::OrdinalIgnoreCase } else { [System.StringComparer]::Ordinal }
 
 function Add-ErrorMessage {
   param([string]$Message)
@@ -34,6 +38,151 @@ function Add-OkMessage {
 function Read-FileText {
   param([string]$Path)
   return Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+}
+
+function Test-PathEqual {
+  param([string]$Left, [string]$Right)
+  if ([string]::IsNullOrWhiteSpace($Left) -or [string]::IsNullOrWhiteSpace($Right)) { return $false }
+  return [string]::Equals([System.IO.Path]::GetFullPath($Left), [System.IO.Path]::GetFullPath($Right), $script:PathComparison)
+}
+
+function Convert-ToSlug {
+  param([string]$Value)
+  $slug = $Value.Trim()
+  foreach ($replacement in @(
+    @{ From = "ä"; To = "ae" }, @{ From = "ö"; To = "oe" }, @{ From = "ü"; To = "ue" },
+    @{ From = "Ä"; To = "Ae" }, @{ From = "Ö"; To = "Oe" }, @{ From = "Ü"; To = "Ue" },
+    @{ From = "ß"; To = "ss" }, @{ From = "&"; To = "und" }
+  )) {
+    $slug = $slug.Replace($replacement.From, $replacement.To)
+  }
+  $slug = ($slug -replace '[^A-Za-z0-9]+', '-').Trim('-')
+  return $slug
+}
+
+function Get-JsonProperty {
+  param([object]$Object, [string]$Name)
+  if ($null -eq $Object) { return $null }
+  $property = $Object.PSObject.Properties[$Name]
+  if ($null -eq $property) { return $null }
+  return $property.Value
+}
+
+function Test-JsonPropertyExists {
+  param([object]$Object, [string]$Name)
+  return ($null -ne $Object -and $null -ne $Object.PSObject.Properties[$Name])
+}
+
+function ConvertTo-DocumentScope {
+  param(
+    [object]$Configured,
+    [string]$Context
+  )
+
+  if ($null -eq $Configured) {
+    throw "$Context enthält keinen Dokumentumfang."
+  }
+  $cvKind = [string](Get-JsonProperty -Object $Configured -Name "lebenslauf")
+  $letterValue = Get-JsonProperty -Object $Configured -Name "anschreiben"
+  $emailValue = Get-JsonProperty -Object $Configured -Name "emailNachricht"
+  if ($cvKind -notin @("individuell", "universal_unveraendert", "nicht_enthalten")) {
+    throw "$Context enthält einen ungültigen Lebenslaufumfang: $cvKind"
+  }
+  if ($letterValue -isnot [bool] -or $emailValue -isnot [bool]) {
+    throw "$Context muss anschreiben und emailNachricht als boolesche Werte führen."
+  }
+  if ($cvKind -eq "nicht_enthalten" -and -not [bool]$letterValue -and -not [bool]$emailValue) {
+    throw "$Context wählt kein Dokument aus."
+  }
+  return [ordered]@{
+    Lebenslauf = $cvKind -ne "nicht_enthalten"
+    LebenslaufArt = $cvKind
+    Anschreiben = [bool]$letterValue
+    EmailNachricht = [bool]$emailValue
+  }
+}
+
+function Get-DocumentScope {
+  param([string]$Path)
+
+  $scope = [ordered]@{
+    Lebenslauf = $true
+    LebenslaufArt = "individuell"
+    Anschreiben = $true
+    EmailNachricht = $true
+  }
+  if ([string]::IsNullOrWhiteSpace($Path)) { return $scope }
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    throw "Bewerbungsauftrag fehlt oder ist keine Datei: $Path"
+  }
+  $auftrag = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+  $schemaValue = Get-JsonProperty -Object $auftrag -Name "schemaVersion"
+  if ($schemaValue -isnot [int] -and $schemaValue -isnot [long]) {
+    throw "Bewerbungsauftrag enthält keine ganzzahlige schemaVersion."
+  }
+  $schema = [int]$schemaValue
+  $configured = Get-JsonProperty -Object $auftrag -Name "dokumentumfang"
+  if ($schema -eq 4) {
+    if ($null -eq $configured) {
+      throw "Bewerbungsauftrag mit schemaVersion 4 enthält keinen dokumentumfang."
+    }
+    return ConvertTo-DocumentScope -Configured $configured -Context "Bewerbungsauftrag"
+  } elseif ($schema -lt 1 -or $schema -gt 4) {
+    throw "Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 4."
+  } elseif ([string](Get-JsonProperty -Object $auftrag -Name "dokumentmodus") -eq "anschreiben_mit_universalem_lebenslauf") {
+    $scope.LebenslaufArt = "universal_unveraendert"
+  }
+  return $scope
+}
+
+function Get-ManifestDocumentScope {
+  param([string]$Path)
+
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    throw "Strukturierte Veröffentlichung enthält kein Manifest.json."
+  }
+  $manifest = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+  $manifestSchema = Get-JsonProperty -Object $manifest -Name "schemaVersion"
+  if (($manifestSchema -isnot [int] -and $manifestSchema -isnot [long]) -or [int]$manifestSchema -ne 1) {
+    throw "Manifest.json verwendet keine unterstützte schemaVersion 1."
+  }
+  $configured = Get-JsonProperty -Object $manifest -Name "dokumentumfang"
+  if ($null -eq $configured) {
+    Add-WarningMessage "Legacy-Manifest ohne dokumentumfang erkannt; Vollumfang wird angenommen."
+    return Get-DocumentScope -Path ""
+  }
+  return ConvertTo-DocumentScope -Configured $configured -Context "Manifest.json"
+}
+
+function Test-DocumentScopeEqual {
+  param([object]$Left, [object]$Right)
+  return (
+    [bool]$Left.Lebenslauf -eq [bool]$Right.Lebenslauf -and
+    [string]$Left.LebenslaufArt -eq [string]$Right.LebenslaufArt -and
+    [bool]$Left.Anschreiben -eq [bool]$Right.Anschreiben -and
+    [bool]$Left.EmailNachricht -eq [bool]$Right.EmailNachricht
+  )
+}
+
+function Test-ExpectedFileSet {
+  param(
+    [array]$Files,
+    [bool]$Expected,
+    [string]$Label,
+    [string]$Schema
+  )
+
+  if ($Expected -and $Files.Count -eq 1) {
+    Add-OkMessage "$Label-Datei gefunden: $($Files[0].Name)"
+  } elseif ($Expected -and $Files.Count -eq 0) {
+    Add-ErrorMessage "Ausgewählte $Label-Datei fehlt nach Schema `$Schema`."
+  } elseif ($Expected) {
+    Add-ErrorMessage "Mehrere $Label-Dateien gefunden: $($Files.Name -join ', ')"
+  } elseif ($Files.Count -gt 0) {
+    Add-ErrorMessage "Nicht ausgewählte $Label-Datei ist vorhanden: $($Files.Name -join ', ')"
+  } else {
+    Add-OkMessage "$Label ist laut Dokumentumfang nicht ausgewählt."
+  }
 }
 
 function Test-Pattern {
@@ -247,23 +396,63 @@ function Test-PublicationManifest {
   try {
     $errorCountBeforeManifest = $errors.Count
     $manifest = Get-Content -LiteralPath $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $records = @($manifest.files)
+    $manifestSchema = Get-JsonProperty -Object $manifest -Name "schemaVersion"
+    if (($manifestSchema -isnot [int] -and $manifestSchema -isnot [long]) -or [int]$manifestSchema -ne 1) {
+      Add-ErrorMessage "Manifest.json verwendet keine unterstützte schemaVersion 1."
+    }
+
+    $sourceInputs = Get-JsonProperty -Object $manifest -Name "sourceInputs"
+    $expectedSourceNames = @("stammdaten", "profil", "bewerbungsauftrag", "anforderungsmatrix")
+    if ($null -eq $sourceInputs) {
+      Add-ErrorMessage "Manifest.json enthält keine Quellnachweise."
+    } else {
+      $sourceProperties = @($sourceInputs.PSObject.Properties)
+      $actualSourceNames = @($sourceProperties.Name | Sort-Object)
+      if ($sourceProperties.Count -ne $expectedSourceNames.Count -or
+          @(Compare-Object -ReferenceObject ($expectedSourceNames | Sort-Object) -DifferenceObject $actualSourceNames).Count -gt 0) {
+        Add-ErrorMessage "Manifest.json muss genau die vier Quellnachweise stammdaten, profil, bewerbungsauftrag und anforderungsmatrix enthalten."
+      }
+      foreach ($sourceProperty in $sourceProperties) {
+        $sourceName = [string](Get-JsonProperty -Object $sourceProperty.Value -Name "name")
+        $sourceHash = [string](Get-JsonProperty -Object $sourceProperty.Value -Name "sha256")
+        if ([string]::IsNullOrWhiteSpace($sourceName) -or $sourceName -match '[\\/]') {
+          Add-ErrorMessage "Manifest-Quellnachweis enthält keinen gültigen Dateinamen: $($sourceProperty.Name)"
+        }
+        if ($sourceHash -notmatch '^[A-Fa-f0-9]{64}$') {
+          Add-ErrorMessage "Manifest-Quellnachweis enthält keinen gültigen SHA-256-Wert: $($sourceProperty.Name)"
+        }
+      }
+    }
+
+    if (-not (Test-JsonPropertyExists -Object $manifest -Name "files")) {
+      Add-ErrorMessage "Manifest.json enthält keine Dateinachweise."
+      return
+    }
+    $records = @((Get-JsonProperty -Object $manifest -Name "files"))
     if ($records.Count -eq 0) {
       Add-ErrorMessage "Manifest.json enthält keine Dateinachweise."
       return
     }
     $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
     $manifestFull = (Resolve-Path -LiteralPath $ManifestPath).Path
-    $actualFiles = @(Get-ChildItem -LiteralPath $Root -Recurse -File | Where-Object { $_.FullName -ne $manifestFull })
+    $actualFiles = @(Get-ChildItem -LiteralPath $Root -Recurse -File | Where-Object { -not (Test-PathEqual -Left $_.FullName -Right $manifestFull) })
     if ($records.Count -ne $actualFiles.Count) {
       Add-ErrorMessage "Manifest-Dateizahl stimmt nicht mit der Veröffentlichung überein ($($records.Count) statt $($actualFiles.Count))."
     }
-    $manifestPaths = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    $manifestPaths = New-Object 'System.Collections.Generic.HashSet[string]' ($script:PathComparer)
     foreach ($record in $records) {
       $relativePath = [string]$record.path
+      $bytesValue = Get-JsonProperty -Object $record -Name "bytes"
+      $expectedHash = [string](Get-JsonProperty -Object $record -Name "sha256")
       if ([string]::IsNullOrWhiteSpace($relativePath) -or [System.IO.Path]::IsPathRooted($relativePath) -or $relativePath -match '(^|[\\/])\.\.([\\/]|$)') {
         Add-ErrorMessage "Manifest enthält einen ungültigen relativen Pfad: $relativePath"
         continue
+      }
+      if (($bytesValue -isnot [int] -and $bytesValue -isnot [long]) -or [long]$bytesValue -lt 0) {
+        Add-ErrorMessage "Manifest enthält keine gültige Bytezahl: $relativePath"
+      }
+      if ($expectedHash -notmatch '^[A-Fa-f0-9]{64}$') {
+        Add-ErrorMessage "Manifest enthält keinen gültigen SHA-256-Wert: $relativePath"
       }
       $normalizedRelative = ($relativePath -replace '\\', '/').TrimStart('/')
       if (-not $manifestPaths.Add($normalizedRelative)) {
@@ -271,7 +460,7 @@ function Test-PublicationManifest {
         continue
       }
       $filePath = [System.IO.Path]::GetFullPath((Join-Path -Path $Root -ChildPath ($normalizedRelative -replace '/', [System.IO.Path]::DirectorySeparatorChar)))
-      if (-not $filePath.StartsWith($rootFull + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+      if (-not $filePath.StartsWith($rootFull + [System.IO.Path]::DirectorySeparatorChar, $script:PathComparison)) {
         Add-ErrorMessage "Manifestpfad liegt außerhalb des Veröffentlichungsordners: $relativePath"
         continue
       }
@@ -280,11 +469,11 @@ function Test-PublicationManifest {
         continue
       }
       $fileInfo = Get-Item -LiteralPath $filePath
-      if ($null -ne $record.PSObject.Properties["bytes"] -and [long]$record.bytes -ne $fileInfo.Length) {
+      if (($bytesValue -is [int] -or $bytesValue -is [long]) -and [long]$bytesValue -ne $fileInfo.Length) {
         Add-ErrorMessage "Manifest-Dateigröße stimmt nicht: $relativePath"
       }
       $actualHash = (Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash
-      if ($actualHash -ne [string]$record.sha256) {
+      if ($actualHash -ne $expectedHash) {
         Add-ErrorMessage "Manifest-Hash stimmt nicht: $relativePath"
       }
     }
@@ -310,13 +499,62 @@ if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
 $resolvedFolder = (Resolve-Path -LiteralPath $Ordner).Path
 Write-Host "Pruefe Bewerbung: $resolvedFolder"
 
+$internalFolder = Join-Path -Path $resolvedFolder -ChildPath "Intern"
+$shippingFolder = Join-Path -Path $resolvedFolder -ChildPath "Versand"
+$isStructuredPublication = (Test-Path -LiteralPath $internalFolder -PathType Container) -and (Test-Path -LiteralPath $shippingFolder -PathType Container)
+$manifestPath = Join-Path -Path $resolvedFolder -ChildPath "Manifest.json"
+$manifestDocumentScope = $null
+if ($isStructuredPublication -and (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+  try {
+    $manifestDocumentScope = Get-ManifestDocumentScope -Path $manifestPath
+  } catch {
+    Add-ErrorMessage $_.Exception.Message
+  }
+}
+
+try {
+  if (-not [string]::IsNullOrWhiteSpace($AuftragPath)) {
+    $documentScope = Get-DocumentScope -Path $AuftragPath
+    if ($null -ne $manifestDocumentScope -and -not (Test-DocumentScopeEqual -Left $documentScope -Right $manifestDocumentScope)) {
+      Add-ErrorMessage "Dokumentumfang im Manifest stimmt nicht mit dem Bewerbungsauftrag überein."
+    }
+  } elseif ($null -ne $manifestDocumentScope) {
+    $documentScope = $manifestDocumentScope
+  } else {
+    $documentScope = Get-DocumentScope -Path ""
+  }
+} catch {
+  Add-ErrorMessage $_.Exception.Message
+  $documentScope = Get-DocumentScope -Path ""
+}
+
+$applicationCompany = ""
+$applicationRole = ""
+$applicationCompanySlug = ""
+try {
+  $metadataSource = if (-not [string]::IsNullOrWhiteSpace($AuftragPath) -and (Test-Path -LiteralPath $AuftragPath -PathType Leaf)) {
+    Get-Content -LiteralPath $AuftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  } elseif ($isStructuredPublication -and (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+    Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  } else {
+    $null
+  }
+  if ($null -ne $metadataSource) {
+    $applicationCompany = [string](Get-JsonProperty -Object $metadataSource -Name "firma")
+    $applicationRole = [string](Get-JsonProperty -Object $metadataSource -Name "rolle")
+    $applicationCompanySlug = [string](Get-JsonProperty -Object $metadataSource -Name "firmaSlug")
+    if ([string]::IsNullOrWhiteSpace($applicationCompanySlug) -and -not [string]::IsNullOrWhiteSpace($applicationCompany)) {
+      $applicationCompanySlug = Convert-ToSlug -Value $applicationCompany
+    }
+  }
+} catch {
+  Add-ErrorMessage "Bewerbungsmetadaten konnten nicht gelesen werden: $($_.Exception.Message)"
+}
+
 if ($resolvedFolder -notmatch '[\\/]+Private[\\/]+Bewerbungen[\\/]+' ) {
   Add-WarningMessage "Der Ordner liegt nicht unter `Private/Bewerbungen/`. Bitte prüfen, ob dies beabsichtigt ist."
 }
 
-$internalFolder = Join-Path -Path $resolvedFolder -ChildPath "Intern"
-$shippingFolder = Join-Path -Path $resolvedFolder -ChildPath "Versand"
-$isStructuredPublication = (Test-Path -LiteralPath $internalFolder -PathType Container) -and (Test-Path -LiteralPath $shippingFolder -PathType Container)
 $documentFolder = if ($isStructuredPublication) { $internalFolder } else { $resolvedFolder }
 $emailFolder = if ($isStructuredPublication) { $shippingFolder } else { $resolvedFolder }
 
@@ -358,26 +596,25 @@ $cvFiles = @($htmlFiles | Where-Object { $_.Name -match "^Lebenslauf - $personPa
 $letterFiles = @($htmlFiles | Where-Object { $_.Name -match "^Anschreiben - $personPattern\.html$" })
 $emailFiles = @(Get-ChildItem -LiteralPath $emailFolder -File -Filter "Email-Nachricht--*.md" | Where-Object { $_.Name -match '^Email-Nachricht--[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$' })
 
+$allowedInternalMarkdown = @($fixedRequired + "Offene_Fragen.md")
+$unexpectedMarkdown = @($markdownFiles | Where-Object {
+  $isExpectedInternal = $_.Name -in $allowedInternalMarkdown
+  $isExpectedEmail = [bool]$documentScope.EmailNachricht -and
+    (Test-PathEqual -Left $_.DirectoryName -Right $emailFolder) -and
+    $_.Name -match '^Email-Nachricht--[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$'
+  -not ($isExpectedInternal -or $isExpectedEmail)
+})
+foreach ($markdown in $unexpectedMarkdown) {
+  Add-ErrorMessage "Unerwartete Markdown-Datei im Kandidaten- oder Veröffentlichungsumfang: $($markdown.Name)"
+}
+
 $unexpectedHtml = @($htmlFiles | Where-Object { ($_ -notin $cvFiles) -and ($_ -notin $letterFiles) })
 foreach ($html in $unexpectedHtml) {
   Add-ErrorMessage "Unerwartete oder falsch benannte HTML-Datei im finalen Ordner: $($html.Name)"
 }
 
-if ($cvFiles.Count -eq 1) {
-  Add-OkMessage "Lebenslauf-Datei gefunden: $($cvFiles[0].Name)"
-} elseif ($cvFiles.Count -eq 0) {
-  Add-ErrorMessage "Keine finale Lebenslauf-HTML nach Schema `Lebenslauf - NACHNAME.VORNAME.html` gefunden."
-} else {
-  Add-ErrorMessage "Mehrere finale Lebenslauf-HTML-Dateien gefunden: $($cvFiles.Name -join ', ')"
-}
-
-if ($letterFiles.Count -eq 1) {
-  Add-OkMessage "Anschreiben-Datei gefunden: $($letterFiles[0].Name)"
-} elseif ($letterFiles.Count -eq 0) {
-  Add-ErrorMessage "Keine finale Anschreiben-HTML nach Schema `Anschreiben - NACHNAME.VORNAME.html` gefunden."
-} else {
-  Add-ErrorMessage "Mehrere finale Anschreiben-HTML-Dateien gefunden: $($letterFiles.Name -join ', ')"
-}
+Test-ExpectedFileSet -Files $cvFiles -Expected ([bool]$documentScope.Lebenslauf) -Label "Lebenslauf" -Schema "Lebenslauf - NACHNAME.VORNAME.html"
+Test-ExpectedFileSet -Files $letterFiles -Expected ([bool]$documentScope.Anschreiben) -Label "Anschreiben" -Schema "Anschreiben - NACHNAME.VORNAME.html"
 
 if (($cvFiles.Count -eq 1) -and ($letterFiles.Count -eq 1)) {
   $cvNamePart = $cvFiles[0].BaseName -replace '^Lebenslauf - ', ''
@@ -389,21 +626,36 @@ if (($cvFiles.Count -eq 1) -and ($letterFiles.Count -eq 1)) {
   }
 }
 
-if ($emailFiles.Count -eq 1) {
-  Add-OkMessage "E-Mail-Nachricht gefunden: $($emailFiles[0].Name)"
-} elseif ($emailFiles.Count -eq 0) {
-  Add-ErrorMessage "Keine E-Mail-Nachricht nach Schema `Email-Nachricht--FIRMA.md` gefunden."
-} else {
-  Add-ErrorMessage "Mehrere E-Mail-Nachrichten gefunden: $($emailFiles.Name -join ', ')"
+Test-ExpectedFileSet -Files $emailFiles -Expected ([bool]$documentScope.EmailNachricht) -Label "E-Mail-Nachricht" -Schema "Email-Nachricht--FIRMA.md"
+if ([bool]$documentScope.EmailNachricht -and $emailFiles.Count -eq 1 -and -not [string]::IsNullOrWhiteSpace($applicationCompanySlug)) {
+  $expectedEmailName = "Email-Nachricht--$applicationCompanySlug.md"
+  if ($emailFiles[0].Name -cne $expectedEmailName) {
+    Add-ErrorMessage "E-Mail-Dateiname stimmt nicht mit dem Firmen-Slug aus Auftrag oder Manifest überein: erwartet $expectedEmailName."
+  } else {
+    Add-OkMessage "E-Mail-Dateiname stimmt mit dem Firmen-Slug überein."
+  }
+}
+
+$expectedPdfNames = @()
+if ([bool]$documentScope.Lebenslauf -and $cvFiles.Count -eq 1) {
+  $expectedPdfNames += [System.IO.Path]::ChangeExtension($cvFiles[0].Name, ".pdf")
+}
+if ([bool]$documentScope.Anschreiben -and $letterFiles.Count -eq 1) {
+  $expectedPdfNames += [System.IO.Path]::ChangeExtension($letterFiles[0].Name, ".pdf")
+}
+$expectedPdfNameSet = New-Object 'System.Collections.Generic.HashSet[string]' ($script:PathComparer)
+foreach ($expectedPdfName in $expectedPdfNames) {
+  $null = $expectedPdfNameSet.Add($expectedPdfName)
 }
 
 if ($isStructuredPublication) {
-  $shippingPdfs = @(Get-ChildItem -LiteralPath $shippingFolder -File -Filter "*.pdf")
-  $expectedShippingPdfs = @($shippingPdfs | Where-Object { $_.Name -match '^(Lebenslauf|Anschreiben) - .+\.pdf$' })
-  if ($shippingPdfs.Count -ne 2 -or $expectedShippingPdfs.Count -ne 2) {
-    Add-ErrorMessage "Versandordner muss genau Lebenslauf- und Anschreiben-PDF enthalten; gefunden: $($shippingPdfs.Name -join ', ')"
+  $shippingPdfs = @(Get-ChildItem -LiteralPath $shippingFolder -File | Where-Object { $_.Extension -ieq ".pdf" })
+  $shippingPdfNamesExact = $shippingPdfs.Count -eq $expectedPdfNames.Count -and
+    @($shippingPdfs | Where-Object { -not $expectedPdfNameSet.Contains($_.Name) }).Count -eq 0
+  if (-not $shippingPdfNamesExact) {
+    Add-ErrorMessage "Versandordner enthält nicht genau die laut Dokumentumfang erwarteten PDF-Dateien; gefunden: $($shippingPdfs.Name -join ', ')"
   } else {
-    Add-OkMessage "Versandordner enthält genau die beiden vorgesehenen PDF-Anlagen."
+    Add-OkMessage "Versandordner enthält genau die zu den ausgewählten HTML-Dateien gehörenden PDF-Anlagen."
   }
   $unexpectedShipping = @(Get-ChildItem -LiteralPath $shippingFolder -File | Where-Object {
     $_.Extension -notin @(".pdf", ".md") -or ($_.Extension -eq ".md" -and $_.Name -notmatch '^Email-Nachricht--')
@@ -411,11 +663,24 @@ if ($isStructuredPublication) {
   if ($unexpectedShipping.Count -gt 0) {
     Add-ErrorMessage "Versandordner enthält interne oder unerwartete Dateien: $($unexpectedShipping.Name -join ', ')"
   }
-  $internalPdfs = @(Get-ChildItem -LiteralPath $internalFolder -File -Filter "*.pdf")
-  if ($internalPdfs.Count -gt 0) {
-    Add-ErrorMessage "Interner Ordner enthält Versand-PDFs und erzeugt unnötige Dubletten: $($internalPdfs.Name -join ', ')"
+  $misplacedPdfs = @(Get-ChildItem -LiteralPath $resolvedFolder -Recurse -File | Where-Object {
+    $_.Extension -ieq ".pdf" -and -not (Test-PathEqual -Left $_.DirectoryName -Right $shippingFolder)
+  })
+  if ($misplacedPdfs.Count -gt 0) {
+    Add-ErrorMessage "PDF-Dateien liegen außerhalb des Versandordners: $($misplacedPdfs.FullName -join ', ')"
   }
-  Test-PublicationManifest -Root $resolvedFolder -ManifestPath (Join-Path $resolvedFolder "Manifest.json")
+  Test-PublicationManifest -Root $resolvedFolder -ManifestPath $manifestPath
+} else {
+  $candidatePdfs = @(Get-ChildItem -LiteralPath $resolvedFolder -Recurse -File | Where-Object { $_.Extension -ieq ".pdf" })
+  $unexpectedCandidatePdfs = @($candidatePdfs | Where-Object {
+    -not (Test-PathEqual -Left $_.DirectoryName -Right $resolvedFolder) -or
+    -not $expectedPdfNameSet.Contains($_.Name)
+  })
+  if ($unexpectedCandidatePdfs.Count -gt 0) {
+    Add-ErrorMessage "Kandidatenordner enthält zusätzliche, veraltete oder nicht ausgewählte PDF-Dateien: $($unexpectedCandidatePdfs.FullName -join ', ')"
+  } elseif ($candidatePdfs.Count -gt 0) {
+    Add-OkMessage "Vorhandene Kandidaten-PDFs sind exakt an die ausgewählten HTML-Dateinamen gebunden."
+  }
 }
 
 $markerPatterns = @(
@@ -450,6 +715,12 @@ if ($emailFiles.Count -eq 1) {
     Add-ErrorMessage "$($emailFiles[0].Name): Der Betreff muss einen Bewerbungsbegriff enthalten."
   } else {
     Add-OkMessage "E-Mail-Nachricht enthält eine konkrete Betreffzeile."
+  }
+  if (-not [string]::IsNullOrWhiteSpace($applicationRole) -and -not (Test-Pattern -Text $firstLine -Pattern ([regex]::Escape($applicationRole)))) {
+    Add-ErrorMessage "$($emailFiles[0].Name): Der Betreff enthält die Zielrolle aus Auftrag oder Manifest nicht."
+  }
+  if (-not [string]::IsNullOrWhiteSpace($applicationCompany) -and -not (Test-Pattern -Text $emailText -Pattern ([regex]::Escape($applicationCompany)))) {
+    Add-ErrorMessage "$($emailFiles[0].Name): Die E-Mail enthält die Firma aus Auftrag oder Manifest nicht."
   }
 
   $nonEmptyLines = @($emailText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count

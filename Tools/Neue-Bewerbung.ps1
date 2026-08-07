@@ -5,8 +5,19 @@ param(
 
   [string]$Rolle = "Bewerbung",
 
-  [ValidateSet("vollbewerbung", "anschreiben_mit_universalem_lebenslauf")]
-  [string]$Dokumentmodus = "vollbewerbung",
+  [ValidateSet("vollbewerbung", "anschreiben_mit_universalem_lebenslauf", "individuelle_auswahl")]
+  [string]$Dokumentmodus,
+
+  [ValidateSet("A", "B", "C", "D", "E")]
+  [string]$UmfangAuswahl,
+
+  [ValidateSet("lebenslauf", "anschreiben", "email_nachricht")]
+  [string[]]$Dokumente = @(),
+
+  [ValidateSet("auswahl", "direkter_auftrag", "fortgesetzter_auftrag")]
+  [string]$UmfangQuelle = "auswahl",
+
+  [switch]$EmailAlleinBestaetigt,
 
   [string]$UniversalLebenslaufPath,
 
@@ -27,6 +38,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$script:PathComparison = if ([System.IO.Path]::DirectorySeparatorChar -eq '\') { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
 
 function Convert-ToSlug {
   param(
@@ -66,6 +78,14 @@ function Stop-WithValidationError {
   exit 2
 }
 
+function Get-JsonProperty {
+  param([object]$Object, [string]$Name)
+  if ($null -eq $Object) { return $null }
+  $property = $Object.PSObject.Properties[$Name]
+  if ($null -eq $property) { return $null }
+  return $property.Value
+}
+
 function Test-IsSafeChildPath {
   param(
     [string]$Candidate,
@@ -74,7 +94,7 @@ function Test-IsSafeChildPath {
 
   $candidateFull = [System.IO.Path]::GetFullPath($Candidate).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
   $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
-  return $candidateFull.StartsWith($rootFull + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)
+  return $candidateFull.StartsWith($rootFull + [System.IO.Path]::DirectorySeparatorChar, $script:PathComparison)
 }
 
 function Get-MarkdownField {
@@ -116,12 +136,128 @@ if (($Firma -match '[\x00-\x1F\x7F]') -or ($Rolle -match '[\x00-\x1F\x7F]')) {
   Stop-WithValidationError -Message "Firma und Rolle dürfen keine Steuerzeichen oder Zeilenumbrüche enthalten."
 }
 
+$modeWasProvided = $PSBoundParameters.ContainsKey("Dokumentmodus")
+$selectionWasProvided = $PSBoundParameters.ContainsKey("UmfangAuswahl")
+if (-not $modeWasProvided -and -not $selectionWasProvided) {
+  Stop-WithValidationError -Message "Der gewünschte Bewerbungsumfang muss vor der Ordneranlage ausdrücklich mit -UmfangAuswahl A-E oder -Dokumentmodus festgelegt werden."
+}
+
+$includeCv = $false
+$includeLetter = $false
+$includeEmail = $false
+$cvKind = "nicht_enthalten"
+$normalizedDocuments = @($Dokumente | Sort-Object -Unique)
+
+if ($selectionWasProvided) {
+  switch ($UmfangAuswahl) {
+    "A" {
+      $resolvedMode = "vollbewerbung"
+      $includeCv = $true
+      $includeLetter = $true
+      $includeEmail = $true
+      $cvKind = "individuell"
+    }
+    "B" {
+      $resolvedMode = "anschreiben_mit_universalem_lebenslauf"
+      $includeCv = $true
+      $includeLetter = $true
+      $includeEmail = $true
+      $cvKind = "universal_unveraendert"
+    }
+    "C" {
+      $resolvedMode = "individuelle_auswahl"
+      $includeCv = $true
+      $cvKind = "individuell"
+    }
+    "D" {
+      $resolvedMode = "individuelle_auswahl"
+      $includeLetter = $true
+    }
+    "E" {
+      if ($normalizedDocuments.Count -eq 0) {
+        Stop-WithValidationError -Message "Umfang E erfordert mit -Dokumente mindestens lebenslauf, anschreiben oder email_nachricht."
+      }
+      $resolvedMode = "individuelle_auswahl"
+      $includeCv = $normalizedDocuments -contains "lebenslauf"
+      $includeLetter = $normalizedDocuments -contains "anschreiben"
+      $includeEmail = $normalizedDocuments -contains "email_nachricht"
+      if ($includeCv) {
+        $cvKind = if ([string]::IsNullOrWhiteSpace($UniversalLebenslaufPath)) { "individuell" } else { "universal_unveraendert" }
+      }
+    }
+  }
+  if ($UmfangAuswahl -ne "E" -and $normalizedDocuments.Count -gt 0) {
+    Stop-WithValidationError -Message "-Dokumente ist nur für Umfang E zulässig."
+  }
+  if ($modeWasProvided -and $Dokumentmodus -ne $resolvedMode) {
+    Stop-WithValidationError -Message "Dokumentmodus und UmfangAuswahl widersprechen sich."
+  }
+  $Dokumentmodus = $resolvedMode
+} else {
+  switch ($Dokumentmodus) {
+    "vollbewerbung" {
+      $UmfangAuswahl = "A"
+      $includeCv = $true
+      $includeLetter = $true
+      $includeEmail = $true
+      $cvKind = "individuell"
+    }
+    "anschreiben_mit_universalem_lebenslauf" {
+      $UmfangAuswahl = "B"
+      $includeCv = $true
+      $includeLetter = $true
+      $includeEmail = $true
+      $cvKind = "universal_unveraendert"
+    }
+    "individuelle_auswahl" {
+      $UmfangAuswahl = "E"
+      if ($normalizedDocuments.Count -eq 0) {
+        Stop-WithValidationError -Message "Der Dokumentmodus individuelle_auswahl erfordert -Dokumente."
+      }
+      $includeCv = $normalizedDocuments -contains "lebenslauf"
+      $includeLetter = $normalizedDocuments -contains "anschreiben"
+      $includeEmail = $normalizedDocuments -contains "email_nachricht"
+      if ($includeCv) {
+        $cvKind = if ([string]::IsNullOrWhiteSpace($UniversalLebenslaufPath)) { "individuell" } else { "universal_unveraendert" }
+      }
+    }
+  }
+}
+
+if (-not ($includeCv -or $includeLetter -or $includeEmail)) {
+  Stop-WithValidationError -Message "Der Dokumentumfang muss mindestens ein Dokument enthalten."
+}
+if ($includeEmail -and -not $includeCv -and -not $includeLetter -and -not $EmailAlleinBestaetigt) {
+  Stop-WithValidationError -Message "Ein reiner E-Mail-Auftrag ohne Anlagen erfordert nach ausdrücklicher Nutzerbestätigung -EmailAlleinBestaetigt."
+}
+$scopeCode = switch ($UmfangAuswahl) {
+  "A" { "komplette_bewerbung" }
+  "B" { "anschreiben_mit_universalem_lebenslauf" }
+  "C" { "individueller_lebenslauf" }
+  "D" { "nur_anschreiben" }
+  default { "eigene_zusammenstellung" }
+}
+$scopeSummary = "Lebenslauf=$cvKind; Anschreiben=$($includeLetter.ToString().ToLowerInvariant()); E-Mail=$($includeEmail.ToString().ToLowerInvariant())"
+
+foreach ($sourcePath in @($StammdatenPath, $ProfilPath)) {
+  if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+    Stop-WithValidationError -Message "Stammdaten- und Profilpfad müssen vor der Anlage auf vorhandene Dateien zeigen: $sourcePath"
+  }
+}
+$StammdatenPath = (Resolve-Path -LiteralPath $StammdatenPath).Path
+$ProfilPath = (Resolve-Path -LiteralPath $ProfilPath).Path
+$stammdatenSourceHash = (Get-FileHash -LiteralPath $StammdatenPath -Algorithm SHA256).Hash
+$profilSourceHash = (Get-FileHash -LiteralPath $ProfilPath -Algorithm SHA256).Hash
+if ($stammdatenSourceHash -notmatch '^[A-Fa-f0-9]{64}$' -or $profilSourceHash -notmatch '^[A-Fa-f0-9]{64}$') {
+  Stop-WithValidationError -Message "Stammdaten und Profil konnten nicht mit gültigem SHA-256 gebunden werden."
+}
+
 $applicantFileName = Get-MarkdownField -Path $StammdatenPath -Name "Dateiname-Name"
 $universalSourceResolved = ""
 $universalSourceHash = ""
-if ($Dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") {
+if ($cvKind -eq "universal_unveraendert") {
   if ([string]::IsNullOrWhiteSpace($UniversalLebenslaufPath)) {
-    Stop-WithValidationError -Message "Der Dokumentmodus anschreiben_mit_universalem_lebenslauf erfordert -UniversalLebenslaufPath."
+    Stop-WithValidationError -Message "Ein unveränderter universeller Lebenslauf erfordert -UniversalLebenslaufPath."
   }
   if (-not (Test-Path -LiteralPath $UniversalLebenslaufPath -PathType Leaf)) {
     Stop-WithValidationError -Message "UniversalLebenslaufPath muss auf eine vorhandene HTML-Datei zeigen: $UniversalLebenslaufPath"
@@ -142,7 +278,7 @@ if ($Dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") {
   }
   $universalSourceHash = (Get-FileHash -LiteralPath $universalSourceResolved -Algorithm SHA256).Hash
 } elseif (-not [string]::IsNullOrWhiteSpace($UniversalLebenslaufPath)) {
-  Stop-WithValidationError -Message "-UniversalLebenslaufPath ist nur im Dokumentmodus anschreiben_mit_universalem_lebenslauf zulässig."
+  Stop-WithValidationError -Message "-UniversalLebenslaufPath ist nur zulässig, wenn der gewählte Umfang einen universellen Lebenslauf enthält."
 }
 
 $parsedDate = [datetime]::MinValue
@@ -217,9 +353,68 @@ if ($Fortsetzen -and $arbeitsExisted) {
   if (($noteLines -notcontains "- Firma: $Firma") -or ($noteLines -notcontains "- Zielrolle: $Rolle")) {
     Stop-WithValidationError -Message "Der vorhandene Arbeitsordner gehört zu einer anderen Firma oder Rolle. Fortsetzen wurde verweigert."
   }
-  if (($noteLines -contains "- Dokumentmodus: vollbewerbung") -or ($noteLines -contains "- Dokumentmodus: anschreiben_mit_universalem_lebenslauf")) {
-    if ($noteLines -notcontains "- Dokumentmodus: $Dokumentmodus") {
-      Stop-WithValidationError -Message "Der vorhandene Arbeitsordner verwendet einen anderen Dokumentmodus. Fortsetzen wurde verweigert."
+  $documentModeNotes = @($noteLines | Where-Object { $_ -like "- Dokumentmodus:*" })
+  if ($documentModeNotes.Count -gt 0 -and $noteLines -notcontains "- Dokumentmodus: $Dokumentmodus") {
+    Stop-WithValidationError -Message "Der vorhandene Arbeitsordner verwendet einen anderen Dokumentmodus. Fortsetzen wurde verweigert."
+  }
+  if (@($noteLines | Where-Object { $_ -like "- Dokumentumfang:*" }).Count -gt 0 -and $noteLines -notcontains "- Dokumentumfang: $scopeSummary") {
+    Stop-WithValidationError -Message "Der vorhandene Arbeitsordner verwendet einen anderen Dokumentumfang. Fortsetzen wurde verweigert."
+  }
+  $existingAuftragPath = Join-Path -Path $arbeitsDir -ChildPath "Bewerbungsauftrag.json"
+  if (-not (Test-Path -LiteralPath $existingAuftragPath -PathType Leaf)) {
+    Stop-WithValidationError -Message "Der vorhandene Arbeitsordner enthält keinen prüfbaren Bewerbungsauftrag. Fortsetzen wurde verweigert."
+  }
+  $existingAuftrag = Get-Content -LiteralPath $existingAuftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  $existingSchemaValue = Get-JsonProperty -Object $existingAuftrag -Name "schemaVersion"
+  if (($existingSchemaValue -isnot [int] -and $existingSchemaValue -isnot [long]) -or
+      [long]$existingSchemaValue -lt 1 -or [long]$existingSchemaValue -gt 4) {
+    Stop-WithValidationError -Message "Bewerbungsauftrag enthält keine unterstützte schemaVersion 1 bis 4."
+  }
+  $existingSchema = [int]$existingSchemaValue
+  if ($existingSchema -eq 4) {
+    $existingScope = Get-JsonProperty -Object $existingAuftrag -Name "dokumentumfang"
+    $existingLetter = Get-JsonProperty -Object $existingScope -Name "anschreiben"
+    $existingEmail = Get-JsonProperty -Object $existingScope -Name "emailNachricht"
+    $existingEmailOnlyApproval = Get-JsonProperty -Object $existingScope -Name "emailAlleinBestaetigt"
+    if ($null -eq $existingScope -or
+        [string](Get-JsonProperty -Object $existingScope -Name "auswahl") -cne $UmfangAuswahl -or
+        [string](Get-JsonProperty -Object $existingScope -Name "kennung") -cne $scopeCode -or
+        [string](Get-JsonProperty -Object $existingScope -Name "lebenslauf") -cne $cvKind -or
+        $existingLetter -isnot [bool] -or [bool]$existingLetter -ne $includeLetter -or
+        $existingEmail -isnot [bool] -or [bool]$existingEmail -ne $includeEmail -or
+        $existingEmailOnlyApproval -isnot [bool] -or [bool]$existingEmailOnlyApproval -ne [bool]$EmailAlleinBestaetigt -or
+        [string](Get-JsonProperty -Object $existingAuftrag -Name "dokumentmodus") -cne $Dokumentmodus) {
+      Stop-WithValidationError -Message "Bewerbungsauftrag und gewünschter Dokumentumfang stimmen beim Fortsetzen nicht exakt überein."
+    }
+  } else {
+    $legacyMode = [string](Get-JsonProperty -Object $existingAuftrag -Name "dokumentmodus")
+    if ($legacyMode -eq "anschreiben_mit_universalem_lebenslauf") {
+      $legacySelection = "B"
+    } elseif ([string]::IsNullOrWhiteSpace($legacyMode) -or $legacyMode -eq "vollbewerbung") {
+      $legacySelection = "A"
+      $legacyMode = "vollbewerbung"
+    } else {
+      Stop-WithValidationError -Message "Legacy-Bewerbungsauftrag enthält keinen eindeutig fortsetzbaren Dokumentumfang. Zuerst auf Schema 4 migrieren."
+    }
+    if ($UmfangAuswahl -cne $legacySelection -or $Dokumentmodus -cne $legacyMode) {
+      Stop-WithValidationError -Message "Legacy-Bewerbungsauftrag repräsentiert einen anderen Dokumentumfang. Fortsetzen wurde verweigert."
+    }
+  }
+  if ($cvKind -eq "universal_unveraendert") {
+    $existingUniversal = Get-JsonProperty -Object $existingAuftrag -Name "universalLebenslauf"
+    $existingUniversalPath = [string](Get-JsonProperty -Object $existingUniversal -Name "sourceHtmlPath")
+    $expectedUniversalCandidateName = "Lebenslauf - $applicantFileName.html"
+    $sameUniversalPath = -not [string]::IsNullOrWhiteSpace($existingUniversalPath) -and
+      [string]::Equals(
+        [System.IO.Path]::GetFullPath($existingUniversalPath),
+        [System.IO.Path]::GetFullPath($universalSourceResolved),
+          $script:PathComparison
+      )
+    if (-not $sameUniversalPath -or
+        [string](Get-JsonProperty -Object $existingUniversal -Name "sourceHtmlSha256BeiAnlage") -ine $universalSourceHash -or
+        [string](Get-JsonProperty -Object $existingUniversal -Name "kandidatDatei") -cne $expectedUniversalCandidateName -or
+        [string](Get-JsonProperty -Object $existingAuftrag -Name "bewerberDateiname") -cne $applicantFileName) {
+      Stop-WithValidationError -Message "Beim Fortsetzen wurde eine andere Universal-Lebenslauf-Quelle übergeben."
     }
   }
 }
@@ -253,8 +448,26 @@ $auftragFile = Join-Path -Path $arbeitsDir -ChildPath "Bewerbungsauftrag.json"
 $druckHinweisFile = Join-Path -Path $kandidatDir -ChildPath "Druck-Hinweis.md"
 $universalCandidateFile = if ([string]::IsNullOrWhiteSpace($applicantFileName)) { "" } else { Join-Path -Path $kandidatDir -ChildPath "Lebenslauf - $applicantFileName.html" }
 
-if ((Test-Path -LiteralPath $stellenbeschreibungKandidatFile) -and -not (Test-Path -LiteralPath $stellenbeschreibungKandidatFile -PathType Leaf)) {
-  throw "Stellenbeschreibung.md existiert, ist aber keine reguläre Datei."
+foreach ($expectedFilePath in @(
+  $stellenbeschreibungKandidatFile,
+  $stellenbeschreibungEntwurfFile,
+  $analyseEntwurfFile,
+  $lebenslaufEntwurfFile,
+  $anschreibenEntwurfFile,
+  $arbeitsnotizenFile,
+  $emailEntwurfFile,
+  $qualitaetscheckEntwurfFile,
+  $offeneFragenEntwurfFile,
+  $anforderungsmatrixEntwurfFile,
+  $auftragFile,
+  $druckHinweisFile,
+  $universalCandidateFile
+)) {
+  if (-not [string]::IsNullOrWhiteSpace($expectedFilePath) -and
+      (Test-Path -LiteralPath $expectedFilePath) -and
+      -not (Test-Path -LiteralPath $expectedFilePath -PathType Leaf)) {
+    throw "Erwarteter Dateipfad existiert, ist aber keine reguläre Datei: $expectedFilePath"
+  }
 }
 
 if ($StellenbeschreibungPath) {
@@ -275,7 +488,7 @@ if ($StellenbeschreibungPath) {
 "@
 }
 
-if ($Dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") {
+if ($cvKind -eq "universal_unveraendert") {
   if (Test-Path -LiteralPath $universalCandidateFile -PathType Leaf) {
     $candidateUniversalHash = (Get-FileHash -LiteralPath $universalCandidateFile -Algorithm SHA256).Hash
     if ($candidateUniversalHash -ne $universalSourceHash) {
@@ -308,11 +521,11 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
     gehaltslogik = Get-MarkdownField -Path $StammdatenPath -Name "Gehaltslogik"
   }
   $sourceEvidence = [ordered]@{
-    stammdatenSha256BeiAnlage = if (Test-Path -LiteralPath $StammdatenPath -PathType Leaf) { (Get-FileHash -LiteralPath $StammdatenPath -Algorithm SHA256).Hash } else { "" }
-    profilSha256BeiAnlage = if (Test-Path -LiteralPath $ProfilPath -PathType Leaf) { (Get-FileHash -LiteralPath $ProfilPath -Algorithm SHA256).Hash } else { "" }
+    stammdatenSha256BeiAnlage = $stammdatenSourceHash
+    profilSha256BeiAnlage = $profilSourceHash
   }
   $auftrag = [ordered]@{
-    schemaVersion = 3
+    schemaVersion = 4
     firma = $Firma
     firmaSlug = $firmaSlug
     rolle = $Rolle
@@ -323,7 +536,18 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
     arbeitsOrdner = $arbeitsDir
     kandidatOrdner = $kandidatDir
     dokumentmodus = $Dokumentmodus
-    universalLebenslauf = if ($Dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") {
+    dokumentumfang = [ordered]@{
+      auswahl = $UmfangAuswahl
+      kennung = $scopeCode
+      lebenslauf = $cvKind
+      anschreiben = $includeLetter
+      emailNachricht = $includeEmail
+      quelle = $UmfangQuelle
+      bestaetigt = $true
+      emailAlleinBestaetigt = [bool]$EmailAlleinBestaetigt
+      bestaetigtAtUtc = [datetime]::UtcNow.ToString("o")
+    }
+    universalLebenslauf = if ($cvKind -eq "universal_unveraendert") {
       [ordered]@{
         sourceHtmlPath = $universalSourceResolved
         sourceHtmlSha256BeiAnlage = $universalSourceHash
@@ -332,13 +556,20 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
     } else {
       $null
     }
-    seitenstrategie = "noch_festzulegen"
+    seitenstrategie = if ($includeCv) { "noch_festzulegen" } else { "nicht_erforderlich" }
     bewerbungslogistik = $bewerbungslogistik
     bewerbungsentscheidung = "noch_festzulegen"
     darstellungsoptionen = [ordered]@{
-      schulbildungsmodus = "noch_festzulegen"
-      profillinksModus = "noch_festzulegen"
+      schulbildungsmodus = if ($includeCv) { "noch_festzulegen" } else { "nicht_erforderlich" }
+      profillinksModus = if ($includeCv) { "noch_festzulegen" } else { "nicht_erforderlich" }
       profillinksAuswahl = @()
+    }
+    dialog = [ordered]@{
+      schemaVersion = 1
+      status = "profilabgleich_ausstehend"
+      rueckfragen = @()
+      angaben = @()
+      updatedAtUtc = [datetime]::UtcNow.ToString("o")
     }
     quellnachweise = $sourceEvidence
     createdAtUtc = [datetime]::UtcNow.ToString("o")
@@ -381,7 +612,7 @@ if (-not (Test-Path -LiteralPath $analyseEntwurfFile)) {
 "@
 }
 
-if ($Dokumentmodus -eq "vollbewerbung" -and -not (Test-Path -LiteralPath $lebenslaufEntwurfFile)) {
+if ($includeCv -and $cvKind -eq "individuell" -and -not (Test-Path -LiteralPath $lebenslaufEntwurfFile)) {
   Set-Content -LiteralPath $lebenslaufEntwurfFile -Encoding UTF8 -Value @"
 <!doctype html>
 <html lang="de">
@@ -411,7 +642,7 @@ if ($Dokumentmodus -eq "vollbewerbung" -and -not (Test-Path -LiteralPath $lebens
 "@
 }
 
-if (-not (Test-Path -LiteralPath $anschreibenEntwurfFile)) {
+if ($includeLetter -and -not (Test-Path -LiteralPath $anschreibenEntwurfFile)) {
   Set-Content -LiteralPath $anschreibenEntwurfFile -Encoding UTF8 -Value @"
 <!doctype html>
 <html lang="de">
@@ -448,6 +679,7 @@ if (-not (Test-Path -LiteralPath $arbeitsnotizenFile)) {
 - Firma: $Firma
 - Zielrolle: $Rolle
 - Dokumentmodus: $Dokumentmodus
+- Dokumentumfang: $scopeSummary
 - Finaler Bewerbungsordner: $zielDir
 - Entwurfs-/Arbeitsdateien: $arbeitsDir
 - Kandidatendateien vor Freigabe: $kandidatDir
@@ -458,13 +690,22 @@ Der finale Bewerbungsordner bleibt bis zur erfolgreichen atomaren Veröffentlich
 "@
 }
 
-if (-not (Test-Path -LiteralPath $emailEntwurfFile)) {
+if ($includeEmail -and -not (Test-Path -LiteralPath $emailEntwurfFile)) {
+  $emailLead = if ($includeCv -and $includeLetter) {
+    "anbei sende ich Ihnen meine Bewerbungsunterlagen für die Position als $Rolle bei $Firma."
+  } elseif ($includeCv) {
+    "anbei sende ich Ihnen meinen Lebenslauf für die Position als $Rolle bei $Firma."
+  } elseif ($includeLetter) {
+    "anbei sende ich Ihnen mein Anschreiben für die Position als $Rolle bei $Firma."
+  } else {
+    "hiermit bewerbe ich mich für die Position als $Rolle bei $Firma."
+  }
   Set-Content -LiteralPath $emailEntwurfFile -Encoding UTF8 -Value @"
 Betreff: Bewerbung als $Rolle - [Name aus Private/Daten/01_PERSOENLICHE_DATEN.md]
 
 Sehr geehrte Damen und Herren,
 
-anbei sende ich Ihnen meine Bewerbungsunterlagen für die Position als $Rolle.
+$emailLead
 
 Über eine Rückmeldung freue ich mich.
 
@@ -474,13 +715,15 @@ Mit freundlichen Grüßen
 }
 
 if (-not (Test-Path -LiteralPath $qualitaetscheckEntwurfFile)) {
+  $documentChecklistLines = @()
+  if ($includeCv) { $documentChecklistLines += "- [ ] Lebenslauf gemäß gewählter Strategie geprüft" }
+  if ($includeLetter) { $documentChecklistLines += "- [ ] Anschreiben individuell formuliert" }
+  if ($includeEmail) { $documentChecklistLines += "- [ ] E-Mail-Nachricht erstellt" }
   Set-Content -LiteralPath $qualitaetscheckEntwurfFile -Encoding UTF8 -Value @"
 # Qualitätscheck
 
 - [ ] Stellenbeschreibung analysiert
-- [ ] Lebenslauf auf Zielrolle zugeschnitten
-- [ ] Anschreiben individuell formuliert
-- [ ] E-Mail-Nachricht erstellt
+$($documentChecklistLines -join "`r`n")
 - [ ] Keine erfundenen Kenntnisse
 - [ ] Keine sichtbaren Platzhalter in finalen Dokumenten
 - [ ] Fehlende Daten in Offene_Fragen.md dokumentiert
@@ -502,18 +745,15 @@ if (-not (Test-Path -LiteralPath $druckHinweisFile)) {
   Set-Content -LiteralPath $druckHinweisFile -Encoding UTF8 -Value @"
 # Druck-Hinweis
 
-Wenn in Firefox Dateiname, URL, Datum oder Seitenzahl im Ausdruck erscheinen, kommt das aus dem Firefox-Druckdialog und nicht aus der HTML-Datei.
+Der verbindliche PDF-Export erfolgt automatisiert mit Chrome oder Edge. Browser-Kopf- und Fußzeilen wie Dateiname, URL, Datum oder Seitenzahl dürfen dabei nicht erscheinen.
 
 Vor dem finalen PDF-Export oder Druck:
 
-1. HTML-Datei in Firefox öffnen.
-2. `Strg + P` drücken.
-3. `Weitere Einstellungen` öffnen.
-4. `Kopf- und Fußzeilen drucken` deaktivieren.
-5. Skalierung auf `100%` stellen.
-6. Ränder auf `Keine` stellen.
+1. `Tools/Finalisiere-Bewerbung.ps1` mit `-Browser auto` ausführen.
+2. Jeden frisch erzeugten Seitenscreenshot tatsächlich prüfen.
+3. Keine manuelle Browservorschau als bestandenen maschinellen Export ausgeben.
 
-Ziel: Die sichtbare A4-Seite im Browser soll ohne Firefox-Dateipfad, URL, Datum oder Seitenzahlen als PDF/Druck ausgegeben werden.
+Ziel: Die sichtbare A4-Seite wird ohne Browser-Dateipfad, URL, Datum oder Browser-Seitenzahlen als PDF ausgegeben.
 "@
 }
 
@@ -521,7 +761,8 @@ Write-Output "Bewerbungsordner: $zielDir"
 Write-Output "Arbeitsdateien: $arbeitsDir"
 Write-Output "Kandidatendateien: $kandidatDir"
 Write-Output "Dokumentmodus: $Dokumentmodus"
-if ($Dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") {
+Write-Output "Dokumentumfang: $scopeSummary"
+if ($cvKind -eq "universal_unveraendert") {
   Write-Output "Universeller Lebenslauf unverändert übernommen: $universalCandidateFile"
 }
 } catch {

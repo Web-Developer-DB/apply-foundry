@@ -492,8 +492,8 @@ if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
 $resolvedFolder = (Resolve-Path -LiteralPath $Ordner).Path
 $cvFiles = @(Get-ChildItem -LiteralPath $resolvedFolder -File -Filter "Lebenslauf - *.html")
 $letterFiles = @(Get-ChildItem -LiteralPath $resolvedFolder -File -Filter "Anschreiben - *.html")
-if (($cvFiles.Count -ne 1) -or ($letterFiles.Count -ne 1)) {
-  Add-Fail "Für den Layoutcheck werden genau ein Lebenslauf und ein Anschreiben erwartet; gefunden: $($cvFiles.Count) Lebenslauf, $($letterFiles.Count) Anschreiben."
+if (($cvFiles.Count -gt 1) -or ($letterFiles.Count -gt 1) -or (($cvFiles.Count + $letterFiles.Count) -eq 0)) {
+  Add-Fail "Für den Layoutcheck werden ein oder zwei laut Dokumentumfang ausgewählte HTML-Dokumente erwartet; gefunden: $($cvFiles.Count) Lebenslauf, $($letterFiles.Count) Anschreiben."
   exit 1
 }
 $htmlFiles = @($letterFiles + $cvFiles | Sort-Object Name)
@@ -636,6 +636,26 @@ foreach ($candidate in $browserCandidates) {
     Add-Ok "Layoutcheck erfolgreich mit Browser: $($candidate.Name)"
     Add-Ok "Layoutcheck-Bericht geschrieben: $BerichtPath"
     exit 0
+  }
+  foreach ($document in $documents) {
+    $candidateOutputs = @(Get-ChildItem -LiteralPath $layoutDir -File | Where-Object {
+      ($_.Name -like "$($document.SafeBase)--seite-*-von-*--$($candidate.Name).png") -or
+      ($_.Name -like "$($document.SafeBase)--seite-*-von-*--$($candidate.Name).pdf")
+    })
+    foreach ($candidateOutput in $candidateOutputs) {
+      Remove-Item -LiteralPath $candidateOutput.FullName -Force -ErrorAction SilentlyContinue
+    }
+  }
+  $remainingCandidateOutputs = @(Get-ChildItem -LiteralPath $layoutDir -File | Where-Object {
+    $outputName = $_.Name
+    @($documents | Where-Object {
+      $outputName -like "$($_.SafeBase)--seite-*-von-*--$($candidate.Name).png" -or
+      $outputName -like "$($_.SafeBase)--seite-*-von-*--$($candidate.Name).pdf"
+    }).Count -gt 0
+  })
+  if ($remainingCandidateOutputs.Count -gt 0) {
+    Add-Fail "Fehlgeschlagene Browserausgaben konnten nicht vollständig entfernt werden: $($remainingCandidateOutputs.Name -join ', ')"
+    exit 1
   }
   Add-Warn "Browser $($candidate.Name) hat nicht alle erwarteten Ausgaben gültig erzeugt."
 }

@@ -26,7 +26,7 @@ Der Agent ist neutral. Er darf keine Branche, keine konkrete Fachrolle, keine Ve
 
 ## Bewerbungsprofil
 
-Vor Lebenslauf und Anschreiben wird eine kurze Profilstrategie erstellt:
+Vor der Erstellung der ausgewählten Bewerbungsdokumente wird eine kurze Profilstrategie erstellt:
 
 - Zielrolle
 - Branche oder Arbeitsfeld
@@ -45,11 +45,11 @@ Vor Lebenslauf und Anschreiben wird eine kurze Profilstrategie erstellt:
 - bewusst weggelassene Inhalte
 - gewichtete Eignungsklasse und ausdrückliche Bewerbungsentscheidung
 - Schulbildungsmodus und begründete Auswahl öffentlicher Profil-Links
-- Dokumentmodus und, im Anschreiben-Modus, Eignung des universellen Lebenslaufs als unveränderte Basis
+- bestätigter Dokumentumfang und, falls ausgewählt, Eignung des universellen Lebenslaufs als unveränderte Basis
 
 Diese Strategie wird in `Analyse.md` dokumentiert.
 
-Im Anschreiben-Modus beeinflusst die Rollenstrategie nicht den Lebenslauf-Inhalt. Sie bestimmt, welche belegten Argumente das Anschreiben ergänzend hervorhebt und ob der universelle Lebenslauf für die konkrete Bewerbung ausreichend ist.
+Bei einem universellen Lebenslauf beeinflusst die Rollenstrategie dessen Inhalt nicht. Sie bestimmt, welche belegten Argumente ein ausgewähltes Anschreiben ergänzend hervorhebt und ob der universelle Lebenslauf für die konkrete Bewerbung ausreichend ist.
 
 ## Gewichtung nach Rolle
 
@@ -62,7 +62,7 @@ Für jede Information aus den privaten Daten gilt:
 
 Zusatzkenntnisse dürfen nicht automatisch übernommen werden. Sie brauchen einen Nutzen für die konkrete Zielrolle.
 
-Die gewichtete Anforderungsmatrix macht aus dieser Priorisierung eine prüfbare Entscheidungshilfe. Ein hoher Score erlaubt keine Übertreibung; ein niedriger Score löscht keine echten Transferstärken. Die Einstufung `stark`, `vertretbar_mit_risiken` oder `stretch` wird in `Analyse.md` festgehalten und führt zu einer ausdrücklichen Entscheidung im Bewerbungsauftrag.
+Die gewichtete Anforderungsmatrix macht aus dieser Priorisierung eine prüfbare Entscheidungshilfe. Ein hoher Score erlaubt keine Übertreibung; ein niedriger Score löscht keine echten Transferstärken. Die Einstufung `stark`, `vertretbar_mit_risiken` oder `stretch` wird in `Analyse.md` festgehalten. Bei einem ausdrücklichen Bewerbungsauftrag bleibt die Entscheidung `bewerben`; auch `stretch` ist nur eine Risikoeinordnung und kein Modellveto. `nicht_bewerben` wird ausschließlich nach einem ausdrücklichen Nutzerabbruch gesetzt.
 
 ## Belegarten-Gewichtung
 
@@ -83,7 +83,7 @@ Bei Konflikten gilt die vorsichtigere Belegart. Beispiel: Eine Technologie, die 
 
 Stellenart, Arbeitsmodell, Eintrittstermin, Region, Reisebereitschaft, Schichtbereitschaft, Befristung und Gehaltswunsch sind Bewerbungslogistik. Datei `01` ist die Stammquelle; der bei der Anlage erzeugte Snapshot in `Bewerbungsauftrag.json` ist für die konkrete Bewerbung maßgeblich.
 
-- Stellenart muss für Lebenslauf und Anschreiben ausgewertet werden: `Vollzeit`, `Teilzeit` oder `Vollzeit/Teilzeit`.
+- Stellenart muss für alle ausgewählten Bewerbungsdokumente ausgewertet werden: `Vollzeit`, `Teilzeit` oder `Vollzeit/Teilzeit`.
 - Die Stellenanzeige wird auf angebotene oder geforderte Stellenart geprüft. Bei Widerspruch zum Bewerbungsauftrag wird der Punkt in `Offene_Fragen.md` dokumentiert.
 - Arbeitsmodell, Region, Pendeldistanz, Reisebereitschaft, Schicht- oder Wochenendbereitschaft und Befristung werden nur sichtbar gemacht, wenn sie für die konkrete Bewerbung relevant sind.
 - Eine manuelle Gehaltsangabe im Bewerbungsauftrag hat Vorrang.

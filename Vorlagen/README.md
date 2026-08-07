@@ -11,6 +11,6 @@ Die Lebenslaufreferenz ist bewusst als ruhiger deutscher Recruiter-CV angelegt:
 - kompakter Kopf
 - tabellarisch lesbarer Werdegang
 - Kompetenzen als gruppierte Zeilen statt Tag-Wolke
-- feste A4-Seitenhöhe für Firefox-stabiles Drucken
+- feste A4-Seitenhöhe für den stabilen Chrome-/Edge-Export
 
 Wenn der Inhalt nicht auf eine A4-Seite passt, darf die Vorlage nicht einfach wachsen. Dann muss entweder gekürzt oder ein bewusster zweiseitiger Lebenslauf mit zwei `.page`-Containern erstellt werden.

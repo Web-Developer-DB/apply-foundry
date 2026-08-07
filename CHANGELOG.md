@@ -4,6 +4,128 @@
 
 Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Die Struktur orientiert sich an „Keep a Changelog“ und verwendet die im Projekt geführten Versionsnummern.
 
+## Version 1.8.0 - 2026-08-06
+
+### Hinzugefügt
+
+- Providerneutrale Root-Konfiguration `opencode.json`, die OpenCode-Sitzungsfreigaben deaktiviert, den nativen `AGENTS.md`-Einstieg unverändert nutzt und Modell sowie Provider für OpenCode, Editor-Integrationen und `ollama launch opencode` offenlässt.
+- Read-only-Werkzeug `Tools/Ermittle-Bewerbungsstatus.ps1`, das den letzten oder ausdrücklich genannten Bewerbungsstand aus Auftrag, Dialog, Matrix, Kandidaten, technischen Berichten, Hashnachweisen und Manifest rekonstruiert und die nächsten benötigten Promptmodule maschinenlesbar ausgibt.
+
+### Geändert
+
+- Der kanonische Ablauf speichert die vollständige Stellenbeschreibung vor dem Profildialog, trennt vorläufige Kriterien von der erst nach der Strategie finalisierten Matrix und setzt den Dialogstatus vor der technischen Finalisierung nachvollziehbar auf abgeschlossen.
+- Bewerbungsaufträge mit ausdrücklich genanntem Dokumentumfang überspringen unnötige Auswahlfragen. Auswahl B bedeutet ausschließlich Universal-Lebenslauf, Anschreiben und E-Mail; Universal-Lebenslauf plus Anschreiben ohne E-Mail wird korrekt als freie Auswahl E gespeichert.
+- Neue fachliche Angaben gelten ohne weitere Nachfrage standardmäßig nur für den aktuellen Auftrag. Eine Frage zur dauerhaften Speicherung entsteht nur auf ausdrücklichen Wunsch des Nutzers.
+- E-Mail-only verwendet einen kompakten Profil- und Matrixabgleich. Kriterien werden normalisiert und dedupliziert; Benefits, Werbeaussagen und rein beschreibende Aufgaben erzeugen keine künstlichen Eignungspunkte.
+- `stretch` bleibt eine transparente Risikoeinstufung und kein automatisches Bewerbungsverbot. Bei ausdrücklichem Bewerbungswunsch wird `nicht_bewerben` nur durch einen ebenso ausdrücklichen Stopp gesetzt.
+- Qualitätsregeln referenzieren die fachlichen Einzelmodule, prüfen nur die tatsächlich ausgewählten Dokumente und verwenden kompakte Kriterien-IDs statt wiederholter Volltexte.
+- Chrome beziehungsweise Edge ist durchgängig der verbindliche Browser für maschinelle Layout- und PDF-Nachweise; Firefox bleibt höchstens eine klar gekennzeichnete manuelle Diagnosevorschau.
+- Der Finalisierer vermeidet einen redundanten statischen Vorlauf: Bei HTML-Aufträgen übernimmt der PDF-Export den ersten statischen Check, während der abschließende statische und fachliche Check nach der automatischen Berichtsergänzung erhalten bleibt.
+- Agenten laden den vollständigen Bewerbungsworkflow nur für Bewerbungs-, Daten-, Fortsetzungs- oder workflowbezogene Entwicklungsaufträge und nicht mehr für jede reine technische Projektfrage.
+
+### Behoben
+
+- Der bisherige Widerspruch zwischen B und E bei „Universal-Lebenslauf plus Anschreiben ohne E-Mail“ ist beseitigt.
+- Eine ausdrücklich gewünschte Bewerbung kann nicht mehr allein wegen der Eignungskategorie `stretch` unbemerkt auf `nicht_bewerben` wechseln.
+- Stellenbeschreibung, Strategie und gewichtete Matrix entstehen nun in einer Reihenfolge, die Quellenverlust, doppelte Bewertung und voneinander abweichende Zwischenstände verhindert.
+- Fortsetzungen müssen den Arbeitsstand nicht mehr durch breit gestreutes erneutes Einlesen rekonstruieren, sofern das neue Statuswerkzeug verfügbar ist.
+
+### Sicherheit und Datenschutz
+
+- OpenCode-Sharing ist im Repository standardmäßig deaktiviert; `opencode.json` enthält keine privaten Inhalte, Promptkopien, Zugangsdaten oder fest verdrahteten Cloudanbieter.
+- Die frühe lokale Sicherung der Stellenbeschreibung bleibt von Kandidaten- und Versandfreigaben getrennt. Private Daten werden weiterhin ausschließlich unter `Private/` verarbeitet.
+- Technische Prüfungen dürfen nur tatsächlich erzeugte Chrome-/Edge-Nachweise behaupten; optionale manuelle Browseransichten ersetzen weder Hashbindung noch persönliche Sichtprüfung.
+
+### Tests und Verifikation
+
+- Regressionstests decken OpenCode-Konfiguration, korrigiertes A–E-Routing, Standardentscheidung `nur_auftrag`, Matrix-Deduplizierung, E-Mail-only, Chromium-Vertrag, Statusrekonstruktion und die fehlende Promptduplizierung ab.
+- Die lokale OpenCode-Konfiguration wurde mit isoliertem Benutzerprofil aufgelöst; OpenCode `1.18.10` übernahm `share: disabled`, ohne Provider oder Modell aus dem Repository zu erzwingen. Ollama `0.32.6` wurde erkannt.
+- Am 06.08.2026 bestanden 61 von 61 Tests der Kern-Regressionssuite und 68 von 68 Tests der lokal freigegebenen Chrome-Browsermatrix. Der vorangegangene Browserlauf in der verwalteten Sandbox scheiterte ausschließlich am Chrome-Prozessstart.
+- Ein neuer realer Dialoglauf mit einem lokalen Ollama-Modell wurde nicht ausgeführt; der frühere `qwen3.5:9b`-Versuch bleibt wegen Zeitüberschreitung ausdrücklich nicht bestanden.
+
+## Version 1.7.0 - 2026-08-05
+
+### Hinzugefügt
+
+- Zentraler, agentenunabhängiger Bewerbungsdialog in `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` mit Auswahl A–E, Zahlen- und Freitextantworten, direkter Übernahme eindeutiger Aufträge und höchstens einer vereinfachten Wiederholung bei Mehrdeutigkeit.
+- Schema 4 für `Bewerbungsauftrag.json` mit verbindlichem `dokumentumfang`, E-Mail-only-Bestätigung sowie normalisierten `dialog.rueckfragen` und `dialog.angaben` für eine Fortsetzung ohne Chatverlauf.
+- Relevanzfilter für Profilrückfragen, höchstens drei voneinander unabhängige Fragen pro Dialogrunde und wahrheitsgemäße Klassifikation von belegter, teilweiser, übertragbarer, fehlender, widersprüchlicher oder möglicherweise vorhandener Erfahrung.
+- `Tools/Pruefe-Dialogstatus.ps1` für Umfangs-, Rückfrage-, Widerspruchs-, Speicher- und Rohchatprüfungen vor der Dokumenterstellung.
+- `Tools/Uebernehme-Dialogangabe.ps1` für die kontrollierte Kennzeichnung als nur auftragsbezogen oder die ausdrücklich bestätigte, hashgebundene Übernahme in ein zulässiges privates Profilziel mit Wiederherstellung bei erkannten Schreibfehlern.
+- Dokumentierter Katalog der neun Nutzerfälle unter `Tests/Interaktiver-Bewerbungsdialog.md` mit getrenntem Status für deterministische Verträge, dokumentierte Sprachszenarien und nicht ausgeführte reale Modelltests.
+
+### Geändert
+
+- Eine bloße Stellenbeschreibung oder ein allgemeiner Bewerbungswunsch startet nicht mehr ungefragt eine Vollbewerbung. Ein bereits eindeutig genannter Umfang überspringt dagegen die allgemeine Auswahlfrage.
+- PowerShell- und Bash-Ordnerhelfer akzeptieren A–E, freie Kombinationen und die ausdrückliche Bestätigung eines reinen E-Mail-Auftrags und erzeugen nur passende Entwurfs- und Kandidatendateien.
+- Statischer Prüfer, Inhaltsprüfung, PDF-Export, ATS-Prüfung, Finalisierung, Manifest und Prüfberichte leiten ihre erwarteten Dateien aus dem Schema-4-Dokumentumfang ab; der Layoutcheck verarbeitet den von der Finalisierung umfangsgerecht ausgewählten Kandidatenbestand.
+- Ein bestätigter reiner E-Mail-Auftrag erreicht das persönliche Freigabe-Gate ohne vorgetäuschten Browserlauf; Layout-, PDF- und ATS-Berichte werden dabei als `nicht_erforderlich` geschrieben und die E-Mail muss persönlich als Text geprüft werden.
+- Die dateibasierte Fortsetzung berücksichtigt Umfang, beantwortete und offene Rückfragen, nur auftragsbezogene Angaben, Speicherentscheidungen, Widersprüche sowie Hashnachweise bereits ausgeführter Profiländerungen.
+- Bestehende Aufträge bis Schema 3 bleiben über die beiden alten `dokumentmodus`-Werte rückwärtskompatibel lesbar. Fehlende Dateien werden nicht als nachträglich eingeschränkter Dokumentumfang interpretiert.
+- README, Promptübersicht, Datei-/Ordnerregeln, Qualitätsregeln und technischer Workflow beschreiben dynamische Ausgaben, Sicht- beziehungsweise Textprüfung und die neuen Werkzeuge und Dateiverträge.
+
+### Behoben
+
+- Reine E-Mail-Aufträge erzeugen erst nach ausdrücklicher Bestätigung einen Entwurf und behaupten darin keine nicht vorhandenen Bewerbungsanlagen.
+- PowerShell- und Bash-Fortsetzungen behandeln den ausdrücklich gespeicherten Universalmodus in allen lesbaren Legacy-Schemata als Auswahl B und verweigern abweichende Quellpfade, Dateinamen oder Hashes.
+- Der Bash-Ordnerhelfer maskiert Steuerzeichen aus CRLF-Stammdaten JSON-konform, parst den erzeugten Auftrag vor der Erfolgsmeldung und verlangt hashbare Quelldateien vor jeder Ordneranlage.
+- PDF-Satz und Exportbericht sowie veröffentlichter Zielsatz und Finalisierungsbericht werden gemeinsam übernommen; bei einem Fehler wird der alte Stand wiederhergestellt oder ein verbliebener Wiederherstellungspfad ausdrücklich erhalten.
+- Der Finalisierungsbericht bindet Layout-, PDF- und ATS-Bericht zusätzlich per SHA-256, prüft deren semantische Artefaktzuordnung und verweigert veraltete, unvollständige oder um fremde Kandidatendateien erweiterte Nachweise.
+- Versand-PDFs müssen auch bei einem intern konsistenten Manifest exakt zu den ausgewählten HTML-Dateinamen passen; zusätzliche, abgewählte, falsch benannte oder falsch platzierte PDFs werden abgelehnt.
+
+### Sicherheit und Datenschutz
+
+- Neue Nutzerangaben gelten standardmäßig nur für den aktuellen Bewerbungsauftrag. Dauerhafte Änderungen werden gebündelt angeboten und benötigen die transparente Zielformulierung sowie eine eindeutige ausdrückliche Zustimmung.
+- Als dauerhafte Profilziele sind ausschließlich `Private/Daten/01_PERSOENLICHE_DATEN.md` für Identität, Kontakt und globale Logistik sowie `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` für fachliche Angaben zulässig.
+- Der Agentenworkflow prüft vor einer Profilübernahme auf sinngleiche Einträge; das Werkzeug verhindert im gewählten Zielabschnitt exakte Dubletten, bindet die bestätigte Formulierung an Vorher-/Nachher-Hashes und verändert keine anderen Profildateien, Universal-Lebensläufe oder Bewerbungen.
+- Vor einer dauerhaften Profilzustimmung bindet ein Pending-Snapshot Zieltyp, Datei, Abschnitt, offengelegte Formulierung und Ausgangshash. Das Übernahmewerkzeug akzeptiert nur exakt diese bestätigten Werte, schließt die verknüpfte Speicherfrage atomar und leitet den verbleibenden Dialogstatus neu ab.
+- Unklare oder widersprüchliche Wahrheitsebenen, fehlende Zustimmung, falsche Profilziele, geänderte Formulierungen, veraltete Hashes und erstmalige Übernahmen nach Beginn der Dokumenterstellung werden fehlergeschlossen abgelehnt.
+- Der Dialogzustand speichert nur normalisierte fachliche Angaben und Entscheidungsnachweise; Rohchats, vollständige Prompts und unnötige sensible Details sind unzulässig.
+- Mehrdeutige Umfangs- oder Speicherantworten bleiben fehlergeschlossen: Nach höchstens einer vereinfachten Nachfrage werden weder Kandidatendateien erzeugt noch Profildaten verändert.
+
+### Tests und Verifikation
+
+- Die Regressionssuite wurde um deterministische Schema-4-, Auswahl-, E-Mail-only-, Profilhash-, Deduplizierungs-, Widerspruchs-, Fortsetzungs- und Fail-closed-Verträge sowie negative Zustimmungs-, Zielbindungs-, Frage- und Statusfälle erweitert.
+- Die neun Dialogszenarien trennen statische beziehungsweise fixturebasierte Nachweise ausdrücklich vom noch offenen natürlichen Sprachverhalten realer Agenten und Modelle.
+- Am 05.08.2026 bestanden 59 von 59 Tests der Kern-Regressionssuite und 66 von 66 Tests der lokal freigegebenen Browser-Suite. Der separate Bash-Regressionslauf und die PowerShell-Parserprüfung bestanden ebenfalls.
+- Ein realer Ollama-Dialogtest wurde nicht ausgeführt. ShellCheck und PSScriptAnalyzer waren lokal nicht installiert und werden für diesen Stand nicht als ausgeführt behauptet.
+
+## Version 1.6 - 2026-08-05
+
+### Hinzugefügt
+
+- Dünner Claude-Code-Adapter `CLAUDE.md` mit echtem `@AGENTS.md`-Import und Verweis auf den kanonischen Bewerbungsworkflow.
+- Anbieterunabhängige Laufzeitfähigkeitenprüfung für Datei- und Terminalzugriff, PowerShell beziehungsweise kompatible Shell, Chrome/Edge, PNG-Auswertung, Nutzungsdaten und Sandboxgrenzen.
+- Dateibasierter Fortsetzungsvertrag, der die zuletzt bearbeitete Bewerbung aus Auftrag, Arbeitsnotizen, Matrix, Kandidaten, Prüfberichten, Finalisierungsbericht, Hashes und Manifest rekonstruiert, ohne Chat-Memory vorauszusetzen.
+- Dokumentierte Agenten-Smoke- und Schutztests unter `Tests/Agenten-Kompatibilitaet.md`.
+- Regressionstests für Claude-/Gemini-Adapter, kanonische Einzelquelle, exakte Pfadschreibweise, fünf direkte Einstiege, Fähigkeiten, Fortsetzung und eingebettete Fremdanweisungen.
+
+### Geändert
+
+- `AGENTS.md` ist jetzt ein kompakter, agentenunabhängiger Root-Einstieg für Vollbewerbung, Anschreiben mit Universal-Lebenslauf, Dateneinrichtung/-prüfung, Fortsetzung und Projektentwicklung.
+- OpenCode nutzt die vorhandene Root-`AGENTS.md`; eine zusätzliche `opencode.json` ist nicht erforderlich und wurde deshalb nicht angelegt.
+- README, Hero, Schnellstart, Voraussetzungen, Hilfebereich, Datenschutz, Entwicklerstruktur und Plattformstatus wurden von einem Codex-/VS-Code-Hauptweg auf auswählbare Agentenumgebungen umgestellt.
+- README dokumentiert Codex CLI, OpenCode, `ollama launch opencode`, Claude Code, die Trennung von Agent und Modell sowie die Grenzen kleiner lokaler Modelle.
+- `Prompts/README.md` und die öffentlichen Datei-/Ordnerregeln berücksichtigen Claude Code, OpenCode und Ollama ohne fachliche Regeln zu duplizieren.
+- VS-Code-spezifische Überschriften im technischen Prompt wurden auf Windows/PowerShell verallgemeinert.
+- Der Linux-Portierungsplan grenzt die bereits umgesetzte Agentenabstraktion von der noch offenen technischen Linux-Parität ab; der historische Frontend-Plan ist sichtbar als nicht freigegebenes Archiv markiert.
+- Der standardisierte Nichtverfügbarkeitsfall lautet jetzt überall: `Tokenverbrauch: Von dieser Agentenumgebung nicht bereitgestellt.`
+
+### Sicherheit und Datenschutz
+
+- Fehlende Werkzeug-, Browser- oder Bildfähigkeiten müssen offen gemeldet werden; insbesondere darf kein Agent eine nicht ausgeführte PNG-Sichtprüfung vortäuschen.
+- Lokale Ollama-Modellverarbeitung wird von möglichen Cloudzugriffen der Agentenumgebung und weiterer Werkzeuge abgegrenzt; `Private/` und `.gitignore` werden weiterhin nicht als Verschlüsselung dargestellt.
+- Alte Sichtprüfungsbestätigungen dürfen nach Quellen-, Kandidaten- oder Screenshotänderungen auch über Sitzungsgrenzen hinweg nicht wiederverwendet werden.
+
+### Tests und Verifikation
+
+- PowerShell 7.6.4, Codex CLI 0.146.0-alpha.9.2, OpenCode 1.18.10, Ollama 0.32.5 und Chrome 150.0.7871.187 wurden lokal erkannt.
+- Eine frische Codex-CLI-Read-only-Sitzung erkannte das Projekt über `AGENTS.md` und lud `Prompts/00_AGENTEN_START_HIER.md` selbstständig.
+- Eine zweite frische Codex-Sitzung ignorierte die eingebettete Aufforderung zum Offenlegen privater Dateien und extrahierte nur sachliche Stellenanforderungen.
+- Der Ollama-Launcher startete OpenCode mit einem lokalen Modellprofil bis zur Versionsausgabe; der anschließende `qwen3.5:9b`-Frischsitzungstest überschritt das 120-Sekunden-Limit und gilt nicht als bestanden.
+- Die vollständige lokale Browsermatrix bestand außerhalb der verwalteten Sandbox mit 48 von 48 Tests; der vorangegangene Sandboxlauf scheiterte ausschließlich am Chrome-Prozessstart.
+- Claude Code war lokal nicht installiert; IDE-, Desktop-, Claude-, Gemini- und vollständige agentenspezifische Bewerbungsdurchläufe bleiben ausdrücklich ungetestet.
+
 ## Version 1.5 - 2026-08-04
 
 ### Hinzugefügt

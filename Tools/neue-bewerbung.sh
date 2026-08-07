@@ -9,7 +9,11 @@ Usage:
 Options:
   --firma NAME                    Firmenname, Pflichtangabe
   --rolle NAME                    Zielrolle, Standard: Bewerbung
-  --dokumentmodus MODUS           vollbewerbung (Standard) oder anschreiben_mit_universalem_lebenslauf
+  --umfang A|B|C|D|E              Vom Nutzer festgelegter Bewerbungsumfang
+  --dokumente LISTE               Nur für E: lebenslauf,anschreiben,email_nachricht
+  --dokumentmodus MODUS           Legacy-Direktwahl: vollbewerbung, anschreiben_mit_universalem_lebenslauf oder individuelle_auswahl
+  --umfang-quelle QUELLE          auswahl (Standard), direkter_auftrag oder fortgesetzter_auftrag
+  --email-allein-bestaetigt       Bestätigung für einen reinen E-Mail-Auftrag ohne Anlagen
   --universal-lebenslauf-path PATH Freigegebene HTML-Quelle für den Anschreiben-Modus
   --datum YYYY-MM-DD              Datum, Standard: heute
   --stellenbeschreibung-path PATH Pfad zu vorhandener Stellenbeschreibung
@@ -68,26 +72,264 @@ html_escape() {
 
 json_escape() {
   local value="$1"
-  value="${value//\\/\\\\}"
-  value="${value//\"/\\\"}"
-  printf '%s' "$value"
+  local escaped=""
+  local char
+  local codepoint
+  local encoded
+  local index
+
+  for ((index = 0; index < ${#value}; index++)); do
+    char="${value:index:1}"
+    case "$char" in
+      '"') escaped+='\"' ;;
+      \\) escaped+='\\' ;;
+      $'\b') escaped+='\b' ;;
+      $'\f') escaped+='\f' ;;
+      $'\n') escaped+='\n' ;;
+      $'\r') escaped+='\r' ;;
+      $'\t') escaped+='\t' ;;
+      *)
+        if [[ "$char" == [[:cntrl:]] ]]; then
+          printf -v codepoint '%d' "'$char"
+          printf -v encoded '\\u%04x' "$codepoint"
+          escaped+="$encoded"
+        else
+          escaped+="$char"
+        fi
+        ;;
+    esac
+  done
+
+  printf '%s' "$escaped"
 }
 
 markdown_field() {
   local path="$1"
   local field="$2"
   [[ -f "$path" ]] || return 0
-  sed -n -E "s/^[[:space:]]*-[[:space:]]*${field}:[[:space:]]*(.*)$/\\1/p" "$path" | head -n 1
+  sed -n -E "s/^[[:space:]]*-[[:space:]]*${field}:[[:space:]]*(.*)$/\\1/p" "$path" | head -n 1 | sed $'s/\r$//'
+}
+
+select_json_tool() {
+  json_tool=""
+  if command -v jq >/dev/null 2>&1 && jq --version >/dev/null 2>&1; then
+    json_tool="jq"
+  elif command -v python3 >/dev/null 2>&1 && python3 -c 'import json' >/dev/null 2>&1; then
+    json_tool="python3"
+  elif command -v python >/dev/null 2>&1 && python -c 'import json, sys; raise SystemExit(0 if sys.version_info[0] >= 3 else 1)' >/dev/null 2>&1; then
+    json_tool="python"
+  elif command -v node >/dev/null 2>&1 && node -e 'JSON.parse("{}")' >/dev/null 2>&1; then
+    json_tool="node"
+  elif command -v pwsh >/dev/null 2>&1 && pwsh -NoLogo -NoProfile -NonInteractive -Command '$null = "{}" | ConvertFrom-Json' >/dev/null 2>&1; then
+    json_tool="pwsh"
+  fi
+}
+
+validate_json_file() {
+  local path="$1"
+  case "$json_tool" in
+    jq)
+      jq -e . "$path" >/dev/null 2>&1
+      ;;
+    python3|python)
+      "$json_tool" -c 'import json, sys; json.load(open(sys.argv[1], "r", encoding="utf-8-sig"))' "$path" >/dev/null 2>&1
+      ;;
+    node)
+      node -e 'const fs = require("fs"); JSON.parse(fs.readFileSync(process.argv[1], "utf8").replace(/^\uFEFF/, ""));' "$path" >/dev/null 2>&1
+      ;;
+    pwsh)
+      pwsh -NoLogo -NoProfile -NonInteractive -Command '$text = Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8; $null = $text | ConvertFrom-Json -ErrorAction Stop' "$path" >/dev/null 2>&1
+      ;;
+    *)
+      return 2
+      ;;
+  esac
+}
+
+json_get_scalar() {
+  local path="$1"
+  local query="$2"
+  case "$json_tool" in
+    jq)
+      jq -er --arg path "$query" '
+        reduce ($path | split("."))[] as $key (.;
+          if type == "object" and has($key) then .[$key] else error("missing") end
+        )
+        | if type == "string" then .
+          elif type == "boolean" or type == "number" then tostring
+          elif . == null then "null"
+          else error("not scalar")
+          end
+      ' "$path"
+      ;;
+    python3|python)
+      "$json_tool" -c '
+import json, sys
+with open(sys.argv[1], "r", encoding="utf-8-sig") as handle:
+    value = json.load(handle)
+for key in sys.argv[2].split("."):
+    if not isinstance(value, dict) or key not in value:
+        raise KeyError(key)
+    value = value[key]
+if isinstance(value, bool):
+    text = "true" if value else "false"
+elif value is None:
+    text = "null"
+elif isinstance(value, (str, int, float)):
+    text = str(value)
+else:
+    raise TypeError("not scalar")
+sys.stdout.write(text)
+' "$path" "$query"
+      ;;
+    node)
+      node -e '
+const fs = require("fs");
+let value = JSON.parse(fs.readFileSync(process.argv[1], "utf8").replace(/^\uFEFF/, ""));
+for (const key of process.argv[2].split(".")) {
+  if (value === null || typeof value !== "object" || Array.isArray(value) || !Object.prototype.hasOwnProperty.call(value, key)) process.exit(3);
+  value = value[key];
+}
+if (value === null) process.stdout.write("null");
+else if (["string", "number", "boolean"].includes(typeof value)) process.stdout.write(String(value));
+else process.exit(4);
+' "$path" "$query"
+      ;;
+    pwsh)
+      pwsh -NoLogo -NoProfile -NonInteractive -Command '
+$value = (Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop)
+foreach ($segment in $args[1].Split(".")) {
+  $property = $value.PSObject.Properties[$segment]
+  if ($null -eq $property) { exit 3 }
+  $value = $property.Value
+}
+if ($value -is [bool]) { [Console]::Out.Write($value.ToString().ToLowerInvariant()) }
+elseif ($null -eq $value) { [Console]::Out.Write("null") }
+elseif ($value -is [string] -or $value -is [int] -or $value -is [long] -or $value -is [double] -or $value -is [decimal]) { [Console]::Out.Write([string]$value) }
+else { exit 4 }
+' "$path" "$query"
+      ;;
+    *)
+      return 2
+      ;;
+  esac
+}
+
+json_get_type() {
+  local path="$1"
+  local query="$2"
+  case "$json_tool" in
+    jq)
+      jq -er --arg path "$query" '
+        reduce ($path | split("."))[] as $key (.;
+          if type == "object" and has($key) then .[$key] else error("missing") end
+        )
+        | if type == "boolean" then "boolean"
+          elif type == "number" and (. == floor) then "integer"
+          elif type == "number" then "number"
+          elif type == "string" then "string"
+          elif . == null then "null"
+          else type
+          end
+      ' "$path"
+      ;;
+    python3|python)
+      "$json_tool" -c '
+import json, sys
+with open(sys.argv[1], "r", encoding="utf-8-sig") as handle:
+    value = json.load(handle)
+for key in sys.argv[2].split("."):
+    if not isinstance(value, dict) or key not in value:
+        raise KeyError(key)
+    value = value[key]
+if isinstance(value, bool):
+    text = "boolean"
+elif isinstance(value, int):
+    text = "integer"
+elif isinstance(value, float):
+    text = "number"
+elif isinstance(value, str):
+    text = "string"
+elif value is None:
+    text = "null"
+elif isinstance(value, list):
+    text = "array"
+elif isinstance(value, dict):
+    text = "object"
+else:
+    raise TypeError("unknown JSON type")
+sys.stdout.write(text)
+' "$path" "$query"
+      ;;
+    node)
+      node -e '
+const fs = require("fs");
+let value = JSON.parse(fs.readFileSync(process.argv[1], "utf8").replace(/^\uFEFF/, ""));
+for (const key of process.argv[2].split(".")) {
+  if (value === null || typeof value !== "object" || Array.isArray(value) || !Object.prototype.hasOwnProperty.call(value, key)) process.exit(3);
+  value = value[key];
+}
+let type;
+if (value === null) type = "null";
+else if (Array.isArray(value)) type = "array";
+else if (typeof value === "number") type = Number.isInteger(value) ? "integer" : "number";
+else type = typeof value;
+process.stdout.write(type);
+' "$path" "$query"
+      ;;
+    pwsh)
+      pwsh -NoLogo -NoProfile -NonInteractive -Command '
+$value = (Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop)
+foreach ($segment in $args[1].Split(".")) {
+  $property = $value.PSObject.Properties[$segment]
+  if ($null -eq $property) { exit 3 }
+  $value = $property.Value
+}
+if ($value -is [bool]) { [Console]::Out.Write("boolean") }
+elseif ($value -is [int] -or $value -is [long]) { [Console]::Out.Write("integer") }
+elseif ($value -is [double] -or $value -is [decimal]) { [Console]::Out.Write("number") }
+elseif ($value -is [string]) { [Console]::Out.Write("string") }
+elseif ($null -eq $value) { [Console]::Out.Write("null") }
+elseif ($value -is [System.Array]) { [Console]::Out.Write("array") }
+else { [Console]::Out.Write("object") }
+' "$path" "$query"
+      ;;
+    *)
+      return 2
+      ;;
+  esac
+}
+
+test_root_schema_integer_lexeme() {
+  local path="$1"
+  local expected="$2"
+  LC_ALL=C awk -v expected="$expected" '
+    { content = content $0 "\n" }
+    END {
+      sub(/^\357\273\277/, "", content)
+      pattern = "^[[:space:]]*\\{[[:space:]]*\"schemaVersion\"[[:space:]]*:[[:space:]]*" expected "[[:space:]]*[,}]"
+      exit(content ~ pattern ? 0 : 1)
+    }
+  ' "$path"
 }
 
 file_sha256() {
   local path="$1"
-  [[ -f "$path" ]] || return 0
-  if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum -- "$path" | awk '{print toupper($1)}'
-  elif command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 -- "$path" | awk '{print toupper($1)}'
+  local hash=""
+  if [[ ! -f "$path" ]]; then
+    echo "Fehler: SHA-256-Quelle fehlt oder ist keine Datei: $path" >&2
+    return 2
   fi
+  case "$sha256_tool" in
+    sha256sum) hash="$(sha256sum -- "$path" | awk '{print toupper($1)}')" ;;
+    shasum) hash="$(shasum -a 256 -- "$path" | awk '{print toupper($1)}')" ;;
+    *) echo "Fehler: Kein unterstütztes SHA-256-Werkzeug ausgewählt." >&2; return 2 ;;
+  esac
+  if [[ ! "$hash" =~ ^[A-F0-9]{64}$ ]]; then
+    echo "Fehler: Für die Datei wurde kein gültiger SHA-256-Wert erzeugt: $path" >&2
+    return 2
+  fi
+  printf '%s' "$hash"
 }
 
 validate_date() {
@@ -119,7 +361,11 @@ project_root="$(cd -- "$script_dir/.." && pwd)"
 
 firma=""
 rolle="Bewerbung"
-dokumentmodus="vollbewerbung"
+dokumentmodus=""
+umfang_auswahl=""
+dokumente_csv=""
+umfang_quelle="auswahl"
+email_allein_bestaetigt=false
 universal_lebenslauf_path=""
 datum="$(date +%F)"
 stellenbeschreibung_path=""
@@ -144,6 +390,25 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --dokumentmodus" >&2; exit 2; }
       dokumentmodus="$2"
       shift 2
+      ;;
+    --umfang)
+      [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --umfang" >&2; exit 2; }
+      umfang_auswahl="${2^^}"
+      shift 2
+      ;;
+    --dokumente)
+      [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --dokumente" >&2; exit 2; }
+      dokumente_csv="$2"
+      shift 2
+      ;;
+    --umfang-quelle)
+      [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --umfang-quelle" >&2; exit 2; }
+      umfang_quelle="$2"
+      shift 2
+      ;;
+    --email-allein-bestaetigt)
+      email_allein_bestaetigt=true
+      shift
       ;;
     --universal-lebenslauf-path)
       [[ $# -ge 2 ]] || { echo "Fehlender Wert fuer --universal-lebenslauf-path" >&2; exit 2; }
@@ -227,17 +492,144 @@ if [[ -n "$stellenbeschreibung_path" && ! -f "$stellenbeschreibung_path" ]]; the
   exit 2
 fi
 
-if [[ "$dokumentmodus" != "vollbewerbung" && "$dokumentmodus" != "anschreiben_mit_universalem_lebenslauf" ]]; then
-  echo "Fehler: --dokumentmodus muss vollbewerbung oder anschreiben_mit_universalem_lebenslauf sein." >&2
+for source_path in "$stammdaten_path" "$profil_path"; do
+  if [[ ! -f "$source_path" ]]; then
+    echo "Fehler: Stammdaten- und Profilpfad müssen vor der Anlage auf vorhandene Dateien zeigen: $source_path" >&2
+    exit 2
+  fi
+done
+
+sha256_tool=""
+if command -v sha256sum >/dev/null 2>&1; then
+  sha256_tool="sha256sum"
+elif command -v shasum >/dev/null 2>&1; then
+  sha256_tool="shasum"
+else
+  echo "Fehler: Für belastbare Quellnachweise wird sha256sum oder shasum benötigt." >&2
   exit 2
 fi
+
+json_tool=""
+select_json_tool
+if [[ -z "$json_tool" ]]; then
+  echo "Fehler: Für die verbindliche JSON-Prüfung wird jq, Python 3, Python, Node.js oder PowerShell 7 benötigt." >&2
+  exit 2
+fi
+
+if [[ -z "$dokumentmodus" && -z "$umfang_auswahl" ]]; then
+  echo "Fehler: Der Bewerbungsumfang muss vor der Ordneranlage mit --umfang A-E oder --dokumentmodus festgelegt werden." >&2
+  exit 2
+fi
+
+if [[ "$umfang_quelle" != "auswahl" && "$umfang_quelle" != "direkter_auftrag" && "$umfang_quelle" != "fortgesetzter_auftrag" ]]; then
+  echo "Fehler: --umfang-quelle ist ungültig." >&2
+  exit 2
+fi
+
+include_cv=false
+include_letter=false
+include_email=false
+cv_kind="nicht_enthalten"
+resolved_mode=""
+
+if [[ -n "$umfang_auswahl" ]]; then
+  case "$umfang_auswahl" in
+    A)
+      resolved_mode="vollbewerbung"
+      include_cv=true; include_letter=true; include_email=true; cv_kind="individuell"
+      ;;
+    B)
+      resolved_mode="anschreiben_mit_universalem_lebenslauf"
+      include_cv=true; include_letter=true; include_email=true; cv_kind="universal_unveraendert"
+      ;;
+    C)
+      resolved_mode="individuelle_auswahl"
+      include_cv=true; cv_kind="individuell"
+      ;;
+    D)
+      resolved_mode="individuelle_auswahl"
+      include_letter=true
+      ;;
+    E)
+      resolved_mode="individuelle_auswahl"
+      [[ -n "$dokumente_csv" ]] || { echo "Fehler: Umfang E erfordert --dokumente." >&2; exit 2; }
+      IFS=',' read -r -a dokumente <<< "$dokumente_csv"
+      for dokument in "${dokumente[@]}"; do
+        dokument="${dokument//[[:space:]]/}"
+        case "$dokument" in
+          lebenslauf) include_cv=true ;;
+          anschreiben) include_letter=true ;;
+          email_nachricht) include_email=true ;;
+          *) echo "Fehler: Unbekanntes Dokument in --dokumente: $dokument" >&2; exit 2 ;;
+        esac
+      done
+      if [[ "$include_cv" == true ]]; then
+        if [[ -n "$universal_lebenslauf_path" ]]; then cv_kind="universal_unveraendert"; else cv_kind="individuell"; fi
+      fi
+      ;;
+    *) echo "Fehler: --umfang muss A, B, C, D oder E sein." >&2; exit 2 ;;
+  esac
+  if [[ "$umfang_auswahl" != "E" && -n "$dokumente_csv" ]]; then
+    echo "Fehler: --dokumente ist nur für Umfang E zulässig." >&2
+    exit 2
+  fi
+  if [[ -n "$dokumentmodus" && "$dokumentmodus" != "$resolved_mode" ]]; then
+    echo "Fehler: --dokumentmodus und --umfang widersprechen sich." >&2
+    exit 2
+  fi
+  dokumentmodus="$resolved_mode"
+else
+  case "$dokumentmodus" in
+    vollbewerbung)
+      umfang_auswahl="A"; include_cv=true; include_letter=true; include_email=true; cv_kind="individuell"
+      ;;
+    anschreiben_mit_universalem_lebenslauf)
+      umfang_auswahl="B"; include_cv=true; include_letter=true; include_email=true; cv_kind="universal_unveraendert"
+      ;;
+    individuelle_auswahl)
+      umfang_auswahl="E"
+      [[ -n "$dokumente_csv" ]] || { echo "Fehler: individuelle_auswahl erfordert --dokumente." >&2; exit 2; }
+      IFS=',' read -r -a dokumente <<< "$dokumente_csv"
+      for dokument in "${dokumente[@]}"; do
+        dokument="${dokument//[[:space:]]/}"
+        case "$dokument" in
+          lebenslauf) include_cv=true ;;
+          anschreiben) include_letter=true ;;
+          email_nachricht) include_email=true ;;
+          *) echo "Fehler: Unbekanntes Dokument in --dokumente: $dokument" >&2; exit 2 ;;
+        esac
+      done
+      if [[ "$include_cv" == true ]]; then
+        if [[ -n "$universal_lebenslauf_path" ]]; then cv_kind="universal_unveraendert"; else cv_kind="individuell"; fi
+      fi
+      ;;
+    *) echo "Fehler: --dokumentmodus ist ungültig." >&2; exit 2 ;;
+  esac
+fi
+
+if [[ "$include_cv" == false && "$include_letter" == false && "$include_email" == false ]]; then
+  echo "Fehler: Der Dokumentumfang muss mindestens ein Dokument enthalten." >&2
+  exit 2
+fi
+if [[ "$include_email" == true && "$include_cv" == false && "$include_letter" == false && "$email_allein_bestaetigt" == false ]]; then
+  echo "Fehler: Ein reiner E-Mail-Auftrag ohne Anlagen erfordert --email-allein-bestaetigt." >&2
+  exit 2
+fi
+case "$umfang_auswahl" in
+  A) scope_code="komplette_bewerbung" ;;
+  B) scope_code="anschreiben_mit_universalem_lebenslauf" ;;
+  C) scope_code="individueller_lebenslauf" ;;
+  D) scope_code="nur_anschreiben" ;;
+  *) scope_code="eigene_zusammenstellung" ;;
+esac
+scope_summary="Lebenslauf=$cv_kind; Anschreiben=$include_letter; E-Mail=$include_email"
 
 bewerber_dateiname="$(markdown_field "$stammdaten_path" 'Dateiname-Name')"
 universal_source_full=""
 universal_source_hash=""
-if [[ "$dokumentmodus" == "anschreiben_mit_universalem_lebenslauf" ]]; then
+if [[ "$cv_kind" == "universal_unveraendert" ]]; then
   if [[ -z "$universal_lebenslauf_path" || ! -f "$universal_lebenslauf_path" ]]; then
-    echo "Fehler: Der Anschreiben-Modus erfordert --universal-lebenslauf-path mit einer vorhandenen HTML-Datei." >&2
+    echo "Fehler: Ein unveränderter universeller Lebenslauf erfordert --universal-lebenslauf-path mit einer vorhandenen HTML-Datei." >&2
     exit 2
   fi
   universal_source_full="$(cd -- "$(dirname -- "$universal_lebenslauf_path")" && pwd)/$(basename -- "$universal_lebenslauf_path")"
@@ -255,7 +647,7 @@ if [[ "$dokumentmodus" == "anschreiben_mit_universalem_lebenslauf" ]]; then
   fi
   universal_source_hash="$(file_sha256 "$universal_source_full")"
 elif [[ -n "$universal_lebenslauf_path" ]]; then
-  echo "Fehler: --universal-lebenslauf-path ist nur im Anschreiben-Modus zulässig." >&2
+  echo "Fehler: --universal-lebenslauf-path ist nur zulässig, wenn der Umfang einen universellen Lebenslauf enthält." >&2
   exit 2
 fi
 
@@ -303,9 +695,106 @@ if (( fortsetzen && arbeits_existed )); then
     echo "Fehler: Der vorhandene Arbeitsordner gehört nicht nachweislich zu derselben Firma und Rolle." >&2
     exit 2
   fi
-  if grep -Eq '^- Dokumentmodus: (vollbewerbung|anschreiben_mit_universalem_lebenslauf)$' "$existing_notes" && ! grep -Fqx -- "- Dokumentmodus: $dokumentmodus" "$existing_notes"; then
+  if grep -Eq '^- Dokumentmodus: (vollbewerbung|anschreiben_mit_universalem_lebenslauf|individuelle_auswahl)$' "$existing_notes" && ! grep -Fqx -- "- Dokumentmodus: $dokumentmodus" "$existing_notes"; then
     echo "Fehler: Der vorhandene Arbeitsordner verwendet einen anderen Dokumentmodus." >&2
     exit 2
+  fi
+  if grep -q '^- Dokumentumfang:' "$existing_notes" && ! grep -Fqx -- "- Dokumentumfang: $scope_summary" "$existing_notes"; then
+    echo "Fehler: Der vorhandene Arbeitsordner verwendet einen anderen Dokumentumfang." >&2
+    exit 2
+  fi
+  existing_order="$arbeits_dir/Bewerbungsauftrag.json"
+  if [[ ! -f "$existing_order" ]]; then
+    echo "Fehler: Der vorhandene Arbeitsordner enthält keinen prüfbaren Bewerbungsauftrag." >&2
+    exit 2
+  fi
+  if ! validate_json_file "$existing_order"; then
+    echo "Fehler: Bewerbungsauftrag ist kein gültiges JSON-Dokument." >&2
+    exit 2
+  fi
+  if ! existing_schema="$(json_get_scalar "$existing_order" "schemaVersion" 2>/dev/null)"; then
+    echo "Fehler: Bewerbungsauftrag enthält keine unterstützte Schemaversion." >&2
+    exit 2
+  fi
+  if ! existing_schema_type="$(json_get_type "$existing_order" "schemaVersion" 2>/dev/null)" ||
+     [[ "$existing_schema_type" != "integer" ]] ||
+     ! test_root_schema_integer_lexeme "$existing_order" "$existing_schema"; then
+    echo "Fehler: schemaVersion muss eine literale JSON-Ganzzahl sein." >&2
+    exit 2
+  fi
+  case "$existing_schema" in
+    4)
+      if ! existing_selection="$(json_get_scalar "$existing_order" "dokumentumfang.auswahl" 2>/dev/null)" ||
+         ! existing_scope_code="$(json_get_scalar "$existing_order" "dokumentumfang.kennung" 2>/dev/null)" ||
+         ! existing_cv_kind="$(json_get_scalar "$existing_order" "dokumentumfang.lebenslauf" 2>/dev/null)" ||
+         ! existing_letter="$(json_get_scalar "$existing_order" "dokumentumfang.anschreiben" 2>/dev/null)" ||
+         ! existing_email="$(json_get_scalar "$existing_order" "dokumentumfang.emailNachricht" 2>/dev/null)" ||
+         ! existing_email_only_approval="$(json_get_scalar "$existing_order" "dokumentumfang.emailAlleinBestaetigt" 2>/dev/null)" ||
+         ! existing_letter_type="$(json_get_type "$existing_order" "dokumentumfang.anschreiben" 2>/dev/null)" ||
+         ! existing_email_type="$(json_get_type "$existing_order" "dokumentumfang.emailNachricht" 2>/dev/null)" ||
+         ! existing_email_only_approval_type="$(json_get_type "$existing_order" "dokumentumfang.emailAlleinBestaetigt" 2>/dev/null)" ||
+         ! existing_mode="$(json_get_scalar "$existing_order" "dokumentmodus" 2>/dev/null)"; then
+        echo "Fehler: Bewerbungsauftrag mit Schema 4 enthält keinen vollständig prüfbaren Dokumentumfang." >&2
+        exit 2
+      fi
+      if [[ "$existing_letter_type" != "boolean" ||
+            "$existing_email_type" != "boolean" ||
+            "$existing_email_only_approval_type" != "boolean" ]]; then
+        echo "Fehler: Dokumentumfang mit Schema 4 enthält nicht typisierte Boolesche Werte." >&2
+        exit 2
+      fi
+      if [[ "$existing_selection" != "$umfang_auswahl" ||
+            "$existing_scope_code" != "$scope_code" ||
+            "$existing_cv_kind" != "$cv_kind" ||
+            "$existing_letter" != "$include_letter" ||
+            "$existing_email" != "$include_email" ||
+            "$existing_email_only_approval" != "$email_allein_bestaetigt" ||
+            "$existing_mode" != "$dokumentmodus" ]]; then
+        echo "Fehler: Bewerbungsauftrag und gewünschter Dokumentumfang stimmen beim Fortsetzen nicht exakt überein." >&2
+        exit 2
+      fi
+      ;;
+    1|2|3)
+      legacy_mode="$(json_get_scalar "$existing_order" "dokumentmodus" 2>/dev/null || true)"
+      case "$legacy_mode" in
+        ""|vollbewerbung)
+          legacy_selection="A"
+          legacy_mode="vollbewerbung"
+          ;;
+        anschreiben_mit_universalem_lebenslauf)
+          legacy_selection="B"
+          ;;
+        *)
+          echo "Fehler: Legacy-Bewerbungsauftrag enthält keinen eindeutig fortsetzbaren Dokumentumfang. Zuerst auf Schema 4 migrieren." >&2
+          exit 2
+          ;;
+      esac
+      if [[ "$umfang_auswahl" != "$legacy_selection" || "$dokumentmodus" != "$legacy_mode" ]]; then
+        echo "Fehler: Legacy-Bewerbungsauftrag repräsentiert einen anderen Dokumentumfang. Fortsetzen wurde verweigert." >&2
+        exit 2
+      fi
+      ;;
+    *)
+      echo "Fehler: Bewerbungsauftrag enthält keine unterstützte Schemaversion." >&2
+      exit 2
+      ;;
+  esac
+
+  if [[ "$cv_kind" == "universal_unveraendert" ]]; then
+    if ! existing_universal_path="$(json_get_scalar "$existing_order" "universalLebenslauf.sourceHtmlPath" 2>/dev/null)" ||
+       ! existing_universal_hash="$(json_get_scalar "$existing_order" "universalLebenslauf.sourceHtmlSha256BeiAnlage" 2>/dev/null)" ||
+       ! existing_candidate_name="$(json_get_scalar "$existing_order" "universalLebenslauf.kandidatDatei" 2>/dev/null)" ||
+       ! existing_applicant_name="$(json_get_scalar "$existing_order" "bewerberDateiname" 2>/dev/null)"; then
+      echo "Fehler: Bewerbungsauftrag enthält keine vollständig gebundene Universal-Lebenslauf-Quelle." >&2
+      exit 2
+    fi
+    if [[ "$existing_universal_path" != "$universal_source_full" ||
+          "${existing_universal_hash^^}" != "${universal_source_hash^^}" ||
+          "$existing_candidate_name" != "Lebenslauf - $bewerber_dateiname.html" ||
+          "$existing_applicant_name" != "$bewerber_dateiname" ]]; then
+      echo "Fehler: Beim Fortsetzen wurden Pfad, Dateiname oder Hash der Universal-Lebenslauf-Quelle verändert." >&2
+      exit 2
+    fi
   fi
 fi
 
@@ -371,7 +860,7 @@ elif [[ ! -e "$stellenbeschreibung_kandidat_file" && ! -e "$stellenbeschreibung_
 EOF
 fi
 
-if [[ "$dokumentmodus" == "anschreiben_mit_universalem_lebenslauf" ]]; then
+if [[ "$cv_kind" == "universal_unveraendert" ]]; then
   if [[ -f "$universal_candidate_file" ]]; then
     [[ "$(file_sha256 "$universal_candidate_file")" == "$universal_source_hash" ]] || {
       echo "Fehler: Der Kandidaten-Lebenslauf weicht von der freigegebenen Universalquelle ab." >&2
@@ -411,7 +900,7 @@ if [[ ! -e "$auftrag_file" ]]; then
   stammdaten_hash="$(file_sha256 "$stammdaten_path")"
   profil_hash="$(file_sha256 "$profil_path")"
   dokumentmodus_json="$(json_escape "$dokumentmodus")"
-  if [[ "$dokumentmodus" == "anschreiben_mit_universalem_lebenslauf" ]]; then
+  if [[ "$cv_kind" == "universal_unveraendert" ]]; then
     universal_source_json="$(json_escape "$universal_source_full")"
     universal_candidate_json="$(json_escape "Lebenslauf - $bewerber_dateiname.html")"
     universal_json="{\"sourceHtmlPath\": \"$universal_source_json\", \"sourceHtmlSha256BeiAnlage\": \"$universal_source_hash\", \"kandidatDatei\": \"$universal_candidate_json\"}"
@@ -421,7 +910,7 @@ if [[ ! -e "$auftrag_file" ]]; then
   created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   cat > "$auftrag_file" <<EOF
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "firma": "$firma_json",
   "firmaSlug": "$firma_slug",
   "rolle": "$rolle_json",
@@ -432,8 +921,19 @@ if [[ ! -e "$auftrag_file" ]]; then
   "arbeitsOrdner": "$arbeits_json",
   "kandidatOrdner": "$kandidat_json",
   "dokumentmodus": "$dokumentmodus_json",
+  "dokumentumfang": {
+    "auswahl": "$umfang_auswahl",
+    "kennung": "$scope_code",
+    "lebenslauf": "$cv_kind",
+    "anschreiben": $include_letter,
+    "emailNachricht": $include_email,
+    "quelle": "$umfang_quelle",
+    "bestaetigt": true,
+    "emailAlleinBestaetigt": $email_allein_bestaetigt,
+    "bestaetigtAtUtc": "$created_at"
+  },
   "universalLebenslauf": $universal_json,
-  "seitenstrategie": "noch_festzulegen",
+  "seitenstrategie": "$(if [[ "$include_cv" == true ]]; then printf 'noch_festzulegen'; else printf 'nicht_erforderlich'; fi)",
   "bewerbungslogistik": {
     "verfuegbarkeit": "$verfuegbarkeit_json",
     "fruehesterEintrittstermin": "$eintritt_json",
@@ -454,9 +954,16 @@ if [[ ! -e "$auftrag_file" ]]; then
   },
   "bewerbungsentscheidung": "noch_festzulegen",
   "darstellungsoptionen": {
-    "schulbildungsmodus": "noch_festzulegen",
-    "profillinksModus": "noch_festzulegen",
+    "schulbildungsmodus": "$(if [[ "$include_cv" == true ]]; then printf 'noch_festzulegen'; else printf 'nicht_erforderlich'; fi)",
+    "profillinksModus": "$(if [[ "$include_cv" == true ]]; then printf 'noch_festzulegen'; else printf 'nicht_erforderlich'; fi)",
     "profillinksAuswahl": []
+  },
+  "dialog": {
+    "schemaVersion": 1,
+    "status": "profilabgleich_ausstehend",
+    "rueckfragen": [],
+    "angaben": [],
+    "updatedAtUtc": "$created_at"
   },
   "quellnachweise": {
     "stammdatenSha256BeiAnlage": "$stammdaten_hash",
@@ -465,6 +972,10 @@ if [[ ! -e "$auftrag_file" ]]; then
   "createdAtUtc": "$created_at"
 }
 EOF
+  if ! validate_json_file "$auftrag_file"; then
+    echo "Fehler: Der erzeugte Bewerbungsauftrag ist kein gültiges JSON-Dokument." >&2
+    exit 1
+  fi
 fi
 
 if [[ ! -e "$anforderungsmatrix_entwurf_file" ]]; then
@@ -502,7 +1013,7 @@ if [[ ! -e "$analyse_entwurf_file" ]]; then
 EOF
 fi
 
-if [[ "$dokumentmodus" == "vollbewerbung" && ! -e "$lebenslauf_entwurf_file" ]]; then
+if [[ "$include_cv" == true && "$cv_kind" == "individuell" && ! -e "$lebenslauf_entwurf_file" ]]; then
   cat > "$lebenslauf_entwurf_file" <<EOF
 <!doctype html>
 <html lang="de">
@@ -532,7 +1043,7 @@ if [[ "$dokumentmodus" == "vollbewerbung" && ! -e "$lebenslauf_entwurf_file" ]];
 EOF
 fi
 
-if [[ ! -e "$anschreiben_entwurf_file" ]]; then
+if [[ "$include_letter" == true && ! -e "$anschreiben_entwurf_file" ]]; then
   cat > "$anschreiben_entwurf_file" <<EOF
 <!doctype html>
 <html lang="de">
@@ -569,6 +1080,7 @@ if [[ ! -e "$arbeitsnotizen_file" ]]; then
 - Firma: $firma
 - Zielrolle: $rolle
 - Dokumentmodus: $dokumentmodus
+- Dokumentumfang: $scope_summary
 - Finaler Bewerbungsordner: $ziel_dir
 - Entwurfs-/Arbeitsdateien: $arbeits_dir
 - Kandidatendateien vor Freigabe: $kandidat_dir
@@ -579,13 +1091,18 @@ Der finale Bewerbungsordner bleibt bis zur erfolgreichen atomaren Veröffentlich
 EOF
 fi
 
-if [[ ! -e "$email_entwurf_file" ]]; then
+if [[ "$include_email" == true && ! -e "$email_entwurf_file" ]]; then
+  if [[ "$include_cv" == true || "$include_letter" == true ]]; then
+    email_intro="anbei sende ich Ihnen meine Bewerbungsunterlagen für die Position als $rolle bei $firma."
+  else
+    email_intro="hiermit bewerbe ich mich für die Position als $rolle bei $firma."
+  fi
   cat > "$email_entwurf_file" <<EOF
 Betreff: Bewerbung als $rolle - [Name aus Private/Daten/01_PERSOENLICHE_DATEN.md]
 
 Sehr geehrte Damen und Herren,
 
-anbei sende ich Ihnen meine Bewerbungsunterlagen für die Position als $rolle.
+$email_intro
 
 Über eine Rückmeldung freue ich mich.
 
@@ -599,9 +1116,11 @@ if [[ ! -e "$qualitaetscheck_entwurf_file" ]]; then
 # Qualitätscheck
 
 - [ ] Stellenbeschreibung analysiert
-- [ ] Lebenslauf auf Zielrolle zugeschnitten
-- [ ] Anschreiben individuell formuliert
-- [ ] E-Mail-Nachricht erstellt
+EOF
+  if [[ "$include_cv" == true ]]; then printf '%s\n' '- [ ] Lebenslauf gemäß gewählter Strategie geprüft' >> "$qualitaetscheck_entwurf_file"; fi
+  if [[ "$include_letter" == true ]]; then printf '%s\n' '- [ ] Anschreiben individuell formuliert' >> "$qualitaetscheck_entwurf_file"; fi
+  if [[ "$include_email" == true ]]; then printf '%s\n' '- [ ] E-Mail-Nachricht erstellt' >> "$qualitaetscheck_entwurf_file"; fi
+  cat >> "$qualitaetscheck_entwurf_file" <<'EOF'
 - [ ] Keine erfundenen Kenntnisse
 - [ ] Keine sichtbaren Platzhalter in finalen Dokumenten
 - [ ] Fehlende Daten in Offene_Fragen.md dokumentiert
@@ -623,26 +1142,29 @@ if [[ ! -e "$druck_hinweis_file" ]]; then
   cat > "$druck_hinweis_file" <<'EOF'
 # Druck-Hinweis
 
-Wenn in Firefox Dateiname, URL, Datum oder Seitenzahl im Ausdruck erscheinen, kommt das aus dem Firefox-Druckdialog und nicht aus der HTML-Datei.
+Der verbindliche PDF-Export erfolgt automatisiert mit Chrome oder Edge. Browser-Kopf- und Fußzeilen wie Dateiname, URL, Datum oder Seitenzahl dürfen dabei nicht erscheinen.
 
 Vor dem finalen PDF-Export oder Druck:
 
-1. HTML-Datei in Firefox öffnen.
-2. Strg + P drücken.
-3. Weitere Einstellungen öffnen.
-4. Kopf- und Fußzeilen drucken deaktivieren.
-5. Skalierung auf 100% stellen.
-6. Ränder auf Keine stellen.
+1. Tools/Finalisiere-Bewerbung.ps1 mit -Browser auto ausführen.
+2. Jeden frisch erzeugten Seitenscreenshot tatsächlich prüfen.
+3. Keine manuelle Browservorschau als bestandenen maschinellen Export ausgeben.
 
-Ziel: Die sichtbare A4-Seite im Browser soll ohne Firefox-Dateipfad, URL, Datum oder Seitenzahlen als PDF/Druck ausgegeben werden.
+Ziel: Die sichtbare A4-Seite wird ohne Browser-Dateipfad, URL, Datum oder Browser-Seitenzahlen als PDF ausgegeben.
 EOF
+fi
+
+if ! validate_json_file "$auftrag_file"; then
+  echo "Fehler: Bewerbungsauftrag ist vor Abschluss kein gültiges JSON-Dokument." >&2
+  exit 1
 fi
 
 printf 'Bewerbungsordner: %s\n' "$ziel_dir"
 printf 'Arbeitsdateien: %s\n' "$arbeits_dir"
 printf 'Kandidatendateien: %s\n' "$kandidat_dir"
 printf 'Dokumentmodus: %s\n' "$dokumentmodus"
-if [[ "$dokumentmodus" == "anschreiben_mit_universalem_lebenslauf" ]]; then
+printf 'Dokumentumfang: %s\n' "$scope_summary"
+if [[ "$cv_kind" == "universal_unveraendert" ]]; then
   printf 'Universeller Lebenslauf unverändert übernommen: %s\n' "$universal_candidate_file"
 fi
 success=1
