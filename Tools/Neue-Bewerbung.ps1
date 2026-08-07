@@ -745,18 +745,15 @@ if (-not (Test-Path -LiteralPath $druckHinweisFile)) {
   Set-Content -LiteralPath $druckHinweisFile -Encoding UTF8 -Value @"
 # Druck-Hinweis
 
-Wenn in Firefox Dateiname, URL, Datum oder Seitenzahl im Ausdruck erscheinen, kommt das aus dem Firefox-Druckdialog und nicht aus der HTML-Datei.
+Der verbindliche PDF-Export erfolgt automatisiert mit Chrome oder Edge. Browser-Kopf- und Fußzeilen wie Dateiname, URL, Datum oder Seitenzahl dürfen dabei nicht erscheinen.
 
 Vor dem finalen PDF-Export oder Druck:
 
-1. HTML-Datei in Firefox öffnen.
-2. `Strg + P` drücken.
-3. `Weitere Einstellungen` öffnen.
-4. `Kopf- und Fußzeilen drucken` deaktivieren.
-5. Skalierung auf `100%` stellen.
-6. Ränder auf `Keine` stellen.
+1. `Tools/Finalisiere-Bewerbung.ps1` mit `-Browser auto` ausführen.
+2. Jeden frisch erzeugten Seitenscreenshot tatsächlich prüfen.
+3. Keine manuelle Browservorschau als bestandenen maschinellen Export ausgeben.
 
-Ziel: Die sichtbare A4-Seite im Browser soll ohne Firefox-Dateipfad, URL, Datum oder Seitenzahlen als PDF/Druck ausgegeben werden.
+Ziel: Die sichtbare A4-Seite wird ohne Browser-Dateipfad, URL, Datum oder Browser-Seitenzahlen als PDF ausgegeben.
 "@
 }
 

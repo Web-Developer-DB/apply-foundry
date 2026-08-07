@@ -14,6 +14,7 @@ Alle generierten Bewerbungsdateien liegen unter `Private/`, damit das Projekt oh
 AGENTS.md
 CLAUDE.md
 GEMINI.md
+opencode.json
 Prompts/
 Vorlagen/
 Tools/
@@ -205,7 +206,7 @@ Der finale Bewerbungsordner darf erst nach Dialogstatus-, Stammdaten-, Inhalts- 
 
 Finale HTML-Dateien müssen außerdem druckstabil sein:
 
-- Einseiten-Dokumente dürfen in Firefox bei 100 Prozent Skalierung keine zweite Seite erzeugen.
+- Einseiten-Dokumente dürfen im verbindlichen Chrome-/Edge-Export bei 100 Prozent Skalierung keine zweite Seite erzeugen.
 - Zweiseitige Dokumente müssen bewusst zwei A4-Seitencontainer enthalten.
 - Drucklayout-Korrekturen werden an der HTML-Datei im Kandidatenordner vorgenommen. Danach müssen Layout- und PDF-Nachweise wegen der Hashbindung neu erzeugt werden.
 

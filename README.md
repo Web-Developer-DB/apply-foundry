@@ -11,7 +11,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Agentenregeln-AGENTS.md-0F766E?style=flat-square" alt="Agentenunabhängiger Einstieg über AGENTS.md">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.7.0-2563EB?style=flat-square" alt="Aktuelle Version 1.7.0"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.8.0-2563EB?style=flat-square" alt="Aktuelle Version 1.8.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-22C55E?style=flat-square" alt="MIT-Lizenz"></a>
   <a href="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
   <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
@@ -103,15 +103,15 @@ flowchart LR
 
 ### Automatischer Projekteinstieg für Coding-Agenten
 
-Nach dem Start einer Agentensitzung im Projektstamm laden AGENTS-kompatible Agenten die Routing- und Sicherheitsregeln aus [`AGENTS.md`](AGENTS.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) sind dünne Adapter, die dieselben Regeln importieren. `AGENTS.md` weist den Agenten an, den einzigen vollständigen Workflow aus [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) zu lesen; die Module `01` bis `11` werden erst beim jeweils zuständigen Arbeitsschritt geladen. Die vollständige Auswahl-, Rückfrage- und Speicherlogik liegt zentral in [`Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`](Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md). Eine zusätzliche `opencode.json` ist für diesen Einstieg nicht erforderlich.
+Nach dem Start einer Agentensitzung im Projektstamm laden AGENTS-kompatible Agenten die Routing- und Sicherheitsregeln aus [`AGENTS.md`](AGENTS.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) sind dünne Adapter, die dieselben Regeln importieren. `AGENTS.md` weist den Agenten an, den einzigen vollständigen Workflow aus [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) nur für Bewerbungsaufträge zu lesen; die Module `01` bis `11` werden erst beim jeweils zuständigen Arbeitsschritt geladen. Die vollständige Auswahl-, Rückfrage- und Speicherlogik liegt zentral in [`Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`](Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md). [`opencode.json`](opencode.json) deaktiviert die OpenCode-Freigabefunktion im Projekt, dupliziert aber weder Prompts noch Modell- oder Providerwahl.
 
-| Umgebung | Projektstatus | Automatische Projektregeln | Lokaler Teststand vom 05.08.2026 |
+| Umgebung | Projektstatus | Automatische Projektregeln | Lokaler Teststand vom 06.08.2026 |
 | --- | --- | --- | --- |
 | Codex in VS Code | unterstützt | `AGENTS.md` | strukturell geprüft; kein vollständiger Beispielworkflow in einer frischen IDE-Sitzung |
 | Codex CLI | unterstützt | `AGENTS.md` | CLI `0.146.0-alpha.9.2`; frische Read-only-Sitzung erkannte das Projekt und lud den kanonischen Prompt |
 | ChatGPT-Desktop-App mit Codex | vorbereitet | `AGENTS.md` | gemeinsamer Adapter vorhanden; nicht in einer frischen App-Sitzung getestet |
-| OpenCode | vorbereitet | `AGENTS.md` | CLI `1.18.10` mit isolierter Konfiguration gestartet; keine frische Modellsitzung abgeschlossen |
-| OpenCode mit Ollama | experimentell | OpenCode lädt `AGENTS.md`; Ollama liefert das Modell | Launcher bis OpenCode `1.18.10` geprüft; lokaler `qwen3.5:9b`-Startauftrag erreichte nach 120 Sekunden den Timeout |
+| OpenCode | vorbereitet | `AGENTS.md` und `opencode.json` | CLI `1.18.10` und aufgelöste Projektkonfiguration mit isoliertem Benutzerprofil geprüft; keine frische Modellsitzung abgeschlossen |
+| OpenCode mit Ollama | experimentell | dieselben Projektregeln; Ollama ergänzt Provider und Modell zur Laufzeit | Launcher bis OpenCode `1.18.10` geprüft; lokaler `qwen3.5:9b`-Startauftrag erreichte nach 120 Sekunden den Timeout |
 | Claude Code | vorbereitet | `CLAUDE.md` → `AGENTS.md` | Adapter automatisiert geprüft; Claude CLI lokal nicht installiert |
 | Gemini-basierter Coding-Agent | vorbereitet | `GEMINI.md` → `AGENTS.md` | Adapter automatisiert geprüft; keine frische Modellsitzung |
 | andere AGENTS.md-Agenten | experimentell | `AGENTS.md` | abhängig von Datei-, Terminal-, Browser- und Bildfähigkeiten |
@@ -209,7 +209,9 @@ cd bewerbungs-agent
 ollama launch opencode
 ```
 
-Der Ollama-Launcher öffnet die Modellauswahl; eine zusätzliche Projektkonfiguration ist dafür nicht erforderlich. In einer normalen OpenCode-Sitzung steht `/models` für die Modellwahl zur Verfügung. Prüfe bei lokalen Modellen besonders Kontextlänge und zuverlässige Werkzeugaufrufe; Ollama empfiehlt für Agenten- und Coding-Aufgaben mindestens 64.000 Kontexttokens, was den Speicherbedarf erhöht. Kleine lokale Modelle können lange Regeln, Auswahlantworten, korrektes JSON, HTML/CSS, mehrere Prüfberichte oder Bildrückmeldungen weniger zuverlässig verarbeiten. Bei einer mehrdeutigen Auswahl fragt der Workflow höchstens einmal vereinfacht nach und stoppt danach, statt Umfang oder Profilzustimmung zu erraten.
+Die Projektdatei `opencode.json` gilt für OpenCode im Terminal ebenso wie für eine darauf aufbauende Editor-Erweiterung. Sie deaktiviert nur das Teilen von Sitzungen; Modell und Provider bleiben bewusst ungebunden. `ollama launch opencode` ergänzt diese Laufzeitwerte zur bestehenden Projektkonfiguration, sodass kein lokaler Modellname im Repository festgeschrieben werden muss. In einer normalen OpenCode-Sitzung steht `/models` für die Modellwahl zur Verfügung. Wer OpenCode aus dem integrierten Terminal eines unterstützten Editors startet, kann die von OpenCode angebotene Editor-Integration nutzen; die Projektregeln bleiben dieselben.
+
+Prüfe bei lokalen Modellen besonders Kontextlänge und zuverlässige Werkzeugaufrufe; Ollama empfiehlt für Agenten- und Coding-Aufgaben mindestens 64.000 Kontexttokens, was den Speicherbedarf erhöht. Kleine lokale Modelle können lange Regeln, Auswahlantworten, korrektes JSON, HTML/CSS, mehrere Prüfberichte oder Bildrückmeldungen weniger zuverlässig verarbeiten. Bei einer mehrdeutigen Auswahl fragt der Workflow höchstens einmal vereinfacht nach und stoppt danach, statt Umfang oder Profilzustimmung zu erraten.
 
 Claude Code:
 
@@ -708,7 +710,7 @@ git status --short
 
 In der Ausgabe dürfen keine echten Dateien aus `Private/` auftauchen. Zeigt `git status --short --ignored` den Eintrag `!! Private/`, arbeitet die Ignore-Regel wie vorgesehen.
 
-Öffentlich geeignet sind insbesondere `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.github/`, `Prompts/`, `Tests/`, `Tools/`, `Vorlagen/`, `Private.example/`, `CHANGELOG.md` und `README.md`.
+Öffentlich geeignet sind insbesondere `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `opencode.json`, `.github/`, `Prompts/`, `Tests/`, `Tools/`, `Vorlagen/`, `Private.example/`, `CHANGELOG.md` und `README.md`.
 
 </details>
 
@@ -936,7 +938,7 @@ Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Absc
 - Die öffentliche CI prüft keine echten Browserläufe; Browser-, Layout- und PDF-Prüfungen müssen deshalb auf dem eigenen Rechner ausgeführt und persönlich kontrolliert werden.
 - OpenCode, Claude Code und andere Adapter stellen den Projekteinstieg bereit; ein vollständiger Bewerbungsdurchlauf wurde nicht mit jeder Umgebung und jedem Modell wiederholt.
 - Lokale Modelle benötigen genügend Kontext und zuverlässige Werkzeugaufrufe. Uneindeutige Auswahl- oder Speicherantworten müssen fehlergeschlossen bleiben; fehlende Bildfähigkeit darf nicht als bestandene PNG-Prüfung ausgegeben werden.
-- Der Dialogvertrag und seine fiktiven Fixtures sind dokumentiert. Für den Nachweis von Version 1.7.0 wurde kein neuer realer Ollama-Modelllauf für die A–E-Auswahl oder Profilzustimmung ausgeführt.
+- Der Dialogvertrag und seine fiktiven Fixtures sind dokumentiert. Für den Nachweis von Version 1.8.0 wurde kein neuer realer Ollama-Modelllauf für die A–E-Auswahl oder Profilzustimmung ausgeführt.
 - Nicht jede Agentenoberfläche stellt maschinenlesbare Tokenwerte bereit oder kann Lebenslauf und Gesamtsitzung getrennt messen. In diesem Fall bleibt der Bericht ausdrücklich `unavailable`; das Projekt schätzt keine Werte.
 - HTML- und PDF-Prüfungen sind konservativ auf den unterstützten Chromium-Export ausgerichtet; ungewöhnliche Designs und andere PDF-Erzeuger benötigen zusätzliche Regressionstests.
 - Eine echte manuelle Sichtprüfung bleibt erforderlich, besonders bei neuen Designs und zweiseitigen Lebensläufen.
@@ -979,6 +981,7 @@ bewerbungs-agent/
 ├─ AGENTS.md
 ├─ CLAUDE.md
 ├─ GEMINI.md
+├─ opencode.json
 ├─ CHANGELOG.md
 ├─ LINUX-PORTIERUNGSPLAN.md
 ├─ README.md
@@ -1050,7 +1053,7 @@ Weitere private Bereiche wie `Archiv/` oder `Bewertungen/` können lokal existie
 
 ### Prompt-System
 
-Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine bedarfsgerechte Fähigkeitenprüfung und routet Bewerbungsaufträge zum fachlichen Einstieg [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) importieren ausschließlich die gemeinsamen Regeln; fachliche Abläufe werden dort nicht dupliziert. OpenCode liest `AGENTS.md` aus dem Projektstamm, dessen ausdrückliche Leseanweisung den kanonischen Prompt öffnet. Eine `opencode.json` wird bewusst nicht mitgeführt, weil für Erkennung, sicheren Werkzeugzugriff oder den Ollama-Launcher derzeit keine zusätzliche Projektkonfiguration erforderlich ist. Änderungen gehören in das fachlich passende Promptmodul:
+Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine bedarfsgerechte Fähigkeitenprüfung und routet Bewerbungsaufträge zum fachlichen Einstieg [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) importieren ausschließlich die gemeinsamen Regeln; fachliche Abläufe werden dort nicht dupliziert. OpenCode liest `AGENTS.md` nativ. Die zusätzliche [`opencode.json`](opencode.json) schaltet das Teilen von Sitzungen aus, enthält bewusst keine zweite Promptliste und lässt Provider sowie Modell für OpenCode, eine Editor-Integration oder `ollama launch opencode` offen. Änderungen gehören in das fachlich passende Promptmodul:
 
 | Datei | Verantwortung |
 | --- | --- |
@@ -1072,6 +1075,7 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine
 | --- | --- | --- |
 | `Neue-Bewerbung.ps1` | Arbeits- und Zielstruktur samt Schema-4-Umfang erzeugen | `-Firma "..." -Rolle "..." -UmfangAuswahl A` |
 | `neue-bewerbung.sh` | Bash-Variante des umfangsabhängigen Ordnerhelfers | `--firma "..." --rolle "..." --umfang A` |
+| `Ermittle-Bewerbungsstatus.ps1` | letzten oder angegebenen Arbeitsstand read-only aus Dateien und Hashnachweisen rekonstruieren | `-AlsJson` oder `-Arbeitsordner "..." -AlsJson` |
 | `Pruefe-Dialogstatus.ps1` | Umfang, Rückfragen, Angaben, Widersprüche und Speicherentscheidungen validieren | `-AuftragPath ".../Bewerbungsauftrag.json" -FuerDokumenterstellung` |
 | `Uebernehme-Dialogangabe.ps1` | bestätigte Angabe nur auftragsbezogen markieren oder kontrolliert ins zulässige Profilziel übernehmen | `-AuftragPath "..." -AngabeId "..." -Speicherentscheidung nur_auftrag` |
 | `Pruefe-Stammdaten.ps1` | Identität, Kontakt und Logistik prüfen | ohne Parameter oder mit Auftragspfad |
@@ -1174,7 +1178,7 @@ Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `str
 
 ### Tests & CI
 
-Die abhängigkeitsfreie Regressionstestsuite prüft den kanonischen Agenteneinstieg, Claude-/Gemini-Adapter, korrekte Groß-/Kleinschreibung der Pfade, Fähigkeiten- und Fortsetzungsverträge, Schutz vor eingebetteten Fremdanweisungen, README-Verweise, Tokenbericht, Prompt-/Tool-Verträge, Schema-4-Umfang, Dialogstatus, Profilhash- und Deduplizierungsgrenzen, dynamische Artefaktmengen, Logistik-Snapshots, Anforderungsmatrix, technische Berichts- und HTML-/PDF-Namensbindungen, Staging, Manifest, Veröffentlichung und Fehlerszenarien:
+Die abhängigkeitsfreie Regressionstestsuite prüft den kanonischen Agenteneinstieg, Claude-/Gemini-Adapter, den datensparsamen OpenCode-Vertrag, korrekte Groß-/Kleinschreibung der Pfade, Fähigkeiten- und dateibasierte Fortsetzungsverträge, Schutz vor eingebetteten Fremdanweisungen, README-Verweise, Tokenbericht, Prompt-/Tool-Verträge, Schema-4-Umfang, Dialogstatus, Profilhash- und Deduplizierungsgrenzen, dynamische Artefaktmengen, Logistik-Snapshots, Anforderungsmatrix, technische Berichts- und HTML-/PDF-Namensbindungen, Staging, Manifest, Veröffentlichung und Fehlerszenarien:
 
 ```powershell
 .\Tests\Run-RegressionTests.ps1
@@ -1194,9 +1198,9 @@ bash Tests/Bash/test-neue-bewerbung.sh
 
 Die öffentliche CI läuft über [`.github/workflows/tests.yml`](.github/workflows/tests.yml): Windows führt die PowerShell-Suite aus, Ubuntu prüft die Bash-Skripte mit ShellCheck und Regressionstests. Browserfälle bleiben lokal optional, da Runner und Sandboxen keine identische Browserumgebung garantieren.
 
-Die dokumentierten Frischsitzungs-, CLI- und Modelltests stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md). Die neun Dialogfälle mit Eingabe, erwartetem Datei-/Dialogzustand und getrenntem Automatisierungsstatus stehen in [`Tests/Interaktiver-Bewerbungsdialog.md`](Tests/Interaktiver-Bewerbungsdialog.md). Beide Kataloge verwenden ausschließlich öffentliche Regeln beziehungsweise temporäre fiktive Fixtures und nennen nicht ausgeführte Umgebungen ausdrücklich. Die deterministischen Dialogverträge sind kein Beleg für natürliches Sprachverständnis eines konkreten Modells; ein neuer realer Ollama-Dialogtest wurde für Version 1.7.0 nicht ausgeführt.
+Die dokumentierten Frischsitzungs-, CLI- und Modelltests stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md). Die neun Dialogfälle mit Eingabe, erwartetem Datei-/Dialogzustand und getrenntem Automatisierungsstatus stehen in [`Tests/Interaktiver-Bewerbungsdialog.md`](Tests/Interaktiver-Bewerbungsdialog.md). Beide Kataloge verwenden ausschließlich öffentliche Regeln beziehungsweise temporäre fiktive Fixtures und nennen nicht ausgeführte Umgebungen ausdrücklich. Die deterministischen Dialogverträge sind kein Beleg für natürliches Sprachverständnis eines konkreten Modells; ein neuer realer Ollama-Dialogtest wurde für Version 1.8.0 nicht ausgeführt.
 
-Lokaler Stand vom 05.08.2026 für Version 1.7.0: **59 von 59 Tests ohne Browser** und **66 von 66 Tests mit lokal freigegebenem Chrome-Browserlauf** bestanden. Die in der PowerShell-Suite enthaltene Bash-Regressionssuite sowie ihr separater Aufruf bestanden ebenfalls. Die Browserfälle wurden nach der vorgesehenen lokalen Browserfreigabe ausgeführt. Ein realer Dialog mit einem Ollama-Modell, ShellCheck und PSScriptAnalyzer waren nicht Bestandteil dieses Laufs; ShellCheck und PSScriptAnalyzer waren lokal nicht installiert.
+Lokaler Stand vom 06.08.2026 für Version 1.8.0: **61 von 61 Tests ohne Browser** und **68 von 68 Tests mit lokal freigegebenem Chrome-Browserlauf** bestanden. Die PowerShell-Suite enthielt dabei auch die Bash-Regressionssuite. Der erste Browserversuch innerhalb der verwalteten Sandbox scheiterte ausschließlich am Chrome-Prozessstart; die anschließend ausdrücklich freigegebene lokale Browsermatrix bestand vollständig. Ein realer Dialog mit einem Ollama-Modell, ShellCheck und PSScriptAnalyzer waren nicht Bestandteil dieses Laufs.
 
 <details>
 <summary><strong>HTML-, PDF- und Browser-Verträge</strong></summary>
@@ -1247,7 +1251,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | Ziel | Zuständige Datei |
 | --- | --- |
 | Hauptablauf | `Prompts/00_AGENTEN_START_HIER.md` |
-| Agentenübergreifendes Routing und Adapter | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` |
+| Agentenübergreifendes Routing und Adapter | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `opencode.json` |
 | Interaktiver Dialog, Dokumentumfang und Profilzustimmung | `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` |
 | Lebenslauf | `Prompts/03_LEBENSLAUF_REGELN.md` |
 | Anschreiben | `Prompts/04_ANSCHREIBEN_REGELN.md` |
@@ -1257,6 +1261,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | Qualität und Dateiregeln | `Prompts/09_QUALITAETSCHECK.md`, `Prompts/10_DATEI_UND_ORDNER_REGELN.md` |
 | technischer Workflow | `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md` |
 | Ordnererstellung und Schema-4-Umfang | `Tools/Neue-Bewerbung.ps1`, `Tools/neue-bewerbung.sh` |
+| dateibasierte Statusrekonstruktion | `Tools/Ermittle-Bewerbungsstatus.ps1` |
 | Dialogzustand und kontrollierte Profilübernahme | `Tools/Pruefe-Dialogstatus.ps1`, `Tools/Uebernehme-Dialogangabe.ps1` |
 | Stammdaten und Inhalt | `Tools/Pruefe-Stammdaten.ps1`, `Tools/Pruefe-Bewerbungsinhalt.ps1` |
 | Finalisierung | `Tools/Finalisiere-Bewerbung.ps1` |

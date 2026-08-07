@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Ein laut Dokumentumfang ausgewählter Lebenslauf oder ein ausgewähltes Anschreiben wird jeweils als eigenständige HTML-Datei erzeugt. Jedes vorhandene HTML-Dokument muss in Firefox sichtbar gut aussehen und in der Druckansicht dieselben Proportionen behalten.
+Ein laut Dokumentumfang ausgewählter Lebenslauf oder ein ausgewähltes Anschreiben wird jeweils als eigenständige HTML-Datei erzeugt. Jedes vorhandene HTML-Dokument muss in Chrome oder Edge sichtbar gut aussehen und im verbindlichen Chromium-Druckexport dieselben Proportionen behalten. Andere Browser dürfen zusätzlich manuell geprüft werden, ersetzen aber keinen maschinellen Nachweis.
 
 ## Grundregeln
 
@@ -13,7 +13,7 @@ Ein laut Dokumentumfang ausgewählter Lebenslauf oder ein ausgewähltes Anschrei
 - A4 als feste Seitenfläche verwenden.
 - Bildschirmansicht und Druckansicht dürfen nicht heimlich unterschiedliche Schriftgrößen, Spaltenbreiten oder Abstände verwenden.
 - Einseiten-Dokumente müssen technisch eine feste A4-Seite sein: `width: 210mm; height: 297mm;`.
-- `min-height: 297mm` allein ist für finale Einseiter nicht erlaubt, weil Firefox sonst automatisch auf zwei Seiten umbrechen kann.
+- `min-height: 297mm` allein ist für finale Einseiter nicht erlaubt, weil der Browser sonst automatisch auf zwei Seiten umbrechen kann.
 - Der Lebenslauf soll ruhig, tabellarisch und recruiterfreundlich wirken. Keine dominierende Kontaktkarte, keine unruhige Skill-Tag-Wolke und keine portfolioartige Gestaltung, sofern die Stelle keinen kreativen Portfolio-CV verlangt.
 
 ## A4-Struktur
@@ -136,21 +136,17 @@ Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
 
 Für mehrseitige Lebensläufe ist dieser Footer Pflicht. Die Maße für `left`, `right` und `bottom` müssen zur jeweiligen Seitenpolsterung passen. Der Inhalt braucht genügend unteren Abstand, damit er die Trennlinie und Seitenangabe nicht berührt. Seitenzahlen dürfen nicht als normales `<p>` am Ende des Inhaltsflusses stehen.
 
-## Firefox-Druck
+## Verbindlicher Chrome-/Edge-Druck
 
 Browser-Kopf- und Fußzeilen wie Dateiname, URL, Datum und Seitenzahl kommen aus dem Druckdialog, nicht aus dem HTML.
 
 Eine Ausnahme gilt für bewusst gestaltete, mehrseitige Lebensläufe: Dort ist ein eigener, dezenter Dokument-Footer mit Trennlinie und Seitenangabe im HTML vorgeschrieben. Browser-Kopf- und Fußzeilen bleiben trotzdem im Druckdialog deaktiviert.
 
-Ein finaler Einseiten-Lebenslauf muss in der Firefox-Druckvorschau bei 100 Prozent Skalierung als genau eine Seite erscheinen. Wenn Firefox zwei Seiten erzeugt, ist das HTML nicht final. Dann muss der Inhalt gekürzt, die Abschnittsaufteilung verbessert oder ein bewusst zweiseitiger Lebenslauf mit zwei `.page`-Containern erstellt werden.
+Ein finaler Einseiten-Lebenslauf muss im automatisierten Chrome-/Edge-Export bei 100 Prozent Skalierung als genau eine Seite erscheinen. Wenn der unterstützte Chromium-Export zwei Seiten erzeugt, ist das HTML nicht final. Dann muss der Inhalt gekürzt, die Abschnittsaufteilung verbessert oder ein bewusst zweiseitiger Lebenslauf mit zwei `.page`-Containern erstellt werden.
 
 Für finale PDF-Ausgabe:
 
-1. `Strg + P` drücken.
-2. `Weitere Einstellungen` öffnen.
-3. `Kopf- und Fußzeilen drucken` deaktivieren.
-4. Skalierung auf `100%` stellen.
-5. Ränder auf `Keine` stellen.
+Der verbindliche CLI-Export setzt A4, keine Browser-Kopf-/Fußzeilen und die vorgesehene Skalierung automatisch. Eine manuelle Vorschau darf ergänzend mit `Strg + P` erfolgen, gilt aber nur als tatsächlich geprüft, wenn sie wirklich geöffnet und bewertet wurde.
 
 ## Seitenumbruch
 

@@ -17,7 +17,7 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 
 Ist ein Lebenslauf ausgewählt, wird der individuelle Kandidat vor dem Anschreiben erstellt beziehungsweise der unverändert übernommene universelle Lebenslauf vollständig geprüft. Ist kein Lebenslauf ausgewählt, gleicht der Agent das Anschreiben unmittelbar gegen private Profildaten, normalisierte Dialogangaben, Anforderungsmatrix und Stellenbeschreibung ab. Erst danach schreibt er den ersten Anschreibenentwurf.
 
-Folgende Bereiche sind einzeln zu prüfen:
+Prüfe die folgenden Bereiche nur soweit sie für die konkrete Stelle und den bestätigten Dokumentumfang relevant sind:
 
 - Schulbildung
 - Berufsausbildung, Studium oder Umschulung
@@ -29,7 +29,7 @@ Folgende Bereiche sind einzeln zu prüfen:
 - Soft Skills und Arbeitsweise
 - besondere Stärken und Motivation
 
-Für jeden Bereich wird in `Analyse.md` eine Inhaltsentscheidung dokumentiert:
+Für jeden relevanten Bereich wird in `Analyse.md` eine kompakte Inhaltsentscheidung dokumentiert. Verweise bevorzugt auf die zugehörigen IDs aus `Anforderungsmatrix.json`, statt Anforderung, Beleg und Bewertung erneut auszuschreiben. Nicht relevante Bereiche dürfen gesammelt als geprüft und ohne Stellenbezug verworfen werden; neun künstliche Einzelzeilen sind nicht erforderlich.
 
 - `Anschreiben`: Der Bereich liefert einen starken, rollenrelevanten Beleg oder erklärt die Motivation und wird im Anschreiben aufgegriffen.
 - `nur Lebenslauf`: Der Bereich ist für die Bewerbung relevant, aber in einem ausgewählten Lebenslauf ausreichend sichtbar oder würde das Anschreiben unnötig wiederholen. Ohne ausgewählten Lebenslauf ist diese Entscheidung unzulässig.
@@ -38,7 +38,7 @@ Für jeden Bereich wird in `Analyse.md` eine Inhaltsentscheidung dokumentiert:
 
 Pflichtregeln:
 
-- Keine für die Bewerbung relevante Information darf ohne begründete Inhaltsentscheidung entfallen.
+- Keine für die Bewerbung relevante Information darf ohne begründete Inhaltsentscheidung entfallen. Eine Begründung in der verknüpften Matrixzeile genügt und wird nicht in mehreren Dateien dupliziert.
 - Nicht jeder relevante Bereich gehört automatisch in das Anschreiben. Das Anschreiben hebt die stärksten zwei bis vier Passungen hervor; weitere relevante Angaben bleiben bewusst und nachvollziehbar ausschließlich im Lebenslauf.
 - Formale Chronologie gehört grundsätzlich in den Lebenslauf. Schulbildung, ältere Stationen oder Abschlüsse werden im Anschreiben nur erwähnt, wenn sie für Motivation, Quereinstieg oder eine formale Stellenanforderung einen konkreten Erklärungswert besitzen.
 - Soft Skills werden im Anschreiben bevorzugt durch ein konkretes Beispiel aus Berufserfahrung, Weiterbildung oder Projektpraxis gezeigt, nicht als bloße Eigenschaftsliste.
@@ -55,7 +55,7 @@ Pflichtregeln:
 - Einen ausgewählten Lebenslauf nicht wiederholen, sondern die Passung erklären.
 - Die im Quellenabgleich als `Anschreiben` markierten Bereiche gezielt aufgreifen und vorhandene `nur Lebenslauf`-Inhalte nicht unnötig wiederholen.
 - Visuell ruhig und passend zum Lebenslauf, aber ohne dekorative Karten- oder Marketingoptik.
-- In Firefox druckstabil als eine feste A4-Seite anlegen, nicht als wachsendes Dokument mit zufälligem Umbruch.
+- Für den verbindlich unterstützten Chrome-/Edge-Export druckstabil als eine feste A4-Seite anlegen, nicht als wachsendes Dokument mit zufälligem Umbruch.
 
 ## Inhaltliche Regeln
 

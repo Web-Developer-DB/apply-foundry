@@ -4,6 +4,45 @@
 
 Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Die Struktur orientiert sich an „Keep a Changelog“ und verwendet die im Projekt geführten Versionsnummern.
 
+## Version 1.8.0 - 2026-08-06
+
+### Hinzugefügt
+
+- Providerneutrale Root-Konfiguration `opencode.json`, die OpenCode-Sitzungsfreigaben deaktiviert, den nativen `AGENTS.md`-Einstieg unverändert nutzt und Modell sowie Provider für OpenCode, Editor-Integrationen und `ollama launch opencode` offenlässt.
+- Read-only-Werkzeug `Tools/Ermittle-Bewerbungsstatus.ps1`, das den letzten oder ausdrücklich genannten Bewerbungsstand aus Auftrag, Dialog, Matrix, Kandidaten, technischen Berichten, Hashnachweisen und Manifest rekonstruiert und die nächsten benötigten Promptmodule maschinenlesbar ausgibt.
+
+### Geändert
+
+- Der kanonische Ablauf speichert die vollständige Stellenbeschreibung vor dem Profildialog, trennt vorläufige Kriterien von der erst nach der Strategie finalisierten Matrix und setzt den Dialogstatus vor der technischen Finalisierung nachvollziehbar auf abgeschlossen.
+- Bewerbungsaufträge mit ausdrücklich genanntem Dokumentumfang überspringen unnötige Auswahlfragen. Auswahl B bedeutet ausschließlich Universal-Lebenslauf, Anschreiben und E-Mail; Universal-Lebenslauf plus Anschreiben ohne E-Mail wird korrekt als freie Auswahl E gespeichert.
+- Neue fachliche Angaben gelten ohne weitere Nachfrage standardmäßig nur für den aktuellen Auftrag. Eine Frage zur dauerhaften Speicherung entsteht nur auf ausdrücklichen Wunsch des Nutzers.
+- E-Mail-only verwendet einen kompakten Profil- und Matrixabgleich. Kriterien werden normalisiert und dedupliziert; Benefits, Werbeaussagen und rein beschreibende Aufgaben erzeugen keine künstlichen Eignungspunkte.
+- `stretch` bleibt eine transparente Risikoeinstufung und kein automatisches Bewerbungsverbot. Bei ausdrücklichem Bewerbungswunsch wird `nicht_bewerben` nur durch einen ebenso ausdrücklichen Stopp gesetzt.
+- Qualitätsregeln referenzieren die fachlichen Einzelmodule, prüfen nur die tatsächlich ausgewählten Dokumente und verwenden kompakte Kriterien-IDs statt wiederholter Volltexte.
+- Chrome beziehungsweise Edge ist durchgängig der verbindliche Browser für maschinelle Layout- und PDF-Nachweise; Firefox bleibt höchstens eine klar gekennzeichnete manuelle Diagnosevorschau.
+- Der Finalisierer vermeidet einen redundanten statischen Vorlauf: Bei HTML-Aufträgen übernimmt der PDF-Export den ersten statischen Check, während der abschließende statische und fachliche Check nach der automatischen Berichtsergänzung erhalten bleibt.
+- Agenten laden den vollständigen Bewerbungsworkflow nur für Bewerbungs-, Daten-, Fortsetzungs- oder workflowbezogene Entwicklungsaufträge und nicht mehr für jede reine technische Projektfrage.
+
+### Behoben
+
+- Der bisherige Widerspruch zwischen B und E bei „Universal-Lebenslauf plus Anschreiben ohne E-Mail“ ist beseitigt.
+- Eine ausdrücklich gewünschte Bewerbung kann nicht mehr allein wegen der Eignungskategorie `stretch` unbemerkt auf `nicht_bewerben` wechseln.
+- Stellenbeschreibung, Strategie und gewichtete Matrix entstehen nun in einer Reihenfolge, die Quellenverlust, doppelte Bewertung und voneinander abweichende Zwischenstände verhindert.
+- Fortsetzungen müssen den Arbeitsstand nicht mehr durch breit gestreutes erneutes Einlesen rekonstruieren, sofern das neue Statuswerkzeug verfügbar ist.
+
+### Sicherheit und Datenschutz
+
+- OpenCode-Sharing ist im Repository standardmäßig deaktiviert; `opencode.json` enthält keine privaten Inhalte, Promptkopien, Zugangsdaten oder fest verdrahteten Cloudanbieter.
+- Die frühe lokale Sicherung der Stellenbeschreibung bleibt von Kandidaten- und Versandfreigaben getrennt. Private Daten werden weiterhin ausschließlich unter `Private/` verarbeitet.
+- Technische Prüfungen dürfen nur tatsächlich erzeugte Chrome-/Edge-Nachweise behaupten; optionale manuelle Browseransichten ersetzen weder Hashbindung noch persönliche Sichtprüfung.
+
+### Tests und Verifikation
+
+- Regressionstests decken OpenCode-Konfiguration, korrigiertes A–E-Routing, Standardentscheidung `nur_auftrag`, Matrix-Deduplizierung, E-Mail-only, Chromium-Vertrag, Statusrekonstruktion und die fehlende Promptduplizierung ab.
+- Die lokale OpenCode-Konfiguration wurde mit isoliertem Benutzerprofil aufgelöst; OpenCode `1.18.10` übernahm `share: disabled`, ohne Provider oder Modell aus dem Repository zu erzwingen. Ollama `0.32.6` wurde erkannt.
+- Am 06.08.2026 bestanden 61 von 61 Tests der Kern-Regressionssuite und 68 von 68 Tests der lokal freigegebenen Chrome-Browsermatrix. Der vorangegangene Browserlauf in der verwalteten Sandbox scheiterte ausschließlich am Chrome-Prozessstart.
+- Ein neuer realer Dialoglauf mit einem lokalen Ollama-Modell wurde nicht ausgeführt; der frühere `qwen3.5:9b`-Versuch bleibt wegen Zeitüberschreitung ausdrücklich nicht bestanden.
+
 ## Version 1.7.0 - 2026-08-05
 
 ### Hinzugefügt

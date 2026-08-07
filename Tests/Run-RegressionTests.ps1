@@ -692,14 +692,17 @@ try {
     $agentsPath = Join-Path $repoRoot "AGENTS.md"
     $claudePath = Join-Path $repoRoot "CLAUDE.md"
     $geminiPath = Join-Path $repoRoot "GEMINI.md"
+    $openCodePath = Join-Path $repoRoot "opencode.json"
     $canonicalPath = Join-Path $repoRoot "Prompts/00_AGENTEN_START_HIER.md"
     Assert-True -Condition (Test-Path -LiteralPath $agentsPath -PathType Leaf) -Message "AGENTS.md fehlt im Projektstamm."
     Assert-True -Condition (Test-Path -LiteralPath $claudePath -PathType Leaf) -Message "CLAUDE.md fehlt im Projektstamm."
     Assert-True -Condition (Test-Path -LiteralPath $geminiPath -PathType Leaf) -Message "GEMINI.md fehlt im Projektstamm."
+    Assert-True -Condition (Test-Path -LiteralPath $openCodePath -PathType Leaf) -Message "opencode.json fehlt im Projektstamm."
     Assert-True -Condition (Test-Path -LiteralPath $canonicalPath -PathType Leaf) -Message "Kanonischer Bewerbungsworkflow fehlt."
     $agents = Get-Content -LiteralPath $agentsPath -Raw -Encoding UTF8
     $claude = Get-Content -LiteralPath $claudePath -Raw -Encoding UTF8
     $gemini = Get-Content -LiteralPath $geminiPath -Raw -Encoding UTF8
+    $openCode = Get-Content -LiteralPath $openCodePath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ($agents -match 'Prompts/00_AGENTEN_START_HIER\.md') -Message "AGENTS.md verweist nicht auf den fachlichen Einstieg."
     Assert-True -Condition ($agents -match 'README\.md.+keine verbindliche operative Agentenanweisung') -Message "README wird nicht eindeutig vom operativen Einstieg abgegrenzt."
     foreach ($entry in @("Neue Vollbewerbung", "Anschreiben mit universellem Lebenslauf", "Private Bewerberdaten einrichten oder prüfen", "Bestehende Bewerbung fortsetzen", "Projekt technisch weiterentwickeln")) {
@@ -714,6 +717,11 @@ try {
     Assert-True -Condition ($claude -match '(?m)^@AGENTS\.md\s*$') -Message "CLAUDE.md importiert AGENTS.md nicht mit der offiziellen Importsyntax."
     Assert-True -Condition ($claude -match 'Prompts/00_AGENTEN_START_HIER\.md') -Message "CLAUDE.md nennt den kanonischen Workflow nicht."
     Assert-True -Condition ($gemini.Trim() -eq '@AGENTS.md') -Message "GEMINI.md ist kein minimaler Import von AGENTS.md."
+    $openCodeProperties = @($openCode.PSObject.Properties.Name)
+    Assert-True -Condition ($openCode.share -eq 'disabled') -Message "OpenCode-Sitzungsfreigabe ist nicht projektweit deaktiviert."
+    foreach ($forbiddenProperty in @('instructions', 'provider', 'model')) {
+      Assert-True -Condition ($openCodeProperties -notcontains $forbiddenProperty) -Message "opencode.json verdoppelt oder erzwingt unerwünscht: $forbiddenProperty"
+    }
     foreach ($adapter in @($agents, $claude, $gemini)) {
       Assert-True -Condition ($adapter -notmatch '(?m)^1\. Führe vor jeder Ordner- oder Dokumenterstellung') -Message "Ein Adapter dupliziert die vollständige Workflowsequenz."
     }
@@ -724,12 +732,14 @@ try {
       "AGENTS.md",
       "CLAUDE.md",
       "GEMINI.md",
+      "opencode.json",
       "Prompts/00_AGENTEN_START_HIER.md",
       "Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md",
       "Prompts/10_DATEI_UND_ORDNER_REGELN.md",
       "Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md",
       "Tests/Agenten-Kompatibilitaet.md",
-      "Tools/Aktualisiere-Tokenbericht.ps1"
+      "Tools/Aktualisiere-Tokenbericht.ps1",
+      "Tools/Ermittle-Bewerbungsstatus.ps1"
     )) {
       Assert-True -Condition (Test-ExactRelativePath -Root $repoRoot -RelativePath $relativePath) -Message "Pfad fehlt oder Groß-/Kleinschreibung stimmt nicht: $relativePath"
     }
@@ -747,6 +757,27 @@ try {
     }
     Assert-True -Condition ($canonical -match 'Chat-Memory|Chatverlauf') -Message "Unabhängigkeit vom Chat-Memory ist nicht festgelegt."
     Assert-True -Condition ($canonical -match 'Sichtprüfungsbestätigung.+nicht wiederverwendet') -Message "Entwertung alter Sichtnachweise fehlt."
+  }
+
+  Invoke-Test -Name "Promptaudit hält Routing, Autonomie und Qualitätsverträge widerspruchsfrei" -Body {
+    $agents = Get-Content -LiteralPath (Join-Path $repoRoot "AGENTS.md") -Raw -Encoding UTF8
+    $scopePrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md") -Raw -Encoding UTF8
+    $matrixPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md") -Raw -Encoding UTF8
+    $resumePrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/03_LEBENSLAUF_REGELN.md") -Raw -Encoding UTF8
+    $rolePrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/06_ROLLENLOGIK.md") -Raw -Encoding UTF8
+    $qualityPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/09_QUALITAETSCHECK.md") -Raw -Encoding UTF8
+    $canonicalPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/00_AGENTEN_START_HIER.md") -Raw -Encoding UTF8
+
+    Assert-True -Condition ($canonicalPrompt -match 'genau eine gebündelte Rückfrage' -and $canonicalPrompt -match 'Ersatzwerte dürfen nicht automatisch übernommen werden') -Message "Unklare Firma oder Zielrolle kann weiterhin mit einem Platzhalter in Auftragspfade gelangen."
+    Assert-True -Condition ($canonicalPrompt -notmatch 'Dokumentmodus: vollständige Bewerbung oder nur neues Anschreiben') -Message "Kanonischer Inputvertrag verwendet noch die veraltete Zwei-Modi-Auswahl."
+    Assert-True -Condition ($agents -match 'universellen Lebenslauf und Anschreiben ohne E-Mail.+Auswahl E') -Message "Root-Routing ordnet Universal-Lebenslauf plus Anschreiben ohne E-Mail nicht Auswahl E zu."
+    Assert-True -Condition ($scopePrompt -match 'Auswahl B gilt nur.+Anschreiben und E-Mail-Nachricht' -and $scopePrompt -match 'ohne.+E-Mail.+Auswahl E') -Message "Prompt 01 grenzt Auswahl B und E nicht eindeutig ab."
+    Assert-True -Condition ($scopePrompt -match 'Standardzustand benötigt keine zusätzliche Nutzerfrage' -and $scopePrompt -match 'Dauerhafte Speicherung wird nur gestartet.+ausdrücklich') -Message "Auftragsbezogene Angaben lösen weiterhin unnötige Speicherfragen aus."
+    Assert-True -Condition ($matrixPrompt -match 'Reine Unternehmenswerbung, Benefits.+keine Anforderungen' -and $matrixPrompt -match 'Normalisierung und Deduplizierung' -and $matrixPrompt -match 'Wiederholungen, Synonyme') -Message "Anforderungsmatrix verhindert Werbung oder semantische Dubletten nicht."
+    Assert-True -Condition ($matrixPrompt -match 'ausdrücklichen Bewerbungsauftrag.+bewerbungsentscheidung = bewerben' -and $rolePrompt -match 'stretch.+kein Modellveto') -Message "Eignungseinstufung kann einen ausdrücklichen Bewerbungsauftrag noch aufheben."
+    Assert-True -Condition ($qualityPrompt -match 'E-Mail-only-Auswahl.+keine Anlage' -and $qualityPrompt -match 'Chrome-/Edge') -Message "Umfangs- oder Browservertrag fehlt im Qualitätscheck."
+    Assert-True -Condition ($qualityPrompt -notmatch 'gedanklich') -Message "Qualitätscheck erlaubt weiterhin eine nur behauptete technische Prüfung."
+    Assert-True -Condition ($resumePrompt -notmatch 'Diese Zieldefinition gilt für den Modus vollbewerbung|Im Anschreiben-Modus') -Message "Lebenslaufregeln verwenden noch widersprüchliche Legacy-Modussemantik."
   }
 
   Invoke-Test -Name "Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben" -Body {
@@ -839,7 +870,7 @@ try {
     foreach ($directStart in @("Erstelle eine Bewerbung für folgende Stellenbeschreibung", "Erstelle nur ein Anschreiben und verwende meinen universellen Lebenslauf", "Prüfe meine Bewerberdaten", "Setze die zuletzt begonnene Bewerbung fort", "Erkläre mir den aktuellen Stand dieser Bewerbung")) {
       Assert-True -Condition ($readme.Contains($directStart)) -Message "Direkter Nutzerauftrag fehlt in README: $directStart"
     }
-    foreach ($adapter in @("AGENTS.md", "CLAUDE.md", "GEMINI.md", "Prompts/00_AGENTEN_START_HIER.md")) {
+    foreach ($adapter in @("AGENTS.md", "CLAUDE.md", "GEMINI.md", "opencode.json", "Prompts/00_AGENTEN_START_HIER.md")) {
       Assert-True -Condition ($readme.Contains($adapter)) -Message "Adapter- oder Workflowverweis fehlt in README: $adapter"
     }
     Assert-True -Condition ($readme -match 'Agentenumgebungen.+Ollama.+Modellanbieter') -Message "Agent und Modell werden in README nicht klar unterschieden."
@@ -1229,6 +1260,19 @@ try {
     Assert-True -Condition ((Get-FileHash -LiteralPath $fixture.Profile -Algorithm SHA256).Hash -eq $beforeProfileHash) -Message "Reine Zustandsrekonstruktion veränderte das Profil."
   }
 
+  Invoke-Test -Name "Statuswerkzeug rekonstruiert den nächsten Schritt read-only aus Projektdateien" -Body {
+    $fixture = New-DialogContractFixture -Root (Join-Path $testRoot "status-reconstruction") -DialogStatus "profilabgleich_ausstehend"
+    Set-Content -LiteralPath (Join-Path $fixture.Work "Arbeitsnotizen.md") -Encoding UTF8 -Value "# Fiktiver Arbeitsstand"
+    $beforeOrderHash = (Get-FileHash -LiteralPath $fixture.Auftrag -Algorithm SHA256).Hash
+    $statusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
+    Assert-True -Condition ($statusResult.ExitCode -eq 0) -Message "Statusrekonstruktion schlug fehl: $($statusResult.Output -join ' | ')"
+    $status = ($statusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition ($status.schemaVersion -eq 1 -and $status.phase -eq "profilabgleich") -Message "Statuswerkzeug erkannte die Dialogphase nicht."
+    Assert-True -Condition (@($status.requiredPrompts) -contains "Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md") -Message "Statuswerkzeug nennt das zuständige Dialogmodul nicht."
+    Assert-True -Condition ($status.workFolder -eq $fixture.Work) -Message "Statuswerkzeug meldet einen anderen Arbeitsordner."
+    Assert-True -Condition ((Get-FileHash -LiteralPath $fixture.Auftrag -Algorithm SHA256).Hash -eq $beforeOrderHash) -Message "Statusrekonstruktion veränderte den Auftrag."
+  }
+
   Invoke-Test -Name "Dialogfall 9: Unklarer Kleinmodellzustand bleibt nach einer Wiederholung fail-closed" -Body {
     $question = [ordered]@{
       id = "umfang-unklar"
@@ -1257,6 +1301,7 @@ try {
 
   Invoke-Test -Name "E-Mail-only wird ohne Browserartefakte vorbereitet und umfangsgerecht veröffentlicht" -Body {
     $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "email-only-finalization")
+    Set-Content -LiteralPath (Join-Path $fixture.Work "Arbeitsnotizen.md") -Encoding UTF8 -Value "# Fiktiver Arbeitsstand"
     Get-ChildItem -LiteralPath $fixture.Candidate -File | Where-Object { $_.Name -match '^(Lebenslauf|Anschreiben) - ' } | Remove-Item -Force
     $layoutDir = Join-Path $fixture.Work "Layoutcheck"
     Get-ChildItem -LiteralPath $layoutDir -File -Filter "*.png" | Remove-Item -Force
@@ -1339,6 +1384,17 @@ try {
       $skipped = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
       Assert-True -Condition ($skipped.status -eq "nicht_erforderlich") -Message "Nicht erforderlicher Browserbericht ist nicht entsprechend markiert: $reportPath"
     }
+    $preparedStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
+    Assert-True -Condition ($preparedStatusResult.ExitCode -eq 0) -Message "Vorbereiteter E-Mail-Stand ließ sich nicht rekonstruieren."
+    $preparedStatus = ($preparedStatusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition ($preparedStatus.phase -eq "persoenliche_pruefung" -and $preparedStatus.finalReportValid) -Message "Statuswerkzeug erkannte den gültig vorbereiteten E-Mail-Stand nicht."
+    $unboundCandidatePath = Join-Path $fixture.Candidate "Nicht-gebundene-Datei.tmp"
+    Set-Content -LiteralPath $unboundCandidatePath -Encoding UTF8 -Value "Nicht an den Finalisierungsbericht gebunden."
+    $invalidatedStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
+    Assert-True -Condition ($invalidatedStatusResult.ExitCode -eq 0) -Message "Statusprüfung nach zusätzlicher Kandidatendatei schlug technisch fehl."
+    $invalidatedStatus = ($invalidatedStatusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition (-not $invalidatedStatus.finalReportValid -and $invalidatedStatus.phase -eq "technische_vorbereitung") -Message "Zusätzliche ungebundene Kandidatendatei entwertete den vorbereiteten Status nicht."
+    Remove-Item -LiteralPath $unboundCandidatePath -Force
 
     $preparedReportJson = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8
     $invalidSchemaReport = $preparedReportJson | ConvertFrom-Json
@@ -1398,6 +1454,10 @@ try {
     Assert-True -Condition (@(Get-ChildItem -LiteralPath $shipping -File -Filter "Email-Nachricht--*.md").Count -eq 1) -Message "E-Mail-only veröffentlichte nicht genau den bestätigten E-Mail-Text."
     $manifest = Get-Content -LiteralPath (Join-Path $fixture.Folder "Manifest.json") -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ($manifest.dokumentumfang.lebenslauf -eq "nicht_enthalten" -and -not $manifest.dokumentumfang.anschreiben -and $manifest.dokumentumfang.emailNachricht) -Message "Manifest enthält nicht den veröffentlichten E-Mail-only-Umfang."
+    $publishedStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
+    Assert-True -Condition ($publishedStatusResult.ExitCode -eq 0) -Message "Veröffentlichter E-Mail-Stand ließ sich nicht rekonstruieren."
+    $publishedStatus = ($publishedStatusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition ($publishedStatus.phase -eq "veroeffentlicht" -and $publishedStatus.finalReportValid) -Message "Statuswerkzeug erkannte den veröffentlichten E-Mail-Stand nicht."
     $staticPublished = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder)
     Assert-True -Condition ($staticPublished.ExitCode -eq 0) -Message "E-Mail-only-Veröffentlichung wurde ohne privaten Auftragspfad fälschlich als Vollumfang geprüft: $($staticPublished.Output -join ' | ')"
     $qualityText = Get-Content -LiteralPath (Join-Path $fixture.Folder "Intern/Qualitaetscheck.md") -Raw -Encoding UTF8

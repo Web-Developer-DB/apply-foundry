@@ -20,7 +20,7 @@ Ungeklärte zentrale Bewerbungslogistik im Bewerbungsauftrag wird bei der Finali
 
 ## Bewerbungsauftrag
 
-`Tools/Neue-Bewerbung.ps1` beziehungsweise `Tools/neue-bewerbung.sh` erzeugt im privaten Arbeitsordner eine Datei `Bewerbungsauftrag.json`.
+`Tools/Neue-Bewerbung.ps1` beziehungsweise `Tools/neue-bewerbung.sh` erzeugt im privaten Arbeitsordner eine Datei `Bewerbungsauftrag.json`. Unmittelbar danach wird die tatsächlich übergebene Stellenbeschreibung in `Kandidat/Stellenbeschreibung.md` gesichert, bevor Profilabgleich oder Rückfragen beginnen. Ein Platzhalter des Ordnerhelfers ist kein fortsetzbarer Stelleninhalt.
 
 Ab Schema 4 enthält sie mindestens:
 
@@ -49,7 +49,7 @@ Vor der Inhaltsprüfung müssen folgende Werte endgültig gesetzt sein:
 - bei ausgewähltem Lebenslauf `darstellungsoptionen.profillinksModus`: `alle`, `rollenrelevant` oder `keine`; sonst `nicht_erforderlich`
 - bei `rollenrelevant`: `profillinksAuswahl` mit den tatsächlich verwendeten Feldnamen aus Datei `01`
 
-Die Werte `noch_festzulegen` sind nur im initialen Arbeitsauftrag erlaubt und blockieren die Finalisierung. `nicht_bewerben` dokumentiert einen bewussten Abbruch und darf nicht veröffentlicht werden.
+Die Werte `noch_festzulegen` sind nur im initialen Arbeitsauftrag erlaubt und blockieren die Finalisierung. Bei einem ausdrücklichen Bewerbungsauftrag des Nutzers wird `bewerbungsentscheidung = bewerben` gesetzt, auch wenn die Eignungsklasse Risiken oder `stretch` ausweist. `nicht_bewerben` dokumentiert ausschließlich einen ausdrücklichen Abbruch oder eine entsprechende Entscheidung des Nutzers; der Agent darf den Nutzerauftrag nicht allein aufgrund einer Eignungskennzahl aufheben. `nicht_bewerben` darf nicht veröffentlicht werden.
 
 Ab Schema 4 ist `dokumentumfang` Pflicht und steuert alle erwarteten Kandidaten-, Prüf- und Versandartefakte. Die alte Schema-3-Abbildung bleibt nach Prompt 01 rückwärtskompatibel. Ein eingefrorener universeller Lebenslauf darf nicht verändert werden; die Zielrollenprüfung gilt für die zusätzlich ausgewählten stellenbezogenen Dokumente, nicht für den universellen Snapshot.
 
@@ -59,7 +59,7 @@ Firma, Rolle und Pfade in dieser Datei dürfen nach der Dokumenterstellung nicht
 
 ## Anforderungsmatrix
 
-Vor der Erstellung der ausgewählten Bewerbungsdokumente muss aus `Anforderungsmatrix--ENTWURF.json` eine geprüfte `Anforderungsmatrix.json` entstehen.
+Vor der Erstellung der ausgewählten Bewerbungsdokumente muss aus `Anforderungsmatrix--ENTWURF.json` eine geprüfte `Anforderungsmatrix.json` entstehen. Der Agent kann während des Profilabgleichs Anforderungen und Belege im Entwurf sammeln; die endgültigen Werte für Gewichtung und `behandlung` werden erst nach der Profil- und Dokumentstrategie festgelegt.
 
 Jede relevante Anforderung erhält:
 
@@ -72,6 +72,18 @@ Jede relevante Anforderung erhält:
 - `belegart`: passende Belegart aus der fachlichen Profildatei
 - `beleg`: kurze, konkrete Datengrundlage
 - `behandlung`: Verwendung in Lebenslauf, Anschreiben, Analyse oder offenen Fragen
+
+### Normalisierung und Deduplizierung
+
+- Erfasse nur eigenständige, entscheidungsrelevante Anforderungen. Wiederholungen, Synonyme und dieselbe Anforderung in Aufgaben- und Profilabschnitt werden zu genau einem Eintrag zusammengeführt.
+- Eine sprachliche Wiederholung in der Anzeige darf Gewicht oder Eignungspunktzahl nicht mehrfach erhöhen.
+- Explizite Pflichtformulierungen und objektiv notwendige Voraussetzungen werden `muss`; ausdrücklich optionale oder bevorzugte Punkte werden `kann`. Reine Unternehmenswerbung, Benefits und allgemeine Floskeln sind keine Anforderungen.
+- Kernaufgaben werden nur dann als Muss-Anforderung gewertet, wenn ihre Ausübung eine konkrete Fähigkeit oder Voraussetzung erfordert. Andernfalls dienen sie der Strategie, ohne eine zusätzliche Scoring-Zeile zu erzeugen.
+- Mehrere eng zusammengehörige Werkzeuge dürfen in einer Anforderung gebündelt werden, wenn Beleg, Status und Behandlung identisch sind. Unterschiedliche Belegarten oder wesentlich unterschiedliche Risiken bleiben getrennt.
+- Es gibt keine starre Zeilenzahl. Die Matrix bleibt jedoch so klein wie möglich und so vollständig wie für Eignungsentscheidung und Dokumente nötig.
+- `Analyse.md` verweist bevorzugt auf Matrix-IDs, statt Anforderungen, Belege und Bewertungen vollständig zu wiederholen.
+
+Bei einer bestätigten reinen E-Mail-Nachricht enthält die Matrix nur die für Zielrolle, Versandzweck, konkrete Bewerbungsfragen und relevante Logistik notwendigen Punkte. CV-Chronologie, vollständige Kompetenzinventur, Seitenstrategie und Profil-Links sind dafür `nicht_erforderlich` und werden nicht künstlich analysiert.
 
 Beispiel:
 

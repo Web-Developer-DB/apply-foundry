@@ -62,7 +62,7 @@ Für jede Information aus den privaten Daten gilt:
 
 Zusatzkenntnisse dürfen nicht automatisch übernommen werden. Sie brauchen einen Nutzen für die konkrete Zielrolle.
 
-Die gewichtete Anforderungsmatrix macht aus dieser Priorisierung eine prüfbare Entscheidungshilfe. Ein hoher Score erlaubt keine Übertreibung; ein niedriger Score löscht keine echten Transferstärken. Die Einstufung `stark`, `vertretbar_mit_risiken` oder `stretch` wird in `Analyse.md` festgehalten und führt zu einer ausdrücklichen Entscheidung im Bewerbungsauftrag.
+Die gewichtete Anforderungsmatrix macht aus dieser Priorisierung eine prüfbare Entscheidungshilfe. Ein hoher Score erlaubt keine Übertreibung; ein niedriger Score löscht keine echten Transferstärken. Die Einstufung `stark`, `vertretbar_mit_risiken` oder `stretch` wird in `Analyse.md` festgehalten. Bei einem ausdrücklichen Bewerbungsauftrag bleibt die Entscheidung `bewerben`; auch `stretch` ist nur eine Risikoeinordnung und kein Modellveto. `nicht_bewerben` wird ausschließlich nach einem ausdrücklichen Nutzerabbruch gesetzt.
 
 ## Belegarten-Gewichtung
 

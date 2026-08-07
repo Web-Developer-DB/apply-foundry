@@ -24,6 +24,7 @@ Beispiele für eindeutige Aufträge:
 - `Komplette Bewerbung mit Lebenslauf, Anschreiben und E-Mail.`
 - `Lebenslauf und Anschreiben, aber keine E-Mail.`
 - `Verwende meinen universellen Lebenslauf und erstelle Anschreiben und E-Mail neu.`
+- `Verwende meinen universellen Lebenslauf und erstelle nur das Anschreiben neu, ohne E-Mail.`
 
 Eine bloße Stellenbeschreibung, `Ich möchte mich hier bewerben` oder ein anderer Bewerbungswunsch ohne erkennbaren Dokumentumfang ist dagegen nicht eindeutig. In diesem Fall muss der Agent fragen:
 
@@ -81,6 +82,8 @@ Der fachliche Umfang wird unabhängig von einem Agenten- oder Modellnamen normal
 | E | `eigene_zusammenstellung` | nach Nutzerwunsch | nach Nutzerwunsch | nach Nutzerwunsch |
 
 Mindestens ein Ausgabedokument muss gewählt sein. Ein universeller Lebenslauf zählt als ausgewähltes Ausgabedokument, obwohl sein Inhalt nicht neu geschrieben wird. Der Umfang darf später nur durch einen neuen eindeutigen Nutzerwunsch geändert werden; der Wechsel und seine Quelle werden gespeichert. Fehlende Kandidatendateien sind niemals als stillschweigende Umfangsänderung zu interpretieren.
+
+Auswahl B gilt nur, wenn universeller Lebenslauf, Anschreiben und E-Mail-Nachricht gemeinsam gewünscht sind. Ein klarer Auftrag für universellen Lebenslauf und Anschreiben **ohne** E-Mail wird ohne Rückfrage als Auswahl E mit `lebenslauf = universal_unveraendert`, `anschreiben = true` und `emailNachricht = false` normalisiert. Kein Adapter darf einen nicht genannten Bestandteil ergänzen.
 
 ## Schema 4 des Bewerbungsauftrags
 
@@ -259,9 +262,11 @@ Erfasse bei Bedarf Kontext, ungefähre Dauer, Projektbezug sowie praktische oder
 
 ## Phase 5: Auftragsbezogene und dauerhafte Angaben trennen
 
-Eine neue Angabe gilt zunächst immer nur für die aktuelle Bewerbung. Nach ihrer wahrheitsgemäßen Einordnung wird sie in `dialog.angaben` mit `speicherentscheidung = nur_auftrag` und `profilaktualisierung.status = nicht_geaendert` gespeichert und darf für die aktuellen Dokumente verwendet werden. Daraus folgt noch keine Erlaubnis, `Private/Daten/` zu verändern.
+Eine neue Angabe gilt zunächst immer nur für die aktuelle Bewerbung. Nach ihrer wahrheitsgemäßen Einordnung wird sie in `dialog.angaben` mit `speicherentscheidung = nur_auftrag` und `profilaktualisierung.status = nicht_geaendert` gespeichert und darf für die aktuellen Dokumente verwendet werden. Daraus folgt noch keine Erlaubnis, `Private/Daten/` zu verändern. Dieser Standardzustand benötigt keine zusätzliche Nutzerfrage und blockiert die Dokumenterstellung nicht.
 
-Neue, wahrscheinlich langfristig relevante Angaben werden nach der Rückfragerunde gebündelt. Zeige die beabsichtigte Formulierung transparent und frage ausdrücklich:
+Dauerhafte Speicherung wird nur gestartet, wenn der Nutzer sie im aktuellen Auftrag ausdrücklich verlangt. Dann werden die betroffenen Angaben gebündelt, die beabsichtigte Formulierung und Zieldatei transparent gezeigt und ausdrücklich bestätigt. Ein bloßes Potenzial zur späteren Wiederverwendung reicht nicht aus, um eine Speicherfrage zu eröffnen.
+
+Bei einem ausdrücklichen Speicherwunsch kann folgende kompakte Auswahl verwendet werden:
 
 ```text
 Folgende neue Angaben sind bisher nicht dauerhaft in Ihrem Profil gespeichert:
@@ -277,7 +282,7 @@ C – Einzeln auswählen
 D – Formulierungen vorher ändern
 ```
 
-Bei nur einer Angabe genügen `Ja, übernehmen`, `Nein, nur für diese Bewerbung` und `Formulierung vorher ändern`. Akzeptiere auch eindeutige natürliche Antworten sowie Kombinationen wie `1 speichern, 2 nur diesmal`.
+Bei nur einer Angabe genügen `Ja, übernehmen`, `Nein, nur für diese Bewerbung` und `Formulierung vorher ändern`. Akzeptiere auch eindeutige natürliche Antworten sowie Kombinationen wie `1 speichern, 2 nur diesmal`. Ohne ausdrücklichen Speicherwunsch bleibt es ohne Nachfrage bei `nur_auftrag`.
 
 Eine dauerhafte Änderung ist nur erlaubt, wenn alle drei Bedingungen erfüllt sind:
 
@@ -365,7 +370,7 @@ Fehlt bei Auswahl B eine gültige freigegebene Universalquelle, bleibt der Umfan
 
 ## Umfangsabhängige Ausgabe
 
-Erzeuge, prüfe, rendere und veröffentliche ausschließlich die im bestätigten `dokumentumfang` gewählten Dokumente. Analyse, Anforderungsmatrix, Qualitäts- und Freigabenachweise bleiben entsprechend dem kanonischen Workflow erforderlich, werden aber auf den gewählten Umfang bezogen.
+Erzeuge, prüfe, rendere und veröffentliche ausschließlich die im bestätigten `dokumentumfang` gewählten Dokumente. Analyse, Anforderungsmatrix, Qualitäts- und Freigabenachweise bleiben entsprechend dem kanonischen Workflow erforderlich, werden aber strikt auf den gewählten Umfang bezogen. Bei einer bestätigten reinen E-Mail-Nachricht genügt eine kompakte Matrix der für Rolle, Versandzweck, konkrete Bewerbungsfragen und Logistik tatsächlich relevanten Punkte; ein vollständiger Lebenslauf- oder Kompetenzabgleich ist dafür nicht erforderlich.
 
 - Ein individueller Lebenslauf wird stellenbezogen erstellt.
 - Ein universeller Lebenslauf wird unverändert übernommen und erneut technisch geprüft.

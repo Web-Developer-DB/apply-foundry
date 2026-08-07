@@ -1,10 +1,10 @@
 # Projekteinstieg für KI-Agenten
 
-## Projekt erkennen und kanonischen Workflow laden
+## Projekt erkennen und den passenden Einstieg laden
 
 Dieses Repository ist ein lokaler, KI-gestützter Bewerbungsworkflow für deutsche Bewerbungsunterlagen und zugleich ein Softwareprojekt mit Werkzeugen und Tests. Es ist kein gewöhnliches Code-Repository.
 
-Lies beim Einstieg aus dem Projektstamm zuerst `Prompts/00_AGENTEN_START_HIER.md`. Diese Datei ist die einzige kanonische Quelle für den vollständigen Bewerbungsworkflow. Lade die Module `Prompts/01_...` bis `Prompts/11_...` anschließend nur für den jeweils anstehenden Arbeitsschritt. Die `README.md` erklärt das Projekt für Menschen, ist aber keine verbindliche operative Agentenanweisung. Löse alle relativen Pfade vom Projektstamm aus auf.
+Ordne zuerst den Nutzerauftrag nach dem folgenden Abschnitt zu. Bei einem Bewerbungsauftrag, einer Dateneinrichtung/-prüfung, einer Fortsetzung oder einer Standabfrage liest du anschließend aus dem Projektstamm `Prompts/00_AGENTEN_START_HIER.md`; diese Datei ist die einzige kanonische Quelle für den vollständigen Bewerbungsworkflow. Bei einer rein technischen Projektänderung lädst du sie nur, wenn die Änderung den Bewerbungsworkflow oder seine Verträge berührt. Lade die Module `Prompts/01_...` bis `Prompts/11_...` anschließend nur für den jeweils anstehenden Arbeitsschritt. Die `README.md` erklärt das Projekt für Menschen, ist aber keine verbindliche operative Agentenanweisung. Löse alle relativen Pfade vom Projektstamm aus auf.
 
 Lies nicht vorsorglich das gesamte Repository oder alle Promptmodule. Verwende vorhandene Zustands- und Prüfdateien weiter und wiederhole keine bereits belastbar gespeicherte Analyse. Qualität, Wahrheit und Prüfsicherheit haben Vorrang vor Tokenersparnis.
 
@@ -13,7 +13,7 @@ Lies nicht vorsorglich das gesamte Repository oder alle Promptmodule. Verwende v
 Ordne den aktuellen Nutzerauftrag ohne zusätzliche Startformel einem dieser Einstiege zu. Für neue Bewerbungen ist `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` die einzige zentrale Dialogquelle. Eine bloße Stellenbeschreibung oder ein allgemeiner Bewerbungswunsch legt noch keinen Dokumentumfang fest; frage dann dort nach A–E. Hat der Nutzer den Umfang bereits eindeutig genannt, übernimm ihn ohne erneute Auswahlfrage.
 
 - **Neue Vollbewerbung:** ausdrücklicher Auftrag für Lebenslauf, Anschreiben und E-Mail; verwende den bestätigten Umfang A.
-- **Anschreiben mit universellem Lebenslauf:** Auftrag für ein neues Anschreiben bei unverändertem freigegebenem Universal-Lebenslauf; verwende den Modus `anschreiben_mit_universalem_lebenslauf`.
+- **Anschreiben mit universellem Lebenslauf:** Nur wenn der Nutzer universellen Lebenslauf, Anschreiben **und E-Mail-Nachricht** wünscht, verwende Auswahl B beziehungsweise den Kompatibilitätsmodus `anschreiben_mit_universalem_lebenslauf`. Wünscht er universellen Lebenslauf und Anschreiben ohne E-Mail, verwende Auswahl E mit genau diesen beiden Bestandteilen.
 - **Private Bewerberdaten einrichten oder prüfen:** Prüfe zuerst `Private/Daten/`; verwende `Private.example/Daten/` nur als Strukturvorlage und führe danach den Stammdatencheck aus.
 - **Bestehende Bewerbung fortsetzen oder ihren Stand erklären:** Rekonstruiere den Zustand aus den Projektdateien nach dem Abschnitt „Fortsetzen ohne Chatverlauf“ in `Prompts/00_AGENTEN_START_HIER.md`.
 - **Projekt technisch weiterentwickeln:** Bearbeite nur auftragsrelevante Prompts, Werkzeuge, Tests oder Dokumentation; aktualisiere bei funktionalen Änderungen `CHANGELOG.md` und führe passende Tests aus.

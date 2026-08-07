@@ -29,6 +29,8 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 
 Der Standardweg verwendet `Tools/Finalisiere-Bewerbung.ps1` und den privaten Arbeitsordner.
 
+Bei einer Fortsetzung oder Standabfrage liefert `Tools/Ermittle-Bewerbungsstatus.ps1 -AlsJson` zuvor die nächste belegte Phase und die dafür benötigten Promptmodule. Es ersetzt keine Prüfung, verhindert aber unnötiges erneutes Laden bereits abgeschlossener Phasen.
+
 Vorbereitung mit allen maschinellen Prüfungen:
 
 ```powershell
@@ -78,12 +80,12 @@ Zulässige Messbereiche sind `lebenslauf`, `gesamte_bewerbung` und `technische_v
 
 `Tokenverbrauch.json` bleibt im privaten Arbeitsordner. Der Bericht ist kein Qualitätsnachweis, blockiert weder Vorbereitung noch Veröffentlichung, gelangt nicht nach `Versand/` und wird standardmäßig nicht in `Manifest.json` aufgenommen. Er speichert keine API-Schlüssel, Zugangsdaten, vollständigen Prompts oder privaten Bewerbungsinhalte.
 
-## Pflichtprüfung nach jeder Bewerbung
+## Einzelprüfer nur für Diagnose
 
-Nach dem Erstellen der finalen Bewerbungsdateien soll, sofern eine PowerShell-Umgebung verfügbar ist, dieser statische Prüfer ausgeführt werden:
+Der verbindliche Finalisierungslauf führt den statischen Prüfer selbst aus. Ein zusätzlicher separater Vorablauf ist nicht erforderlich. Zur gezielten Diagnose eines Kandidatenfehlers kann er manuell ausgeführt werden:
 
 ```powershell
-.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
+.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
 ```
 
 Der Prüfer kontrolliert:
@@ -99,14 +101,16 @@ Der Prüfer kontrolliert:
 - kurze, platzhalterfreie E-Mail-Nachricht mit konkretem `Betreff:` in der ersten Zeile
 - bei strukturierten Veröffentlichungen: korrekte `Versand/`-/`Intern/`-Trennung und vollständiges Hash-Manifest
 
-Nur wenn der Prüfer mit `OK` endet, darf der technische Abschlusscheck als bestanden gelten.
+Ein erfolgreicher Einzellauf diagnostiziert nur den aktuellen Kandidatenstand. Der technische Abschlusscheck gilt erst nach dem erfolgreichen vollständigen Finalisierungslauf als bestanden.
 
-## Optionaler Layoutcheck
+## Optionaler Layoutcheck für Diagnose
 
 Wenn ein lokaler Browser verfügbar ist, kann zusätzlich ein visueller Layoutcheck erzeugt werden:
 
 ```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME"
+.\Tools\Layoutcheck-Bewerbung.ps1 `
+  -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck"
 ```
 
 Der Layoutcheck:
@@ -175,7 +179,10 @@ Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären
 Wenn ausgewählte finale HTML-Dateien technisch im grünen Bereich sind, werden genau diese automatisch als PDF exportiert:
 
 ```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
+.\Tools\Exportiere-PDF.ps1 `
+  -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
+  -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export"
 ```
 
 Der PDF-Export:
@@ -201,19 +208,19 @@ Anschreiben - Nachname.Vorname.html
 Anschreiben - Nachname.Vorname.pdf
 ```
 
-Optional kann der PDF-Export vorher auch den Browser-Layoutcheck ausführen:
-
-```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" -MitLayoutcheck
-```
+Für Diagnose werden Layoutcheck und PDF-Export mit ihren ausdrücklich genannten Ausgabeordnern getrennt ausgeführt. Der verbindliche Finalisierungslauf koordiniert beide automatisch; `-MitLayoutcheck` ist für den normalen Bewerbungsablauf nicht erforderlich.
 
 Unter Windows 11 mit PowerShell und Chrome kann der Export gezielt mit Chrome ausgeführt werden:
 
 ```powershell
-.\Tools\Exportiere-PDF.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" -Browser chrome
+.\Tools\Exportiere-PDF.ps1 `
+  -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
+  -Browser chrome `
+  -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export"
 ```
 
-Wenn kein Chrome oder Edge verfügbar ist, wird kein PDF-Export als bestanden gemeldet. Dann bleibt der manuelle PDF-Export über Firefox oder einen anderen Browser möglich, muss aber offen dokumentiert werden.
+Wenn kein Chrome oder Edge verfügbar ist, wird kein PDF-Export als bestanden gemeldet. Eine manuelle Vorschau oder ein manueller Export über Firefox beziehungsweise einen anderen Browser ist nur eine offen zu dokumentierende Diagnosealternative und erreicht nicht das verbindliche Freigabe-Gate.
 
 ## ATS-Prüfung der PDFs
 

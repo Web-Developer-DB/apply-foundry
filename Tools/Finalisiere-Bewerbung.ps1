@@ -598,11 +598,10 @@ if (-not $Veroeffentlichen) {
   Add-Info "Finalisierung wird vorbereitet: $resolvedWork"
   Invoke-ChildTool -ScriptPath $dialogTool -Arguments @("-AuftragPath", $auftragPath, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-FuerDokumenterstellung")
   Invoke-ChildTool -ScriptPath $stammdatenTool -Arguments @("-StammdatenPath", $StammdatenPath, "-BewerbungsauftragPath", $auftragPath, "-UngeklaerteLogistikAlsFehler", "-BerichtPath", $stammdatenReportPath)
-  Invoke-ChildTool -ScriptPath $staticTool -Arguments @("-Ordner", $candidateDir, "-AuftragPath", $auftragPath)
   Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath, "-BerichtPath", $contentReportPath)
   if ($expectedHtmlCount -gt 0) {
-    Invoke-ChildTool -ScriptPath $layoutTool -Arguments @("-Ordner", $candidateDir, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $layoutDir, "-BerichtPath", $layoutReportPath)
     Invoke-ChildTool -ScriptPath $exportTool -Arguments @("-Ordner", $candidateDir, "-AuftragPath", $auftragPath, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $pdfWorkDir, "-BerichtPath", $pdfReportPath)
+    Invoke-ChildTool -ScriptPath $layoutTool -Arguments @("-Ordner", $candidateDir, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $layoutDir, "-BerichtPath", $layoutReportPath)
     Invoke-ChildTool -ScriptPath $atsTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-AuftragPath", $auftragPath, "-BerichtPath", $atsReportPath)
   } else {
     Write-NotRequiredReport -Path $layoutReportPath -Kind "layoutcheck"

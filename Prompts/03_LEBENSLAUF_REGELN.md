@@ -4,7 +4,7 @@
 
 Der Lebenslauf ist eine bewerbungsspezifische, recruiterfreundliche Darstellung. Er zeigt nicht alles, sondern genau das, was zur Stellenbeschreibung passt, aus den privaten Profildaten belegbar ist und für die konkrete Zielrolle einen Nutzen hat.
 
-Diese Zieldefinition gilt für den Modus `vollbewerbung`. Im Modus `anschreiben_mit_universalem_lebenslauf` wird kein neuer Lebenslauf geschrieben: Die freigegebene Universalquelle wird unverändert übernommen und nur technisch erneut geprüft und als PDF gerendert.
+Diese Zieldefinition gilt immer, wenn `dokumentumfang.lebenslauf = individuell` ist, unabhängig davon, ob Auswahl A, C oder E verwendet wird. Bei `dokumentumfang.lebenslauf = universal_unveraendert` wird kein neuer Lebenslauf geschrieben: Die freigegebene Universalquelle wird unverändert übernommen und nur technisch erneut geprüft und als PDF gerendert. Bei `nicht_enthalten` gelten die Lebenslauf-Erstellungsregeln nicht.
 
 Der öffentliche Agent ist neutral. Branche, Rollenprofil, Erfahrungsart, Zusatzkenntnisse und Schwerpunkt entstehen aus:
 
@@ -124,7 +124,7 @@ Zusätzlich muss vor dem Lebenslauf eine strukturierte `Anforderungsmatrix.json`
 
 Dieses Profil steuert Auswahl, Reihenfolge und Kürzung des Lebenslaufs.
 
-Im Anschreiben-Modus steuert dieses Profil ausschließlich Analyse und Anschreiben. Es darf keine Änderung am universellen Lebenslauf auslösen. Reicht der universelle Lebenslauf für eine glaubwürdige Bewerbung nicht aus, wird ein Wechsel zur Vollbewerbung empfohlen.
+Bei `lebenslauf = universal_unveraendert` steuert dieses Profil ausschließlich Analyse und die zusätzlich ausgewählten stellenbezogenen Dokumente. Es darf keine Änderung am universellen Lebenslauf auslösen. Reicht der universelle Lebenslauf für eine glaubwürdige Bewerbung nicht aus, wird ein Wechsel zu `lebenslauf = individuell` empfohlen; der Umfang wird nicht ohne Nutzerauftrag geändert.
 
 ## Inhalt
 
@@ -259,7 +259,7 @@ Wenn zwei Seiten fachlich sinnvoll sind:
 Wenn eine Seite gewählt wird:
 
 - Die HTML-Seite muss technisch eine feste A4-Seite sein, nicht nur ein `min-height`-Container.
-- Das Layout muss so kompakt sein, dass Firefox bei 100 Prozent Skalierung nicht automatisch eine zweite Seite erzeugt.
+- Das Layout muss so kompakt sein, dass der verbindlich unterstützte Chrome-/Edge-Export bei 100 Prozent Skalierung nicht automatisch eine zweite Seite erzeugt.
 - `overflow: hidden` darf nur auf der äußeren A4-Seite genutzt werden und nur, wenn vorher fachlich und visuell sichergestellt ist, dass kein relevanter Inhalt verdeckt wird.
 
 ## Stil
@@ -281,10 +281,10 @@ Dateiname:
 
 Finale Lebenslaufdateien dürfen keine Platzhalter, Warnhinweise, Entwurfsmarker oder abgeschnittene Inhalte enthalten. Der Dateiname nutzt den Bewerbernamen aus den privaten Daten, damit E-Mail-Anhänge für Recruiter schnell zuordenbar sind.
 
-Im Anschreiben-Modus muss der SHA-256-Wert der final geprüften HTML-Quelle mit dem im Bewerbungsauftrag eingefrorenen Universal-Snapshot übereinstimmen.
+Bei `lebenslauf = universal_unveraendert` muss der SHA-256-Wert der final geprüften HTML-Quelle mit dem im Bewerbungsauftrag eingefrorenen Universal-Snapshot übereinstimmen.
 
 ## Tokenbericht nach dem Lebenslauf
 
-Sobald der Lebenslauf-Kandidat fertiggestellt ist beziehungsweise der unveränderte Universal-Snapshot als Kandidat feststeht, aktualisiert der Agent `Tokenverbrauch.json` im zugehörigen privaten Arbeitsordner über `Tools/Aktualisiere-Tokenbericht.ps1 -Messbereich lebenslauf`.
+Sobald der Lebenslauf-Kandidat fertiggestellt ist beziehungsweise der unveränderte Universal-Snapshot als Kandidat feststeht, aktualisiert der Agent `Tokenverbrauch.json` über `Tools/Aktualisiere-Tokenbericht.ps1 -Messbereich lebenslauf` nur dann sofort, wenn für diesen Messbereich bereits exakte maschinenlesbare Laufzeitwerte vorliegen. Andernfalls schreibt erst die spätere Finalisierung einmalig den Status `unavailable`; ein zusätzlicher Zwischenlauf ohne Messwerte ist nicht erforderlich.
 
 Exakte Tokenwerte dürfen nur mit `-NutzungsdatenVerfuegbar` übergeben werden, wenn die Agentenlaufzeit diese maschinenlesbar ausweist. Sie werden weder aus Textlängen hochgerechnet noch aus Teilwerten ergänzt. Kann nur die gesamte Agentensitzung gemessen werden, wird `-Messumfang gesamte_agentensitzung` verwendet und die fehlende isolierte Lebenslaufmessung ausdrücklich genannt. Ohne exakte Nutzungsdaten lautet die Ausgabe `Tokenverbrauch: Von dieser Agentenumgebung nicht bereitgestellt.`; die Erstellung von Anschreiben und E-Mail wird dadurch nicht unterbrochen.
