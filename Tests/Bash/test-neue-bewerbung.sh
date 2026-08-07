@@ -45,7 +45,7 @@ assert_json_parses() {
       node -e 'const fs = require("fs"); JSON.parse(fs.readFileSync(process.argv[1], "utf8").replace(/^\uFEFF/, ""));' "$path" >/dev/null 2>&1 || fail "JSON-Datei ist nicht parsebar: $path"
       ;;
     pwsh)
-      pwsh -NoLogo -NoProfile -NonInteractive -Command "\$text = Get-Content -LiteralPath \$args[0] -Raw -Encoding UTF8; \$null = \$text | ConvertFrom-Json -ErrorAction Stop" "$path" >/dev/null 2>&1 || fail "JSON-Datei ist nicht parsebar: $path"
+      pwsh -NoLogo -NoProfile -NonInteractive -Command '$text = Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8; $null = $text | ConvertFrom-Json -ErrorAction Stop' -- "$path" >/dev/null 2>&1 || fail "JSON-Datei ist nicht parsebar: $path"
       ;;
   esac
 }
