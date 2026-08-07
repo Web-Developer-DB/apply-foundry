@@ -47,7 +47,7 @@ assert_json_parses() {
       ;;
     pwsh)
       # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
-      pwsh -NoLogo -NoProfile -NonInteractive -Command '$text = Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8; $null = $text | ConvertFrom-Json -ErrorAction Stop' "$path" >/dev/null 2>&1 || fail "JSON-Datei ist nicht parsebar: $path"
+      JSON_PATH="$path" pwsh -NoLogo -NoProfile -NonInteractive -Command '$text = Get-Content -LiteralPath $env:JSON_PATH -Raw -Encoding UTF8; $null = $text | ConvertFrom-Json -ErrorAction Stop' >/dev/null 2>&1 || fail "JSON-Datei ist nicht parsebar: $path"
       ;;
   esac
 }
@@ -73,7 +73,7 @@ printf '#!/bin/bash\nexec "%s" "$@"\n' "$dirname_path" > "$nohash_bin/dirname"
 chmod +x "$nohash_bin/date" "$nohash_bin/dirname"
 bash_path="$(command -v bash)"
 set +e
-missing_hash_output="$(PATH="$nohash_bin" "$bash_path" "$tool" --firma "Ohne Hash" --rolle "Audit" --datum "2026-07-14" --umfang A --stammdaten-path "$test_root/default-personal.md" --profil-path "$test_root/default-profile.md" --bewerbungen-root "$test_root/nohash" 2>&1)"
+missing_hash_output="$(PATH="$nohash_bin" "$bash_path" "$tool" --firma "Ohne Hash" --rolle "Audit" --datum "2026-07-14" --umfang A --stammdaten-path "$test_root/default-personal.md" --profil-path "$test_root/default-profile.md" 2>&1)"
 code=$?
 set -e
 [[ $code -eq 2 ]] || fail "Fehlendes SHA-256-Werkzeug wurde nicht mit Exitcode 2 abgelehnt (Exitcode $code; Ausgabe: $missing_hash_output)."
