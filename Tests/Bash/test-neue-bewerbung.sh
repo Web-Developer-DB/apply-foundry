@@ -26,6 +26,7 @@ elif command -v python >/dev/null 2>&1 && python -c 'import json, sys; raise Sys
   test_json_tool="python"
 elif command -v node >/dev/null 2>&1 && node -e 'JSON.parse("{}")' >/dev/null 2>&1; then
   test_json_tool="node"
+# shellcheck disable=SC2016 # PowerShell variables must remain literal here.
 elif command -v pwsh >/dev/null 2>&1 && pwsh -NoLogo -NoProfile -NonInteractive -Command '$null = "{}" | ConvertFrom-Json' >/dev/null 2>&1; then
   test_json_tool="pwsh"
 else
@@ -45,6 +46,7 @@ assert_json_parses() {
       node -e 'const fs = require("fs"); JSON.parse(fs.readFileSync(process.argv[1], "utf8").replace(/^\uFEFF/, ""));' "$path" >/dev/null 2>&1 || fail "JSON-Datei ist nicht parsebar: $path"
       ;;
     pwsh)
+      # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
       pwsh -NoLogo -NoProfile -NonInteractive -Command '$text = Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8; $null = $text | ConvertFrom-Json -ErrorAction Stop' "$path" >/dev/null 2>&1 || fail "JSON-Datei ist nicht parsebar: $path"
       ;;
   esac

@@ -82,7 +82,7 @@ json_escape() {
     char="${value:index:1}"
     case "$char" in
       '"') escaped+='\"' ;;
-      \\) escaped+='\\' ;;
+      \\) escaped+=$'\\\\' ;;
       $'\b') escaped+='\b' ;;
       $'\f') escaped+='\f' ;;
       $'\n') escaped+='\n' ;;
@@ -120,6 +120,7 @@ select_json_tool() {
     json_tool="python"
   elif command -v node >/dev/null 2>&1 && node -e 'JSON.parse("{}")' >/dev/null 2>&1; then
     json_tool="node"
+  # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
   elif command -v pwsh >/dev/null 2>&1 && pwsh -NoLogo -NoProfile -NonInteractive -Command '$null = "{}" | ConvertFrom-Json' >/dev/null 2>&1; then
     json_tool="pwsh"
   fi
@@ -138,6 +139,7 @@ validate_json_file() {
       node -e 'const fs = require("fs"); JSON.parse(fs.readFileSync(process.argv[1], "utf8").replace(/^\uFEFF/, ""));' "$path" >/dev/null 2>&1
       ;;
     pwsh)
+      # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
       pwsh -NoLogo -NoProfile -NonInteractive -Command '$text = Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8; $null = $text | ConvertFrom-Json -ErrorAction Stop' "$path" >/dev/null 2>&1
       ;;
     *)
@@ -196,6 +198,7 @@ else process.exit(4);
 ' "$path" "$query"
       ;;
     pwsh)
+      # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
       pwsh -NoLogo -NoProfile -NonInteractive -Command '
 $value = (Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop)
 foreach ($segment in $args[1].Split(".")) {
@@ -278,6 +281,7 @@ process.stdout.write(type);
 ' "$path" "$query"
       ;;
     pwsh)
+      # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
       pwsh -NoLogo -NoProfile -NonInteractive -Command '
 $value = (Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop)
 foreach ($segment in $args[1].Split(".")) {
