@@ -82,7 +82,7 @@ json_escape() {
     char="${value:index:1}"
     case "$char" in
       '"') escaped+='\"' ;;
-      \\) escaped+='\\' ;;
+      \\) escaped+=$'\\\\' ;;
       $'\b') escaped+='\b' ;;
       $'\f') escaped+='\f' ;;
       $'\n') escaped+='\n' ;;
@@ -120,6 +120,7 @@ select_json_tool() {
     json_tool="python"
   elif command -v node >/dev/null 2>&1 && node -e 'JSON.parse("{}")' >/dev/null 2>&1; then
     json_tool="node"
+  # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
   elif command -v pwsh >/dev/null 2>&1 && pwsh -NoLogo -NoProfile -NonInteractive -Command '$null = "{}" | ConvertFrom-Json' >/dev/null 2>&1; then
     json_tool="pwsh"
   fi
@@ -138,7 +139,8 @@ validate_json_file() {
       node -e 'const fs = require("fs"); JSON.parse(fs.readFileSync(process.argv[1], "utf8").replace(/^\uFEFF/, ""));' "$path" >/dev/null 2>&1
       ;;
     pwsh)
-      pwsh -NoLogo -NoProfile -NonInteractive -Command '$text = Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8; $null = $text | ConvertFrom-Json -ErrorAction Stop' "$path" >/dev/null 2>&1
+      # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
+      JSON_PATH="$path" pwsh -NoLogo -NoProfile -NonInteractive -Command '$text = Get-Content -LiteralPath $env:JSON_PATH -Raw -Encoding UTF8; $null = $text | ConvertFrom-Json -ErrorAction Stop' >/dev/null 2>&1
       ;;
     *)
       return 2
@@ -196,9 +198,10 @@ else process.exit(4);
 ' "$path" "$query"
       ;;
     pwsh)
-      pwsh -NoLogo -NoProfile -NonInteractive -Command '
-$value = (Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop)
-foreach ($segment in $args[1].Split(".")) {
+      # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
+      JSON_PATH="$path" JSON_QUERY="$query" pwsh -NoLogo -NoProfile -NonInteractive -Command '
+$value = (Get-Content -LiteralPath $env:JSON_PATH -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop)
+foreach ($segment in $env:JSON_QUERY.Split(".")) {
   $property = $value.PSObject.Properties[$segment]
   if ($null -eq $property) { exit 3 }
   $value = $property.Value
@@ -207,7 +210,7 @@ if ($value -is [bool]) { [Console]::Out.Write($value.ToString().ToLowerInvariant
 elseif ($null -eq $value) { [Console]::Out.Write("null") }
 elseif ($value -is [string] -or $value -is [int] -or $value -is [long] -or $value -is [double] -or $value -is [decimal]) { [Console]::Out.Write([string]$value) }
 else { exit 4 }
-' "$path" "$query"
+'
       ;;
     *)
       return 2
@@ -278,9 +281,10 @@ process.stdout.write(type);
 ' "$path" "$query"
       ;;
     pwsh)
-      pwsh -NoLogo -NoProfile -NonInteractive -Command '
-$value = (Get-Content -LiteralPath $args[0] -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop)
-foreach ($segment in $args[1].Split(".")) {
+      # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
+      JSON_PATH="$path" JSON_QUERY="$query" pwsh -NoLogo -NoProfile -NonInteractive -Command '
+$value = (Get-Content -LiteralPath $env:JSON_PATH -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop)
+foreach ($segment in $env:JSON_QUERY.Split(".")) {
   $property = $value.PSObject.Properties[$segment]
   if ($null -eq $property) { exit 3 }
   $value = $property.Value
@@ -292,7 +296,7 @@ elseif ($value -is [string]) { [Console]::Out.Write("string") }
 elseif ($null -eq $value) { [Console]::Out.Write("null") }
 elseif ($value -is [System.Array]) { [Console]::Out.Write("array") }
 else { [Console]::Out.Write("object") }
-' "$path" "$query"
+'
       ;;
     *)
       return 2
