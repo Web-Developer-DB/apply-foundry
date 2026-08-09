@@ -4,6 +4,13 @@
 
 Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Die Struktur orientiert sich an „Keep a Changelog“ und verwendet die im Projekt geführten Versionsnummern.
 
+## Unveröffentlicht
+
+### Behoben
+
+- Die gelöschte Bash-Regressionssuite wurde wiederhergestellt, damit die dokumentierten Windows- und Ubuntu-Prüfpfade nicht auf eine fehlende Datei zeigen.
+- Die ShellCheck-Ausnahme für beabsichtigt literale PowerShell-Variablen steht nun vor dem vollständigen `if`-Block und verursacht keine Parserfehler mehr.
+
 ## Version 1.8.0 - 2026-08-06
 
 ### Hinzugefügt

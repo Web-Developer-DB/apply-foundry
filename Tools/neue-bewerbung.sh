@@ -112,6 +112,7 @@ markdown_field() {
 
 select_json_tool() {
   json_tool=""
+  # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
   if command -v jq >/dev/null 2>&1 && jq --version >/dev/null 2>&1; then
     json_tool="jq"
   elif command -v python3 >/dev/null 2>&1 && python3 -c 'import json' >/dev/null 2>&1; then
@@ -120,7 +121,6 @@ select_json_tool() {
     json_tool="python"
   elif command -v node >/dev/null 2>&1 && node -e 'JSON.parse("{}")' >/dev/null 2>&1; then
     json_tool="node"
-  # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
   elif command -v pwsh >/dev/null 2>&1 && pwsh -NoLogo -NoProfile -NonInteractive -Command '$null = "{}" | ConvertFrom-Json' >/dev/null 2>&1; then
     json_tool="pwsh"
   fi
