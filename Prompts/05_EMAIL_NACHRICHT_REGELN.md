@@ -6,7 +6,9 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 
 ## Datei
 
-`Email-Nachricht--FIRMA.md`
+`Email-Nachricht--FIRMEN-SLUG.md`
+
+`FIRMEN-SLUG` ist exakt der Wert `firmaSlug` aus dem zugehörigen `Bewerbungsauftrag.json`, zum Beispiel `Muster GmbH` → `Muster-GmbH`. Die Datei liegt vor der Freigabe im `Kandidat/`-Ordner und nach der Veröffentlichung unter `Versand/`. Sie ist immer UTF-8-Markdown; eine `.html`-Variante oder ein frei gewählter Dateiname ist nicht zulässig.
 
 ## Inhalt
 

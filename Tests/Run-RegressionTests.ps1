@@ -1042,6 +1042,8 @@ Start-Sleep -Seconds 30
     $rolePrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/06_ROLLENLOGIK.md") -Raw -Encoding UTF8
     $qualityPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/09_QUALITAETSCHECK.md") -Raw -Encoding UTF8
     $canonicalPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/00_AGENTEN_START_HIER.md") -Raw -Encoding UTF8
+    $emailPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/05_EMAIL_NACHRICHT_REGELN.md") -Raw -Encoding UTF8
+    $technicalPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md") -Raw -Encoding UTF8
 
     Assert-True -Condition ($canonicalPrompt -match 'genau eine gebündelte Rückfrage' -and $canonicalPrompt -match 'Ersatzwerte dürfen nicht automatisch übernommen werden') -Message "Unklare Firma oder Zielrolle kann weiterhin mit einem Platzhalter in Auftragspfade gelangen."
     Assert-True -Condition ($canonicalPrompt -notmatch 'Dokumentmodus: vollständige Bewerbung oder nur neues Anschreiben') -Message "Kanonischer Inputvertrag verwendet noch die veraltete Zwei-Modi-Auswahl."
@@ -1053,6 +1055,10 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($qualityPrompt -match 'E-Mail-only-Auswahl.+keine Anlage' -and $qualityPrompt -match 'Chrome-/Edge') -Message "Umfangs- oder Browservertrag fehlt im Qualitätscheck."
     Assert-True -Condition ($qualityPrompt -notmatch 'gedanklich') -Message "Qualitätscheck erlaubt weiterhin eine nur behauptete technische Prüfung."
     Assert-True -Condition ($resumePrompt -notmatch 'Diese Zieldefinition gilt für den Modus vollbewerbung|Im Anschreiben-Modus') -Message "Lebenslaufregeln verwenden noch widersprüchliche Legacy-Modussemantik."
+    Assert-True -Condition ($agents -match 'Dummy' -and $agents -match 'Email-Nachricht--FIRMEN-SLUG\.md' -and $agents -match 'Tools/bewerbung\.ps1 finalisieren') -Message "AGENTS.md verhindert den fehlerhaften Direkt-Export nicht eindeutig."
+    Assert-True -Condition ($canonicalPrompt -match 'Dummy' -and $canonicalPrompt -match 'firmaSlug' -and $canonicalPrompt -match 'min-height.+kein Ersatz') -Message "Kanonischer Workflow klärt Kandidatenverträge nicht eindeutig."
+    Assert-True -Condition ($emailPrompt -match 'FIRMEN-SLUG' -and $emailPrompt -match 'firmaSlug' -and $emailPrompt -match 'Markdown') -Message "E-Mail-Modul klärt Dateiname, Quelle und Format nicht eindeutig."
+    Assert-True -Condition ($technicalPrompt -match 'Exportiere-PDF\.ps1.+kein allgemeiner Konverter' -and $technicalPrompt -match 'Dummy' -and $technicalPrompt -match 'min-height.+nicht') -Message "Technischer Workflow grenzt Diagnose und Finalisierung nicht eindeutig ab."
   }
 
   Invoke-Test -Name "Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben" -Body {

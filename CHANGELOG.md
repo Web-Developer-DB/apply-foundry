@@ -15,6 +15,7 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Geändert
 
+- Die Agenten-, E-Mail- und Technikhinweise benennen jetzt explizit den privaten Kandidatenpfad, die vier inhaltlich erforderlichen Nachweise, den aus `firmaSlug` abgeleiteten Markdown-Dateinamen der E-Mail, die feste A4-CSS-Geometrie und `bewerbung.ps1 finalisieren` als einzigen Standardweg. Dadurch dürfen lokale Modelle weder Dummy-Dateien noch HTML-E-Mails oder lose Direkt-Exporte als zulässige Abkürzung interpretieren.
 - PowerShell 7.6 Core ist die einzige fachliche Implementierung. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und benötigt dafür weder `jq`, Python, Node noch externe SHA-Werkzeuge.
 - Neue `Bewerbungsauftrag.json` verwenden Schema 5 und speichern Ziel-, Arbeits- und Kandidatenpfad portabel relativ zu `BewerbungenRoot`. Altaufträge der Schemata 1 bis 4 bleiben ohne automatische Migration lesbar.
 - Layout-, PDF-, ATS- und Finalisierungsnachweise erhalten einen Runtime-Fingerprint; ein Plattformwechsel entwertet technische Nachweise, aber weder Auftrag noch Kandidatenbestand.

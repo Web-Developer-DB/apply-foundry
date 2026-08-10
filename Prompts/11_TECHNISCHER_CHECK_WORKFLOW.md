@@ -21,6 +21,10 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Finale Bewerbungsdateien dürfen erst gemeldet werden, nachdem mindestens der statische Check erfolgreich war.
 - PDFs dürfen erst erzeugt werden, nachdem der statische Check erfolgreich war.
 - Versandfertige Dateien werden zunächst im privaten `Kandidat`-Ordner geprüft. Der finale Zielordner bleibt bis zur atomaren Veröffentlichung leer.
+- Kandidaten liegen nur unter `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/`; ein loses Verzeichnis `Bewerbungen/` ist kein Exportpfad.
+- `Stellenbeschreibung.md`, `Analyse.md`, `Qualitaetscheck.md` und `Druck-Hinweis.md` sind nichtleere fachliche Nachweise. Sie dürfen niemals als leere oder minimale Dummy-Dateien erzeugt werden, um den Prüfer zu umgehen.
+- Eine ausgewählte E-Mail ist ausschließlich `Email-Nachricht--FIRMEN-SLUG.md` in UTF-8-Markdown. Der exakte Slug kommt aus `Bewerbungsauftrag.json`; HTML-Dateien für E-Mails sind unzulässig.
+- HTML-Kandidaten müssen vor dem statischen Check die feste A4-Geometrie aus Prompt 08 enthalten: `@page { size: A4; margin: 0; }` und `.page { width: 210mm; height: 297mm; }`. `min-height` ersetzt diese Vertragswerte nicht.
 - Eine Änderung an einer HTML-Datei nach dem Layoutcheck macht den bisherigen Screenshot- und PDF-Nachweis ungültig. Maßgeblich sind die SHA-256-Werte in den Prüfberichten.
 - Kandidatendateien einzeln und vollständig schreiben und danach unmittelbar validieren. Insbesondere JSON-Dateien nach jeder Änderung parsen; keine unübersichtliche Sammeländerung darf bei einem Teilfehler mehrere fertige Dokumente halb aktualisiert zurücklassen.
 - In einer als verwaltete Sandbox bekannten Umgebung vor dem Browserlauf prüfen, ob eine lokale Browserfreigabe verfügbar ist. Eine vorhandene Freigabe direkt verwenden; andernfalls die Grenze offen melden und keinen erfolgreichen Lauf behaupten.
@@ -84,6 +88,8 @@ Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbew
 Die Veröffentlichung wird verweigert, wenn Quellen, Auftrag, Kandidatendateien oder Screenshots nach der Vorbereitung verändert wurden. Sie kopiert nicht dateiweise in den Zielordner, sondern veröffentlicht das validierte Set über einen privaten Staging-Ordner gemeinsam. `Versand/` enthält ausschließlich die ausgewählten PDF-Anlagen und gegebenenfalls den E-Mail-Text; `Intern/` enthält vorhandene HTML-Quellen und Nachweise. `Manifest.json` bindet Dokumentumfang und jede veröffentlichte Datei an ihren SHA-256-Wert.
 
 Die nachfolgenden Einzelwerkzeuge bleiben für Diagnose, Entwicklung und gezielte Wiederholungen verfügbar. Für neue Bewerbungen ersetzt ihre manuelle Verkettung nicht den verbindlichen Finalisierungsworkflow.
+
+Insbesondere ist `Exportiere-PDF.ps1` kein allgemeiner Konverter für lose Dokumentordner. Verwende es nur zur Fehlerdiagnose eines bereits korrekt angelegten Kandidatenstands; für den normalen Ablauf ist ausschließlich `bewerbung.ps1 finalisieren` vorgesehen.
 
 ## Tokenverbrauch und Laufzeitmessung
 

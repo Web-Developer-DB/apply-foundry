@@ -43,6 +43,14 @@ Fehlt eine Fähigkeit, benenne den betroffenen Schritt und nutze nur eine im kan
 - Nimm keine echten privaten Daten in Tests, Logs oder Git auf.
 - Neue Angaben aus einem Bewerbungsdialog gelten zunächst nur für den aktuellen Auftrag. Ändere `Private/Daten/01_PERSOENLICHE_DATEN.md` oder `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` erst nach transparenter Zielformulierung und eindeutiger Zustimmung zur dauerhaften Speicherung. Protokolliere nur die normalisierte fachliche Angabe und die Entscheidung im privaten `Bewerbungsauftrag.json`, niemals einen vollständigen Chatverlauf.
 
+## Technische Finalisierung: feste Verträge
+
+- Erzeuge Kandidaten und Prüfberichte ausschließlich im angelegten Pfad `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE/`. Ein loses Verzeichnis `Bewerbungen/` oder ein öffentlicher Projektordner ist kein zulässiger Ersatz.
+- Erstelle die gemeinsamen Nachweise `Stellenbeschreibung.md`, `Analyse.md`, `Qualitaetscheck.md` und `Druck-Hinweis.md` mit ihrem tatsächlichen Inhalt. Erzeuge niemals leere, minimale oder als „Dummy“ gedachte Dateien, nur um eine Prüfung zu passieren.
+- Eine ausgewählte E-Mail-Nachricht ist ausschließlich Text: `Email-Nachricht--FIRMEN-SLUG.md`. Der exakte Firmen-Slug stammt aus `Bewerbungsauftrag.json`; weder eine HTML-E-Mail noch ein frei gewählter Name ist zulässig.
+- Leite HTML-Dokumente von der A4-Struktur aus `Prompts/08_HTML_CSS_DESIGNREGELN.md` ab: eingebettetes CSS mit `@page { size: A4; margin: 0; }` sowie `.page { width: 210mm; height: 297mm; }`. Ersetze die feste Höhe nicht durch `min-height`.
+- Starte für neue oder fortgesetzte Bewerbungen nicht direkt `Exportiere-PDF.ps1`, sondern den vollständigen Einstieg `Tools/bewerbung.ps1 finalisieren`. Einzelwerkzeuge dienen nur der gezielten Diagnose und lockern keinen dieser Verträge.
+
 ## Token- und Nutzungsangaben
 
 Tokenzahlen dürfen niemals geschätzt, aus Textlängen hochgerechnet oder aus Teilwerten erfunden werden. Verwende exakte Werte nur, wenn die Agentenlaufzeit sie maschinenlesbar bereitstellt. Trenne gemessene Werte deutlich von einer ausdrücklich als Schätzung gelieferten Kostenangabe; führe für eine Schätzung keinen zusätzlichen Modellaufruf aus.

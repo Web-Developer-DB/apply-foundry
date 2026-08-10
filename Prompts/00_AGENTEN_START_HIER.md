@@ -263,6 +263,16 @@ Die Skripte erstellen einen leeren finalen Zielordner, den privaten Arbeitsordne
 
 ## Technischer Abschlusscheck
 
+### Nicht verhandelbare Kandidatenverträge
+
+Der Kandidatenordner wird ausschließlich unter `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/` angelegt. Ein direkt unter `Bewerbungen/` oder öffentlich abgelegter Entwurf ist kein zulässiger Exporteingang.
+
+Die internen Nachweise `Stellenbeschreibung.md`, `Analyse.md`, `Qualitaetscheck.md` und `Druck-Hinweis.md` sind fachliche Bestandteile des Vorgangs. Sie müssen mit ihrem wirklichen Inhalt erstellt werden; leere oder minimale „Dummy“-Dateien zum Bestehen des Prüfers sind verboten.
+
+Bei ausgewählter E-Mail-Nachricht lautet der Kandidatendateiname exakt `Email-Nachricht--FIRMEN-SLUG.md`. `FIRMEN-SLUG` ist der gespeicherte `firmaSlug` aus `Bewerbungsauftrag.json`, nicht ein frei formulierter Firmenname. Die E-Mail ist Markdown-Text und niemals eine HTML-Datei.
+
+HTML-Kandidaten übernehmen vor dem ersten Prüflauf die feste A4-Grundstruktur aus `Prompts/08_HTML_CSS_DESIGNREGELN.md`, einschließlich `@page { size: A4; margin: 0; }` und `.page { width: 210mm; height: 297mm; }`. `min-height` ist kein Ersatz für die feste Höhe.
+
 Nach dem Erstellen aller Kandidatendateien wird zuerst die Finalisierung vorbereitet:
 
 ```powershell
