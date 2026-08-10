@@ -6,10 +6,36 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ## Unveröffentlicht
 
+### Hinzugefügt
+
+- Gemeinsamer Dispatcher `Tools/bewerbung.ps1` mit den Subcommands `diagnose`, `neu`, `status`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`; GNU-Langoptionen gelten auf Windows und Linux gleich.
+- Dünner Linux-Launcher `Tools/bewerbung.sh`, Kompatibilitätswrapper `Tools/neue-bewerbung.sh` sowie ein ausschließlich opt-in verwendbares `Tools/setup-ubuntu.sh` für Ubuntu 24.04 x86_64.
+- Gemeinsame PowerShell-Module für portable Schema-5-Auftragspfade, symlinksichere Pfadvalidierung, OS- und Browsererkennung, begrenzte native Prozesse mit Timeout sowie dependency-freie PNG-Auswertung.
+- Read-only-Preflight `Tools/Pruefe-Umgebung.ps1` und eine feste browserfreie CI-Matrix auf `windows-2025` und `ubuntu-24.04`; Browser-Smokes laufen zunächst getrennt, manuell und zeitgesteuert.
+
+### Geändert
+
+- PowerShell 7.6 Core ist die einzige fachliche Implementierung. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und benötigt dafür weder `jq`, Python, Node noch externe SHA-Werkzeuge.
+- Neue `Bewerbungsauftrag.json` verwenden Schema 5 und speichern Ziel-, Arbeits- und Kandidatenpfad portabel relativ zu `BewerbungenRoot`. Altaufträge der Schemata 1 bis 4 bleiben ohne automatische Migration lesbar.
+- Layout-, PDF-, ATS- und Finalisierungsnachweise erhalten einen Runtime-Fingerprint; ein Plattformwechsel entwertet technische Nachweise, aber weder Auftrag noch Kandidatenbestand.
+- Chrome, Edge und Chromium werden plattformabhängig gesucht; ein ausdrücklich angegebener Browserpfad wird auf Existenz, Version und Chromium-Engine geprüft. Firefox bleibt auf Layoutdiagnosen beschränkt.
+- Designvorlagen verwenden zusätzlich `Liberation Sans`, und alle ausführbaren PowerShell-Werkzeuge verlangen PowerShell 7.6 Core.
+- Die öffentliche CLI vereinheitlicht Exitcode `0` für Erfolg, `1` für fachliche oder technische Laufzeitfehler und `2` für ungültige beziehungsweise unsichere CLI-Eingaben, nicht unterstützte Umgebungen oder eine fehlende Kernruntime.
+- Das Ubuntu-Setup installiert nur nach ausdrücklicher Auswahl PowerShell 7.6 aus der Microsoft-Quelle, Google Chrome Stable aus der Google-Quelle und/oder `fonts-liberation2`; `--dry-run`, Bestätigung und idempotente Erkennung verhindern stille Systemänderungen.
+- Der dependency-freie PNG-Leser verarbeitet die erwarteten nicht-interlaced 8-Bit-Grau-, RGB- und RGBA-Screenshots mit Filtern 0 bis 4. Windows-/Ubuntu-Parität wird über Seitenzahl, A4-Geometrie, Dichte-, Hash- und ATS-Prüfung statt binär identischer Ausgaben bewertet.
+
 ### Behoben
 
-- Die gelöschte Bash-Regressionssuite wurde wiederhergestellt, damit die dokumentierten Windows- und Ubuntu-Prüfpfade nicht auf eine fehlende Datei zeigen.
-- Die ShellCheck-Ausnahme für beabsichtigt literale PowerShell-Variablen steht nun vor dem vollständigen `if`-Block und verursacht keine Parserfehler mehr.
+- Verwaiste README- und Workflowverweise auf gelöschte Archiv- beziehungsweise Bash-Testdateien wurden entfernt; die frühere Bash-Fachsuite ist durch Dispatcher-, Kompatibilitäts- und Setup-Tests ersetzt.
+- Die ShellCheck-Ausnahme für die beabsichtigt literale PowerShell-Versionsabfrage steht vor dem vollständigen `if`-Block und verursacht keine Parserfehler mehr.
+- Vertrags-, Bericht-, Artefakt-, Publish- und Rollbackpfade werden unmittelbar vor Lesen oder Schreiben erneut symlinksicher geprüft; Verzeichnis- und interne Link-Aliasse können keine regulären Dateien oder fremden Bewerbungsziele mehr maskieren.
+- Browserprofile und transiente PNG-/PDF-Ausgaben verwenden kurze, GUID-isolierte private Runroots und werden erst nach Frische-, Struktur- und Hashprüfung atomar an den endgültigen Ort übernommen.
+
+### Tests und Verifikation
+
+- Die vollständige browserfreie PowerShell-Suite bestand lokal unter Windows mit 73 von 73 synthetischen Fällen; die Chrome-Suite bestand mit 81 von 81 Fällen einschließlich Screenshot, A4-PDF, ATS, Ersatz und Rollback.
+- Bash-Syntax sowie Dispatcher-/Kompatibilitätstests bestanden unter Git Bash. Die Ubuntu-24.04-WSL-Tests für Parser, OS-Abweisung, Herkunft, Dry-run und Idempotenz bestanden ohne Paketinstallation.
+- Ein vollständiger PowerShell-/Browserlauf unter Ubuntu wurde lokal noch nicht ausgeführt. Die feste CI-Matrix und die getrennten Browser-Smokes sind eingerichtet; Ubuntu bleibt bis zu den dokumentierten Nachweisen Alpha.
 
 ## Version 1.8.0 - 2026-08-06
 
