@@ -163,10 +163,10 @@ if [[ "$distribution_id" != 'ubuntu' || "$distribution_version" != '24.04' || "$
 fi
 
 runtime_ok() {
-  command -v pwsh >/dev/null 2>&1 &&
-    pwsh -NoLogo -NoProfile -NonInteractive -Command \
-      'if ($PSVersionTable.PSEdition -eq "Core" -and $PSVersionTable.PSVersion.Major -eq 7 -and $PSVersionTable.PSVersion.Minor -eq 6) { exit 0 } else { exit 1 }' \
-      >/dev/null 2>&1
+  command -v pwsh >/dev/null 2>&1 || return 1
+  pwsh -NoLogo -NoProfile -NonInteractive -Command \
+    "if (\$PSVersionTable.PSEdition -eq \"Core\" -and \$PSVersionTable.PSVersion.Major -eq 7 -and \$PSVersionTable.PSVersion.Minor -eq 6) { exit 0 } else { exit 1 }" \
+    >/dev/null 2>&1
 }
 
 browser_ok() {
