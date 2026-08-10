@@ -1,3 +1,6 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
@@ -24,10 +27,23 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'Common/Platform.psm1') -Force
+
+$script:ApplicationsRoot = $null
+$script:OrderWorkRoot = $null
+$script:DataRoot = $null
+$script:ResolvedOrderPath = $null
+
 function Stop-WithValidationError {
   param([string]$Message)
   Write-Host "[FEHLER] $Message" -ForegroundColor Red
   exit 1
+}
+
+function Stop-WithUnsafePathError {
+  param([string]$Message)
+  Write-Host "[FEHLER] $Message" -ForegroundColor Red
+  exit 2
 }
 
 function Get-JsonProperty {
@@ -311,9 +327,21 @@ function Invoke-DialogValidator {
     throw "Dialogstatus-Prüfer fehlt: $validator"
   }
   $powerShellExe = (Get-Process -Id $PID).Path
-  $output = & $powerShellExe -NoProfile -File $validator -AuftragPath $Path 2>&1
-  if ($LASTEXITCODE -ne 0) {
-    throw "Bewerbungsauftrag verletzt den Dialogvertrag: $(@($output) -join ' | ')"
+  $result = Invoke-NativeProcess `
+    -FilePath $powerShellExe `
+    -ArgumentList @('-NoLogo', '-NoProfile', '-NonInteractive', '-File', $validator, '-AuftragPath', $Path) `
+    -TimeoutSeconds 120 `
+    -MaxStdoutChars 262144 `
+    -MaxStderrChars 262144
+  $output = @($result.StandardOutput, $result.StandardError) -join "`n"
+  if ($result.TimedOut) {
+    throw 'Dialogstatus-Prüfung überschritt das Zeitlimit und wurde vollständig beendet.'
+  }
+  if ($result.StdoutTruncated -or $result.StderrTruncated) {
+    throw 'Dialogstatus-Prüfung erzeugte mehr Ausgabe als sicher verarbeitet werden kann.'
+  }
+  if ($result.ExitCode -ne 0) {
+    throw "Bewerbungsauftrag verletzt den Dialogvertrag: $($output.Trim())"
   }
 }
 
@@ -327,38 +355,64 @@ function Write-ValidatedOrder {
     [byte[]]$OriginalProfileBytes
   )
 
+  $Path = Resolve-SafePath -Candidate $Path -Root $script:ApplicationsRoot -MustExist -ForWrite -PathType Leaf
+  if (-not (Test-SamePath -Left $Path -Right $script:ResolvedOrderPath)) {
+    throw 'Schreibziel stimmt nicht mit dem validierten Bewerbungsauftrag überein.'
+  }
   $json = ($Order | ConvertTo-Json -Depth 32) + [Environment]::NewLine
   $newBytes = ConvertTo-Utf8Bytes -Text $json -WithBom $WithBom
   $parent = Split-Path -Path $Path -Parent
-  $temporaryPath = Join-Path -Path $parent -ChildPath ('.dialogauftrag-' + [guid]::NewGuid().ToString('N') + '.tmp')
+  $temporaryPath = Resolve-SafePath -Candidate (Join-Path -Path $parent -ChildPath ('.dialogauftrag-' + [guid]::NewGuid().ToString('N') + '.tmp')) -Root $script:OrderWorkRoot -ForWrite -PathType Leaf
+  if ((Test-SamePath -Left $temporaryPath -Right $Path) -or
+      (-not [string]::IsNullOrWhiteSpace($ProfilePathToRollback) -and (Test-SamePath -Left $temporaryPath -Right $ProfilePathToRollback))) {
+    throw 'Temporäres Schreibziel darf keine Eingabedatei aliasieren.'
+  }
   try {
     [System.IO.File]::WriteAllBytes($temporaryPath, $newBytes)
     Invoke-DialogValidator -Path $temporaryPath
     try {
+      $Path = Resolve-SafePath -Candidate $Path -Root $script:ApplicationsRoot -MustExist -ForWrite -PathType Leaf
       [System.IO.File]::WriteAllBytes($Path, $newBytes)
     } catch {
       if (-not [string]::IsNullOrWhiteSpace($ProfilePathToRollback) -and $null -ne $OriginalProfileBytes) {
+        $ProfilePathToRollback = Resolve-SafePath -Candidate $ProfilePathToRollback -Root $script:DataRoot -MustExist -ForWrite -PathType Leaf
         [System.IO.File]::WriteAllBytes($ProfilePathToRollback, $OriginalProfileBytes)
       }
       if ($null -ne $OriginalBytes) {
+        $Path = Resolve-SafePath -Candidate $Path -Root $script:ApplicationsRoot -MustExist -ForWrite -PathType Leaf
         [System.IO.File]::WriteAllBytes($Path, $OriginalBytes)
       }
       throw
     }
   } finally {
     if (Test-Path -LiteralPath $temporaryPath -PathType Leaf) {
-      [System.IO.File]::Delete($temporaryPath)
+      try {
+        $temporaryPath = Resolve-SafePath -Candidate $temporaryPath -Root $script:OrderWorkRoot -MustExist -ForWrite -PathType Leaf
+        [System.IO.File]::Delete($temporaryPath)
+      } catch {
+        Write-Host "[WARNUNG] Temporäre Dialogdatei konnte nicht sicher entfernt werden: $($_.Exception.Message)" -ForegroundColor Yellow
+      }
     }
   }
 }
 
-if (-not (Test-Path -LiteralPath $AuftragPath -PathType Leaf)) {
-  Stop-WithValidationError -Message "Bewerbungsauftrag fehlt oder ist keine Datei: $AuftragPath"
-}
-$resolvedOrderPath = (Resolve-Path -LiteralPath $AuftragPath).Path
-$projectRoot = Get-ProjectRootFromOrderPath -Path $resolvedOrderPath
+$projectRoot = Get-ProjectRootFromOrderPath -Path $AuftragPath
 if ([string]::IsNullOrWhiteSpace([string]$projectRoot)) {
-  Stop-WithValidationError -Message 'AuftragPath muss unter <Projektwurzel>/Private/Bewerbungen/ liegen.'
+  Stop-WithUnsafePathError -Message 'AuftragPath muss unter <Projektwurzel>/Private/Bewerbungen/ liegen.'
+}
+try {
+  $privateRoot = Resolve-SafePath -Candidate (Join-Path -Path $projectRoot -ChildPath 'Private') -Root (Join-Path -Path $projectRoot -ChildPath 'Private') -AllowRoot -MustExist -PathType Container
+  $script:ApplicationsRoot = Resolve-SafePath -Candidate (Join-Path -Path $privateRoot -ChildPath 'Bewerbungen') -Root $privateRoot -MustExist -PathType Container
+  $script:DataRoot = Resolve-SafePath -Candidate (Join-Path -Path $privateRoot -ChildPath 'Daten') -Root $privateRoot -PathType Container
+  $resolvedOrderPath = Resolve-SafePath -Candidate $AuftragPath -Root $script:ApplicationsRoot -MustExist -ForWrite -PathType Leaf
+  $script:ResolvedOrderPath = $resolvedOrderPath
+  $script:OrderWorkRoot = Resolve-SafePath -Candidate (Split-Path -Path $resolvedOrderPath -Parent) -Root $script:ApplicationsRoot -MustExist -PathType Container
+  $workCollection = Split-Path -Path $script:OrderWorkRoot -Parent
+  if (-not (Test-PathNameEquals -Left (Split-Path -Path $workCollection -Leaf) -Right '_Arbeitsdateien')) {
+    throw 'Bewerbungsauftrag muss direkt in einem Arbeitsordner unter _Arbeitsdateien liegen.'
+  }
+} catch {
+  Stop-WithUnsafePathError -Message "Unsicherer Bewerbungsauftragspfad: $($_.Exception.Message)"
 }
 
 try {
@@ -375,8 +429,8 @@ try {
 }
 
 $schemaVersion = 0
-if (-not [int]::TryParse([string](Get-JsonProperty -Object $auftrag -Name 'schemaVersion'), [ref]$schemaVersion) -or $schemaVersion -ne 4) {
-  Stop-WithValidationError -Message 'Dialogangaben können nur in einem Bewerbungsauftrag mit Schema 4 übernommen werden.'
+if (-not [int]::TryParse([string](Get-JsonProperty -Object $auftrag -Name 'schemaVersion'), [ref]$schemaVersion) -or $schemaVersion -notin @(4, 5)) {
+  Stop-WithValidationError -Message 'Dialogangaben können nur in einem Bewerbungsauftrag mit Schema 4 oder 5 übernommen werden.'
 }
 
 if ($AngabeId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$') {
@@ -511,6 +565,14 @@ foreach ($entry in $allowedProfiles.GetEnumerator()) {
 if ($null -eq $profileRelativePath) {
   Stop-WithValidationError -Message 'ProfilPath muss exakt auf Private/Daten/01_PERSOENLICHE_DATEN.md oder Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md zeigen.'
 }
+try {
+  $requestedProfileFull = Resolve-SafePath -Candidate $requestedProfileFull -Root $script:DataRoot -MustExist -ForWrite -PathType Leaf
+  if (Test-SamePath -Left $requestedProfileFull -Right $resolvedOrderPath) {
+    throw 'Profildatei darf den Bewerbungsauftrag nicht aliasieren.'
+  }
+} catch {
+  Stop-WithUnsafePathError -Message "Unsicherer Profilpfad: $($_.Exception.Message)"
+}
 
 $storedPath = ([string](Get-JsonProperty -Object $profileUpdate -Name 'datei')).Replace('\', '/')
 $storedSection = [string](Get-JsonProperty -Object $profileUpdate -Name 'abschnitt')
@@ -536,14 +598,6 @@ if (-not $isIdempotentRetry) {
     Stop-WithValidationError -Message 'ErwarteterDateiHash weicht vom vor der Zustimmung gespeicherten Profilhash ab.'
   }
 }
-if (-not (Test-Path -LiteralPath $requestedProfileFull -PathType Leaf)) {
-  Stop-WithValidationError -Message "Zulässige Profildatei fehlt: $profileRelativePath"
-}
-$profileItem = Get-Item -LiteralPath $requestedProfileFull
-if (($profileItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
-  Stop-WithValidationError -Message 'Symbolische Links oder Reparse-Points sind als Ziel einer dauerhaften Profiländerung nicht zulässig.'
-}
-
 try {
   $profileState = Read-Utf8FileState -Path $requestedProfileFull
   $actualBeforeHash = Get-Sha256ForBytes -Bytes $profileState.Bytes
@@ -613,6 +667,7 @@ try {
     throw "Profildatei wurde zwischen Prüfung und Schreiben verändert: $currentHashBeforeCommit statt $actualBeforeHash"
   }
   if (-not $profileResult.AlreadyPresent) {
+    $requestedProfileFull = Resolve-SafePath -Candidate $requestedProfileFull -Root $script:DataRoot -MustExist -ForWrite -PathType Leaf
     [System.IO.File]::WriteAllBytes($requestedProfileFull, $newProfileBytes)
     $profileWasWritten = $true
     $writtenHash = (Get-FileHash -LiteralPath $requestedProfileFull -Algorithm SHA256).Hash
@@ -624,6 +679,7 @@ try {
 } catch {
   if ($profileWasWritten) {
     try {
+      $requestedProfileFull = Resolve-SafePath -Candidate $requestedProfileFull -Root $script:DataRoot -MustExist -ForWrite -PathType Leaf
       [System.IO.File]::WriteAllBytes($requestedProfileFull, $profileState.Bytes)
     } catch {
       Write-Host "[FEHLER] Zusätzlich konnte die ursprüngliche Profildatei nicht automatisch wiederhergestellt werden: $($_.Exception.Message)" -ForegroundColor Red

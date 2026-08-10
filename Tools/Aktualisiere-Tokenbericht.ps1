@@ -1,3 +1,6 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
@@ -40,6 +43,26 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+
+$script:PathComparison = if ($IsWindows) { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+
+function Get-ApplicationsRootFromPath {
+  param([string]$Path, [switch]$Container)
+
+  $fullPath = [System.IO.Path]::GetFullPath($Path)
+  $directory = if ($Container) { [System.IO.DirectoryInfo]::new($fullPath) } else { [System.IO.DirectoryInfo]::new((Split-Path -Path $fullPath -Parent)) }
+  while ($null -ne $directory) {
+    if ([string]::Equals($directory.Name, 'Bewerbungen', $script:PathComparison) -and
+        $null -ne $directory.Parent -and
+        [string]::Equals($directory.Parent.Name, 'Private', $script:PathComparison)) {
+      return $directory.FullName
+    }
+    $directory = $directory.Parent
+  }
+  return $null
+}
+
 trap {
   Write-Host "[FEHLER] Tokenbericht konnte nicht aktualisiert werden: $($_.Exception.Message)" -ForegroundColor Red
   exit 1
@@ -80,11 +103,22 @@ if (-not (Test-Path -LiteralPath $Arbeitsordner -PathType Container)) {
   throw "Arbeitsordner fehlt oder ist kein Verzeichnis: $Arbeitsordner"
 }
 
-$resolvedWork = (Resolve-Path -LiteralPath $Arbeitsordner).Path
-if (($resolvedWork -notmatch '[\\/]Private[\\/]Bewerbungen[\\/]+') -or ($resolvedWork -notmatch '[\\/]_Arbeitsdateien[\\/]')) {
-  throw "Arbeitsordner muss unter Private/Bewerbungen/.../_Arbeitsdateien liegen: $resolvedWork"
+try {
+  $applicationsRoot = Get-ApplicationsRootFromPath -Path $Arbeitsordner -Container
+  if ([string]::IsNullOrWhiteSpace($applicationsRoot)) {
+    throw 'Arbeitsordner muss unter <Projektwurzel>/Private/Bewerbungen liegen.'
+  }
+  $applicationsRoot = Resolve-SafePath -Candidate $applicationsRoot -Root $applicationsRoot -AllowRoot -MustExist -PathType Container
+  $resolvedWork = Resolve-SafePath -Candidate $Arbeitsordner -Root $applicationsRoot -MustExist -PathType Container
+  $workFilesFolder = Split-Path -Path $resolvedWork -Parent
+  if (-not [string]::Equals((Split-Path -Path $workFilesFolder -Leaf), '_Arbeitsdateien', $script:PathComparison)) {
+    throw 'Arbeitsordner muss direkt unter _Arbeitsdateien liegen.'
+  }
+  $reportPath = Resolve-SafePath -Candidate (Join-Path -Path $resolvedWork -ChildPath "Tokenverbrauch.json") -Root $resolvedWork -ForWrite -PathType Leaf
+} catch {
+  Write-Host "[FEHLER] Unsicherer Tokenberichtspfad: $($_.Exception.Message)" -ForegroundColor Red
+  exit 2
 }
-$reportPath = Join-Path -Path $resolvedWork -ChildPath "Tokenverbrauch.json"
 $providerValue = ConvertTo-NormalizedMetadataValue -Value $Anbieter -Name "Anbieter"
 $modelValue = ConvertTo-NormalizedMetadataValue -Value $Modell -Name "Modell"
 $sessionValue = ConvertTo-NormalizedMetadataValue -Value $VorgangsId -Name "VorgangsId"
@@ -184,6 +218,7 @@ $report = [ordered]@{
   sections = $sections
 }
 
+$reportPath = Resolve-SafePath -Candidate $reportPath -Root $resolvedWork -ForWrite -PathType Leaf
 Set-Content -LiteralPath $reportPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 8)
 
 $heading = switch ($Messbereich) {

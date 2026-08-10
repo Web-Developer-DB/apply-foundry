@@ -3,24 +3,41 @@ name: Tests
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  powershell:
-    runs-on: windows-latest
+  powershell-core:
+    name: PowerShell core (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: PowerShell-Regressionssuite
         shell: pwsh
         run: ./Tests/Run-RegressionTests.ps1
 
-  bash:
-    runs-on: ubuntu-latest
+  bash-adapters:
+    name: Bash adapters (Ubuntu 24.04)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - name: Bash-Syntax
+        run: bash -n Tools/bewerbung.sh Tools/neue-bewerbung.sh Tools/setup-ubuntu.sh Tests/Bash/test-bewerbung-cli.sh Tests/Bash/test-setup-ubuntu.sh
       - name: ShellCheck
-        run: shellcheck Tools/neue-bewerbung.sh Tests/Bash/test-neue-bewerbung.sh
-      - name: Bash-Regressionssuite
-        run: bash Tests/Bash/test-neue-bewerbung.sh
+        run: shellcheck Tools/bewerbung.sh Tools/neue-bewerbung.sh Tools/setup-ubuntu.sh Tests/Bash/test-bewerbung-cli.sh Tests/Bash/test-setup-ubuntu.sh
+      - name: Dispatcher- und Kompatibilitätstests
+        run: bash Tests/Bash/test-bewerbung-cli.sh
+      - name: Opt-in-Setup-Tests
+        run: bash Tests/Bash/test-setup-ubuntu.sh

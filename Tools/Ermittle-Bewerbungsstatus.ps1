@@ -1,3 +1,6 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
   [string]$Arbeitsordner,
@@ -7,6 +10,9 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/OrderPaths.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 
 function Stop-Status {
   param([string]$Message, [int]$Code = 1)
@@ -22,11 +28,57 @@ function Get-JsonProperty {
   return $property.Value
 }
 
+function Resolve-ApplicationWorkFolder {
+  param(
+    [Parameter(Mandatory)][string]$Path,
+    [string]$ApplicationsRoot
+  )
+
+  $full = [System.IO.Path]::GetFullPath($Path).TrimEnd(
+    [System.IO.Path]::DirectorySeparatorChar,
+    [System.IO.Path]::AltDirectorySeparatorChar
+  )
+  $workFilesFolder = [System.IO.Path]::GetDirectoryName($full)
+  $companyFolder = if ([string]::IsNullOrWhiteSpace($workFilesFolder)) { $null } else { [System.IO.Path]::GetDirectoryName($workFilesFolder) }
+  $derivedApplicationsRoot = if ([string]::IsNullOrWhiteSpace($companyFolder)) { $null } else { [System.IO.Path]::GetDirectoryName($companyFolder) }
+  $privateFolder = if ([string]::IsNullOrWhiteSpace($derivedApplicationsRoot)) { $null } else { [System.IO.Path]::GetDirectoryName($derivedApplicationsRoot) }
+  $comparison = Get-PathStringComparison
+  if (
+    [string]::IsNullOrWhiteSpace($privateFolder) -or
+    -not [string]::Equals([System.IO.Path]::GetFileName($workFilesFolder), '_Arbeitsdateien', $comparison) -or
+    -not [string]::Equals([System.IO.Path]::GetFileName($derivedApplicationsRoot), 'Bewerbungen', $comparison) -or
+    -not [string]::Equals([System.IO.Path]::GetFileName($privateFolder), 'Private', $comparison)
+  ) {
+    throw "Arbeitsordner besitzt nicht die erwartete Private/Bewerbungen/<Firma>/_Arbeitsdateien/<Auftrag>-Struktur: $full"
+  }
+
+  $root = if ([string]::IsNullOrWhiteSpace($ApplicationsRoot)) {
+    $derivedApplicationsRoot
+  } else {
+    [System.IO.Path]::GetFullPath($ApplicationsRoot).TrimEnd(
+      [System.IO.Path]::DirectorySeparatorChar,
+      [System.IO.Path]::AltDirectorySeparatorChar
+    )
+  }
+  if (-not [string]::Equals($root, $derivedApplicationsRoot, $comparison)) {
+    throw "Arbeitsordner gehört nicht zum erwarteten Bewerbungen-Root: $root"
+  }
+
+  $safePath = Resolve-SafePath -Candidate $full -Root $root -MustExist -ForWrite -PathType Container
+  return [pscustomobject][ordered]@{
+    Path = $safePath
+    ApplicationsRoot = $root
+  }
+}
+
 function Test-IsApplicationWorkFolder {
-  param([string]$Path)
-  if (-not (Test-Path -LiteralPath $Path -PathType Container)) { return $false }
-  $full = [System.IO.Path]::GetFullPath($Path)
-  return ($full -match '[\\/]Private[\\/]Bewerbungen[\\/].+[\\/]_Arbeitsdateien[\\/][^\\/]+$')
+  param([string]$Path, [string]$ApplicationsRoot)
+  try {
+    $null = Resolve-ApplicationWorkFolder -Path $Path -ApplicationsRoot $ApplicationsRoot
+    return $true
+  } catch {
+    return $false
+  }
 }
 
 function Get-ActivityUtc {
@@ -43,18 +95,28 @@ function Get-ActivityUtc {
     'PDF-Export-Bericht.json'
   )
   $items = @(Get-ChildItem -LiteralPath $Path -File -Recurse -ErrorAction SilentlyContinue | Where-Object {
-    $_.FullName -match '[\\/]Kandidat[\\/]' -or $activityNames -contains $_.Name
+    if ($_.FullName -notmatch '[\\/]Kandidat[\\/]' -and $activityNames -notcontains $_.Name) { return $false }
+    try {
+      $null = Resolve-SafePath -Candidate $_.FullName -Root $Path -MustExist -PathType Leaf
+      return $true
+    } catch {
+      return $false
+    }
   })
   if ($items.Count -eq 0) { return [datetime]::MinValue }
   return ($items | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1).LastWriteTimeUtc
 }
 
 function Test-ArtifactRecord {
-  param([object]$Record)
+  param([object]$Record, [string]$Root)
   $path = [string](Get-JsonProperty -Object $Record -Name 'path')
   $sha = [string](Get-JsonProperty -Object $Record -Name 'sha256')
   if ([string]::IsNullOrWhiteSpace($path) -or $sha -notmatch '^[A-Fa-f0-9]{64}$') { return $false }
-  if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return $false }
+  try {
+    $path = Resolve-SafePath -Candidate $path -Root $Root -MustExist -ForWrite -PathType Leaf
+  } catch {
+    return $false
+  }
   return ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ceq $sha.ToUpperInvariant())
 }
 
@@ -65,7 +127,7 @@ function Test-ArtifactRecordSetExact {
   $currentFiles = @(Get-ChildItem -LiteralPath $Folder -File -Filter $Filter | Sort-Object FullName)
   if ($recordsArray.Count -ne $currentFiles.Count) { return $false }
   foreach ($record in $recordsArray) {
-    if (-not (Test-ArtifactRecord -Record $record)) { return $false }
+    if (-not (Test-ArtifactRecord -Record $record -Root $Folder)) { return $false }
   }
   $recordPaths = @($recordsArray | ForEach-Object {
     [System.IO.Path]::GetFullPath([string](Get-JsonProperty -Object $_ -Name 'path'))
@@ -75,10 +137,12 @@ function Test-ArtifactRecordSetExact {
 }
 
 function Test-FinalReportArtifacts {
-  param([object]$Report, [string]$CandidateFolder)
+  param([object]$Report, [string]$CandidateFolder, [string]$WorkFolder, [string]$ApplicationsRoot)
+  $privateRoot = Split-Path -Path $ApplicationsRoot -Parent
   foreach ($sourceName in @('stammdaten', 'profil', 'bewerbungsauftrag', 'anforderungsmatrix')) {
     $sources = Get-JsonProperty -Object $Report -Name 'sourceInputs'
-    if (-not (Test-ArtifactRecord -Record (Get-JsonProperty -Object $sources -Name $sourceName))) { return $false }
+    $sourceRoot = if ($sourceName -in @('stammdaten', 'profil')) { $privateRoot } else { $WorkFolder }
+    if (-not (Test-ArtifactRecord -Record (Get-JsonProperty -Object $sources -Name $sourceName) -Root $sourceRoot)) { return $false }
   }
   $artifacts = Get-JsonProperty -Object $Report -Name 'artifacts'
   foreach ($groupName in @('candidate', 'html', 'pdf', 'screenshots')) {
@@ -89,12 +153,41 @@ function Test-FinalReportArtifacts {
   if (-not (Test-ArtifactRecordSetExact -Records @((Get-JsonProperty -Object $artifacts -Name 'html')) -Folder $CandidateFolder -Filter '*.html')) { return $false }
   if (-not (Test-ArtifactRecordSetExact -Records @((Get-JsonProperty -Object $artifacts -Name 'pdf')) -Folder $CandidateFolder -Filter '*.pdf')) { return $false }
   foreach ($reportField in @('layoutReportArtifact', 'pdfReportArtifact', 'atsReportArtifact')) {
-    if (-not (Test-ArtifactRecord -Record (Get-JsonProperty -Object $Report -Name $reportField))) { return $false }
+    if (-not (Test-ArtifactRecord -Record (Get-JsonProperty -Object $Report -Name $reportField) -Root $WorkFolder)) { return $false }
   }
   $layoutReportPath = [string](Get-JsonProperty -Object (Get-JsonProperty -Object $Report -Name 'layoutReportArtifact') -Name 'path')
-  $layoutFolder = Split-Path -Path $layoutReportPath -Parent
+  try {
+    $layoutFolder = Resolve-SafePath -Candidate (Split-Path -Path $layoutReportPath -Parent) -Root $WorkFolder -MustExist -ForWrite -PathType Container
+  } catch {
+    return $false
+  }
   if (-not (Test-ArtifactRecordSetExact -Records @((Get-JsonProperty -Object $artifacts -Name 'screenshots')) -Folder $layoutFolder -Filter '*.png')) { return $false }
   return $true
+}
+
+function Test-FinalReportRuntimeCurrent {
+  param([object]$Report)
+
+  $schema = Get-JsonProperty -Object $Report -Name 'schemaVersion'
+  if (($schema -isnot [int] -and $schema -isnot [long]) -or [int]$schema -ne 5) { return $false }
+  $runtime = Get-JsonProperty -Object $Report -Name 'runtime'
+  if ($null -eq $runtime) { return $false }
+  $runtimeSchema = Get-JsonProperty -Object $runtime -Name 'schemaVersion'
+  if (($runtimeSchema -isnot [int] -and $runtimeSchema -isnot [long]) -or [int]$runtimeSchema -ne 1) { return $false }
+  $current = Get-RuntimeFingerprint
+  $matches = (
+    [string](Get-JsonProperty -Object $runtime -Name 'os') -ceq [string]$current.os -and
+    [string](Get-JsonProperty -Object $runtime -Name 'architecture') -ceq [string]$current.architecture -and
+    [string](Get-JsonProperty -Object $runtime -Name 'psEdition') -ceq 'Core'
+  )
+  if ($matches -and [string]$current.os -ceq 'linux') {
+    $matches = (
+      [string](Get-JsonProperty -Object $runtime -Name 'distributionId') -ceq [string]$current.distributionId -and
+      [string](Get-JsonProperty -Object $runtime -Name 'distributionVersion') -ceq [string]$current.distributionVersion -and
+      [string](Get-JsonProperty -Object $runtime -Name 'wsl') -ceq [string]$current.wsl
+    )
+  }
+  return $matches
 }
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path -Path $PSScriptRoot -ChildPath '..'))
@@ -103,29 +196,39 @@ if ([string]::IsNullOrWhiteSpace($Arbeitsordner)) {
   if (-not (Test-Path -LiteralPath $applicationsRoot -PathType Container)) {
     Stop-Status "Private/Bewerbungen existiert nicht."
   }
-  $candidates = @(Get-ChildItem -LiteralPath $applicationsRoot -Directory -Recurse -ErrorAction SilentlyContinue | Where-Object {
-    (Test-Path -LiteralPath (Join-Path $_.FullName 'Arbeitsnotizen.md') -PathType Leaf) -and
-    (Test-Path -LiteralPath (Join-Path $_.FullName 'Bewerbungsauftrag.json') -PathType Leaf) -and
-    (Test-IsApplicationWorkFolder -Path $_.FullName)
-  } | ForEach-Object {
-    [pscustomobject]@{ Path = $_.FullName; ActivityUtc = Get-ActivityUtc -Path $_.FullName }
+  $applicationsRoot = [System.IO.Path]::GetFullPath($applicationsRoot)
+  $candidates = @(Get-ChildItem -LiteralPath $applicationsRoot -Directory -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+    try {
+      $context = Resolve-ApplicationWorkFolder -Path $_.FullName -ApplicationsRoot $applicationsRoot
+      $safeNotes = Resolve-SafePath -Candidate (Join-Path $context.Path 'Arbeitsnotizen.md') -Root $context.Path -MustExist -PathType Leaf
+      $safeOrder = Resolve-SafePath -Candidate (Join-Path $context.Path 'Bewerbungsauftrag.json') -Root $context.Path -MustExist -PathType Leaf
+      if ([string]::IsNullOrWhiteSpace($safeNotes) -or [string]::IsNullOrWhiteSpace($safeOrder)) { return }
+      [pscustomobject]@{ Path = $context.Path; ActivityUtc = Get-ActivityUtc -Path $context.Path }
+    } catch {
+      # Ungültige oder aus dem Root ausbrechende Kandidaten werden bei der automatischen Suche ignoriert.
+    }
   } | Sort-Object ActivityUtc -Descending)
   if ($candidates.Count -eq 0) { Stop-Status "Kein gültiger Bewerbungsarbeitsordner gefunden." }
   if ($candidates.Count -gt 1 -and $candidates[0].ActivityUtc -eq $candidates[1].ActivityUtc) {
     Stop-Status "Mehrere Bewerbungen besitzen denselben letzten Aktivitätszeitpunkt. Firma oder Rolle muss angegeben werden." 2
   }
   $resolvedWork = $candidates[0].Path
+  $applicationsRootForWork = $applicationsRoot
 } else {
-  if (-not (Test-IsApplicationWorkFolder -Path $Arbeitsordner)) {
-    Stop-Status "Arbeitsordner ist kein sicherer Bewerbungsarbeitsordner: $Arbeitsordner"
+  try {
+    $context = Resolve-ApplicationWorkFolder -Path $Arbeitsordner
+  } catch {
+    Stop-Status "Arbeitsordner ist kein sicherer Bewerbungsarbeitsordner: $Arbeitsordner ($($_.Exception.Message))" 2
   }
-  $resolvedWork = (Resolve-Path -LiteralPath $Arbeitsordner).Path
+  $resolvedWork = $context.Path
+  $applicationsRootForWork = $context.ApplicationsRoot
 }
 
-$orderPath = Join-Path -Path $resolvedWork -ChildPath 'Bewerbungsauftrag.json'
-$notesPath = Join-Path -Path $resolvedWork -ChildPath 'Arbeitsnotizen.md'
-if (-not (Test-Path -LiteralPath $orderPath -PathType Leaf) -or -not (Test-Path -LiteralPath $notesPath -PathType Leaf)) {
-  Stop-Status "Arbeitsnotizen.md oder Bewerbungsauftrag.json fehlt."
+try {
+  $orderPath = Resolve-SafePath -Candidate (Join-Path $resolvedWork 'Bewerbungsauftrag.json') -Root $resolvedWork -MustExist -PathType Leaf
+  $notesPath = Resolve-SafePath -Candidate (Join-Path $resolvedWork 'Arbeitsnotizen.md') -Root $resolvedWork -MustExist -PathType Leaf
+} catch {
+  Stop-Status "Arbeitsnotizen.md oder Bewerbungsauftrag.json fehlt oder ist nicht sicher: $($_.Exception.Message)" 2
 }
 
 try {
@@ -136,11 +239,14 @@ try {
 
 $scope = Get-JsonProperty -Object $order -Name 'dokumentumfang'
 $dialog = Get-JsonProperty -Object $order -Name 'dialog'
-$candidateFolder = [string](Get-JsonProperty -Object $order -Name 'kandidatOrdner')
-if ([string]::IsNullOrWhiteSpace($candidateFolder)) {
-  $candidateFolder = Join-Path -Path $resolvedWork -ChildPath 'Kandidat'
+try {
+  $orderPaths = Resolve-BewerbungsauftragPathSet -Auftrag $order -Arbeitsordner $resolvedWork -BewerbungenRoot $applicationsRootForWork
+  $safeCandidateFolder = Resolve-SafePath -Candidate $orderPaths.KandidatOrdner -Root $applicationsRootForWork -ForWrite -PathType Container
+  $safeTargetFolder = Resolve-SafePath -Candidate $orderPaths.ZielOrdner -Root $applicationsRootForWork -ForWrite -PathType Container
+} catch {
+  Stop-Status "Auftragspfade sind nicht sicher auflösbar: $($_.Exception.Message)" 2
 }
-$candidateFolder = [System.IO.Path]::GetFullPath($candidateFolder)
+$candidateFolder = $safeCandidateFolder
 
 $blockers = [System.Collections.Generic.List[string]]::new()
 foreach ($question in @((Get-JsonProperty -Object $dialog -Name 'rueckfragen'))) {
@@ -172,21 +278,31 @@ $expectedFiles.Add('Druck-Hinweis.md')
 
 $missingFiles = [System.Collections.Generic.List[string]]::new()
 foreach ($pattern in $expectedFiles) {
-  if (-not (Test-Path -LiteralPath $candidateFolder -PathType Container) -or @(Get-ChildItem -LiteralPath $candidateFolder -File -Filter $pattern -ErrorAction SilentlyContinue).Count -ne 1) {
+  $matchingFiles = @()
+  if (Test-Path -LiteralPath $candidateFolder -PathType Container) {
+    $matchingFiles = @(Get-ChildItem -LiteralPath $candidateFolder -File -Filter $pattern -ErrorAction SilentlyContinue)
+  }
+  $matchingSafe = if ($matchingFiles.Count -eq 1) {
+    try {
+      $null = Resolve-SafePath -Candidate $matchingFiles[0].FullName -Root $candidateFolder -MustExist -ForWrite -PathType Leaf
+      $true
+    } catch { $false }
+  } else { $false }
+  if (-not $matchingSafe) {
     $missingFiles.Add($pattern)
   }
 }
 
-$matrixPath = Join-Path -Path $resolvedWork -ChildPath 'Anforderungsmatrix.json'
-$finalReportPath = Join-Path -Path $resolvedWork -ChildPath 'Finalisierungsbericht.json'
+$matrixPath = Resolve-SafePath -Candidate (Join-Path $resolvedWork 'Anforderungsmatrix.json') -Root $resolvedWork
+$finalReportPath = Resolve-SafePath -Candidate (Join-Path $resolvedWork 'Finalisierungsbericht.json') -Root $resolvedWork
 $finalReportValid = $false
 $finalStatus = ''
-$targetFolder = [string](Get-JsonProperty -Object $order -Name 'zielOrdner')
+$targetFolder = $safeTargetFolder
 if (Test-Path -LiteralPath $finalReportPath -PathType Leaf) {
   try {
     $finalReport = Get-Content -LiteralPath $finalReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $finalStatus = [string](Get-JsonProperty -Object $finalReport -Name 'status')
-    $finalReportValid = Test-FinalReportArtifacts -Report $finalReport -CandidateFolder $candidateFolder
+    $finalReportValid = (Test-FinalReportArtifacts -Report $finalReport -CandidateFolder $candidateFolder -WorkFolder $resolvedWork -ApplicationsRoot $applicationsRootForWork) -and (Test-FinalReportRuntimeCurrent -Report $finalReport)
   } catch {
     $finalReportValid = $false
   }
@@ -222,7 +338,12 @@ if (-not $scopeConfirmed) {
   $phase = 'persoenliche_pruefung'
   $nextAction = 'Jede gebundene PNG-Seite beziehungsweise ausgewählte Textdatei persönlich prüfen und danach eindeutig bestätigen.'
   $requiredPrompts = @('Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md')
-} elseif ($finalReportValid -and $finalStatus -eq 'veroeffentlicht' -and (Test-Path -LiteralPath (Join-Path $targetFolder 'Manifest.json') -PathType Leaf)) {
+} elseif ($finalReportValid -and $finalStatus -eq 'veroeffentlicht' -and (& {
+  try {
+    $null = Resolve-SafePath -Candidate (Join-Path $targetFolder 'Manifest.json') -Root $targetFolder -MustExist -ForWrite -PathType Leaf
+    $true
+  } catch { $false }
+})) {
   $phase = 'veroeffentlicht'
   $nextAction = 'Keine weitere Aktion erforderlich; veröffentlichte Dateien nur nach neuem Auftrag ändern.'
   $requiredPrompts = @()

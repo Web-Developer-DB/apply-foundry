@@ -1,3 +1,6 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
@@ -5,8 +8,10 @@ param(
 
   [string]$AuftragPath,
 
-  [ValidateSet("auto", "chrome", "edge")]
+  [ValidateSet("auto", "chrome", "edge", "chromium")]
   [string]$Browser = "auto",
+
+  [string]$BrowserExecutablePath,
 
   [switch]$MitLayoutcheck,
 
@@ -25,6 +30,9 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+$script:ToolTimeoutSeconds = [math]::Min(3600, [math]::Max(120, $TimeoutSeconds * 8))
 
 function Add-Info {
   param([string]$Message)
@@ -46,31 +54,22 @@ function Add-Fail {
   Write-Host "[FEHLER] $Message" -ForegroundColor Red
 }
 
-function Stop-BrowserProcessTree {
-  param([System.Diagnostics.Process]$Process)
+function Get-BewerbungenRootFromPath {
+  param([Parameter(Mandatory)][string]$Path)
 
-  try {
-    if (($env:OS -eq "Windows_NT") -and -not $Process.HasExited) {
-      $taskKill = Get-Command "taskkill.exe" -ErrorAction SilentlyContinue
-      if ($taskKill) {
-        & $taskKill.Source /PID $Process.Id /T /F 2>$null | Out-Null
-      }
+  $comparison = Get-PathStringComparison
+  $current = [System.IO.Path]::GetFullPath($Path)
+  while (-not [string]::IsNullOrWhiteSpace($current)) {
+    $leaf = [System.IO.Path]::GetFileName($current.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar))
+    $parent = [System.IO.Path]::GetDirectoryName($current)
+    if ([string]::Equals($leaf, "Bewerbungen", $comparison) -and -not [string]::IsNullOrWhiteSpace($parent)) {
+      $parentLeaf = [System.IO.Path]::GetFileName($parent.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar))
+      if ([string]::Equals($parentLeaf, "Private", $comparison)) { return $current }
     }
-    if (-not $Process.HasExited) {
-      Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
-    }
-    $null = $Process.WaitForExit(5000)
-  } catch {
-    Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
+    if ([string]::IsNullOrWhiteSpace($parent) -or [string]::Equals($parent, $current, $comparison)) { break }
+    $current = $parent
   }
-}
-
-function ConvertTo-QuotedArgument {
-  param([string]$Value)
-  if ($Value -match '[\s"]') {
-    return '"' + ($Value -replace '"', '\"') + '"'
-  }
-  return $Value
+  throw "Pfad liegt nicht unter einem Private/Bewerbungen-Root: $Path"
 }
 
 function Convert-ToSafeFilePart {
@@ -83,7 +82,7 @@ function Convert-ToSafeFilePart {
 function Write-ExportReport {
   param(
     [string]$Path,
-    [string]$BrowserName,
+    [pscustomobject]$BrowserInfo,
     [array]$PdfSet
   )
 
@@ -109,7 +108,8 @@ function Write-ExportReport {
   $report = [ordered]@{
     schemaVersion = 1
     exportedAtUtc = [datetime]::UtcNow.ToString("o")
-    browser = $BrowserName
+    runtime = Get-RuntimeFingerprint -BrowserInfo $BrowserInfo
+    browser = $BrowserInfo.Name
     sourceFolder = $resolvedFolder
     results = $items
   }
@@ -158,12 +158,7 @@ function Get-PowerShellExecutable {
     return $pwsh.Source
   }
 
-  $powershell = Get-Command "powershell" -ErrorAction SilentlyContinue
-  if ($powershell) {
-    return $powershell.Source
-  }
-
-  throw "Keine PowerShell-Executable gefunden."
+  throw "PowerShell 7 Core wurde nicht gefunden."
 }
 
 function Invoke-ToolScript {
@@ -174,52 +169,33 @@ function Invoke-ToolScript {
 
   $powerShellExe = Get-PowerShellExecutable
   Add-Info "Starte Tool: $ScriptPath"
-  & $powerShellExe -NoProfile -File $ScriptPath @Arguments
-  $exitCode = $LASTEXITCODE
+  $nativeArguments = @("-NoLogo", "-NoProfile", "-NonInteractive", "-File", $ScriptPath) + @($Arguments)
+  $result = Invoke-NativeProcess `
+    -FilePath $powerShellExe `
+    -ArgumentList $nativeArguments `
+    -TimeoutSeconds $script:ToolTimeoutSeconds `
+    -MaxStdoutChars 1048576 `
+    -MaxStderrChars 1048576
+  foreach ($line in @($result.StandardOutput -split '\r?\n' | Where-Object { $_.Length -gt 0 })) { Write-Host $line }
+  foreach ($line in @($result.StandardError -split '\r?\n' | Where-Object { $_.Length -gt 0 })) { Write-Host $line }
 
-  if ($exitCode -ne 0) {
-    Add-Fail "Tool fehlgeschlagen: $ScriptPath (Exitcode $exitCode)"
-    exit $exitCode
+  if ($result.TimedOut) {
+    Add-Fail "Tool überschritt das Zeitlimit; der gesamte Prozessbaum wurde beendet: $ScriptPath"
+    exit 1
+  }
+  if ($result.StdoutTruncated -or $result.StderrTruncated) {
+    Add-Fail "Tool erzeugte mehr Ausgabe als sicher verarbeitet werden kann: $ScriptPath"
+    exit 1
+  }
+  if ($result.ExitCode -ne 0) {
+    Add-Fail "Tool fehlgeschlagen: $ScriptPath (Exitcode $($result.ExitCode))"
+    exit ([int]$result.ExitCode)
   }
 }
 
 function Get-BrowserCandidates {
-  param([string]$RequestedBrowser)
-
-  $localChrome = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "Google\Chrome\Application\chrome.exe" } else { $null }
-  $localEdge = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "Microsoft\Edge\Application\msedge.exe" } else { $null }
-  $known = @(
-    @{ Name = "chrome"; Paths = @("C:\Program Files\Google\Chrome\Application\chrome.exe", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", $localChrome); Commands = @("chrome", "chrome.exe") },
-    @{ Name = "edge"; Paths = @("C:\Program Files\Microsoft\Edge\Application\msedge.exe", "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", $localEdge); Commands = @("msedge", "msedge.exe") }
-  )
-
-  $candidates = @()
-  foreach ($entry in $known) {
-    if (($RequestedBrowser -ne "auto") -and ($entry.Name -ne $RequestedBrowser)) {
-      continue
-    }
-
-    foreach ($path in @($entry.Paths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
-      if (Test-Path -LiteralPath $path -PathType Leaf) {
-        $candidates += [pscustomobject]@{ Name = $entry.Name; Path = $path }
-        break
-      }
-    }
-
-    if (@($candidates | Where-Object { $_.Name -eq $entry.Name }).Count -gt 0) {
-      continue
-    }
-
-    foreach ($command in $entry.Commands) {
-      $cmd = Get-Command $command -ErrorAction SilentlyContinue
-      if ($cmd -and $cmd.Source) {
-        $candidates += [pscustomobject]@{ Name = $entry.Name; Path = $cmd.Source }
-        break
-      }
-    }
-  }
-
-  return $candidates
+  param([string]$RequestedBrowser, [string]$ExecutablePath)
+  return @(Platform\Get-BrowserCandidates -RequestedBrowser $RequestedBrowser -ExecutablePath $ExecutablePath -RequireChromium)
 }
 
 function Get-PdfMediaBoxes {
@@ -351,15 +327,19 @@ function Export-HtmlToPdf {
     [pscustomobject]$BrowserInfo,
     [System.IO.FileInfo]$HtmlFile,
     [string]$TemporaryPdfPath,
-    [string]$ProfileDir,
+    [string]$BrowserTempRoot,
     [int]$MinPdfBytes,
     [int]$TimeoutSeconds
   )
 
+  $browserRunRoot = Resolve-SafePath -Candidate (Join-Path -Path $BrowserTempRoot -ChildPath ("P-" + [guid]::NewGuid().ToString("N"))) -Root $BrowserTempRoot -ForWrite -PathType Container
+  $profileDir = Join-Path -Path $browserRunRoot -ChildPath "profile"
+  $browserPdfPath = Join-Path -Path $browserRunRoot -ChildPath "output.pdf"
   try {
     if (Test-Path -LiteralPath $TemporaryPdfPath) {
       Remove-Item -LiteralPath $TemporaryPdfPath -Force
     }
+    New-Item -Path $browserRunRoot -ItemType Directory | Out-Null
     New-Item -Path $ProfileDir -ItemType Directory -Force | Out-Null
 
     $uri = [System.Uri]::new($HtmlFile.FullName).AbsoluteUri
@@ -370,33 +350,41 @@ function Export-HtmlToPdf {
       "--disable-background-networking",
       "--disable-extensions",
       "--user-data-dir=$ProfileDir",
-      "--print-to-pdf=$TemporaryPdfPath",
+      "--print-to-pdf=$browserPdfPath",
       "--print-to-pdf-no-header",
       "--no-pdf-header-footer",
       $uri
     )
 
-    $argumentLine = ($arguments | ForEach-Object { ConvertTo-QuotedArgument -Value $_ }) -join " "
     $runStartedUtc = [datetime]::UtcNow
-    $process = Start-Process -FilePath $BrowserInfo.Path -ArgumentList $argumentLine -WindowStyle Hidden -PassThru
-    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-      Stop-BrowserProcessTree -Process $process
+    $process = Invoke-NativeProcess -FilePath $BrowserInfo.Path -ArgumentList $arguments -TimeoutSeconds $TimeoutSeconds -MaxStdoutChars 4096 -MaxStderrChars 8192
+    if ($process.TimedOut) {
       return "Browser $($BrowserInfo.Name) überschritt das Zeitlimit von $TimeoutSeconds Sekunden für $($HtmlFile.Name)."
     }
     if ($process.ExitCode -ne 0) {
-      return "Browser $($BrowserInfo.Name) beendete mit Exitcode $($process.ExitCode) für $($HtmlFile.Name)."
+      $stderr = $process.StandardError.Trim()
+      $suffix = if ([string]::IsNullOrWhiteSpace($stderr)) { "" } else { " stderr: $stderr" }
+      return "Browser $($BrowserInfo.Name) beendete mit Exitcode $($process.ExitCode) für $($HtmlFile.Name).$suffix"
     }
 
     $expectedPageCount = Get-HtmlPageCount -Path $HtmlFile.FullName
     if ($expectedPageCount -eq 0) {
       return "HTML enthält keine expliziten A4-Seitencontainer: $($HtmlFile.Name)"
     }
+    $pdfError = Test-PdfFile -Path $browserPdfPath -MinBytes $MinPdfBytes -ExpectedPageCount $expectedPageCount -RunStartedUtc $runStartedUtc
+    if ($pdfError) { return $pdfError }
+    Copy-Item -LiteralPath $browserPdfPath -Destination $TemporaryPdfPath
     return Test-PdfFile -Path $TemporaryPdfPath -MinBytes $MinPdfBytes -ExpectedPageCount $expectedPageCount -RunStartedUtc $runStartedUtc
   } catch {
     return $_.Exception.Message
   } finally {
-    if (Test-Path -LiteralPath $ProfileDir -PathType Container) {
-      Remove-Item -LiteralPath $ProfileDir -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $browserRunRoot -PathType Container) {
+      try {
+        $safeBrowserRunRoot = Resolve-SafePath -Candidate $browserRunRoot -Root $BrowserTempRoot -MustExist -ForWrite -PathType Container
+        Remove-Item -LiteralPath $safeBrowserRunRoot -Recurse -Force -ErrorAction SilentlyContinue
+      } catch {
+        Add-Warn "Temporärer Browserordner konnte nicht sicher bereinigt werden: $browserRunRoot"
+      }
     }
   }
 }
@@ -406,12 +394,14 @@ function Publish-PdfSet {
     [object[]]$PdfSet,
     [string]$RunDirectory,
     [string]$ReportPath,
-    [string]$BrowserName
+    [string]$CandidateFolder,
+    [string]$WorkDirectory,
+    [pscustomobject]$BrowserInfo
   )
 
   $backups = New-Object System.Collections.Generic.List[object]
   $published = New-Object System.Collections.Generic.List[string]
-  $reportFullPath = [System.IO.Path]::GetFullPath($ReportPath)
+  $reportFullPath = Resolve-SafePath -Candidate $ReportPath -Root $WorkDirectory -ForWrite -PathType Leaf
   $reportTemporaryPath = Join-Path -Path $RunDirectory -ChildPath ("Report--" + [guid]::NewGuid().ToString("N") + ".json")
   $reportBackupPath = Join-Path -Path $RunDirectory -ChildPath ("Backup--Report--" + [guid]::NewGuid().ToString("N") + ".json")
   $reportBackedUp = $false
@@ -420,6 +410,8 @@ function Publish-PdfSet {
     Assert-PdfSetHtmlSnapshotsUnchanged -PdfSet $PdfSet
 
     foreach ($item in $PdfSet) {
+      $item.FinalPath = Resolve-SafePath -Candidate $item.FinalPath -Root $CandidateFolder -ForWrite -PathType Leaf
+      $item.TemporaryPath = Resolve-SafePath -Candidate $item.TemporaryPath -Root $RunDirectory -MustExist -ForWrite -PathType Leaf
       if (Test-Path -LiteralPath $item.FinalPath -PathType Leaf) {
         $backupPath = Join-Path -Path $RunDirectory -ChildPath ("Backup--" + [System.IO.Path]::GetFileName($item.FinalPath))
         Move-Item -LiteralPath $item.FinalPath -Destination $backupPath -Force
@@ -432,12 +424,13 @@ function Publish-PdfSet {
       $published.Add($item.FinalPath) | Out-Null
     }
 
-    Write-ExportReport -Path $reportTemporaryPath -BrowserName $BrowserName -PdfSet $PdfSet
+    Write-ExportReport -Path $reportTemporaryPath -BrowserInfo $BrowserInfo -PdfSet $PdfSet
     $preparedReport = Get-Content -LiteralPath $reportTemporaryPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ([int]$preparedReport.schemaVersion -ne 1 -or @($preparedReport.results).Count -ne $PdfSet.Count) {
       throw "Temporärer PDF-Export-Bericht ist unvollständig."
     }
     Assert-PdfSetHtmlSnapshotsUnchanged -PdfSet $PdfSet
+    $reportFullPath = Resolve-SafePath -Candidate $reportFullPath -Root $WorkDirectory -ForWrite -PathType Leaf
     $reportParent = Split-Path -Path $reportFullPath -Parent
     if ((Test-Path -LiteralPath $reportFullPath) -and -not (Test-Path -LiteralPath $reportFullPath -PathType Leaf)) {
       throw "PDF-Export-Berichtspfad existiert, ist aber keine reguläre Datei: $reportFullPath"
@@ -488,12 +481,26 @@ function Publish-PdfSet {
   }
 }
 
+function Remove-PdfRunDirectory {
+  param([string]$Path, [string]$WorkDirectory)
+  if (-not (Test-Path -LiteralPath $Path -PathType Container)) { return }
+  $safePath = Resolve-SafePath -Candidate $Path -Root $WorkDirectory -MustExist -ForWrite -PathType Container
+  Remove-Item -LiteralPath $safePath -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
   Add-Fail "Ordner existiert nicht oder ist kein Verzeichnis: $Ordner"
   exit 1
 }
 
 $resolvedFolder = (Resolve-Path -LiteralPath $Ordner).Path
+try {
+  $applicationsRoot = Get-BewerbungenRootFromPath -Path $resolvedFolder
+  $resolvedFolder = Resolve-SafePath -Candidate $resolvedFolder -Root $applicationsRoot -MustExist -PathType Container
+} catch {
+  Add-Fail $_.Exception.Message
+  exit 2
+}
 $checkerPath = Join-Path -Path $PSScriptRoot -ChildPath "Pruefe-Bewerbung.ps1"
 $layoutcheckPath = Join-Path -Path $PSScriptRoot -ChildPath "Layoutcheck-Bewerbung.ps1"
 
@@ -513,12 +520,25 @@ if ($MitLayoutcheck) {
     Add-Fail "Layoutcheck-Tool nicht gefunden: $layoutcheckPath"
     exit 1
   }
-  Invoke-ToolScript -ScriptPath $layoutcheckPath -Arguments @("-Ordner", $resolvedFolder, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds")
+  $layoutArguments = @("-Ordner", $resolvedFolder, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds")
+  if (-not [string]::IsNullOrWhiteSpace($BrowserExecutablePath)) {
+    $layoutArguments += @("-BrowserExecutablePath", $BrowserExecutablePath)
+  }
+  Invoke-ToolScript -ScriptPath $layoutcheckPath -Arguments $layoutArguments
 }
 
 $htmlFiles = @(Get-ChildItem -LiteralPath $resolvedFolder -File -Filter "*.html" | Where-Object {
   $_.Name -match '^(Lebenslauf|Anschreiben) - .+\.html$'
 } | Sort-Object Name)
+try {
+  $htmlFiles = @($htmlFiles | ForEach-Object {
+    $safeHtmlPath = Resolve-SafePath -Candidate $_.FullName -Root $resolvedFolder -MustExist -PathType Leaf
+    Get-Item -LiteralPath $safeHtmlPath
+  })
+} catch {
+  Add-Fail "Unsichere HTML-Quelldatei: $($_.Exception.Message)"
+  exit 2
+}
 
 if ($htmlFiles.Count -lt 1 -or $htmlFiles.Count -gt 2) {
   Add-Fail "Es werden ein oder zwei laut Dokumentumfang ausgewählte finale HTML-Dateien erwartet; gefunden: $($htmlFiles.Count)."
@@ -544,13 +564,41 @@ if (($workDir -notmatch '[\\/]Private[\\/]Bewerbungen[\\/]+') -or ($workDir -not
   Add-Fail "PDF-Export-Arbeitsordner muss unter Private/Bewerbungen/.../_Arbeitsdateien liegen: $workDir"
   exit 1
 }
+try {
+  $workDir = Resolve-SafePath -Candidate $workDir -Root $applicationsRoot -PathType Container
+} catch {
+  Add-Fail "Unsicherer PDF-Export-Arbeitsordner: $($_.Exception.Message)"
+  exit 2
+}
 New-Item -Path $workDir -ItemType Directory -Force | Out-Null
+try {
+  $workDir = Resolve-SafePath -Candidate $workDir -Root $applicationsRoot -MustExist -ForWrite -PathType Container
+} catch {
+  Add-Fail "PDF-Export-Arbeitsordner ist nicht sicher beschreibbar: $($_.Exception.Message)"
+  exit 2
+}
 if ([string]::IsNullOrWhiteSpace($BerichtPath)) {
   $BerichtPath = Join-Path -Path $workDir -ChildPath "PDF-Export-Bericht.json"
 }
+try {
+  if ([System.IO.Path]::GetExtension($BerichtPath) -cne ".json") {
+    throw "PDF-Export-Bericht muss eine JSON-Datei sein."
+  }
+  $BerichtPath = Resolve-SafePath -Candidate $BerichtPath -Root $workDir -ForWrite -PathType Leaf
+} catch {
+  Add-Fail "Unsicherer PDF-Export-Berichtspfad: $($_.Exception.Message)"
+  exit 2
+}
 
 $finalPdfPaths = @($htmlFiles | ForEach-Object { [System.IO.Path]::ChangeExtension($_.FullName, ".pdf") })
-foreach ($finalPdfPath in $finalPdfPaths) {
+for ($pdfIndex = 0; $pdfIndex -lt $finalPdfPaths.Count; $pdfIndex++) {
+  try {
+    $finalPdfPaths[$pdfIndex] = Resolve-SafePath -Candidate $finalPdfPaths[$pdfIndex] -Root $resolvedFolder -ForWrite -PathType Leaf
+  } catch {
+    Add-Fail "Unsicherer finaler PDF-Pfad: $($_.Exception.Message)"
+    exit 2
+  }
+  $finalPdfPath = $finalPdfPaths[$pdfIndex]
   if ((Test-Path -LiteralPath $finalPdfPath) -and -not (Test-Path -LiteralPath $finalPdfPath -PathType Leaf)) {
     Add-Fail "Finaler PDF-Pfad existiert, ist aber keine reguläre Datei: $finalPdfPath"
     exit 1
@@ -581,10 +629,21 @@ Add-Info "Finaler Bewerbungsordner: $resolvedFolder"
 Add-Info "PDF-Export-Arbeitsordner: $workDir"
 Add-Info "HTML-Dateien: $($htmlFiles.Name -join ', ')"
 
-$browserCandidates = @(Get-BrowserCandidates -RequestedBrowser $Browser)
+$browserCandidates = @(Get-BrowserCandidates -RequestedBrowser $Browser -ExecutablePath $BrowserExecutablePath)
 if ($browserCandidates.Count -eq 0) {
-  Add-Fail "Kein Chromium-Browser gefunden. Unterstützt werden Chrome oder Edge."
+  Add-Fail "Kein Chromium-Browser gefunden. Unterstützt werden Chrome, Edge oder Chromium."
   exit 1
+}
+
+try {
+  $browserTempRoot = Resolve-SafePath -Candidate (Join-Path -Path $applicationsRoot -ChildPath ".browser-tmp") -Root $applicationsRoot -ForWrite -PathType Container
+  if (-not (Test-Path -LiteralPath $browserTempRoot)) {
+    New-Item -Path $browserTempRoot -ItemType Directory | Out-Null
+  }
+  $browserTempRoot = Resolve-SafePath -Candidate $browserTempRoot -Root $applicationsRoot -MustExist -ForWrite -PathType Container
+} catch {
+  Add-Fail "Privater Browser-Temporärordner ist unsicher oder nicht anlegbar: $($_.Exception.Message)"
+  exit 2
 }
 
 Add-Info "Browser-Kandidaten: $($browserCandidates.Name -join ', ')"
@@ -595,6 +654,7 @@ foreach ($candidate in $browserCandidates) {
   # Bewerbungsordnern. Der Lauf bleibt durch die GUID trotzdem eindeutig.
   $runId = [guid]::NewGuid().ToString("N").Substring(0, 8)
   $runDir = Join-Path -Path $workDir -ChildPath "R-$runId"
+  $runDir = Resolve-SafePath -Candidate $runDir -Root $workDir -ForWrite -PathType Container
   New-Item -Path $runDir -ItemType Directory -Force | Out-Null
   Add-Info "Teste PDF-Export mit Browser: $($candidate.Name) ($($candidate.Path))"
 
@@ -604,9 +664,8 @@ foreach ($candidate in $browserCandidates) {
     $html = $snapshot.HtmlFile
     $safeBase = Convert-ToSafeFilePart -Value $html.BaseName
     $temporaryPdfPath = Join-Path -Path $runDir -ChildPath "$safeBase.pdf"
-    $finalPdfPath = [System.IO.Path]::ChangeExtension($html.FullName, ".pdf")
-    $profileDir = Join-Path -Path $runDir -ChildPath ("P-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
-    $errorMessage = Export-HtmlToPdf -BrowserInfo $candidate -HtmlFile $html -TemporaryPdfPath $temporaryPdfPath -ProfileDir $profileDir -MinPdfBytes $MinPdfBytes -TimeoutSeconds $TimeoutSeconds
+    $finalPdfPath = Resolve-SafePath -Candidate ([System.IO.Path]::ChangeExtension($html.FullName, ".pdf")) -Root $resolvedFolder -ForWrite -PathType Leaf
+    $errorMessage = Export-HtmlToPdf -BrowserInfo $candidate -HtmlFile $html -TemporaryPdfPath $temporaryPdfPath -BrowserTempRoot $browserTempRoot -MinPdfBytes $MinPdfBytes -TimeoutSeconds $TimeoutSeconds
 
     $snapshotError = Get-HtmlSnapshotError -HtmlFile $html -ExpectedSha256 $snapshot.Sha256
     if ($snapshotError) {
@@ -633,7 +692,7 @@ foreach ($candidate in $browserCandidates) {
 
   if ($candidateOk -and ($pdfSet.Count -eq $htmlFiles.Count)) {
     try {
-      Publish-PdfSet -PdfSet $pdfSet -RunDirectory $runDir -ReportPath $BerichtPath -BrowserName $candidate.Name
+      Publish-PdfSet -PdfSet $pdfSet -RunDirectory $runDir -ReportPath $BerichtPath -CandidateFolder $resolvedFolder -WorkDirectory $workDir -BrowserInfo $candidate
       Add-Ok "PDF-Export vollständig und atomar veröffentlicht mit Browser: $($candidate.Name)"
       Write-Host ""
       Write-Host "Erzeugte PDFs:"
@@ -642,7 +701,7 @@ foreach ($candidate in $browserCandidates) {
         $mediaBoxSummary = Format-PdfMediaBoxSummary -Path $item.FinalPath
         Write-Host "- $($item.FinalPath) ($($pdfInfo.Length) Bytes, $(Get-PdfPageCount -Path $item.FinalPath) Seite(n), $mediaBoxSummary)"
       }
-      Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-PdfRunDirectory -Path $runDir -WorkDirectory $workDir
       Add-Ok "PDF-Export-Bericht geschrieben: $BerichtPath"
       Write-Host ""
       Write-Host "ERGEBNIS: OK" -ForegroundColor Green
@@ -650,7 +709,7 @@ foreach ($candidate in $browserCandidates) {
     } catch {
       $recoveryFiles = @(Get-ChildItem -LiteralPath $runDir -File -Filter "Backup--*" -ErrorAction SilentlyContinue)
       if ($recoveryFiles.Count -eq 0) {
-        Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-PdfRunDirectory -Path $runDir -WorkDirectory $workDir
       } else {
         Add-Warn "Rollback-Sicherungen bleiben zur manuellen Wiederherstellung erhalten: $runDir"
       }
@@ -659,7 +718,7 @@ foreach ($candidate in $browserCandidates) {
     }
   }
 
-  Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
+  Remove-PdfRunDirectory -Path $runDir -WorkDirectory $workDir
   Add-Warn "Browser $($candidate.Name) konnte kein vollständig validiertes PDF-Set erzeugen. Nächster Kandidat wird versucht."
 }
 

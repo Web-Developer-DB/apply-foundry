@@ -1,3 +1,6 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
@@ -12,6 +15,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'Common/Platform.psm1') -Force
 
 $errors = New-Object System.Collections.Generic.List[string]
 
@@ -217,7 +222,25 @@ if (-not (Test-Path -LiteralPath $AuftragPath -PathType Leaf)) {
   Write-Host "[FEHLER] Bewerbungsauftrag fehlt oder ist keine Datei: $AuftragPath" -ForegroundColor Red
   exit 1
 }
-$resolvedOrderPath = (Resolve-Path -LiteralPath $AuftragPath).Path
+$projectRootForPaths = Get-ProjectRootFromOrderPath -Path $AuftragPath
+if ([string]::IsNullOrWhiteSpace([string]$projectRootForPaths)) {
+  Write-Host '[FEHLER] AuftragPath muss unter <Projektwurzel>/Private/Bewerbungen liegen.' -ForegroundColor Red
+  exit 2
+}
+try {
+  $privateRootForPaths = Resolve-SafePath -Candidate (Join-Path -Path $projectRootForPaths -ChildPath 'Private') -Root (Join-Path -Path $projectRootForPaths -ChildPath 'Private') -AllowRoot -MustExist -PathType Container
+  $applicationsRootForPaths = Resolve-SafePath -Candidate (Join-Path -Path $privateRootForPaths -ChildPath 'Bewerbungen') -Root $privateRootForPaths -MustExist -PathType Container
+  $dataRootForPaths = Resolve-SafePath -Candidate (Join-Path -Path $privateRootForPaths -ChildPath 'Daten') -Root $privateRootForPaths -PathType Container
+  $resolvedOrderPath = Resolve-SafePath -Candidate $AuftragPath -Root $applicationsRootForPaths -MustExist -PathType Leaf
+  $orderWorkRoot = Resolve-SafePath -Candidate (Split-Path -Path $resolvedOrderPath -Parent) -Root $applicationsRootForPaths -MustExist -PathType Container
+  $workCollection = Split-Path -Path $orderWorkRoot -Parent
+  if (-not (Test-PathNameEquals -Left (Split-Path -Path $workCollection -Leaf) -Right '_Arbeitsdateien')) {
+    throw 'Bewerbungsauftrag muss direkt in einem Arbeitsordner unter _Arbeitsdateien liegen.'
+  }
+} catch {
+  Write-Host "[FEHLER] Unsicherer Bewerbungsauftragspfad: $($_.Exception.Message)" -ForegroundColor Red
+  exit 2
+}
 
 try {
   $auftrag = Get-Content -LiteralPath $resolvedOrderPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -233,7 +256,7 @@ if (-not [int]::TryParse([string]$schemaRaw, [ref]$schemaVersion) -or $schemaVer
 } elseif ($schemaVersion -le 3) {
   Write-Host "[OK] Legacy-Bewerbungsauftrag mit Schema $schemaVersion akzeptiert; ein Dialogstatus ist für diesen Altauftrag nicht verpflichtend." -ForegroundColor Green
   exit 0
-} elseif ($schemaVersion -ne 4) {
+} elseif ($schemaVersion -notin @(4, 5)) {
   Add-ValidationError "Nicht unterstützte Bewerbungsauftrag-Schemaversion: $schemaVersion"
 }
 
@@ -241,7 +264,7 @@ Find-ForbiddenRawChatFields -Value $auftrag
 
 $scope = Get-JsonProperty -Object $auftrag -Name 'dokumentumfang'
 if ($null -eq $scope) {
-  Add-ValidationError 'Schema 4 erfordert dokumentumfang.'
+  Add-ValidationError "Schema $schemaVersion erfordert dokumentumfang."
 } else {
   $selection = [string](Get-JsonProperty -Object $scope -Name 'auswahl')
   $scopeCode = [string](Get-JsonProperty -Object $scope -Name 'kennung')
@@ -321,7 +344,7 @@ $questions = @()
 $facts = @()
 $dialogStatus = ''
 if ($null -eq $dialog) {
-  Add-ValidationError 'Schema 4 erfordert dialog.'
+  Add-ValidationError "Schema $schemaVersion erfordert dialog."
 } else {
   $dialogSchemaVersion = Get-JsonProperty -Object $dialog -Name 'schemaVersion'
   if (-not (Test-IsPositiveInteger -Value $dialogSchemaVersion) -or [uint64]$dialogSchemaVersion -ne 1) {
@@ -657,12 +680,18 @@ foreach ($fact in $facts) {
 
         if (-not (Test-PathNameEquals -Left $actualProfilePath -Right $canonicalProfilePath)) {
           Add-ValidationError "Dialogangabe '$id': Der übergebene Profilpfad stimmt nicht mit $profileFile überein."
-        } elseif (-not (Test-Path -LiteralPath $actualProfilePath -PathType Leaf)) {
-          Add-ValidationError "Dialogangabe '$id': Nachgewiesene Profildatei fehlt: $profileFile"
         } else {
-          $profileItem = Get-Item -LiteralPath $actualProfilePath
+          try {
+            $actualProfilePath = Resolve-SafePath -Candidate $actualProfilePath -Root $dataRootForPaths -MustExist -PathType Leaf
+          } catch {
+            Add-ValidationError "Dialogangabe '$id': Nachgewiesene Profildatei fehlt oder ist unsicher: $($_.Exception.Message)"
+            continue
+          }
+          $profileItem = Get-Item -LiteralPath $actualProfilePath -Force
           if (($profileItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
             Add-ValidationError "Dialogangabe '$id': Reparse-Points sind als nachgewiesene Profildatei nicht zulässig."
+          } elseif (Test-SamePath -Left $actualProfilePath -Right $resolvedOrderPath) {
+            Add-ValidationError "Dialogangabe '$id': Profildatei darf den Bewerbungsauftrag nicht aliasieren."
           } else {
             if (-not $currentProfileHashes.ContainsKey($canonicalProfilePath)) {
               try {

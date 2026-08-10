@@ -1,10 +1,15 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
   [string]$Ordner,
 
-  [ValidateSet("auto", "chrome", "edge", "firefox")]
+  [ValidateSet("auto", "chrome", "edge", "chromium", "firefox")]
   [string]$Browser = "auto",
+
+  [string]$BrowserExecutablePath,
 
   [switch]$NurVorbereiten,
 
@@ -31,6 +36,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/PngTools.psm1") -Force
+
+$a4Ratio = 210.0 / 297.0
+if ([math]::Abs(($Width / [double]$Height) - $a4Ratio) -gt 0.01) {
+  Write-Host "[FEHLER] Screenshot-Abmessungen müssen dem DIN-A4-Seitenverhältnis entsprechen: $Width x $Height." -ForegroundColor Red
+  exit 2
+}
+
 function Add-Info {
   param([string]$Message)
   Write-Host "[INFO] $Message"
@@ -51,23 +65,24 @@ function Add-Fail {
   Write-Host "[FEHLER] $Message" -ForegroundColor Red
 }
 
-function Stop-BrowserProcessTree {
-  param([System.Diagnostics.Process]$Process)
+function Get-BewerbungenRootFromPath {
+  param([Parameter(Mandatory)][string]$Path)
 
-  try {
-    if (($env:OS -eq "Windows_NT") -and -not $Process.HasExited) {
-      $taskKill = Get-Command "taskkill.exe" -ErrorAction SilentlyContinue
-      if ($taskKill) {
-        & $taskKill.Source /PID $Process.Id /T /F 2>$null | Out-Null
+  $comparison = Get-PathStringComparison
+  $current = [System.IO.Path]::GetFullPath($Path)
+  while (-not [string]::IsNullOrWhiteSpace($current)) {
+    $leaf = [System.IO.Path]::GetFileName($current.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar))
+    $parent = [System.IO.Path]::GetDirectoryName($current)
+    if ([string]::Equals($leaf, "Bewerbungen", $comparison) -and -not [string]::IsNullOrWhiteSpace($parent)) {
+      $parentLeaf = [System.IO.Path]::GetFileName($parent.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar))
+      if ([string]::Equals($parentLeaf, "Private", $comparison)) {
+        return $current
       }
     }
-    if (-not $Process.HasExited) {
-      Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
-    }
-    $null = $Process.WaitForExit(5000)
-  } catch {
-    Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
+    if ([string]::IsNullOrWhiteSpace($parent) -or [string]::Equals($parent, $current, $comparison)) { break }
+    $current = $parent
   }
+  throw "Pfad liegt nicht unter einem Private/Bewerbungen-Root: $Path"
 }
 
 function Convert-ToSafeFilePart {
@@ -77,70 +92,16 @@ function Convert-ToSafeFilePart {
   return $safe.Trim('-')
 }
 
-function ConvertTo-QuotedArgument {
-  param([string]$Value)
-  if ($Value -match '[\s"]') {
-    return '"' + ($Value -replace '"', '\"') + '"'
-  }
-  return $Value
-}
-
 function Get-BrowserCandidates {
   param(
     [string]$RequestedBrowser,
+    [string]$ExecutablePath,
     [switch]$AllowFirefoxFallback
   )
-
-  $localChrome = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "Google\Chrome\Application\chrome.exe" } else { $null }
-  $localEdge = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "Microsoft\Edge\Application\msedge.exe" } else { $null }
-  $localFirefox = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "Mozilla Firefox\firefox.exe" } else { $null }
-
-  $known = @(
-    @{ Name = "chrome"; Type = "chromium"; Paths = @("C:\Program Files\Google\Chrome\Application\chrome.exe", "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", $localChrome); Commands = @("chrome", "chrome.exe") },
-    @{ Name = "edge"; Type = "chromium"; Paths = @("C:\Program Files\Microsoft\Edge\Application\msedge.exe", "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", $localEdge); Commands = @("msedge", "msedge.exe") },
-    @{ Name = "firefox"; Type = "firefox"; Paths = @("C:\Program Files\Mozilla Firefox\firefox.exe", "C:\Program Files (x86)\Mozilla Firefox\firefox.exe", $localFirefox); Commands = @("firefox", "firefox.exe") }
-  )
-
-  $found = @()
-  foreach ($entry in $known) {
-    if (($RequestedBrowser -ne "auto") -and ($entry.Name -ne $RequestedBrowser)) {
-      continue
-    }
-
-    foreach ($path in @($entry.Paths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
-      if (Test-Path -LiteralPath $path -PathType Leaf) {
-        $found += [pscustomobject]@{ Name = $entry.Name; Type = $entry.Type; Path = $path }
-        break
-      }
-    }
-
-    if (@($found | Where-Object { $_.Name -eq $entry.Name }).Count -gt 0) {
-      continue
-    }
-
-    foreach ($command in $entry.Commands) {
-      $cmd = Get-Command $command -ErrorAction SilentlyContinue
-      if ($cmd -and $cmd.Source) {
-        $found += [pscustomobject]@{ Name = $entry.Name; Type = $entry.Type; Path = $cmd.Source }
-        break
-      }
-    }
-  }
-
-  if ($RequestedBrowser -ne "auto") {
-    return $found
-  }
-
-  $chromium = @($found | Where-Object { $_.Type -eq "chromium" })
-  $firefox = @($found | Where-Object { $_.Type -eq "firefox" })
-  if ($chromium.Count -gt 0) {
-    if ($AllowFirefoxFallback) {
-      return @($chromium + $firefox)
-    }
-    return $chromium
-  }
-
-  return $firefox
+  return @(Platform\Get-BrowserCandidates `
+    -RequestedBrowser $RequestedBrowser `
+    -ExecutablePath $ExecutablePath `
+    -AllowFirefox:($AllowFirefoxFallback -or $RequestedBrowser -eq "firefox"))
 }
 
 function Test-PngFile {
@@ -225,11 +186,12 @@ function Get-HtmlPageMatches {
 function New-PageCaptureHtml {
   param(
     [System.IO.FileInfo]$HtmlFile,
+    [Parameter(Mandatory)][string]$HtmlText,
     [int]$PageNumber,
     [string]$TargetPath
   )
 
-  $html = Get-Content -LiteralPath $HtmlFile.FullName -Raw -Encoding UTF8
+  $html = $HtmlText
   $captureCss = @"
 <style id="layoutcheck-page-capture">
   html, body {
@@ -259,6 +221,22 @@ function New-PageCaptureHtml {
   Set-Content -LiteralPath $TargetPath -Encoding UTF8 -Value $captureHtml
 }
 
+function Get-HtmlSnapshotError {
+  param(
+    [System.IO.FileInfo]$HtmlFile,
+    [string]$ExpectedSha256
+  )
+
+  if (-not (Test-Path -LiteralPath $HtmlFile.FullName -PathType Leaf)) {
+    return "HTML-Datei fehlt seit Beginn des Layoutchecks: $($HtmlFile.FullName)"
+  }
+  $actualSha256 = (Get-FileHash -LiteralPath $HtmlFile.FullName -Algorithm SHA256).Hash
+  if ($actualSha256 -ine $ExpectedSha256) {
+    return "HTML-Datei wurde während des Layoutchecks geändert: $($HtmlFile.FullName)"
+  }
+  return $null
+}
+
 function Get-LayoutDensity {
   param(
     [string]$Path,
@@ -269,68 +247,18 @@ function Get-LayoutDensity {
     [double]$BottomReserveMm
   )
 
-  $result = [ordered]@{
-    available = $false
-    bottomWhitespacePx = $null
-    bottomWhitespaceMm = $null
-    pageNumber = $PageNumber
-    pageCount = $PageCount
-    scanBottomReserveMm = $BottomReserveMm
-    warning = $null
-  }
-  try {
-    Add-Type -AssemblyName System.Drawing.Common -ErrorAction SilentlyContinue
-    $bitmap = [System.Drawing.Bitmap]::new([string]$Path)
-    try {
-      $lastInkRow = -1
-      $left = [math]::Max(8, [int]($bitmap.Width * 0.03))
-      $right = [math]::Min($bitmap.Width - 9, [int]($bitmap.Width * 0.97))
-      $reservePx = [math]::Max(2, [int][math]::Round(($BottomReserveMm * $ExpectedHeight) / 297.0))
-      $scanBottom = [math]::Max(0, ($bitmap.Height - 1) - $reservePx)
-      for ($y = $scanBottom; $y -ge 0; $y--) {
-        $inkSamples = 0
-        for ($x = $left; $x -le $right; $x += 2) {
-          $pixel = $bitmap.GetPixel($x, $y)
-          if (($pixel.R -lt 242) -or ($pixel.G -lt 242) -or ($pixel.B -lt 242)) {
-            $inkSamples++
-            if ($inkSamples -ge 2) {
-              $lastInkRow = $y
-              break
-            }
-          }
-        }
-        if ($lastInkRow -ge 0) { break }
-      }
-
-      if ($lastInkRow -ge 0) {
-        $whitespacePx = $scanBottom - $lastInkRow
-        $whitespaceMm = [math]::Round(($whitespacePx * 297.0) / $ExpectedHeight, 1)
-        $result.available = $true
-        $result.bottomWhitespacePx = $whitespacePx
-        $result.bottomWhitespaceMm = $whitespaceMm
-        $isCv = $DocumentName -like "Lebenslauf -*"
-        $maxWhitespaceMm = if ($isCv) { 55.0 } else { 70.0 }
-        if ($whitespaceMm -gt $maxWhitespaceMm) {
-          $result.warning = "Seite $PageNumber von $PageCount hat ungewöhnlich viel freie Fläche im nutzbaren Inhaltsbereich: $whitespaceMm mm."
-        } elseif ($whitespaceMm -lt 4.0) {
-          $result.warning = "Inhalt auf Seite $PageNumber von $PageCount liegt mit nur $whitespaceMm mm Abstand nahe an der unteren Inhaltsgrenze."
-        }
-      } else {
-        $result.warning = "Auf Seite $PageNumber von $PageCount wurde im nutzbaren Inhaltsbereich kein auswertbarer Inhalt erkannt."
-      }
-    } finally {
-      $bitmap.Dispose()
-    }
-  } catch {
-    $result.warning = "Layoutdichte konnte nicht automatisch ausgewertet werden: $($_.Exception.Message)"
-  }
-  return [pscustomobject]$result
+  return PngTools\Measure-PngBottomWhitespace `
+    -LiteralPath $Path `
+    -DocumentName $DocumentName `
+    -PageNumber $PageNumber `
+    -PageCount $PageCount `
+    -BottomReserveMm $BottomReserveMm
 }
 
 function Write-LayoutReport {
   param(
     [string]$Path,
-    [string]$BrowserName,
+    [pscustomobject]$BrowserInfo,
     [array]$Results,
     [int]$ExpectedWidth,
     [int]$ExpectedHeight
@@ -344,7 +272,8 @@ function Write-LayoutReport {
   $report = [ordered]@{
     schemaVersion = 2
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
-    browser = $BrowserName
+    runtime = Get-RuntimeFingerprint -BrowserInfo $BrowserInfo
+    browser = $BrowserInfo.Name
     sourceFolder = $resolvedFolder
     captureMode = "eine_png_pro_a4_seite"
     pageWidth = $ExpectedWidth
@@ -364,6 +293,7 @@ function Invoke-BrowserScreenshot {
     [int]$PageNumber,
     [int]$PageCount,
     [string]$TargetDir,
+    [string]$BrowserTempRoot,
     [string]$RunId,
     [int]$Width,
     [int]$Height,
@@ -375,9 +305,13 @@ function Invoke-BrowserScreenshot {
   $pagePart = "seite-$PageNumber-von-$PageCount"
   $pngPath = Join-Path -Path $TargetDir -ChildPath "$safeBase--$pagePart--$($BrowserInfo.Name).png"
   $pdfPath = Join-Path -Path $TargetDir -ChildPath "$safeBase--$pagePart--$($BrowserInfo.Name).pdf"
-  # Chrome verwendet für das Profildatenverzeichnis teilweise noch APIs mit
-  # enger Windows-Pfadgrenze. Der interne Name bleibt deshalb bewusst kurz.
-  $profilePath = Join-Path -Path $TargetDir -ChildPath ("P-" + $RunId.Substring(0, 8))
+  $browserRunRoot = Resolve-SafePath -Candidate (Join-Path -Path $BrowserTempRoot -ChildPath ("L-" + $RunId)) -Root $BrowserTempRoot -ForWrite -PathType Container
+  $profilePath = Join-Path -Path $browserRunRoot -ChildPath "profile"
+  $browserHtmlPath = Join-Path -Path $browserRunRoot -ChildPath "capture.html"
+  $browserPngPath = Join-Path -Path $browserRunRoot -ChildPath "capture.png"
+  $browserPdfPath = Join-Path -Path $browserRunRoot -ChildPath "capture.pdf"
+  $pendingPngPath = "$pngPath.pending-$RunId"
+  $pendingPdfPath = "$pdfPath.pending-$RunId"
 
   $result = [pscustomobject]@{
     Browser = $BrowserInfo.Name
@@ -394,7 +328,8 @@ function Invoke-BrowserScreenshot {
   }
 
   try {
-    foreach ($oldOutput in @($pngPath, $pdfPath)) {
+    foreach ($oldOutput in @($pngPath, $pdfPath, $pendingPngPath, $pendingPdfPath)) {
+      $oldOutput = Resolve-SafePath -Candidate $oldOutput -Root $TargetDir -ForWrite -PathType Leaf
       if (Test-Path -LiteralPath $oldOutput) {
         Remove-Item -LiteralPath $oldOutput -Force
       }
@@ -403,10 +338,12 @@ function Invoke-BrowserScreenshot {
       }
     }
 
-    New-Item -Path $profilePath -ItemType Directory -Force | Out-Null
-    $uri = [System.Uri]::new($CaptureHtmlFile.FullName).AbsoluteUri
+    New-Item -Path $browserRunRoot -ItemType Directory | Out-Null
+    New-Item -Path $profilePath -ItemType Directory | Out-Null
+    Copy-Item -LiteralPath $CaptureHtmlFile.FullName -Destination $browserHtmlPath
+    $uri = [System.Uri]::new($browserHtmlPath).AbsoluteUri
 
-    if ($BrowserInfo.Type -eq "chromium") {
+    if ($BrowserInfo.Engine -eq "chromium") {
       $arguments = @(
         "--headless=new",
         "--disable-gpu",
@@ -416,11 +353,11 @@ function Invoke-BrowserScreenshot {
         "--hide-scrollbars",
         "--user-data-dir=$profilePath",
         "--window-size=$Width,$Height",
-        "--screenshot=$pngPath"
+        "--screenshot=$browserPngPath"
       )
 
       if ($Pdf) {
-        $arguments += "--print-to-pdf=$pdfPath"
+        $arguments += "--print-to-pdf=$browserPdfPath"
         $arguments += "--print-to-pdf-no-header"
         $arguments += "--no-pdf-header-footer"
       }
@@ -433,27 +370,34 @@ function Invoke-BrowserScreenshot {
         "--window-size",
         "$Width,$Height",
         "--screenshot",
-        $pngPath,
+        $browserPngPath,
         $uri
       )
     }
 
-    $argumentLine = ($arguments | ForEach-Object { ConvertTo-QuotedArgument -Value $_ }) -join " "
     $runStartedUtc = [datetime]::UtcNow
-    $process = Start-Process -FilePath $BrowserInfo.Path -ArgumentList $argumentLine -WindowStyle Hidden -PassThru
-    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+    $process = Invoke-NativeProcess -FilePath $BrowserInfo.Path -ArgumentList $arguments -TimeoutSeconds $TimeoutSeconds -MaxStdoutChars 4096 -MaxStderrChars 8192
+    if ($process.TimedOut) {
       $result.TimedOut = $true
-      Stop-BrowserProcessTree -Process $process
       $result.ErrorMessage = "Browserlauf hat das Zeitlimit von $TimeoutSeconds Sekunden überschritten."
       return $result
     }
 
     $result.ExitCode = $process.ExitCode
     if ($process.ExitCode -ne 0) {
-      $result.ErrorMessage = "Browser beendete den Lauf mit Exitcode $($process.ExitCode)."
+      $stderr = $process.StandardError.Trim()
+      $suffix = if ([string]::IsNullOrWhiteSpace($stderr)) { "" } else { " stderr: $stderr" }
+      $result.ErrorMessage = "Browser beendete den Lauf mit Exitcode $($process.ExitCode).$suffix"
       return $result
     }
 
+    $pngError = Test-PngFile -Path $browserPngPath -ExpectedWidth $Width -ExpectedHeight $Height -RunStartedUtc $runStartedUtc
+    if ($pngError) {
+      $result.ErrorMessage = $pngError
+      return $result
+    }
+    Copy-Item -LiteralPath $browserPngPath -Destination $pendingPngPath
+    Move-Item -LiteralPath $pendingPngPath -Destination $pngPath
     $pngError = Test-PngFile -Path $pngPath -ExpectedWidth $Width -ExpectedHeight $Height -RunStartedUtc $runStartedUtc
     if ($pngError) {
       $result.ErrorMessage = $pngError
@@ -462,10 +406,17 @@ function Invoke-BrowserScreenshot {
     $result.ScreenshotOk = $true
 
     if ($Pdf) {
-      if ($BrowserInfo.Type -ne "chromium") {
+      if ($BrowserInfo.Engine -ne "chromium") {
         $result.ErrorMessage = "PDF-Export ist für Browser $($BrowserInfo.Name) nicht unterstützt."
         return $result
       }
+      $pdfError = Test-BasicPdfFile -Path $browserPdfPath -RunStartedUtc $runStartedUtc
+      if ($pdfError) {
+        $result.ErrorMessage = $pdfError
+        return $result
+      }
+      Copy-Item -LiteralPath $browserPdfPath -Destination $pendingPdfPath
+      Move-Item -LiteralPath $pendingPdfPath -Destination $pdfPath
       $pdfError = Test-BasicPdfFile -Path $pdfPath -RunStartedUtc $runStartedUtc
       if ($pdfError) {
         $result.ErrorMessage = $pdfError
@@ -476,8 +427,18 @@ function Invoke-BrowserScreenshot {
   } catch {
     $result.ErrorMessage = $_.Exception.Message
   } finally {
-    if (Test-Path -LiteralPath $profilePath -PathType Container) {
-      Remove-Item -LiteralPath $profilePath -Recurse -Force -ErrorAction SilentlyContinue
+    foreach ($pendingPath in @($pendingPngPath, $pendingPdfPath)) {
+      if (Test-Path -LiteralPath $pendingPath -PathType Leaf) {
+        Remove-Item -LiteralPath $pendingPath -Force -ErrorAction SilentlyContinue
+      }
+    }
+    if (Test-Path -LiteralPath $browserRunRoot -PathType Container) {
+      try {
+        $safeBrowserRunRoot = Resolve-SafePath -Candidate $browserRunRoot -Root $BrowserTempRoot -MustExist -ForWrite -PathType Container
+        Remove-Item -LiteralPath $safeBrowserRunRoot -Recurse -Force -ErrorAction SilentlyContinue
+      } catch {
+        Add-Warn "Temporärer Browserordner konnte nicht sicher bereinigt werden: $browserRunRoot"
+      }
     }
   }
 
@@ -490,6 +451,13 @@ if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
 }
 
 $resolvedFolder = (Resolve-Path -LiteralPath $Ordner).Path
+try {
+  $applicationsRoot = Get-BewerbungenRootFromPath -Path $resolvedFolder
+  $resolvedFolder = Resolve-SafePath -Candidate $resolvedFolder -Root $applicationsRoot -MustExist -PathType Container
+} catch {
+  Add-Fail $_.Exception.Message
+  exit 2
+}
 $cvFiles = @(Get-ChildItem -LiteralPath $resolvedFolder -File -Filter "Lebenslauf - *.html")
 $letterFiles = @(Get-ChildItem -LiteralPath $resolvedFolder -File -Filter "Anschreiben - *.html")
 if (($cvFiles.Count -gt 1) -or ($letterFiles.Count -gt 1) -or (($cvFiles.Count + $letterFiles.Count) -eq 0)) {
@@ -497,6 +465,15 @@ if (($cvFiles.Count -gt 1) -or ($letterFiles.Count -gt 1) -or (($cvFiles.Count +
   exit 1
 }
 $htmlFiles = @($letterFiles + $cvFiles | Sort-Object Name)
+try {
+  $htmlFiles = @($htmlFiles | ForEach-Object {
+    $safeHtmlPath = Resolve-SafePath -Candidate $_.FullName -Root $applicationsRoot -MustExist -PathType Leaf
+    Get-Item -LiteralPath $safeHtmlPath
+  })
+} catch {
+  Add-Fail "Unsichere HTML-Quelldatei: $($_.Exception.Message)"
+  exit 2
+}
 
 if ($OutputRoot) {
   $layoutDir = [System.IO.Path]::GetFullPath($OutputRoot)
@@ -521,15 +498,42 @@ if (($layoutDir -notmatch '[\\/]Private[\\/]Bewerbungen[\\/]+') -or ($layoutDir 
   Add-Fail "Layoutcheck-Ausgabe muss unter `Private/Bewerbungen/.../_Arbeitsdateien` liegen: $layoutDir"
   exit 1
 }
+try {
+  $layoutDir = Resolve-SafePath -Candidate $layoutDir -Root $applicationsRoot -PathType Container
+} catch {
+  Add-Fail "Unsicherer Layoutcheck-Ausgabepfad: $($_.Exception.Message)"
+  exit 2
+}
 
 New-Item -Path $layoutDir -ItemType Directory -Force | Out-Null
+try {
+  $layoutDir = Resolve-SafePath -Candidate $layoutDir -Root $applicationsRoot -MustExist -ForWrite -PathType Container
+} catch {
+  Add-Fail "Layoutcheck-Ausgabe ist kein sicherer beschreibbarer Ordner: $($_.Exception.Message)"
+  exit 2
+}
 if ([string]::IsNullOrWhiteSpace($BerichtPath)) {
   $BerichtPath = Join-Path -Path $layoutDir -ChildPath "Layoutcheck-Bericht.json"
+}
+try {
+  if ([System.IO.Path]::GetExtension($BerichtPath) -cne ".json") {
+    throw "Layoutbericht muss eine JSON-Datei sein."
+  }
+  $BerichtPath = Resolve-SafePath -Candidate $BerichtPath -Root $layoutDir -ForWrite -PathType Leaf
+} catch {
+  Add-Fail "Unsicherer Layoutberichtspfad: $($_.Exception.Message)"
+  exit 2
 }
 
 $documents = @()
 foreach ($html in $htmlFiles) {
+  $htmlSha256 = (Get-FileHash -LiteralPath $html.FullName -Algorithm SHA256).Hash
   $htmlText = Get-Content -LiteralPath $html.FullName -Raw -Encoding UTF8
+  $snapshotError = Get-HtmlSnapshotError -HtmlFile $html -ExpectedSha256 $htmlSha256
+  if ($snapshotError) {
+    Add-Fail $snapshotError
+    exit 1
+  }
   $pageMatches = @(Get-HtmlPageMatches -Html $htmlText)
   if ($pageMatches.Count -eq 0) {
     Add-Fail "HTML enthält keine expliziten A4-Seitencontainer: $($html.Name)"
@@ -544,6 +548,7 @@ foreach ($html in $htmlFiles) {
   $documents += [pscustomobject]@{
     HtmlFile = $html
     HtmlText = $htmlText
+    HtmlSha256 = $htmlSha256
     PageMatches = $pageMatches
     PageCount = $pageMatches.Count
     SafeBase = $safeBase
@@ -556,10 +561,21 @@ if ($NurVorbereiten) {
   exit 0
 }
 
-$browserCandidates = @(Get-BrowserCandidates -RequestedBrowser $Browser -AllowFirefoxFallback:$ErlaubeFirefoxFallback)
+$browserCandidates = @(Get-BrowserCandidates -RequestedBrowser $Browser -ExecutablePath $BrowserExecutablePath -AllowFirefoxFallback:$ErlaubeFirefoxFallback)
 if ($browserCandidates.Count -eq 0) {
-  Add-Fail "Kein passender Browser gefunden. Erlaubt: Chrome, Edge oder Firefox."
+  Add-Fail "Kein passender Browser gefunden. Erlaubt: Chrome, Edge, Chromium oder Firefox für die Layoutdiagnose."
   exit 1
+}
+
+try {
+  $browserTempRoot = Resolve-SafePath -Candidate (Join-Path -Path $applicationsRoot -ChildPath ".browser-tmp") -Root $applicationsRoot -ForWrite -PathType Container
+  if (-not (Test-Path -LiteralPath $browserTempRoot)) {
+    New-Item -Path $browserTempRoot -ItemType Directory | Out-Null
+  }
+  $browserTempRoot = Resolve-SafePath -Candidate $browserTempRoot -Root $applicationsRoot -MustExist -ForWrite -PathType Container
+} catch {
+  Add-Fail "Privater Browser-Temporärordner ist unsicher oder nicht anlegbar: $($_.Exception.Message)"
+  exit 2
 }
 
 Add-Info "Browser-Kandidaten: $($browserCandidates.Name -join ', ')"
@@ -572,17 +588,36 @@ foreach ($candidate in $browserCandidates) {
   $candidateResults = @()
   foreach ($document in $documents) {
     for ($pageIndex = 0; $pageIndex -lt $document.PageCount; $pageIndex++) {
+      $snapshotError = Get-HtmlSnapshotError -HtmlFile $document.HtmlFile -ExpectedSha256 $document.HtmlSha256
+      if ($snapshotError) {
+        $candidateOk = $false
+        $browserErrors.Add("$($candidate.Name): $snapshotError") | Out-Null
+        break
+      }
       $pageNumber = $pageIndex + 1
       $runId = [guid]::NewGuid().ToString("N")
       $capturePath = Join-Path -Path $layoutDir -ChildPath ".capture-$($document.SafeBase)--$runId.html"
+      $capturePath = Resolve-SafePath -Candidate $capturePath -Root $layoutDir -ForWrite -PathType Leaf
       try {
-        New-PageCaptureHtml -HtmlFile $document.HtmlFile -PageNumber $pageNumber -TargetPath $capturePath
+        New-PageCaptureHtml -HtmlFile $document.HtmlFile -HtmlText $document.HtmlText -PageNumber $pageNumber -TargetPath $capturePath
         $captureFile = Get-Item -LiteralPath $capturePath
-        $result = Invoke-BrowserScreenshot -BrowserInfo $candidate -SourceHtmlFile $document.HtmlFile -CaptureHtmlFile $captureFile -OutputBaseName $document.HtmlFile.BaseName -PageNumber $pageNumber -PageCount $document.PageCount -TargetDir $layoutDir -RunId $runId -Width $Width -Height $Height -TimeoutSeconds $TimeoutSeconds -Pdf:$Pdf
+        $result = Invoke-BrowserScreenshot -BrowserInfo $candidate -SourceHtmlFile $document.HtmlFile -CaptureHtmlFile $captureFile -OutputBaseName $document.HtmlFile.BaseName -PageNumber $pageNumber -PageCount $document.PageCount -TargetDir $layoutDir -BrowserTempRoot $browserTempRoot -RunId $runId -Width $Width -Height $Height -TimeoutSeconds $TimeoutSeconds -Pdf:$Pdf
       } finally {
         if (Test-Path -LiteralPath $capturePath -PathType Leaf) {
           Remove-Item -LiteralPath $capturePath -Force -ErrorAction SilentlyContinue
         }
+      }
+
+      $snapshotError = Get-HtmlSnapshotError -HtmlFile $document.HtmlFile -ExpectedSha256 $document.HtmlSha256
+      if ($snapshotError) {
+        foreach ($runOutput in @($result.Screenshot, $result.Pdf)) {
+          if ($runOutput -and (Test-Path -LiteralPath $runOutput -PathType Leaf)) {
+            Remove-Item -LiteralPath $runOutput -Force -ErrorAction SilentlyContinue
+          }
+        }
+        $candidateOk = $false
+        $browserErrors.Add("$($candidate.Name): $snapshotError") | Out-Null
+        break
       }
 
       if ($result.ScreenshotOk) {
@@ -595,6 +630,10 @@ foreach ($candidate in $browserCandidates) {
         } else {
           Get-LayoutDensity -Path $result.Screenshot -DocumentName $result.File -ExpectedHeight $Height -PageNumber $pageNumber -PageCount $document.PageCount -BottomReserveMm $bottomReserveMm
         }
+        if (-not $DichtepruefungDeaktivieren -and -not $density.available) {
+          $candidateOk = $false
+          $browserErrors.Add("$($result.Browser): Erforderliche Layoutdichteprüfung fehlgeschlagen für $($result.File), Seite ${pageNumber}: $($density.warning)") | Out-Null
+        }
         if ($density.warning) {
           Add-Warn "$($result.File): $($density.warning)"
         } elseif ($density.available) {
@@ -603,7 +642,7 @@ foreach ($candidate in $browserCandidates) {
         $screenshotInfo = Get-Item -LiteralPath $result.Screenshot
         $candidateResults += [ordered]@{
           htmlFile = $document.HtmlFile.Name
-          htmlSha256 = (Get-FileHash -LiteralPath $document.HtmlFile.FullName -Algorithm SHA256).Hash
+          htmlSha256 = $document.HtmlSha256
           pageNumber = $pageNumber
           pageCount = $document.PageCount
           hasDocumentFooter = $hasDocumentFooter
@@ -629,10 +668,21 @@ foreach ($candidate in $browserCandidates) {
         Add-Ok "$($result.Browser): frische Seiten-PDF erzeugt für $($result.File), Seite $pageNumber"
       }
     }
+    if (-not $candidateOk) { break }
   }
 
   if ($candidateOk) {
-    Write-LayoutReport -Path $BerichtPath -BrowserName $candidate.Name -Results $candidateResults -ExpectedWidth $Width -ExpectedHeight $Height
+    foreach ($document in $documents) {
+      $snapshotError = Get-HtmlSnapshotError -HtmlFile $document.HtmlFile -ExpectedSha256 $document.HtmlSha256
+      if ($snapshotError) {
+        $candidateOk = $false
+        $browserErrors.Add("$($candidate.Name): $snapshotError") | Out-Null
+        break
+      }
+    }
+  }
+  if ($candidateOk) {
+    Write-LayoutReport -Path $BerichtPath -BrowserInfo $candidate -Results $candidateResults -ExpectedWidth $Width -ExpectedHeight $Height
     Add-Ok "Layoutcheck erfolgreich mit Browser: $($candidate.Name)"
     Add-Ok "Layoutcheck-Bericht geschrieben: $BerichtPath"
     exit 0

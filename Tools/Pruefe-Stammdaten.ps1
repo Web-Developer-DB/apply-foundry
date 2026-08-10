@@ -1,6 +1,9 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
-  [string]$StammdatenPath = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Daten\01_PERSOENLICHE_DATEN.md"),
+  [string]$StammdatenPath = (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "Private", "Daten", "01_PERSOENLICHE_DATEN.md"),
 
   [switch]$WarnungenAlsFehler,
 
@@ -14,9 +17,43 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+
 $errors = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
 $oks = New-Object System.Collections.Generic.List[string]
+$script:PathComparison = if ($IsWindows) { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+$script:ReportWorkRoot = $null
+$script:ResolvedReportPath = $null
+
+function Get-ApplicationsRootFromPath {
+  param([string]$Path, [switch]$Container)
+
+  $fullPath = [System.IO.Path]::GetFullPath($Path)
+  $directory = if ($Container) { [System.IO.DirectoryInfo]::new($fullPath) } else { [System.IO.DirectoryInfo]::new((Split-Path -Path $fullPath -Parent)) }
+  while ($null -ne $directory) {
+    if ([string]::Equals($directory.Name, 'Bewerbungen', $script:PathComparison) -and
+        $null -ne $directory.Parent -and
+        [string]::Equals($directory.Parent.Name, 'Private', $script:PathComparison)) {
+      return $directory.FullName
+    }
+    $directory = $directory.Parent
+  }
+  return $null
+}
+
+function Get-WorkRootFromPath {
+  param([string]$Path)
+
+  $directory = [System.IO.DirectoryInfo]::new((Split-Path -Path ([System.IO.Path]::GetFullPath($Path)) -Parent))
+  while ($null -ne $directory.Parent) {
+    if ([string]::Equals($directory.Parent.Name, '_Arbeitsdateien', $script:PathComparison)) {
+      return $directory.FullName
+    }
+    $directory = $directory.Parent
+  }
+  return $null
+}
 
 function Add-ErrorMessage {
   param([string]$Message)
@@ -80,11 +117,16 @@ function Write-JsonReport {
     return
   }
 
-  $fullPath = [System.IO.Path]::GetFullPath($Path)
+  $fullPath = $script:ResolvedReportPath
+  if ([string]::IsNullOrWhiteSpace($fullPath) -or [string]::IsNullOrWhiteSpace($script:ReportWorkRoot)) {
+    throw 'Berichtspfad wurde nicht als sicherer Arbeitsbereich validiert.'
+  }
   $parent = Split-Path -Path $fullPath -Parent
   if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
     New-Item -Path $parent -ItemType Directory -Force | Out-Null
   }
+  $null = Resolve-SafePath -Candidate $parent -Root $script:ReportWorkRoot -AllowRoot -MustExist -PathType Container
+  $fullPath = Resolve-SafePath -Candidate $fullPath -Root $script:ReportWorkRoot -ForWrite -PathType Leaf
 
   $fieldStates = [ordered]@{}
   foreach ($fieldName in $Fields.Keys) {
@@ -114,12 +156,61 @@ function Write-JsonReport {
   Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 6)
 }
 
-if (-not (Test-Path -LiteralPath $StammdatenPath -PathType Leaf)) {
-  Write-Host "[FEHLER] Stammdatendatei fehlt oder ist keine Datei: $StammdatenPath" -ForegroundColor Red
-  exit 1
+try {
+  $stammdatenFull = [System.IO.Path]::GetFullPath($StammdatenPath)
+  $dataRoot = Split-Path -Path $stammdatenFull -Parent
+  $privateRoot = Split-Path -Path $dataRoot -Parent
+  if (-not [string]::Equals((Split-Path -Path $dataRoot -Leaf), 'Daten', $script:PathComparison) -or
+      -not [string]::Equals((Split-Path -Path $privateRoot -Leaf), 'Private', $script:PathComparison)) {
+    throw 'StammdatenPath muss unter <Projektwurzel>/Private/Daten liegen.'
+  }
+  $privateRoot = Resolve-SafePath -Candidate $privateRoot -Root $privateRoot -AllowRoot -MustExist -PathType Container
+  $dataRoot = Resolve-SafePath -Candidate $dataRoot -Root $privateRoot -MustExist -PathType Container
+  $resolvedPath = Resolve-SafePath -Candidate $StammdatenPath -Root $dataRoot -MustExist -PathType Leaf
+  $StammdatenPath = $resolvedPath
+
+  $resolvedOrderPath = $null
+  $applicationsRoot = Resolve-SafePath -Candidate (Join-Path -Path $privateRoot -ChildPath 'Bewerbungen') -Root $privateRoot -PathType Container
+  if (-not [string]::IsNullOrWhiteSpace($BewerbungsauftragPath)) {
+    $orderApplicationsRoot = Get-ApplicationsRootFromPath -Path $BewerbungsauftragPath
+    if ([string]::IsNullOrWhiteSpace($orderApplicationsRoot) -or -not (Test-SamePath -Left $orderApplicationsRoot -Right $applicationsRoot)) {
+      throw 'BewerbungsauftragPath muss unter demselben Private/Bewerbungen-Root wie die Stammdaten liegen.'
+    }
+    $applicationsRoot = Resolve-SafePath -Candidate $applicationsRoot -Root $privateRoot -MustExist -PathType Container
+    $resolvedOrderPath = Resolve-SafePath -Candidate $BewerbungsauftragPath -Root $applicationsRoot -MustExist -PathType Leaf
+    $script:ReportWorkRoot = Resolve-SafePath -Candidate (Split-Path -Path $resolvedOrderPath -Parent) -Root $applicationsRoot -MustExist -PathType Container
+    $workCollection = Split-Path -Path $script:ReportWorkRoot -Parent
+    if (-not [string]::Equals((Split-Path -Path $workCollection -Leaf), '_Arbeitsdateien', $script:PathComparison)) {
+      throw 'Bewerbungsauftrag muss direkt in einem Arbeitsordner unter _Arbeitsdateien liegen.'
+    }
+    $BewerbungsauftragPath = $resolvedOrderPath
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($BerichtPath)) {
+    if ($null -eq $script:ReportWorkRoot) {
+      $reportApplicationsRoot = Get-ApplicationsRootFromPath -Path $BerichtPath
+      $script:ReportWorkRoot = Get-WorkRootFromPath -Path $BerichtPath
+      if ([string]::IsNullOrWhiteSpace($reportApplicationsRoot) -or
+          [string]::IsNullOrWhiteSpace($script:ReportWorkRoot) -or
+          -not (Test-SamePath -Left $reportApplicationsRoot -Right $applicationsRoot)) {
+        throw 'BerichtPath muss in einem Arbeitsordner unter demselben Private/Bewerbungen-Root liegen.'
+      }
+      $applicationsRoot = Resolve-SafePath -Candidate $applicationsRoot -Root $privateRoot -MustExist -PathType Container
+      $script:ReportWorkRoot = Resolve-SafePath -Candidate $script:ReportWorkRoot -Root $applicationsRoot -MustExist -PathType Container
+    }
+    $script:ResolvedReportPath = Resolve-SafePath -Candidate $BerichtPath -Root $script:ReportWorkRoot -ForWrite -PathType Leaf
+    if (Test-SamePath -Left $script:ResolvedReportPath -Right $resolvedPath) {
+      throw 'BerichtPath darf die Stammdatendatei nicht aliasieren.'
+    }
+    if ($null -ne $resolvedOrderPath -and (Test-SamePath -Left $script:ResolvedReportPath -Right $resolvedOrderPath)) {
+      throw 'BerichtPath darf den Bewerbungsauftrag nicht aliasieren.'
+    }
+  }
+} catch {
+  Write-Host "[FEHLER] Unsicherer Stammdaten-, Auftrags- oder Berichtspfad: $($_.Exception.Message)" -ForegroundColor Red
+  exit 2
 }
 
-$resolvedPath = (Resolve-Path -LiteralPath $StammdatenPath).Path
 $lines = @(Get-Content -LiteralPath $resolvedPath -Encoding UTF8)
 $fields = [ordered]@{}
 foreach ($line in $lines) {

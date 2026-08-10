@@ -1,9 +1,12 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
   [string]$Ordner,
 
-  [string]$StammdatenPath = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Daten\01_PERSOENLICHE_DATEN.md"),
+  [string]$StammdatenPath = (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "Private", "Daten", "01_PERSOENLICHE_DATEN.md"),
 
   [Parameter(Mandatory = $true)]
   [string]$AuftragPath,
@@ -11,11 +14,15 @@ param(
   [ValidateRange(40, 100)]
   [int]$MinTextabdeckungProzent = 70,
 
-  [string]$BerichtPath
+  [string]$BerichtPath,
+
+  [string]$PdfExportBerichtPath
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 
 $errors = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
@@ -26,9 +33,31 @@ function Add-ErrorMessage { param([string]$Message) $errors.Add($Message) | Out-
 function Add-WarningMessage { param([string]$Message) $warnings.Add($Message) | Out-Null; Write-Host "[WARNUNG] $Message" -ForegroundColor Yellow }
 function Add-OkMessage { param([string]$Message) $oks.Add($Message) | Out-Null; Write-Host "[OK] $Message" -ForegroundColor Green }
 
+function Get-BewerbungenRootFromPath {
+  param([Parameter(Mandatory)][string]$Path)
+
+  $comparison = Get-PathStringComparison
+  $current = [System.IO.Path]::GetFullPath($Path)
+  while (-not [string]::IsNullOrWhiteSpace($current)) {
+    $leaf = [System.IO.Path]::GetFileName($current.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar))
+    $parent = [System.IO.Path]::GetDirectoryName($current)
+    if ([string]::Equals($leaf, "Bewerbungen", $comparison) -and -not [string]::IsNullOrWhiteSpace($parent)) {
+      $parentLeaf = [System.IO.Path]::GetFileName($parent.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar))
+      if ([string]::Equals($parentLeaf, "Private", $comparison)) { return $current }
+    }
+    if ([string]::IsNullOrWhiteSpace($parent) -or [string]::Equals($parent, $current, $comparison)) { break }
+    $current = $parent
+  }
+  throw "Pfad liegt nicht unter einem Private/Bewerbungen-Root: $Path"
+}
+
 function Get-JsonProperty {
   param([object]$Object, [string]$Name)
   if ($null -eq $Object) { return $null }
+  if ($Object -is [System.Collections.IDictionary]) {
+    if ($Object.Contains($Name)) { return $Object[$Name] }
+    return $null
+  }
   $property = $Object.PSObject.Properties[$Name]
   if ($null -eq $property) { return $null }
   return $property.Value
@@ -254,11 +283,62 @@ foreach ($path in @($Ordner, $StammdatenPath, $AuftragPath)) {
 }
 
 $resolvedFolder = (Resolve-Path -LiteralPath $Ordner).Path
+try {
+  $applicationsRoot = Get-BewerbungenRootFromPath -Path $resolvedFolder
+  $resolvedFolder = Resolve-SafePath -Candidate $resolvedFolder -Root $applicationsRoot -MustExist -ForWrite -PathType Container
+  $AuftragPath = Resolve-SafePath -Candidate $AuftragPath -Root $applicationsRoot -MustExist -ForWrite -PathType Leaf
+  $privateRoot = Split-Path -Path $applicationsRoot -Parent
+  $StammdatenPath = Resolve-SafePath -Candidate $StammdatenPath -Root $privateRoot -MustExist -ForWrite -PathType Leaf
+  if (-not [string]::IsNullOrWhiteSpace($PdfExportBerichtPath)) {
+    $PdfExportBerichtPath = Resolve-SafePath -Candidate $PdfExportBerichtPath -Root $applicationsRoot -MustExist -ForWrite -PathType Leaf
+  }
+} catch {
+  Write-Host "[FEHLER] Unsicherer ATS-Pfad: $($_.Exception.Message)" -ForegroundColor Red
+  exit 2
+}
 $internalFolder = Join-Path $resolvedFolder "Intern"
 $shippingFolder = Join-Path $resolvedFolder "Versand"
 $structured = (Test-Path -LiteralPath $internalFolder -PathType Container) -and (Test-Path -LiteralPath $shippingFolder -PathType Container)
+if ($structured) {
+  try {
+    $internalFolder = Resolve-SafePath -Candidate $internalFolder -Root $resolvedFolder -MustExist -ForWrite -PathType Container
+    $shippingFolder = Resolve-SafePath -Candidate $shippingFolder -Root $resolvedFolder -MustExist -ForWrite -PathType Container
+  } catch {
+    Write-Host "[FEHLER] Unsichere strukturierte ATS-Ordner: $($_.Exception.Message)" -ForegroundColor Red
+    exit 2
+  }
+}
 $htmlFolder = if ($structured) { $internalFolder } else { $resolvedFolder }
 $pdfFolder = if ($structured) { $shippingFolder } else { $resolvedFolder }
+if (-not [string]::IsNullOrWhiteSpace($BerichtPath)) {
+  try {
+    if ([System.IO.Path]::GetFileName($BerichtPath) -cne "ATS-Pruefbericht.json") {
+      throw "ATS-Bericht muss ATS-Pruefbericht.json heißen."
+    }
+    $reportRoot = if ((Split-Path -Path $resolvedFolder -Leaf) -ceq "Kandidat") { Split-Path -Path $resolvedFolder -Parent } else { $resolvedFolder }
+    $BerichtPath = Resolve-SafePath -Candidate $BerichtPath -Root $reportRoot -ForWrite -PathType Leaf
+  } catch {
+    Write-Host "[FEHLER] Unsicherer ATS-Berichtspfad: $($_.Exception.Message)" -ForegroundColor Red
+    exit 2
+  }
+}
+if (-not [string]::IsNullOrWhiteSpace($BerichtPath) -and [string]::IsNullOrWhiteSpace($PdfExportBerichtPath)) {
+  if (-not $structured -and (Split-Path -Path $resolvedFolder -Leaf) -ceq 'Kandidat') {
+    $defaultPdfReport = Join-Path -Path (Split-Path -Path $resolvedFolder -Parent) -ChildPath 'PDF-Export/PDF-Export-Bericht.json'
+    if (Test-Path -LiteralPath $defaultPdfReport -PathType Leaf) {
+      try {
+        $PdfExportBerichtPath = Resolve-SafePath -Candidate $defaultPdfReport -Root $applicationsRoot -MustExist -ForWrite -PathType Leaf
+      } catch {
+        Write-Host "[FEHLER] Unsicherer automatisch abgeleiteter PDF-Export-Bericht: $($_.Exception.Message)" -ForegroundColor Red
+        exit 2
+      }
+    }
+  }
+  if ([string]::IsNullOrWhiteSpace($PdfExportBerichtPath)) {
+    Write-Host '[FEHLER] Ein ATS-Prüfbericht erfordert den zugehörigen PDF-Export-Bericht mit Browser-Fingerprint.' -ForegroundColor Red
+    exit 1
+  }
+}
 $auftrag = Get-Content -LiteralPath $AuftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $auftragSchemaValue = Get-JsonProperty -Object $auftrag -Name "schemaVersion"
 if ($auftragSchemaValue -isnot [int] -and $auftragSchemaValue -isnot [long]) {
@@ -270,13 +350,13 @@ $documentScope = Get-JsonProperty -Object $auftrag -Name "dokumentumfang"
 $expectedCv = $true
 $expectedLetter = $true
 $cvKind = if ([string](Get-JsonProperty -Object $auftrag -Name "dokumentmodus") -eq "anschreiben_mit_universalem_lebenslauf") { "universal_unveraendert" } else { "individuell" }
-if ($auftragSchema -lt 1 -or $auftragSchema -gt 4) {
-  Write-Host "[FEHLER] Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 4." -ForegroundColor Red
+if ($auftragSchema -lt 1 -or $auftragSchema -gt 5) {
+  Write-Host "[FEHLER] Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 5." -ForegroundColor Red
   exit 1
 }
-if ($auftragSchema -eq 4) {
+if ($auftragSchema -ge 4) {
   if ($null -eq $documentScope) {
-    Write-Host "[FEHLER] Bewerbungsauftrag mit schemaVersion 4 enthält keinen dokumentumfang." -ForegroundColor Red
+    Write-Host "[FEHLER] Bewerbungsauftrag mit schemaVersion $auftragSchema enthält keinen dokumentumfang." -ForegroundColor Red
     exit 1
   }
   $cvKind = [string](Get-JsonProperty -Object $documentScope -Name "lebenslauf")
@@ -297,6 +377,13 @@ if ($auftragSchema -eq 4) {
 $expectedHtmlCount = [int]$expectedCv + [int]$expectedLetter
 $htmlFiles = @(Get-ChildItem -LiteralPath $htmlFolder -File -Filter "*.html" | Where-Object { $_.Name -match '^(Lebenslauf|Anschreiben) - ' } | Sort-Object Name)
 $pdfFiles = @(Get-ChildItem -LiteralPath $pdfFolder -File -Filter "*.pdf" | Where-Object { $_.Name -match '^(Lebenslauf|Anschreiben) - ' } | Sort-Object Name)
+try {
+  $htmlFiles = @($htmlFiles | ForEach-Object { Get-Item -LiteralPath (Resolve-SafePath -Candidate $_.FullName -Root $htmlFolder -MustExist -ForWrite -PathType Leaf) })
+  $pdfFiles = @($pdfFiles | ForEach-Object { Get-Item -LiteralPath (Resolve-SafePath -Candidate $_.FullName -Root $pdfFolder -MustExist -ForWrite -PathType Leaf) })
+} catch {
+  Write-Host "[FEHLER] Unsicheres ATS-Eingabeartefakt: $($_.Exception.Message)" -ForegroundColor Red
+  exit 2
+}
 if ($expectedHtmlCount -eq 0) {
   Write-Host "[FEHLER] ATS-Prüfung ist für einen Dokumentumfang ohne HTML/PDF nicht erforderlich und darf dafür nicht aufgerufen werden." -ForegroundColor Red
   exit 1
@@ -383,15 +470,68 @@ if (-not [string]::IsNullOrWhiteSpace($BerichtPath)) {
   $fullReportPath = [System.IO.Path]::GetFullPath($BerichtPath)
   $reportParent = Split-Path -Path $fullReportPath -Parent
   if (-not (Test-Path -LiteralPath $reportParent -PathType Container)) { New-Item -Path $reportParent -ItemType Directory -Force | Out-Null }
+  try {
+    $pdfExportReport = Get-Content -LiteralPath $PdfExportBerichtPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $pdfReportSchema = Get-JsonProperty -Object $pdfExportReport -Name "schemaVersion"
+    if (($pdfReportSchema -isnot [int] -and $pdfReportSchema -isnot [long]) -or [int]$pdfReportSchema -ne 1) {
+      throw "PDF-Export-Bericht verwendet kein unterstütztes Schema."
+    }
+    $pdfExportResults = @((Get-JsonProperty -Object $pdfExportReport -Name "results"))
+    if ($pdfExportResults.Count -ne $results.Count) {
+      throw "PDF-Export-Bericht deckt nicht exakt die ATS-Artefakte ab."
+    }
+    foreach ($atsResult in $results) {
+      $matchingPdfResult = @($pdfExportResults | Where-Object {
+        [string](Get-JsonProperty -Object $_ -Name "htmlFile") -ceq [string]$atsResult.htmlFile -and
+        [string](Get-JsonProperty -Object $_ -Name "pdfFile") -ceq [string]$atsResult.pdfFile
+      })
+      if ($matchingPdfResult.Count -ne 1 -or
+          [string](Get-JsonProperty -Object $matchingPdfResult[0] -Name "htmlSha256") -ine [string]$atsResult.htmlSha256 -or
+          [string](Get-JsonProperty -Object $matchingPdfResult[0] -Name "pdfSha256") -ine [string]$atsResult.pdfSha256) {
+        throw "PDF-Export-Bericht ist nicht exakt an die aktuellen ATS-Artefakte gebunden: $($atsResult.pdfFile)"
+      }
+    }
+    if ($null -eq $pdfExportReport.PSObject.Properties['runtime'] -or $null -eq $pdfExportReport.runtime) {
+      throw "PDF-Export-Bericht enthält keinen Runtime-Fingerprint."
+    }
+    $runtimeFingerprint = $pdfExportReport.runtime
+    $runtimeSchema = Get-JsonProperty -Object $runtimeFingerprint -Name "schemaVersion"
+    if (($runtimeSchema -isnot [int] -and $runtimeSchema -isnot [long]) -or [int]$runtimeSchema -ne 1) {
+      throw "PDF-Export-Bericht enthält keine unterstützte Runtime-Schemaversion."
+    }
+    $currentRuntime = Get-RuntimeFingerprint
+    if ([string]$runtimeFingerprint.os -cne [string]$currentRuntime.os -or
+        [string]$runtimeFingerprint.architecture -cne [string]$currentRuntime.architecture -or
+        ([string]$currentRuntime.os -ceq "linux" -and
+          ([string]$runtimeFingerprint.distributionId -cne [string]$currentRuntime.distributionId -or
+           [string]$runtimeFingerprint.distributionVersion -cne [string]$currentRuntime.distributionVersion -or
+           [string]$runtimeFingerprint.wsl -cne [string]$currentRuntime.wsl)) -or
+        $null -eq $runtimeFingerprint.browser -or
+        [string]::IsNullOrWhiteSpace([string]$runtimeFingerprint.browser.name) -or
+        [string]::IsNullOrWhiteSpace([string]$runtimeFingerprint.browser.version) -or
+        [string]::IsNullOrWhiteSpace([string]$runtimeFingerprint.browser.executable)) {
+      throw "PDF-Export-Bericht stammt aus einer anderen Runtime oder enthält keinen vollständigen Browser-Fingerprint."
+    }
+  } catch {
+    Write-Host "[FEHLER] Runtime-Fingerprint des PDF-Exports ist nicht lesbar: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+  }
   $report = [ordered]@{
     schemaVersion = 1
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
+    runtime = $runtimeFingerprint
     folder = $resolvedFolder
     status = if ($errors.Count -gt 0) { "fehler" } elseif ($warnings.Count -gt 0) { "warnung" } else { "ok" }
     errors = @($errors)
     warnings = @($warnings)
     oks = @($oks)
     results = $results
+  }
+  try {
+    $fullReportPath = Resolve-SafePath -Candidate $fullReportPath -Root $reportRoot -ForWrite -PathType Leaf
+  } catch {
+    Write-Host "[FEHLER] ATS-Berichtspfad wurde vor dem Schreiben unsicher: $($_.Exception.Message)" -ForegroundColor Red
+    exit 2
   }
   Set-Content -LiteralPath $fullReportPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 8)
 }

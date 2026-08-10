@@ -1,4 +1,7 @@
-﻿[CmdletBinding()]
+#requires -Version 7.6
+#requires -PSEdition Core
+
+[CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
   [string]$Firma,
@@ -11,7 +14,6 @@ param(
   [ValidateSet("A", "B", "C", "D", "E")]
   [string]$UmfangAuswahl,
 
-  [ValidateSet("lebenslauf", "anschreiben", "email_nachricht")]
   [string[]]$Dokumente = @(),
 
   [ValidateSet("auswahl", "direkter_auftrag", "fortgesetzter_auftrag")]
@@ -25,11 +27,11 @@ param(
 
   [string]$StellenbeschreibungPath,
 
-  [string]$StammdatenPath = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Daten\01_PERSOENLICHE_DATEN.md"),
+  [string]$StammdatenPath = (Join-Path -Path (Join-Path -Path (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..") -ChildPath "Private") -ChildPath "Daten") -ChildPath "01_PERSOENLICHE_DATEN.md"),
 
-  [string]$ProfilPath = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Daten\02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"),
+  [string]$ProfilPath = (Join-Path -Path (Join-Path -Path (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..") -ChildPath "Private") -ChildPath "Daten") -ChildPath "02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"),
 
-  [string]$BewerbungenRoot = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Bewerbungen"),
+  [string]$BewerbungenRoot = (Join-Path -Path (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "..") -ChildPath "Private") -ChildPath "Bewerbungen"),
 
   [switch]$Fortsetzen,
 
@@ -40,42 +42,26 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $script:PathComparison = if ([System.IO.Path]::DirectorySeparatorChar -eq '\') { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
 
-function Convert-ToSlug {
-  param(
-    [Parameter(Mandatory = $true)]
-    [string]$Value
-  )
-
-  $slug = $Value.Trim()
-  $replacements = @(
-    @{ From = "ä"; To = "ae" }
-    @{ From = "ö"; To = "oe" }
-    @{ From = "ü"; To = "ue" }
-    @{ From = "Ä"; To = "Ae" }
-    @{ From = "Ö"; To = "Oe" }
-    @{ From = "Ü"; To = "Ue" }
-    @{ From = "ß"; To = "ss" }
-    @{ From = "&"; To = "und" }
-  )
-
-  foreach ($replacement in $replacements) {
-    $slug = $slug.Replace($replacement.From, $replacement.To)
-  }
-
-  $slug = $slug -replace "[^A-Za-z0-9]+", "-"
-  $slug = $slug.Trim("-")
-
-  if ([string]::IsNullOrWhiteSpace($slug)) {
-    return "Unbekannt"
-  }
-
-  return $slug
-}
+$orderPathsModule = Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "OrderPaths.psm1"
+Import-Module -Name $orderPathsModule -Force -ErrorAction Stop
+Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "Platform.psm1") -Force -ErrorAction Stop
 
 function Stop-WithValidationError {
   param([string]$Message)
   Write-Host "[FEHLER] $Message" -ForegroundColor Red
   exit 2
+}
+
+function Assert-NoPortableCaseCollision {
+  param([string]$Parent, [string]$ExpectedName)
+
+  if (-not (Test-Path -LiteralPath $Parent -PathType Container)) { return }
+  $collisions = @(Get-ChildItem -LiteralPath $Parent -Force | Where-Object {
+    [string]::Equals($_.Name, $ExpectedName, [System.StringComparison]::OrdinalIgnoreCase) -and $_.Name -cne $ExpectedName
+  })
+  if ($collisions.Count -gt 0) {
+    Stop-WithValidationError -Message "Portabilitätskonflikt durch abweichende Groß-/Kleinschreibung: erwartet '$ExpectedName', gefunden '$($collisions[0].Name)'."
+  }
 }
 
 function Get-JsonProperty {
@@ -84,17 +70,6 @@ function Get-JsonProperty {
   $property = $Object.PSObject.Properties[$Name]
   if ($null -eq $property) { return $null }
   return $property.Value
-}
-
-function Test-IsSafeChildPath {
-  param(
-    [string]$Candidate,
-    [string]$Root
-  )
-
-  $candidateFull = [System.IO.Path]::GetFullPath($Candidate).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
-  $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
-  return $candidateFull.StartsWith($rootFull + [System.IO.Path]::DirectorySeparatorChar, $script:PathComparison)
 }
 
 function Get-MarkdownField {
@@ -115,8 +90,17 @@ function Invoke-RequiredTool {
   param([string]$ScriptPath, [string[]]$Arguments)
 
   $powerShellExe = (Get-Process -Id $PID).Path
-  & $powerShellExe -NoProfile -File $ScriptPath @Arguments
-  if ($LASTEXITCODE -ne 0) {
+  $nativeArguments = @("-NoLogo", "-NoProfile", "-NonInteractive", "-File", $ScriptPath) + @($Arguments)
+  $result = Invoke-NativeProcess -FilePath $powerShellExe -ArgumentList $nativeArguments -TimeoutSeconds 120 -MaxStdoutChars 262144 -MaxStderrChars 262144
+  foreach ($line in @($result.StandardOutput -split '\r?\n' | Where-Object { $_.Length -gt 0 })) { Write-Host $line }
+  foreach ($line in @($result.StandardError -split '\r?\n' | Where-Object { $_.Length -gt 0 })) { Write-Host $line }
+  if ($result.TimedOut) {
+    Stop-WithValidationError -Message "Vorprüfung überschritt das Zeitlimit und wurde vollständig beendet: $ScriptPath"
+  }
+  if ($result.StdoutTruncated -or $result.StderrTruncated) {
+    Stop-WithValidationError -Message "Vorprüfung erzeugte zu viel Ausgabe und wurde sicher abgebrochen: $ScriptPath"
+  }
+  if ($result.ExitCode -ne 0) {
     Stop-WithValidationError -Message "Vorprüfung fehlgeschlagen: $ScriptPath"
   }
 }
@@ -146,7 +130,18 @@ $includeCv = $false
 $includeLetter = $false
 $includeEmail = $false
 $cvKind = "nicht_enthalten"
-$normalizedDocuments = @($Dokumente | Sort-Object -Unique)
+$documentValues = [System.Collections.Generic.List[string]]::new()
+foreach ($documentArgument in @($Dokumente)) {
+  foreach ($documentPart in @(([string]$documentArgument).Split(','))) {
+    $normalizedDocument = $documentPart.Trim().ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($normalizedDocument) -or
+        $normalizedDocument -notin @("lebenslauf", "anschreiben", "email_nachricht")) {
+      Stop-WithValidationError -Message "-Dokumente erlaubt ausschließlich die kommaseparierten Werte lebenslauf, anschreiben und email_nachricht."
+    }
+    $documentValues.Add($normalizedDocument) | Out-Null
+  }
+}
+$normalizedDocuments = @($documentValues | Sort-Object -Unique)
 
 if ($selectionWasProvided) {
   switch ($UmfangAuswahl) {
@@ -239,13 +234,36 @@ $scopeCode = switch ($UmfangAuswahl) {
 }
 $scopeSummary = "Lebenslauf=$cvKind; Anschreiben=$($includeLetter.ToString().ToLowerInvariant()); E-Mail=$($includeEmail.ToString().ToLowerInvariant())"
 
+try {
+  $bewerbungenRootLexical = [System.IO.Path]::GetFullPath($BewerbungenRoot)
+  $privateRoot = Split-Path -Path $bewerbungenRootLexical -Parent
+  if ([string]::IsNullOrWhiteSpace($privateRoot)) {
+    throw "BewerbungenRoot besitzt keinen validierbaren Elternpfad."
+  }
+  if (Test-Path -LiteralPath $bewerbungenRootLexical) {
+    if (-not (Test-Path -LiteralPath $bewerbungenRootLexical -PathType Container)) {
+      throw "BewerbungenRoot existiert, ist aber kein Ordner: $bewerbungenRootLexical"
+    }
+    $segmentItem = Get-Item -LiteralPath $bewerbungenRootLexical -Force
+    if (([int]$segmentItem.Attributes -band [int][System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+      throw "BewerbungenRoot darf kein symbolischer Link-Alias sein: $bewerbungenRootLexical"
+    }
+  }
+} catch {
+  Stop-WithValidationError -Message "Unsicherer BewerbungenRoot: $($_.Exception.Message)"
+}
+
 foreach ($sourcePath in @($StammdatenPath, $ProfilPath)) {
   if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
     Stop-WithValidationError -Message "Stammdaten- und Profilpfad müssen vor der Anlage auf vorhandene Dateien zeigen: $sourcePath"
   }
 }
-$StammdatenPath = (Resolve-Path -LiteralPath $StammdatenPath).Path
-$ProfilPath = (Resolve-Path -LiteralPath $ProfilPath).Path
+try {
+  $StammdatenPath = Get-CanonicalPath -Path $StammdatenPath
+  $ProfilPath = Get-CanonicalPath -Path $ProfilPath
+} catch {
+  Stop-WithValidationError -Message "Stammdaten oder Profil konnten nicht sicher aufgelöst werden: $($_.Exception.Message)"
+}
 $stammdatenSourceHash = (Get-FileHash -LiteralPath $StammdatenPath -Algorithm SHA256).Hash
 $profilSourceHash = (Get-FileHash -LiteralPath $ProfilPath -Algorithm SHA256).Hash
 if ($stammdatenSourceHash -notmatch '^[A-Fa-f0-9]{64}$' -or $profilSourceHash -notmatch '^[A-Fa-f0-9]{64}$') {
@@ -253,8 +271,12 @@ if ($stammdatenSourceHash -notmatch '^[A-Fa-f0-9]{64}$' -or $profilSourceHash -n
 }
 
 $applicantFileName = Get-MarkdownField -Path $StammdatenPath -Name "Dateiname-Name"
+$projectRoot = (Resolve-Path -LiteralPath (Join-Path -Path $PSScriptRoot -ChildPath "..")).Path
 $universalSourceResolved = ""
 $universalSourceHash = ""
+$universalSourceFileName = ""
+$universalSourcePathMode = ""
+$universalSourceRelativePath = ""
 if ($cvKind -eq "universal_unveraendert") {
   if ([string]::IsNullOrWhiteSpace($UniversalLebenslaufPath)) {
     Stop-WithValidationError -Message "Ein unveränderter universeller Lebenslauf erfordert -UniversalLebenslaufPath."
@@ -277,6 +299,13 @@ if ($cvKind -eq "universal_unveraendert") {
     Stop-WithValidationError -Message "Der universelle Lebenslauf enthält sichtbare Platzhalter oder Entwurfsmarker."
   }
   $universalSourceHash = (Get-FileHash -LiteralPath $universalSourceResolved -Algorithm SHA256).Hash
+  $universalSourceFileName = [System.IO.Path]::GetFileName($universalSourceResolved)
+  if (Test-BewerbungsPathWithinRoot -Path $universalSourceResolved -Root $projectRoot) {
+    $universalSourcePathMode = "relativ_zu_projekt_root"
+    $universalSourceRelativePath = ConvertTo-BewerbungsRelativePath -Path $universalSourceResolved -Root $projectRoot
+  } else {
+    $universalSourcePathMode = "extern_nicht_gespeichert"
+  }
 } elseif (-not [string]::IsNullOrWhiteSpace($UniversalLebenslaufPath)) {
   Stop-WithValidationError -Message "-UniversalLebenslaufPath ist nur zulässig, wenn der gewählte Umfang einen universellen Lebenslauf enthält."
 }
@@ -308,28 +337,52 @@ if (-not $StammdatenpruefungUeberspringen) {
   Invoke-RequiredTool -ScriptPath $stammdatenChecker -Arguments @("-StammdatenPath", $StammdatenPath)
 }
 
-$bewerbungenRootFull = [System.IO.Path]::GetFullPath($BewerbungenRoot)
-if ((Test-Path -LiteralPath $bewerbungenRootFull) -and -not (Test-Path -LiteralPath $bewerbungenRootFull -PathType Container)) {
-  Stop-WithValidationError -Message "BewerbungenRoot existiert, ist aber kein Ordner: $bewerbungenRootFull"
-}
-
-$firmaSlug = Convert-ToSlug -Value $Firma
-$rolleSlug = Convert-ToSlug -Value $Rolle
+$firmaSlug = ConvertTo-BewerbungsSlug -Value $Firma
+$rolleSlug = ConvertTo-BewerbungsSlug -Value $Rolle
 $firmaHtml = [System.Net.WebUtility]::HtmlEncode($Firma)
 $rolleHtml = [System.Net.WebUtility]::HtmlEncode($Rolle)
 
-$firmaDir = Join-Path -Path $bewerbungenRootFull -ChildPath $firmaSlug
-$zielDir = Join-Path -Path $firmaDir -ChildPath "$Datum--$rolleSlug"
-$arbeitsDir = Join-Path -Path (Join-Path -Path $firmaDir -ChildPath "_Arbeitsdateien") -ChildPath "$Datum--$rolleSlug"
-$kandidatDir = Join-Path -Path $arbeitsDir -ChildPath "Kandidat"
-
-if (-not (Test-IsSafeChildPath -Candidate $zielDir -Root $bewerbungenRootFull) -or -not (Test-IsSafeChildPath -Candidate $arbeitsDir -Root $bewerbungenRootFull) -or -not (Test-IsSafeChildPath -Candidate $kandidatDir -Root $arbeitsDir)) {
-  Stop-WithValidationError -Message "Berechneter Zielpfad liegt außerhalb von BewerbungenRoot."
+try {
+  $pathSet = New-BewerbungsauftragPathSet `
+    -BewerbungenRoot $bewerbungenRootLexical `
+    -FirmaSlug $firmaSlug `
+    -RolleSlug $rolleSlug `
+    -Datum $Datum
+} catch {
+  Stop-WithValidationError -Message $_.Exception.Message
 }
+$bewerbungenRootFull = $pathSet.BewerbungenRoot
+$zielDir = $pathSet.ZielOrdner
+$arbeitsDir = $pathSet.ArbeitsOrdner
+$kandidatDir = $pathSet.KandidatOrdner
+$zielDirRelativ = $pathSet.ZielOrdnerRelativ
+$arbeitsDirRelativ = $pathSet.ArbeitsOrdnerRelativ
+$kandidatDirRelativ = $pathSet.KandidatOrdnerRelativ
+$firmaDir = Split-Path -Path $zielDir -Parent
+$arbeitsParentDir = Split-Path -Path $arbeitsDir -Parent
+
+Assert-NoPortableCaseCollision -Parent $bewerbungenRootFull -ExpectedName $firmaSlug
+Assert-NoPortableCaseCollision -Parent $firmaDir -ExpectedName (Split-Path -Path $zielDir -Leaf)
+Assert-NoPortableCaseCollision -Parent $firmaDir -ExpectedName "_Arbeitsdateien"
+Assert-NoPortableCaseCollision -Parent $arbeitsParentDir -ExpectedName (Split-Path -Path $arbeitsDir -Leaf)
 
 foreach ($path in @($zielDir, $arbeitsDir)) {
   if ((Test-Path -LiteralPath $path) -and -not (Test-Path -LiteralPath $path -PathType Container)) {
     Stop-WithValidationError -Message "Bewerbungspfad existiert, ist aber kein Ordner: $path"
+  }
+}
+if (Test-Path -LiteralPath $bewerbungenRootFull -PathType Container) {
+  try {
+    $resolvedPrivateRoot = Split-Path -Path $bewerbungenRootFull -Parent
+    $bewerbungenRootFull = Resolve-SafePath -Candidate $bewerbungenRootFull -Root $resolvedPrivateRoot -MustExist -ForWrite -PathType Container
+    if (Test-Path -LiteralPath $zielDir -PathType Container) {
+      $zielDir = Resolve-SafePath -Candidate $zielDir -Root $bewerbungenRootFull -MustExist -ForWrite -PathType Container
+    }
+    if (Test-Path -LiteralPath $arbeitsDir -PathType Container) {
+      $arbeitsDir = Resolve-SafePath -Candidate $arbeitsDir -Root $bewerbungenRootFull -MustExist -ForWrite -PathType Container
+    }
+  } catch {
+    Stop-WithValidationError -Message "Vorhandene Bewerbungspfade enthalten einen unsicheren Link-Alias: $($_.Exception.Message)"
   }
 }
 
@@ -345,7 +398,9 @@ if ($Fortsetzen -and ($zielExisted -xor $arbeitsExisted)) {
 
 if ($Fortsetzen -and $arbeitsExisted) {
   $existingNotes = Join-Path -Path $arbeitsDir -ChildPath "Arbeitsnotizen.md"
-  if (-not (Test-Path -LiteralPath $existingNotes -PathType Leaf)) {
+  try {
+    $existingNotes = Resolve-SafePath -Candidate $existingNotes -Root $arbeitsDir -MustExist -ForWrite -PathType Leaf
+  } catch {
     Stop-WithValidationError -Message "Der vorhandene Arbeitsordner enthält keine prüfbaren Arbeitsnotizen. Fortsetzen wurde verweigert."
   }
 
@@ -361,17 +416,34 @@ if ($Fortsetzen -and $arbeitsExisted) {
     Stop-WithValidationError -Message "Der vorhandene Arbeitsordner verwendet einen anderen Dokumentumfang. Fortsetzen wurde verweigert."
   }
   $existingAuftragPath = Join-Path -Path $arbeitsDir -ChildPath "Bewerbungsauftrag.json"
-  if (-not (Test-Path -LiteralPath $existingAuftragPath -PathType Leaf)) {
+  try {
+    $existingAuftragPath = Resolve-SafePath -Candidate $existingAuftragPath -Root $arbeitsDir -MustExist -ForWrite -PathType Leaf
+  } catch {
     Stop-WithValidationError -Message "Der vorhandene Arbeitsordner enthält keinen prüfbaren Bewerbungsauftrag. Fortsetzen wurde verweigert."
   }
   $existingAuftrag = Get-Content -LiteralPath $existingAuftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
-  $existingSchemaValue = Get-JsonProperty -Object $existingAuftrag -Name "schemaVersion"
-  if (($existingSchemaValue -isnot [int] -and $existingSchemaValue -isnot [long]) -or
-      [long]$existingSchemaValue -lt 1 -or [long]$existingSchemaValue -gt 4) {
-    Stop-WithValidationError -Message "Bewerbungsauftrag enthält keine unterstützte schemaVersion 1 bis 4."
+  try {
+    $existingSchema = Get-BewerbungsauftragSchemaVersion -Auftrag $existingAuftrag
+    if ($existingSchema -eq 5) {
+      [void](Resolve-BewerbungsauftragPathSet `
+          -Auftrag $existingAuftrag `
+          -BewerbungenRoot $bewerbungenRootFull `
+          -Arbeitsordner $arbeitsDir)
+    }
+  } catch {
+    Stop-WithValidationError -Message $_.Exception.Message
   }
-  $existingSchema = [int]$existingSchemaValue
-  if ($existingSchema -eq 4) {
+  foreach ($identityField in @(
+      [pscustomobject]@{ Name = "firma"; Expected = $Firma },
+      [pscustomobject]@{ Name = "rolle"; Expected = $Rolle },
+      [pscustomobject]@{ Name = "datum"; Expected = $Datum }
+    )) {
+    $storedIdentity = [string](Get-JsonProperty -Object $existingAuftrag -Name $identityField.Name)
+    if (-not [string]::IsNullOrWhiteSpace($storedIdentity) -and $storedIdentity -cne [string]$identityField.Expected) {
+      Stop-WithValidationError -Message "Bewerbungsauftrag und gewünschte $($identityField.Name) stimmen beim Fortsetzen nicht exakt überein."
+    }
+  }
+  if ($existingSchema -ge 4) {
     $existingScope = Get-JsonProperty -Object $existingAuftrag -Name "dokumentumfang"
     $existingLetter = Get-JsonProperty -Object $existingScope -Name "anschreiben"
     $existingEmail = Get-JsonProperty -Object $existingScope -Name "emailNachricht"
@@ -402,23 +474,59 @@ if ($Fortsetzen -and $arbeitsExisted) {
   }
   if ($cvKind -eq "universal_unveraendert") {
     $existingUniversal = Get-JsonProperty -Object $existingAuftrag -Name "universalLebenslauf"
-    $existingUniversalPath = [string](Get-JsonProperty -Object $existingUniversal -Name "sourceHtmlPath")
     $expectedUniversalCandidateName = "Lebenslauf - $applicantFileName.html"
-    $sameUniversalPath = -not [string]::IsNullOrWhiteSpace($existingUniversalPath) -and
-      [string]::Equals(
-        [System.IO.Path]::GetFullPath($existingUniversalPath),
-        [System.IO.Path]::GetFullPath($universalSourceResolved),
+    $existingUniversalHash = [string](Get-JsonProperty -Object $existingUniversal -Name "sourceHtmlSha256BeiAnlage")
+    $existingUniversalCandidate = [string](Get-JsonProperty -Object $existingUniversal -Name "kandidatDatei")
+    $universalBindingIsValid = $true
+    if ($existingSchema -le 4) {
+      $existingUniversalPath = [string](Get-JsonProperty -Object $existingUniversal -Name "sourceHtmlPath")
+      $universalBindingIsValid = -not [string]::IsNullOrWhiteSpace($existingUniversalPath) -and
+        [string]::Equals(
+          [System.IO.Path]::GetFullPath($existingUniversalPath),
+          [System.IO.Path]::GetFullPath($universalSourceResolved),
           $script:PathComparison
-      )
-    if (-not $sameUniversalPath -or
-        [string](Get-JsonProperty -Object $existingUniversal -Name "sourceHtmlSha256BeiAnlage") -ine $universalSourceHash -or
-        [string](Get-JsonProperty -Object $existingUniversal -Name "kandidatDatei") -cne $expectedUniversalCandidateName -or
+        )
+    } else {
+      $existingUniversalFileName = [string](Get-JsonProperty -Object $existingUniversal -Name "sourceHtmlDateiname")
+      $existingUniversalPathMode = [string](Get-JsonProperty -Object $existingUniversal -Name "sourceHtmlPfadModus")
+      $existingUniversalPath = [string](Get-JsonProperty -Object $existingUniversal -Name "sourceHtmlPath")
+      $universalBindingIsValid = $existingUniversalFileName -ceq $universalSourceFileName
+      if ($existingUniversalPathMode -ceq "relativ_zu_projekt_root") {
+        if ($universalSourcePathMode -cne "relativ_zu_projekt_root" -or
+            $existingUniversalPath -cne $universalSourceRelativePath) {
+          $universalBindingIsValid = $false
+        }
+        try {
+          $storedUniversalSource = Resolve-BewerbungsRelativePath -Root $projectRoot -RelativePath $existingUniversalPath
+          if ([System.IO.Path]::GetFileName($storedUniversalSource) -cne $existingUniversalFileName -or
+              ((Test-Path -LiteralPath $storedUniversalSource) -and
+                -not (Test-Path -LiteralPath $storedUniversalSource -PathType Leaf))) {
+            $universalBindingIsValid = $false
+          }
+        } catch {
+          $universalBindingIsValid = $false
+        }
+      } elseif ($existingUniversalPathMode -ceq "extern_nicht_gespeichert") {
+        if ($universalSourcePathMode -cne "extern_nicht_gespeichert" -or
+            -not [string]::IsNullOrWhiteSpace($existingUniversalPath)) {
+          $universalBindingIsValid = $false
+        }
+      } else {
+        $universalBindingIsValid = $false
+      }
+    }
+    if (-not $universalBindingIsValid -or
+        $existingUniversalHash -ine $universalSourceHash -or
+        $existingUniversalCandidate -cne $expectedUniversalCandidateName -or
         [string](Get-JsonProperty -Object $existingAuftrag -Name "bewerberDateiname") -cne $applicantFileName) {
       Stop-WithValidationError -Message "Beim Fortsetzen wurde eine andere Universal-Lebenslauf-Quelle übergeben."
     }
   }
 }
 
+$bewerbungenRootCreated = -not (Test-Path -LiteralPath $bewerbungenRootFull -PathType Container)
+$firmaDirCreated = -not (Test-Path -LiteralPath $firmaDir -PathType Container)
+$arbeitsParentCreated = -not (Test-Path -LiteralPath $arbeitsParentDir -PathType Container)
 $zielCreated = -not $zielExisted
 $arbeitsCreated = -not $arbeitsExisted
 $kandidatCreated = -not (Test-Path -LiteralPath $kandidatDir -PathType Container)
@@ -433,6 +541,12 @@ try {
   if ($kandidatCreated) {
     New-Item -Path $kandidatDir -ItemType Directory | Out-Null
   }
+
+  $resolvedPrivateRoot = Split-Path -Path $bewerbungenRootFull -Parent
+  $bewerbungenRootFull = Resolve-SafePath -Candidate $bewerbungenRootFull -Root $resolvedPrivateRoot -MustExist -ForWrite -PathType Container
+  $zielDir = Resolve-SafePath -Candidate $zielDir -Root $bewerbungenRootFull -MustExist -ForWrite -PathType Container
+  $arbeitsDir = Resolve-SafePath -Candidate $arbeitsDir -Root $bewerbungenRootFull -MustExist -ForWrite -PathType Container
+  $kandidatDir = Resolve-SafePath -Candidate $kandidatDir -Root $arbeitsDir -MustExist -ForWrite -PathType Container
 
 $stellenbeschreibungKandidatFile = Join-Path -Path $kandidatDir -ChildPath "Stellenbeschreibung.md"
 $stellenbeschreibungEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Stellenbeschreibung--ENTWURF.md"
@@ -463,10 +577,13 @@ foreach ($expectedFilePath in @(
   $druckHinweisFile,
   $universalCandidateFile
 )) {
-  if (-not [string]::IsNullOrWhiteSpace($expectedFilePath) -and
-      (Test-Path -LiteralPath $expectedFilePath) -and
-      -not (Test-Path -LiteralPath $expectedFilePath -PathType Leaf)) {
-    throw "Erwarteter Dateipfad existiert, ist aber keine reguläre Datei: $expectedFilePath"
+  if (-not [string]::IsNullOrWhiteSpace($expectedFilePath)) {
+    $expectedRoot = if (Test-BewerbungsPathWithinRoot -Path $expectedFilePath -Root $kandidatDir) { $kandidatDir } else { $arbeitsDir }
+    try {
+      $null = Resolve-SafePath -Candidate $expectedFilePath -Root $expectedRoot -ForWrite -PathType Leaf
+    } catch {
+      throw "Erwarteter Dateipfad ist kein sicheres Schreibziel: $expectedFilePath ($($_.Exception.Message))"
+    }
   }
 }
 
@@ -498,6 +615,10 @@ if ($cvKind -eq "universal_unveraendert") {
     throw "Der erwartete universelle Lebenslauf im Kandidatenordner ist keine reguläre Datei."
   } else {
     Copy-Item -LiteralPath $universalSourceResolved -Destination $universalCandidateFile
+    $candidateUniversalHash = (Get-FileHash -LiteralPath $universalCandidateFile -Algorithm SHA256).Hash
+    if ($candidateUniversalHash -ine $universalSourceHash) {
+      throw "Der kopierte Universal-Lebenslauf stimmt nicht mit dem vorab gebundenen Quellhash überein."
+    }
   }
 }
 
@@ -524,17 +645,32 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
     stammdatenSha256BeiAnlage = $stammdatenSourceHash
     profilSha256BeiAnlage = $profilSourceHash
   }
+  $universalBinding = if ($cvKind -eq "universal_unveraendert") {
+    $binding = [ordered]@{
+      sourceHtmlPfadModus = $universalSourcePathMode
+      sourceHtmlDateiname = $universalSourceFileName
+      sourceHtmlSha256BeiAnlage = $universalSourceHash
+      kandidatDatei = "Lebenslauf - $applicantFileName.html"
+    }
+    if ($universalSourcePathMode -eq "relativ_zu_projekt_root") {
+      $binding["sourceHtmlPath"] = $universalSourceRelativePath
+    }
+    $binding
+  } else {
+    $null
+  }
   $auftrag = [ordered]@{
-    schemaVersion = 4
+    schemaVersion = 5
+    pfadModus = "relativ_zu_bewerbungen_root"
     firma = $Firma
     firmaSlug = $firmaSlug
     rolle = $Rolle
     rolleSlug = $rolleSlug
     datum = $Datum
     bewerberDateiname = $applicantFileName
-    zielOrdner = $zielDir
-    arbeitsOrdner = $arbeitsDir
-    kandidatOrdner = $kandidatDir
+    zielOrdner = $zielDirRelativ
+    arbeitsOrdner = $arbeitsDirRelativ
+    kandidatOrdner = $kandidatDirRelativ
     dokumentmodus = $Dokumentmodus
     dokumentumfang = [ordered]@{
       auswahl = $UmfangAuswahl
@@ -547,15 +683,7 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
       emailAlleinBestaetigt = [bool]$EmailAlleinBestaetigt
       bestaetigtAtUtc = [datetime]::UtcNow.ToString("o")
     }
-    universalLebenslauf = if ($cvKind -eq "universal_unveraendert") {
-      [ordered]@{
-        sourceHtmlPath = $universalSourceResolved
-        sourceHtmlSha256BeiAnlage = $universalSourceHash
-        kandidatDatei = "Lebenslauf - $applicantFileName.html"
-      }
-    } else {
-      $null
-    }
+    universalLebenslauf = $universalBinding
     seitenstrategie = if ($includeCv) { "noch_festzulegen" } else { "nicht_erforderlich" }
     bewerbungslogistik = $bewerbungslogistik
     bewerbungsentscheidung = "noch_festzulegen"
@@ -623,7 +751,7 @@ if ($includeCv -and $cvKind -eq "individuell" -and -not (Test-Path -LiteralPath 
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; color: #101828; line-height: 1.4; }
+    html, body { margin: 0; padding: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; color: #101828; line-height: 1.4; }
     .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 16mm; background: #fff; }
     .warning { padding: 8mm; border: 2px solid #b42318; color: #7a271a; background: #fff4ed; font-weight: 700; }
     @media print { html, body { width: 210mm; min-height: 297mm; margin: 0; padding: 0; background: #fff; } .page { width: 210mm; min-height: 297mm; margin: 0; box-shadow: none; } }
@@ -653,7 +781,7 @@ if ($includeLetter -and -not (Test-Path -LiteralPath $anschreibenEntwurfFile)) {
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; color: #101828; line-height: 1.4; }
+    html, body { margin: 0; padding: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; color: #101828; line-height: 1.4; }
     .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 18mm; background: #fff; }
     .warning { padding: 8mm; border: 2px solid #b42318; color: #7a271a; background: #fff4ed; font-weight: 700; }
     @media print { html, body { width: 210mm; min-height: 297mm; margin: 0; padding: 0; background: #fff; } .page { width: 210mm; min-height: 297mm; margin: 0; box-shadow: none; } }
@@ -766,14 +894,43 @@ if ($cvKind -eq "universal_unveraendert") {
   Write-Output "Universeller Lebenslauf unverändert übernommen: $universalCandidateFile"
 }
 } catch {
-  if ($kandidatCreated -and -not $arbeitsCreated -and (Test-Path -LiteralPath $kandidatDir -PathType Container) -and (Test-IsSafeChildPath -Candidate $kandidatDir -Root $arbeitsDir)) {
-    Remove-Item -LiteralPath $kandidatDir -Recurse -Force -ErrorAction SilentlyContinue
+  if ($kandidatCreated -and -not $arbeitsCreated -and (Test-Path -LiteralPath $kandidatDir -PathType Container) -and (Test-BewerbungsPathWithinRoot -Path $kandidatDir -Root $arbeitsDir)) {
+    try {
+      $safeCleanup = Resolve-SafePath -Candidate $kandidatDir -Root $arbeitsDir -MustExist -ForWrite -PathType Container
+      Remove-Item -LiteralPath $safeCleanup -Recurse -Force -ErrorAction SilentlyContinue
+    } catch {}
   }
-  if ($arbeitsCreated -and (Test-Path -LiteralPath $arbeitsDir -PathType Container) -and (Test-IsSafeChildPath -Candidate $arbeitsDir -Root $bewerbungenRootFull)) {
-    Remove-Item -LiteralPath $arbeitsDir -Recurse -Force -ErrorAction SilentlyContinue
+  if ($arbeitsCreated -and (Test-Path -LiteralPath $arbeitsDir -PathType Container) -and (Test-BewerbungsPathWithinRoot -Path $arbeitsDir -Root $bewerbungenRootFull)) {
+    try {
+      $safeCleanup = Resolve-SafePath -Candidate $arbeitsDir -Root $bewerbungenRootFull -MustExist -ForWrite -PathType Container
+      Remove-Item -LiteralPath $safeCleanup -Recurse -Force -ErrorAction SilentlyContinue
+    } catch {}
   }
-  if ($zielCreated -and (Test-Path -LiteralPath $zielDir -PathType Container) -and (Test-IsSafeChildPath -Candidate $zielDir -Root $bewerbungenRootFull)) {
-    Remove-Item -LiteralPath $zielDir -Recurse -Force -ErrorAction SilentlyContinue
+  if ($zielCreated -and (Test-Path -LiteralPath $zielDir -PathType Container) -and (Test-BewerbungsPathWithinRoot -Path $zielDir -Root $bewerbungenRootFull)) {
+    try {
+      $safeCleanup = Resolve-SafePath -Candidate $zielDir -Root $bewerbungenRootFull -MustExist -ForWrite -PathType Container
+      Remove-Item -LiteralPath $safeCleanup -Recurse -Force -ErrorAction SilentlyContinue
+    } catch {}
+  }
+  foreach ($emptyParent in @(
+      [pscustomobject]@{ Path = $arbeitsParentDir; Created = $arbeitsParentCreated },
+      [pscustomobject]@{ Path = $firmaDir; Created = $firmaDirCreated },
+      [pscustomobject]@{ Path = $bewerbungenRootFull; Created = $bewerbungenRootCreated; IsRoot = $true }
+    )) {
+    if (-not $emptyParent.Created -or -not (Test-Path -LiteralPath $emptyParent.Path -PathType Container)) { continue }
+    $allowRoot = $null -ne $emptyParent.PSObject.Properties['IsRoot'] -and [bool]$emptyParent.IsRoot
+    $safeParent = if ($allowRoot) {
+      [string]::Equals([System.IO.Path]::GetFullPath($emptyParent.Path), [System.IO.Path]::GetFullPath($bewerbungenRootFull), $script:PathComparison)
+    } else {
+      Test-BewerbungsPathWithinRoot -Path $emptyParent.Path -Root $bewerbungenRootFull
+    }
+    if ($safeParent -and @(Get-ChildItem -LiteralPath $emptyParent.Path -Force -ErrorAction SilentlyContinue).Count -eq 0) {
+      try {
+        $cleanupRoot = if ($allowRoot) { Split-Path -Path $bewerbungenRootFull -Parent } else { $bewerbungenRootFull }
+        $safeEmptyParent = Resolve-SafePath -Candidate $emptyParent.Path -Root $cleanupRoot -MustExist -ForWrite -PathType Container
+        Remove-Item -LiteralPath $safeEmptyParent -Force -ErrorAction SilentlyContinue
+      } catch {}
+    }
   }
   Write-Host "[FEHLER] Bewerbungsstruktur konnte nicht vollständig erstellt werden: $($_.Exception.Message)" -ForegroundColor Red
   exit 1
