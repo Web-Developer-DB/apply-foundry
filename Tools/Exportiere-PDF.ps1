@@ -346,6 +346,9 @@ function Export-HtmlToPdf {
     $arguments = @(
       "--headless=new",
       "--disable-gpu",
+      "--disable-gpu-sandbox",
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
       "--no-first-run",
       "--disable-background-networking",
       "--disable-extensions",

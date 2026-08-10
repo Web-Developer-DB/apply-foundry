@@ -31,6 +31,7 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 - Die ShellCheck-Ausnahme für die beabsichtigt literale PowerShell-Versionsabfrage steht vor dem vollständigen `if`-Block und verursacht keine Parserfehler mehr.
 - Vertrags-, Bericht-, Artefakt-, Publish- und Rollbackpfade werden unmittelbar vor Lesen oder Schreiben erneut symlinksicher geprüft; Verzeichnis- und interne Link-Aliasse können keine regulären Dateien oder fremden Bewerbungsziele mehr maskieren.
 - Browserprofile und transiente PNG-/PDF-Ausgaben verwenden kurze, GUID-isolierte private Runroots und werden erst nach Frische-, Struktur- und Hashprüfung atomar an den endgültigen Ort übernommen.
+- Headless-Chrome-Export und Layoutcheck verwenden unter verwalteten Windows-Umgebungen zusätzliche GPU-/Sandbox-Kompatibilitätsflags, damit Chrome bei deaktivierter GPU zuverlässig PDF- und PNG-Ausgaben erzeugt.
 
 ### Tests und Verifikation
 
