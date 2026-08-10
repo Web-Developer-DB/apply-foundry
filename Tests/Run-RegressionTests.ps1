@@ -136,7 +136,7 @@ function New-ValidPrivateDataFixture {
   $dataDir = Join-Path -Path $Root -ChildPath "Private/Daten"
   New-Item -Path $dataDir -ItemType Directory -Force | Out-Null
   $personal = Join-Path -Path $dataDir -ChildPath "01_PERSOENLICHE_DATEN.md"
-  $profile = Join-Path -Path $dataDir -ChildPath "02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"
+  $profileFilePath = Join-Path -Path $dataDir -ChildPath "02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"
   Set-Content -LiteralPath $personal -Encoding UTF8 -Value @"
 # Persönliche Daten
 - Vollständiger Name: Test Person
@@ -163,7 +163,7 @@ function New-ValidPrivateDataFixture {
 - Gehaltsregion: Deutschland
 - Gehaltslogik: manuelle Angabe bevorzugen
 "@
-  Set-Content -LiteralPath $profile -Encoding UTF8 -Value @"
+  Set-Content -LiteralPath $profileFilePath -Encoding UTF8 -Value @"
 # Bewerberprofil
 
 ## Berufserfahrung
@@ -176,7 +176,7 @@ Test Arbeitgeber, 01/2020 - 12/2020
 ### Testweiterbildung
 Test Institut, 02/2021 - 03/2022
 "@
-  return [pscustomobject]@{ Personal = $personal; Profile = $profile }
+  return [pscustomobject]@{ Personal = $personal; Profile = $profileFilePath }
 }
 
 function New-ValidContentFixture {
@@ -1809,15 +1809,15 @@ Start-Sleep -Seconds 30
   Invoke-Test -Name "CRLF- und Steuerzeichenwerte werden als gültiges JSON maskiert" -Body {
     $root = Join-Path $testRoot "crlf-control-order"
     $personal = Join-Path $root "crlf-personal.md"
-    $profile = Join-Path $root "crlf-profile.md"
+    $profileFilePath = Join-Path $root "crlf-profile.md"
     New-Item -Path $root -ItemType Directory | Out-Null
     $personalText = "- Dateiname-Name: CRLF.PERSON`r`n- Verfügbarkeit: sofort`toder$([char]1)später`r`n"
     [System.IO.File]::WriteAllText($personal, $personalText, [System.Text.UTF8Encoding]::new($false))
-    [System.IO.File]::WriteAllText($profile, "# Fiktives CRLF-Testprofil`r`n", [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($profileFilePath, "# Fiktives CRLF-Testprofil`r`n", [System.Text.UTF8Encoding]::new($false))
     $applicationsRoot = Join-Path $root "Private/Bewerbungen"
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
       "-Firma", "CRLF Firma", "-Rolle", "CRLF Rolle", "-Datum", "2026-07-14",
-      "-UmfangAuswahl", "A", "-StammdatenPath", $personal, "-ProfilPath", $profile,
+      "-UmfangAuswahl", "A", "-StammdatenPath", $personal, "-ProfilPath", $profileFilePath,
       "-BewerbungenRoot", $applicationsRoot
     )
     Assert-True -Condition ($result.ExitCode -eq 0) -Message "CRLF-/Steuerzeichen-Fixture schlug fehl: $($result.Output -join ' | ')"
