@@ -85,13 +85,17 @@ Mindestens ein Ausgabedokument muss gewählt sein. Ein universeller Lebenslauf z
 
 Auswahl B gilt nur, wenn universeller Lebenslauf, Anschreiben und E-Mail-Nachricht gemeinsam gewünscht sind. Ein klarer Auftrag für universellen Lebenslauf und Anschreiben **ohne** E-Mail wird ohne Rückfrage als Auswahl E mit `lebenslauf = universal_unveraendert`, `anschreiben = true` und `emailNachricht = false` normalisiert. Kein Adapter darf einen nicht genannten Bestandteil ergänzen.
 
-## Schema 4 des Bewerbungsauftrags
+## Schema 5 des Bewerbungsauftrags
 
-Neue Aufträge speichern die normalisierte Auswahl in `Bewerbungsauftrag.json` mit `schemaVersion` 4. `dokumentumfang` ist die maßgebliche Quelle für die erwarteten Kandidaten-, Prüf- und Versanddateien. Das folgende Beispiel zeigt die verbindlichen Felder; andere Auftragsfelder bleiben unberührt:
+Neue Aufträge speichern die normalisierte Auswahl in `Bewerbungsauftrag.json` mit `schemaVersion` 5. `dokumentumfang` bleibt die maßgebliche Quelle für die erwarteten Kandidaten-, Prüf- und Versanddateien. Die drei Workflowpfade werden portabel und `/`-normalisiert relativ zum ausdrücklich gewählten `BewerbungenRoot` gespeichert; absolute Pfade und `..` sind unzulässig. Das folgende Beispiel zeigt die verbindlichen Felder; andere Auftragsfelder bleiben unberührt:
 
 ```json
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
+  "pfadModus": "relativ_zu_bewerbungen_root",
+  "zielOrdner": "Muster-GmbH/2026-08-09--Sachbearbeitung",
+  "arbeitsOrdner": "Muster-GmbH/_Arbeitsdateien/2026-08-09--Sachbearbeitung",
+  "kandidatOrdner": "Muster-GmbH/_Arbeitsdateien/2026-08-09--Sachbearbeitung/Kandidat",
   "dokumentumfang": {
     "auswahl": "A",
     "kennung": "komplette_bewerbung",
@@ -141,6 +145,8 @@ Neue Aufträge speichern die normalisierte Auswahl in `Bewerbungsauftrag.json` m
 }
 ```
 
+Beim Lesen werden diese Pfade aus dem ausdrücklich übergebenen `BewerbungenRoot` oder dem validierten Arbeitsordner rekonstruiert. Containment wird auch über real aufgelöste Elternordner und Symlinks geprüft. Firma, Rolle, Datum, `firmaSlug` und `rolleSlug` müssen zusätzlich zur rekonstruierten Ordnerstruktur passen. Case-Kollisionen werden nach der Semantik des Zielsystems fehlergeschlossen behandelt.
+
 `dokumentumfang.auswahl` ist `A`, `B`, `C`, `D` oder `E`; auch ein direkter Freitextauftrag wird auf eine dieser fünf fachlichen Auswahlen abgebildet. Zulässige Werte für `dokumentumfang.lebenslauf` sind `individuell`, `universal_unveraendert` und `nicht_enthalten`. `quelle` ist `auswahl`, `direkter_auftrag` oder `fortgesetzter_auftrag`. `bestaetigt` darf erst dann `true` sein, wenn der Umfang eindeutig ist und ein gegebenenfalls notwendiges E-Mail-only-Gate bestätigt wurde.
 
 `dialog.status` verwendet ausschließlich einen dieser Zustände:
@@ -186,14 +192,14 @@ Die Dokumenterstellung darf erst beginnen, wenn `dokumentumfang.bestaetigt = tru
 
 Speichere keinen Rohchat, keine vollständigen Prompts und keine unnötigen oder sensiblen Dialogdetails. Freie Antworten werden auf die kleinste fachlich notwendige, vom Nutzer bestätigte Aussage normalisiert. Auftragsbezogene Angaben bleiben im privaten Arbeitsordner und gehören weder nach `Versand/` noch standardmäßig in `Manifest.json`.
 
-### Bestehende Aufträge bis Schema 3
+### Bestehende Aufträge mit Schema 1 bis 4
 
 Fehlt bei einem lesbaren Auftrag bis einschließlich Schema 3 der neue `dokumentumfang`, gilt ausschließlich folgende rückwärtskompatible Abbildung:
 
 - `dokumentmodus = vollbewerbung` wird als Auswahl A mit individuellem Lebenslauf, Anschreiben und E-Mail gelesen.
 - `dokumentmodus = anschreiben_mit_universalem_lebenslauf` wird als Auswahl B mit unverändertem universellem Lebenslauf, Anschreiben und E-Mail gelesen.
 
-Aus fehlenden Dateien darf kein engerer Umfang C, D oder E abgeleitet werden. Bei einer Fortsetzung kann die Abbildung zunächst im Arbeitsspeicher erfolgen. Eine dauerhafte Migration auf Schema 4 darf keine anderen Auftragswerte verändern und muss die Herkunft als `fortgesetzter_auftrag` kennzeichnen. Ab Schema 4 ist `dokumentumfang` verbindlich; ein alter `dokumentmodus` darf ihn nicht überschreiben.
+Aus fehlenden Dateien darf kein engerer Umfang C, D oder E abgeleitet werden. Ab Schema 4 ist `dokumentumfang` verbindlich; ein alter `dokumentmodus` darf ihn nicht überschreiben. Bestehende Aufträge der Schemata 1 bis 4 bleiben auf ihrem bisherigen System lesbar und werden in dieser Ausbaustufe weder automatisch migriert noch umgeschrieben.
 
 ## Phase 2: Stellenanforderungen mit dem Profil abgleichen
 
@@ -360,7 +366,8 @@ Bei `lebenslauf = universal_unveraendert` wird ein bereits freigegebener univers
 
 - Die Quelle liegt empfohlen unter `Private/LebenslaufUniversal/Aktiv/Lebenslauf - NACHNAME.VORNAME.html`.
 - Sie muss frei von Platzhaltern sein und nach dem Pflichtschema benannt sein.
-- Quellpfad, Dateiname und SHA-256-Wert werden im Bewerbungsauftrag eingefroren.
+- Liegt die Quelle unter dem Repository, werden ihr projekt-relativer Pfad, Dateiname und SHA-256-Wert eingefroren.
+- Bei einer Quelle außerhalb des Repositorys wird kein betriebssystemspezifischer absoluter Pfad gespeichert. Dateiname, Kandidatensnapshot und SHA-256 bleiben die Bindung; beim Fortsetzen entscheidet der Hash.
 - Der Kandidaten-Lebenslauf wird hashgleich übernommen und weder textlich noch gestalterisch an Firma oder Zielrolle angepasst.
 - Die Zielrolle muss in Anschreiben und E-Mail-Betreff stehen, nicht im unveränderten universellen Lebenslauf.
 - Der Lebenslauf-zu-Anschreiben-Abgleich verwendet den Snapshot als Referenz.

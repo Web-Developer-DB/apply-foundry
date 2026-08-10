@@ -16,6 +16,7 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 ```
 
 - Browser- oder Headless-Checks nur als bestanden werten, wenn die erwartete Ausgabe im aktuellen Lauf frisch erzeugt wurde, die korrekte Dateisignatur und die erwarteten Abmessungen besitzt.
+- Browserprozesse ausschließlich mit getrennten Argumentlisten starten. Standardausgabe und Standardfehler begrenzen, einen Timeout erzwingen und bei Überschreitung den gesamten Prozessbaum beenden.
 - Wenn ein Browser-Layoutcheck keine Datei erzeugt, ist das kein bestandener Layoutcheck. Dann muss der Fehler klar dokumentiert werden.
 - Finale Bewerbungsdateien dürfen erst gemeldet werden, nachdem mindestens der statische Check erfolgreich war.
 - PDFs dürfen erst erzeugt werden, nachdem der statische Check erfolgreich war.
@@ -24,29 +25,49 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Kandidatendateien einzeln und vollständig schreiben und danach unmittelbar validieren. Insbesondere JSON-Dateien nach jeder Änderung parsen; keine unübersichtliche Sammeländerung darf bei einem Teilfehler mehrere fertige Dokumente halb aktualisiert zurücklassen.
 - In einer als verwaltete Sandbox bekannten Umgebung vor dem Browserlauf prüfen, ob eine lokale Browserfreigabe verfügbar ist. Eine vorhandene Freigabe direkt verwenden; andernfalls die Grenze offen melden und keinen erfolgreichen Lauf behaupten.
 - Tokenzahlen niemals schätzen oder aus Textlängen beziehungsweise Teilwerten ableiten. Exakte Zahlen sind nur zulässig, wenn die Agentenlaufzeit sie maschinenlesbar bereitstellt.
+- Ein Runtime-Fingerprint aus Betriebssystem, Architektur, PowerShell-Version und – bei Browserläufen – Browsername, Version und ausführbarer Datei bindet technische Nachweise an die Laufzeit. Nach einem Plattformwechsel Auftrag und Kandidaten erhalten, Layout-, PDF-, ATS- und Finalisierungsnachweise aber vollständig neu erzeugen.
+
+## Gemeinsamer Plattform- und CLI-Einstieg
+
+PowerShell 7.6 Core enthält die einzige fachliche Implementierung. Unter Windows wird der Dispatcher direkt gestartet:
+
+```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 <subcommand> ...
+```
+
+Unter Ubuntu delegiert der dünne Bash-Launcher seine Argumente unverändert an denselben Dispatcher:
+
+```bash
+./Tools/bewerbung.sh <subcommand> ...
+```
+
+Die gemeinsamen Subcommands sind `diagnose`, `neu`, `status`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`. Beide Einstiege verwenden dieselben GNU-Langoptionen. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und hat dafür keine Abhängigkeit auf `jq`, Python, Node oder externe SHA-Werkzeuge. Direkte Aufrufe der vorhandenen PowerShell-Fachskripte bleiben kompatibel unterstützt.
+
+`bewerbung.ps1 diagnose` prüft PowerShell-Version, Betriebssystem, Architektur, Browser, Temp- und Schreibzugriff sowie Fonts read-only. Das opt-in Werkzeug `Tools/setup-ubuntu.sh` unterstützt nur Ubuntu 24.04 x86_64 und wird niemals automatisch vom Workflow oder Agenten gestartet. Es kennt `--runtime`, `--browser chrome`, `--fonts`, `--all`, `--dry-run` und `--yes`. Ausgewählt werden PowerShell 7.6 aus der offiziellen Microsoft-Quelle, Google Chrome Stable aus der offiziellen Google-Quelle und `fonts-liberation2`; ohne Komponentenauswahl zeigt das Skript nur Hilfe. `--dry-run` zeigt geplante Änderungen ohne Ausführung, und reale Änderungen benötigen nach der Vorschau eine interaktive Bestätigung oder `--yes`. Bereits passende Installationen sind ein idempotenter Erfolg. Falsches OS oder falsche Architektur endet mit Exitcode `2`; Download-, Signatur- oder Paketfehler enden mit Exitcode `1` und nennen den erreichten Teilzustand.
 
 ## Verbindlicher Finalisierungsworkflow
 
-Der Standardweg verwendet `Tools/Finalisiere-Bewerbung.ps1` und den privaten Arbeitsordner.
+Der Standardweg verwendet das Subcommand `finalisieren` und den privaten Arbeitsordner.
 
-Bei einer Fortsetzung oder Standabfrage liefert `Tools/Ermittle-Bewerbungsstatus.ps1 -AlsJson` zuvor die nächste belegte Phase und die dafür benötigten Promptmodule. Es ersetzt keine Prüfung, verhindert aber unnötiges erneutes Laden bereits abgeschlossener Phasen.
+Bei einer Fortsetzung oder Standabfrage liefert `bewerbung.ps1 status --als-json` zuvor die nächste belegte Phase und die dafür benötigten Promptmodule. Es ersetzt keine Prüfung, verhindert aber unnötiges erneutes Laden bereits abgeschlossener Phasen.
 
 Vorbereitung mit allen maschinellen Prüfungen:
 
 ```powershell
-.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Browser auto
+pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --browser auto
 ```
 
 Dieser Lauf:
 
 - verlangt eine vollständige `Anforderungsmatrix.json`
-- validiert den bestätigten Schema-4-Dokumentumfang und den fortsetzbaren Dialogzustand
+- validiert den bestätigten Dokumentumfang und den fortsetzbaren Dialogzustand; neue Aufträge verwenden Schema 5, Legacy-Aufträge der Schemata 1 bis 4 werden nicht automatisch umgeschrieben
 - sperrt ungeklärte zentrale Bewerbungslogistik
 - führt Stammdaten-, Inhalts- und statischen HTML-Check aus
 - erzeugt frische Layoutscreenshots samt Dichtehinweisen
 - exportiert und validiert genau die laut Dokumentumfang ausgewählten HTML-Dokumente als PDFs
 - prüft die PDF-Textschicht und Lesbarkeit für ATS
 - schreibt Hashnachweise für Quellen, sämtliche Kandidatendateien, PDFs und Seitenscreenshots
+- schreibt den Runtime-Fingerprint in Layout-, PDF-, ATS- und Finalisierungsbericht
 - aktualisiert den nicht blockierenden Diagnosebericht `Tokenverbrauch.json` im Arbeitsordner mindestens mit dem Verfügbarkeitsstatus und referenziert ihn optional im `Finalisierungsbericht.json`
 - veröffentlicht noch keine Datei
 - leitet ab Schema 4 alle erwarteten Dateien aus `dokumentumfang` ab; bei universellem Lebenslauf prüft er zusätzlich dessen SHA-256-Snapshot
@@ -55,10 +76,10 @@ Dieser Lauf:
 Nach der tatsächlichen Sichtprüfung:
 
 ```powershell
-.\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" -Veroeffentlichen -VisuellGeprueft
+pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen --visuell-geprueft
 ```
 
-Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbewertung angegeben werden, zum Beispiel `-VisuelleFreigabeNotiz "Alle markierten Seiten geprüft; kein Beschnitt und keine Überlappung."`.
+Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbewertung angegeben werden, zum Beispiel `--visuelle-freigabe-notiz "Alle markierten Seiten geprüft; kein Beschnitt und keine Überlappung."`.
 
 Die Veröffentlichung wird verweigert, wenn Quellen, Auftrag, Kandidatendateien oder Screenshots nach der Vorbereitung verändert wurden. Sie kopiert nicht dateiweise in den Zielordner, sondern veröffentlicht das validierte Set über einen privaten Staging-Ordner gemeinsam. `Versand/` enthält ausschließlich die ausgewählten PDF-Anlagen und gegebenenfalls den E-Mail-Text; `Intern/` enthält vorhandene HTML-Quellen und Nachweise. `Manifest.json` bindet Dokumentumfang und jede veröffentlichte Datei an ihren SHA-256-Wert.
 
@@ -69,14 +90,14 @@ Die nachfolgenden Einzelwerkzeuge bleiben für Diagnose, Entwicklung und gezielt
 Der standardisierte Bericht wird mit folgendem Werkzeug aktualisiert:
 
 ```powershell
-.\Tools\Aktualisiere-Tokenbericht.ps1 `
-  -Arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
-  -Messbereich lebenslauf
+pwsh -NoProfile -File Tools/bewerbung.ps1 tokenbericht `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --messbereich lebenslauf
 ```
 
-Ohne maschinenlesbare Nutzungsdaten schreibt das Werkzeug ausschließlich Nullwerte und den Status `unavailable`. Liegen exakte Laufzeitdaten vor, werden sie ausdrücklich mit `-NutzungsdatenVerfuegbar`, Anbieter, Modell und den tatsächlich bereitgestellten Tokenfeldern übergeben. Fehlende Felder bleiben `null`; insbesondere wird `totalTokens` nicht aus anderen Feldern berechnet.
+Ohne maschinenlesbare Nutzungsdaten schreibt das Werkzeug ausschließlich Nullwerte und den Status `unavailable`. Liegen exakte Laufzeitdaten vor, werden sie ausdrücklich mit `--nutzungsdaten-verfuegbar`, Anbieter, Modell und den tatsächlich bereitgestellten Tokenfeldern übergeben. Fehlende Felder bleiben `null`; insbesondere wird `totalTokens` nicht aus anderen Feldern berechnet.
 
-Zulässige Messbereiche sind `lebenslauf`, `gesamte_bewerbung` und `technische_vorbereitung`. Anbieter, Modell, eine nicht sensible Vorgangs-ID, Beginn, Ende, Eingabe-, Ausgabe-, Cache-Lese-, Cache-Schreib-, Reasoning- und Gesamt-Tokens werden nur gespeichert, soweit die Laufzeit sie tatsächlich ausweist. Kann sie nur die gesamte Sitzung messen, muss `-Messumfang gesamte_agentensitzung` gesetzt und diese Einschränkung in der Konsolenausgabe genannt werden.
+Zulässige Messbereiche sind `lebenslauf`, `gesamte_bewerbung` und `technische_vorbereitung`. Anbieter, Modell, eine nicht sensible Vorgangs-ID, Beginn, Ende, Eingabe-, Ausgabe-, Cache-Lese-, Cache-Schreib-, Reasoning- und Gesamt-Tokens werden nur gespeichert, soweit die Laufzeit sie tatsächlich ausweist. Kann sie nur die gesamte Sitzung messen, muss `--messumfang gesamte_agentensitzung` gesetzt und diese Einschränkung in der Konsolenausgabe genannt werden.
 
 `Tokenverbrauch.json` bleibt im privaten Arbeitsordner. Der Bericht ist kein Qualitätsnachweis, blockiert weder Vorbereitung noch Veröffentlichung, gelangt nicht nach `Versand/` und wird standardmäßig nicht in `Manifest.json` aufgenommen. Er speichert keine API-Schlüssel, Zugangsdaten, vollständigen Prompts oder privaten Bewerbungsinhalte.
 
@@ -85,7 +106,7 @@ Zulässige Messbereiche sind `lebenslauf`, `gesamte_bewerbung` und `technische_v
 Der verbindliche Finalisierungslauf führt den statischen Prüfer selbst aus. Ein zusätzlicher separater Vorablauf ist nicht erforderlich. Zur gezielten Diagnose eines Kandidatenfehlers kann er manuell ausgeführt werden:
 
 ```powershell
-.\Tools\Pruefe-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
+pwsh -NoProfile -File Tools/bewerbung.ps1 pruefen --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
 ```
 
 Der Prüfer kontrolliert:
@@ -108,9 +129,10 @@ Ein erfolgreicher Einzellauf diagnostiziert nur den aktuellen Kandidatenstand. D
 Wenn ein lokaler Browser verfügbar ist, kann zusätzlich ein visueller Layoutcheck erzeugt werden:
 
 ```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 `
-  -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
-  -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck"
+pwsh -NoProfile -File Tools/bewerbung.ps1 layout `
+  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck" `
+  --browser auto
 ```
 
 Der Layoutcheck:
@@ -121,25 +143,26 @@ Der Layoutcheck:
 - prüft nach jedem Browserlauf, ob die Ausgabedatei wirklich erzeugt wurde
 - entfernt alte erwartete Ausgaben vor dem Lauf und akzeptiert keine veralteten Dateien
 - validiert PNG-Signatur, Aktualität und exakte Bildabmessungen
+- wertet erwartete nicht-interlaced PNGs mit 8-Bit-Grau-, RGB- oder RGBA-Pixeln und den PNG-Filtern 0 bis 4 über den kleinen plattformneutralen .NET-Leser aus; ein nicht auswertbares PNG lässt die erforderliche Dichteprüfung fehlschlagen
 - beendet hängende Browser nach dem konfigurierten Timeout
 - meldet Fehler sichtbar, statt stille Browserfehler zu übergehen
 
 Als Einzelwerkzeug ist der Browser-Layoutcheck für Diagnose optional. Im verbindlichen Finalisierungsworkflow ist er für jeden ausgewählten HTML-Bestandteil Voraussetzung. Enthält ein ausdrücklich bestätigter Umfang nur eine E-Mail, gibt es keinen Browserlauf; stattdessen bleibt die persönliche Textprüfung Pflicht. Wenn ein erforderlicher Browserlauf wegen lokaler Browser- oder Sandbox-Einschränkungen nicht läuft, darf die Bewerbung nicht veröffentlicht werden.
 
-## Standardweg unter Windows 11 / PowerShell
+## Browserauswahl unter Windows und Ubuntu
 
 Im Standardweg wählt das Skript automatisch einen unterstützten installierten Browser aus:
 
 ```powershell
-.\Tools\Layoutcheck-Bewerbung.ps1 -Ordner "Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLENNAME" -Browser auto
+pwsh -NoProfile -File Tools/bewerbung.ps1 layout --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" --browser auto
 ```
 
-`auto` verwendet Chrome oder Edge, sofern einer davon verfügbar ist. Besonders in Sandbox-Umgebungen können Headless-Browser ohne echte Layoutursache fehlschlagen oder hängen. Wenn der Lauf im Sandbox-Kontext keine Screenshot-Dateien erzeugt, mit einem Browser-Startfehler endet oder hängen bleibt:
+`auto` sucht unter Windows in der Reihenfolge Chrome, Edge, Chromium und unter Ubuntu in der Reihenfolge Chrome, Chromium, Edge. `--browser-executable-path` überschreibt die Suche, wird aber auf Existenz, Version und Chromium-Engine geprüft. Firefox ist ausschließlich für das Subcommand `layout` als Diagnose zulässig; PDF-Export und Finalisierung lehnen ihn ab. Besonders in Sandbox-Umgebungen können Headless-Browser ohne echte Layoutursache fehlschlagen oder hängen. Wenn der Lauf im Sandbox-Kontext keine Screenshot-Dateien erzeugt, mit einem Browser-Startfehler endet oder hängen bleibt:
 
 - den Lauf nicht als bestandenen Layoutcheck werten
-- nicht automatisch auf Firefox ausweichen, wenn Chrome oder Edge lokal vorhanden ist
+- nicht automatisch auf Firefox ausweichen, wenn ein unterstützter Chromium-Browser lokal vorhanden ist
 - denselben Befehl außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut ausführen
-- bei Bedarf den tatsächlich installierten Browser mit `-Browser chrome` oder `-Browser edge` gezielt diagnostizieren
+- bei Bedarf den tatsächlich installierten Browser mit `--browser chrome`, `--browser edge` oder `--browser chromium` gezielt diagnostizieren
 - den Sandbox-Fehler in `Qualitaetscheck.md` nur als technischen Laufzeitfehler dokumentieren
 
 Erfolgreiche Screenshots liegen hier:
@@ -156,7 +179,7 @@ Lebenslauf---NACHNAME.VORNAME--seite-2-von-2--chrome.png
 Anschreiben---NACHNAME.VORNAME--seite-1-von-1--chrome.png
 ```
 
-Bei automatischer Auswahl kann im Dateinamen statt `chrome` auch `edge` stehen.
+Bei automatischer Auswahl kann im Dateinamen statt `chrome` auch `edge` oder `chromium` stehen.
 
 Wenn ein Bildbetrachter oder ein Agentenwerkzeug für lokale Bilder verfügbar ist, muss jeder erwartete Seitenscreenshot geöffnet und visuell geprüft werden. Bei einer Layoutkorrektur sind danach alle Nachweise erneut zu erzeugen.
 
@@ -174,22 +197,25 @@ Visuelle Bewertung des Screenshots:
 
 Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären A4-Ansicht. Dadurch wird keine Seite von einer festen Screenshot-Höhe abgeschnitten oder übersehen. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; ihre Warnung muss fachlich bewertet werden und rechtfertigt kein blindes Auffüllen oder Komprimieren.
 
+Die Vorlagen verwenden `Arial, "Liberation Sans", Helvetica, sans-serif`. Windows und Ubuntu müssen weder pixelidentische PNGs noch binär identische PDFs erzeugen. Verbindlich gleich sind Seitenzahl, A4-Geometrie, bestandene Dichteprüfung, Hashbindung und ATS-Prüfung.
+
 ## Automatischer PDF-Export
 
 Wenn ausgewählte finale HTML-Dateien technisch im grünen Bereich sind, werden genau diese automatisch als PDF exportiert:
 
 ```powershell
-.\Tools\Exportiere-PDF.ps1 `
-  -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
-  -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
-  -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export"
+pwsh -NoProfile -File Tools/bewerbung.ps1 pdf `
+  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
+  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export" `
+  --browser auto
 ```
 
 Der PDF-Export:
 
 - führt zuerst `Tools/Pruefe-Bewerbung.ps1` aus
 - bricht ab, wenn der statische Check fehlschlägt
-- nutzt Chrome oder Edge Headless für den PDF-Export
+- nutzt Chrome, Edge oder Chromium Headless für den PDF-Export
 - speichert die PDFs beim Einzellauf im geprüften HTML-/Kandidatenordner; die Finalisierung übernimmt sie anschließend ausschließlich nach `Versand/`
 - nutzt dieselben Dateinamen wie die HTML-Dateien, nur mit `.pdf`
 - prüft, ob jede PDF-Datei existiert, nicht leer ist und einen PDF-Header enthält
@@ -208,19 +234,19 @@ Anschreiben - Nachname.Vorname.html
 Anschreiben - Nachname.Vorname.pdf
 ```
 
-Für Diagnose werden Layoutcheck und PDF-Export mit ihren ausdrücklich genannten Ausgabeordnern getrennt ausgeführt. Der verbindliche Finalisierungslauf koordiniert beide automatisch; `-MitLayoutcheck` ist für den normalen Bewerbungsablauf nicht erforderlich.
+Für Diagnose werden Layoutcheck und PDF-Export mit ihren ausdrücklich genannten Ausgabeordnern getrennt ausgeführt. Der verbindliche Finalisierungslauf koordiniert beide automatisch; `--mit-layoutcheck` ist für den normalen Bewerbungsablauf nicht erforderlich.
 
-Unter Windows 11 mit PowerShell und Chrome kann der Export gezielt mit Chrome ausgeführt werden:
+Der Export kann auf beiden Plattformen gezielt mit Chrome ausgeführt werden:
 
 ```powershell
-.\Tools\Exportiere-PDF.ps1 `
-  -Ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
-  -AuftragPath "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
-  -Browser chrome `
-  -OutputRoot "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export"
+pwsh -NoProfile -File Tools/bewerbung.ps1 pdf `
+  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+  --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
+  --browser chrome `
+  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export"
 ```
 
-Wenn kein Chrome oder Edge verfügbar ist, wird kein PDF-Export als bestanden gemeldet. Eine manuelle Vorschau oder ein manueller Export über Firefox beziehungsweise einen anderen Browser ist nur eine offen zu dokumentierende Diagnosealternative und erreicht nicht das verbindliche Freigabe-Gate.
+Wenn kein unterstützter Chromium-Browser verfügbar ist, wird kein PDF-Export als bestanden gemeldet. Eine manuelle Vorschau oder ein manueller Export über Firefox beziehungsweise einen anderen Browser ist nur eine offen zu dokumentierende Diagnosealternative und erreicht nicht das verbindliche Freigabe-Gate.
 
 ## ATS-Prüfung der PDFs
 
@@ -242,8 +268,14 @@ Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versand
 5. Jeden erzeugten Seitenscreenshot visuell öffnen und prüfen; ohne HTML die ausgewählten Textdateien persönlich prüfen.
 6. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.
 7. Bei Dichte- oder Layoutwarnungen die Sichtbewertung als Freigabenotiz dokumentieren.
-8. Erst nach neuer eindeutiger Sichtprüfungsbestätigung mit `-Veroeffentlichen -VisuellGeprueft` atomar veröffentlichen.
+8. Erst nach neuer eindeutiger Sichtprüfungsbestätigung mit `--veroeffentlichen --visuell-geprueft` atomar veröffentlichen.
 9. Bei Fehlern nicht final melden; der finale Zielordner muss unverändert bleiben. Der Tokenbericht darf einen ansonsten erfolgreichen Lauf nicht blockieren.
+
+## CI und gestufter Plattform-Rollout
+
+Die browserfreie PowerShell-Suite läuft mit `fail-fast: false` unverändert auf `windows-2025` und `ubuntu-24.04`; OS-bedingte Skips gehören nicht in diesen Kern. Ubuntu führt zusätzlich `bash -n`, ShellCheck sowie Dispatcher- und Kompatibilitätstests aus. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
+
+Browser-Smokes laufen zunächst getrennt, manuell und zeitgesteuert auf beiden Betriebssystemen. Sie prüfen Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und fehlende Restprozesse. Erst nach drei aufeinanderfolgenden grünen Browserläufen je Betriebssystem dürfen die Jobs verpflichtende Pull-Request-Checks werden und Ubuntu darf von Alpha auf stabil wechseln. Bis dieser Nachweis tatsächlich vorliegt, keinen stabilen Linux-Support behaupten.
 
 ## Keine stillen Erfolge
 

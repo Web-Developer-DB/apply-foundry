@@ -39,7 +39,7 @@ Empfohlene aktive Universalquelle:
 Private/LebenslaufUniversal/Aktiv/Lebenslauf - NACHNAME.VORNAME.html
 ```
 
-Sie wird bei `dokumentumfang.lebenslauf = universal_unveraendert` per SHA-256 als unveränderter Snapshot eingebunden. Frühere Versionen gehören unter `Private/LebenslaufUniversal/Archiv/`.
+Sie wird bei `dokumentumfang.lebenslauf = universal_unveraendert` per SHA-256 als unveränderter Snapshot eingebunden. Liegt die Quelle unter dem Repository, speichert Schema 5 ihren projekt-relativen Pfad. Bei einer externen Quelle werden nur Dateiname, Kandidatensnapshot und SHA-256 gebunden; ein betriebssystemspezifischer absoluter Quellpfad wird nicht gespeichert. Frühere Versionen gehören unter `Private/LebenslaufUniversal/Archiv/`.
 
 ## Hauptordner für Bewerbungen
 
@@ -142,6 +142,8 @@ Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/
 
 Der Kandidatenordner verwendet für ausgewählte Dokumente bereits die späteren finalen Dateinamen. Er ist trotzdem kein Versandordner. `Bewerbungsauftrag.json` enthält zusätzlich den normalisierten Dialogzustand; Rohchat und unnötige sensible Details werden dort nicht gespeichert. Der finale Zielordner bleibt bis zur atomaren Veröffentlichung leer.
 
+Neue Aufträge verwenden Schema 5 mit `pfadModus = relativ_zu_bewerbungen_root`. `zielOrdner`, `arbeitsOrdner` und `kandidatOrdner` enthalten ausschließlich `/`-normalisierte relative Pfade. Absolute Pfade, Steuerzeichen, leere Segmente, `.` und `..` sind unzulässig. Leser rekonstruieren diese Pfade aus dem ausdrücklich übergebenen `BewerbungenRoot` oder dem validierten Arbeitsordner, prüfen symlinksicher das Containment und gleichen Firma, Rolle, Datum und Slugs mit der erwarteten Struktur ab. Nicht vorhandene Ziele werden über ihren real aufgelösten vorhandenen Elternordner validiert. Aufträge der Schemata 1 bis 4 bleiben ohne automatische Umschreibung auf ihrem bisherigen System lesbar.
+
 Der standardisierte Nutzungsbericht liegt ausschließlich im zugehörigen Arbeitsordner:
 
 ```text
@@ -158,34 +160,36 @@ Regel:
 
 ## Optionales Hilfsskript
 
-Ein neuer Bewerbungsordner kann unter Windows 11 mit PowerShell vorbereitet werden:
+Ein neuer Bewerbungsordner wird unter Windows mit dem gemeinsamen PowerShell-Dispatcher vorbereitet:
 
 ```powershell
-.\Tools\Neue-Bewerbung.ps1 -Firma "Muster GmbH" -Rolle "Sachbearbeitung" -UmfangAuswahl A
+pwsh -NoProfile -File Tools/bewerbung.ps1 neu --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A
 ```
 
 Unter Linux mit Bash:
 
 ```bash
-bash Tools/neue-bewerbung.sh --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A
+./Tools/bewerbung.sh neu --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A
 ```
 
-Beide Skripte erstellen den Firmenordner, einen zunächst leeren finalen Bewerbungsordner, einen Arbeitsordner unter `_Arbeitsdateien`, den Unterordner `Kandidat/`, `Bewerbungsauftrag.json` und einen Entwurf der Anforderungsmatrix.
+Beide Einstiege führen dieselbe PowerShell-7.6-Implementierung aus. Sie erstellen den Firmenordner, einen zunächst leeren finalen Bewerbungsordner, einen Arbeitsordner unter `_Arbeitsdateien`, den Unterordner `Kandidat/`, einen portablen Schema-5-`Bewerbungsauftrag.json` und einen Entwurf der Anforderungsmatrix. `Tools/neue-bewerbung.sh` bleibt nur als kompatibler Alias für `bewerbung.sh neu` erhalten.
 
 Die Skripte benötigen einen ausdrücklich geklärten Umfang A–E. Bei E werden die ausgewählten Bestandteile zusätzlich übergeben. Ein universeller Lebenslauf benötigt seine freigegebene HTML-Quelle; sie wird hashgleich übernommen. Für abgewählte Dokumente entstehen keine Entwürfe.
 
-Existiert die bereinigte Kombination aus Firma, Datum und Rolle bereits, müssen beide Skripte standardmäßig abbrechen. Eine vorhandene Bewerbung darf nur mit `-Fortsetzen` unter PowerShell beziehungsweise `--fortsetzen` unter Bash ergänzt werden, wenn Ziel- und Arbeitsordner vollständig vorhanden sind und `Arbeitsnotizen.md` exakt dieselbe Firma und Zielrolle bestätigt. Eine abweichende vorhandene `Stellenbeschreibung.md` darf nie überschrieben werden.
+Existiert die bereinigte Kombination aus Firma, Datum und Rolle bereits, muss der Dispatcher standardmäßig abbrechen. Eine vorhandene Bewerbung darf nur mit `--fortsetzen` ergänzt werden, wenn Ziel- und Arbeitsordner vollständig vorhanden sind und `Arbeitsnotizen.md` exakt dieselbe Firma und Zielrolle bestätigt. Direkte Legacy-Aufrufe von `Neue-Bewerbung.ps1` mit `-Fortsetzen` bleiben unterstützt. Eine abweichende vorhandene `Stellenbeschreibung.md` darf nie überschrieben werden.
 
 Platzhalter, Warnhinweise und Entwürfe der Hilfsskripte gehören ausschließlich in `_Arbeitsdateien`. Stellenbeschreibung und Druckhinweis dürfen bereits im Kandidatenordner liegen. Der finale Bewerbungsordner bleibt durch das Hilfsskript vollständig leer.
 
 ## Plattformregeln
 
 - Projektinterne Pfade werden in der Dokumentation mit `/` geschrieben.
-- Unter Windows darf PowerShell mit `\` arbeiten.
-- Unter Linux darf Bash mit `/` arbeiten.
+- PowerShell darf intern native Trennzeichen verwenden; Schema-5-Pfade werden immer mit `/` relativ zu `BewerbungenRoot` gespeichert.
+- Bash löst ausschließlich Skript- und Runtimepfad auf und reicht Argumente unverändert weiter.
 - Keine absoluten Betriebssystempfade fest in Prompts, Vorlagen oder finale Bewerbungsdateien schreiben.
 - Wenn ein Ausgabeordner abweichend gewählt wird, muss er vom Nutzer oder Agenten bewusst angegeben werden.
-- Die Windows- und Linux-Hilfsskripte müssen dieselbe Struktur erzeugen.
+- Windows- und Linux-Einstieg müssen durch dieselbe Kernimplementierung dieselbe Struktur und Semantik erzeugen.
+- Pfadvergleiche sind unter Windows case-insensitiv und unter Linux case-sensitiv; Slug-/Case-Kollisionen müssen fehlergeschlossen enden.
+- Layout-, PDF-, ATS- und Finalisierungsberichte binden den Lauf mit einem Runtime-Fingerprint. Nach einem Betriebssystemwechsel bleiben Auftrag und Kandidaten erhalten, die technischen Nachweise gelten jedoch als veraltet und müssen neu erzeugt werden.
 
 ## Dateinamen-Regeln
 
@@ -206,7 +210,7 @@ Der finale Bewerbungsordner darf erst nach Dialogstatus-, Stammdaten-, Inhalts- 
 
 Finale HTML-Dateien müssen außerdem druckstabil sein:
 
-- Einseiten-Dokumente dürfen im verbindlichen Chrome-/Edge-Export bei 100 Prozent Skalierung keine zweite Seite erzeugen.
+- Einseiten-Dokumente dürfen im verbindlichen Chrome-/Edge-/Chromium-Export bei 100 Prozent Skalierung keine zweite Seite erzeugen.
 - Zweiseitige Dokumente müssen bewusst zwei A4-Seitencontainer enthalten.
 - Drucklayout-Korrekturen werden an der HTML-Datei im Kandidatenordner vorgenommen. Danach müssen Layout- und PDF-Nachweise wegen der Hashbindung neu erzeugt werden.
 

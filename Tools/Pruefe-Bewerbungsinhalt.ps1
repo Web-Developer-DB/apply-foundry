@@ -1,11 +1,14 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
   [string]$Ordner,
 
-  [string]$StammdatenPath = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Daten\01_PERSOENLICHE_DATEN.md"),
+  [string]$StammdatenPath = (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "Private", "Daten", "01_PERSOENLICHE_DATEN.md"),
 
-  [string]$ProfilPath = (Join-Path -Path $PSScriptRoot -ChildPath "..\Private\Daten\02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"),
+  [string]$ProfilPath = (Join-Path -Path $PSScriptRoot -ChildPath ".." -AdditionalChildPath "Private", "Daten", "02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"),
 
   [Parameter(Mandatory = $true)]
   [string]$AuftragPath,
@@ -21,9 +24,47 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+
 $errors = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
 $oks = New-Object System.Collections.Generic.List[string]
+$script:PathComparison = if ($IsWindows) { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+$script:ApplicationsRoot = $null
+$script:WorkRoot = $null
+$script:ResolvedReportPath = $null
+
+function Get-ApplicationsRootFromPath {
+  param([string]$Path, [switch]$Container)
+
+  $fullPath = [System.IO.Path]::GetFullPath($Path)
+  $directory = if ($Container) { [System.IO.DirectoryInfo]::new($fullPath) } else { [System.IO.DirectoryInfo]::new((Split-Path -Path $fullPath -Parent)) }
+  while ($null -ne $directory) {
+    if ([string]::Equals($directory.Name, 'Bewerbungen', $script:PathComparison) -and
+        $null -ne $directory.Parent -and
+        [string]::Equals($directory.Parent.Name, 'Private', $script:PathComparison)) {
+      return $directory.FullName
+    }
+    $directory = $directory.Parent
+  }
+  return $null
+}
+
+function ConvertTo-SafeFileList {
+  param([object[]]$Files, [string]$Root, [string]$Context)
+
+  $safeFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+  foreach ($file in @($Files)) {
+    try {
+      $safePath = Resolve-SafePath -Candidate $file.FullName -Root $Root -MustExist -PathType Leaf
+      $safeFiles.Add((Get-Item -LiteralPath $safePath -Force))
+    } catch {
+      Write-Host "[FEHLER] $Context enthält einen unsicheren Dateipfad: $($file.FullName): $($_.Exception.Message)" -ForegroundColor Red
+      exit 2
+    }
+  }
+  return $safeFiles.ToArray()
+}
 
 function Add-ErrorMessage {
   param([string]$Message)
@@ -133,11 +174,16 @@ function Write-JsonReport {
     [object]$DocumentScope
   )
   if ([string]::IsNullOrWhiteSpace($Path)) { return }
-  $fullPath = [System.IO.Path]::GetFullPath($Path)
+  $fullPath = $script:ResolvedReportPath
+  if ([string]::IsNullOrWhiteSpace($fullPath)) {
+    throw 'Berichtspfad wurde nicht als sicherer Arbeitsbereich validiert.'
+  }
   $parent = Split-Path -Path $fullPath -Parent
   if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
     New-Item -Path $parent -ItemType Directory -Force | Out-Null
   }
+  $null = Resolve-SafePath -Candidate $parent -Root $script:WorkRoot -AllowRoot -MustExist -PathType Container
+  $fullPath = Resolve-SafePath -Candidate $fullPath -Root $script:WorkRoot -ForWrite -PathType Leaf
   $report = [ordered]@{
     schemaVersion = 3
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
@@ -158,20 +204,54 @@ function Write-JsonReport {
   Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 6)
 }
 
-foreach ($path in @($Ordner, $StammdatenPath, $ProfilPath, $AuftragPath, $AnforderungsmatrixPath)) {
-  if (-not (Test-Path -LiteralPath $path)) {
-    Write-Host "[FEHLER] Erforderlicher Pfad fehlt: $path" -ForegroundColor Red
-    exit 1
+try {
+  $script:ApplicationsRoot = Get-ApplicationsRootFromPath -Path $AuftragPath
+  if ([string]::IsNullOrWhiteSpace($script:ApplicationsRoot)) {
+    throw 'AuftragPath muss unter <Projektwurzel>/Private/Bewerbungen liegen.'
   }
-}
-if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
-  Write-Host "[FEHLER] Bewerbungsordner ist kein Verzeichnis: $Ordner" -ForegroundColor Red
-  exit 1
+  $script:ApplicationsRoot = Resolve-SafePath -Candidate $script:ApplicationsRoot -Root $script:ApplicationsRoot -AllowRoot -MustExist -PathType Container
+  $AuftragPath = Resolve-SafePath -Candidate $AuftragPath -Root $script:ApplicationsRoot -MustExist -PathType Leaf
+  $script:WorkRoot = Resolve-SafePath -Candidate (Split-Path -Path $AuftragPath -Parent) -Root $script:ApplicationsRoot -MustExist -PathType Container
+  $workCollection = Split-Path -Path $script:WorkRoot -Parent
+  if (-not [string]::Equals((Split-Path -Path $workCollection -Leaf), '_Arbeitsdateien', $script:PathComparison)) {
+    throw 'Bewerbungsauftrag muss direkt in einem Arbeitsordner unter _Arbeitsdateien liegen.'
+  }
+
+  $privateRoot = Split-Path -Path $script:ApplicationsRoot -Parent
+  $dataRoot = Resolve-SafePath -Candidate (Join-Path -Path $privateRoot -ChildPath 'Daten') -Root $privateRoot -MustExist -PathType Container
+  $StammdatenPath = Resolve-SafePath -Candidate $StammdatenPath -Root $dataRoot -MustExist -PathType Leaf
+  $ProfilPath = Resolve-SafePath -Candidate $ProfilPath -Root $dataRoot -MustExist -PathType Leaf
+  $AnforderungsmatrixPath = Resolve-SafePath -Candidate $AnforderungsmatrixPath -Root $script:WorkRoot -MustExist -PathType Leaf
+  $resolvedFolder = Resolve-SafePath -Candidate $Ordner -Root $script:ApplicationsRoot -MustExist -PathType Container
+
+  $readInputs = @($StammdatenPath, $ProfilPath, $AuftragPath, $AnforderungsmatrixPath)
+  for ($left = 0; $left -lt $readInputs.Count; $left++) {
+    for ($right = $left + 1; $right -lt $readInputs.Count; $right++) {
+      if (Test-SamePath -Left $readInputs[$left] -Right $readInputs[$right]) {
+        throw "Eingabedateien dürfen keine Aliase derselben Datei sein: $($readInputs[$left]) und $($readInputs[$right])"
+      }
+    }
+  }
+  if (-not [string]::IsNullOrWhiteSpace($BerichtPath)) {
+    $script:ResolvedReportPath = Resolve-SafePath -Candidate $BerichtPath -Root $script:WorkRoot -ForWrite -PathType Leaf
+    foreach ($inputPath in $readInputs) {
+      if (Test-SamePath -Left $script:ResolvedReportPath -Right $inputPath) {
+        throw "Berichtspfad darf keine Eingabedatei aliasieren: $inputPath"
+      }
+    }
+  }
+} catch {
+  Write-Host "[FEHLER] Unsicherer Eingabe- oder Berichtspfad: $($_.Exception.Message)" -ForegroundColor Red
+  exit 2
 }
 
-$resolvedFolder = (Resolve-Path -LiteralPath $Ordner).Path
-$internalFolder = Join-Path -Path $resolvedFolder -ChildPath "Intern"
-$shippingFolder = Join-Path -Path $resolvedFolder -ChildPath "Versand"
+try {
+  $internalFolder = Resolve-SafePath -Candidate (Join-Path -Path $resolvedFolder -ChildPath "Intern") -Root $resolvedFolder -PathType Container
+  $shippingFolder = Resolve-SafePath -Candidate (Join-Path -Path $resolvedFolder -ChildPath "Versand") -Root $resolvedFolder -PathType Container
+} catch {
+  Write-Host "[FEHLER] Unsicherer Intern- oder Versandpfad: $($_.Exception.Message)" -ForegroundColor Red
+  exit 2
+}
 $isStructuredPublication = (Test-Path -LiteralPath $internalFolder -PathType Container) -and (Test-Path -LiteralPath $shippingFolder -PathType Container)
 $documentFolder = if ($isStructuredPublication) { $internalFolder } else { $resolvedFolder }
 $emailFolder = if ($isStructuredPublication) { $shippingFolder } else { $resolvedFolder }
@@ -191,13 +271,13 @@ $expectedCv = $true
 $expectedLetter = $true
 $expectedEmail = $true
 $cvKind = if ($documentMode -eq "anschreiben_mit_universalem_lebenslauf") { "universal_unveraendert" } else { "individuell" }
-if ($auftragSchema -lt 1 -or $auftragSchema -gt 4) {
-  Write-Host "[FEHLER] Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 4." -ForegroundColor Red
+if ($auftragSchema -lt 1 -or $auftragSchema -gt 5) {
+  Write-Host "[FEHLER] Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 5." -ForegroundColor Red
   exit 1
 }
-if ($auftragSchema -eq 4) {
+if ($auftragSchema -ge 4) {
   if ($null -eq $configuredScope) {
-    Write-Host "[FEHLER] Bewerbungsauftrag mit schemaVersion 4 enthält keinen dokumentumfang." -ForegroundColor Red
+    Write-Host "[FEHLER] Bewerbungsauftrag mit schemaVersion $auftragSchema enthält keinen dokumentumfang." -ForegroundColor Red
     exit 1
   }
   $cvKind = [string](Get-JsonProperty -Object $configuredScope -Name "lebenslauf")
@@ -221,9 +301,17 @@ $effectiveScope = [ordered]@{
   anschreiben = $expectedLetter
   emailNachricht = $expectedEmail
 }
-$cvFiles = @(Get-ChildItem -LiteralPath $documentFolder -File -Filter "Lebenslauf - *.html")
-$letterFiles = @(Get-ChildItem -LiteralPath $documentFolder -File -Filter "Anschreiben - *.html")
-$emailFiles = @(Get-ChildItem -LiteralPath $emailFolder -File -Filter "Email-Nachricht--*.md")
+$cvFiles = @(ConvertTo-SafeFileList -Files @(Get-ChildItem -LiteralPath $documentFolder -File -Filter "Lebenslauf - *.html") -Root $documentFolder -Context 'Lebenslaufdateien')
+$letterFiles = @(ConvertTo-SafeFileList -Files @(Get-ChildItem -LiteralPath $documentFolder -File -Filter "Anschreiben - *.html") -Root $documentFolder -Context 'Anschreibendateien')
+$emailFiles = @(ConvertTo-SafeFileList -Files @(Get-ChildItem -LiteralPath $emailFolder -File -Filter "Email-Nachricht--*.md") -Root $emailFolder -Context 'E-Mail-Dateien')
+if (-not [string]::IsNullOrWhiteSpace($script:ResolvedReportPath)) {
+  foreach ($candidateInput in @($cvFiles + $letterFiles + $emailFiles)) {
+    if (Test-SamePath -Left $script:ResolvedReportPath -Right $candidateInput.FullName) {
+      Write-Host "[FEHLER] Berichtspfad darf keine Kandidatendatei aliasieren: $($candidateInput.FullName)" -ForegroundColor Red
+      exit 2
+    }
+  }
+}
 Add-DocumentCountResult -Files $cvFiles -Expected $expectedCv -Label "Lebenslauf"
 Add-DocumentCountResult -Files $letterFiles -Expected $expectedLetter -Label "Anschreiben"
 Add-DocumentCountResult -Files $emailFiles -Expected $expectedEmail -Label "E-Mail-Nachricht"
@@ -526,6 +614,12 @@ $fitScorePattern = '(?im)(?:Eignung|Passung|gewichtete\s+(?:Eignungsbewertung|An
 foreach ($scoreDocumentName in @("Analyse.md", "Qualitaetscheck.md")) {
   $scoreDocumentPath = Join-Path -Path $documentFolder -ChildPath $scoreDocumentName
   if (-not (Test-Path -LiteralPath $scoreDocumentPath -PathType Leaf)) { continue }
+  try {
+    $scoreDocumentPath = Resolve-SafePath -Candidate $scoreDocumentPath -Root $documentFolder -MustExist -PathType Leaf
+  } catch {
+    Add-ErrorMessage "$scoreDocumentName liegt nicht sicher im Dokumentenordner: $($_.Exception.Message)"
+    continue
+  }
   $scoreDocumentText = Get-Content -LiteralPath $scoreDocumentPath -Raw -Encoding UTF8
   foreach ($scoreMatch in [regex]::Matches($scoreDocumentText, $fitScorePattern)) {
     $scoreText = if ($scoreMatch.Groups["score"].Success) { $scoreMatch.Groups["score"].Value } else { $scoreMatch.Groups["scoreBefore"].Value }

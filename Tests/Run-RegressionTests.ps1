@@ -1,3 +1,6 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
   [switch]$MitBrowser
@@ -12,6 +15,10 @@ $powerShellExe = (Get-Process -Id $PID).Path
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bewerbungs-agent-tests-" + [guid]::NewGuid().ToString("N"))
 $passed = New-Object System.Collections.Generic.List[string]
 $failed = New-Object System.Collections.Generic.List[string]
+
+Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/OrderPaths.psm1") -Force
+Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/Platform.psm1") -Force
+Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/PngTools.psm1") -Force
 
 function Invoke-ChildScript {
   param(
@@ -364,18 +371,26 @@ function New-StagedFinalizationFixture {
   New-Item -Path $layoutDir -ItemType Directory -Force | Out-Null
   $letterScreenshotPath = Join-Path $layoutDir "Anschreiben---TEST.PERSON--seite-1-von-1--chrome.png"
   $cvScreenshotPath = Join-Path $layoutDir "Lebenslauf---TEST.PERSON--seite-1-von-1--chrome.png"
-  $validPngBytes = [Convert]::FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
+  # Synthetisches non-interlaced 8-Bit-Grayscale-PNG im A4-Verhältnis (320 x 453).
+  # Die letzte schwarze Pixelzeile macht die gespeicherte untere Leerfläche deterministisch 0 px.
+  $validPngBytes = [Convert]::FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAUAAAAHFCAAAAACmhn8dAAACOElEQVR42u3QMQEAAAwCIPuX3iJ4+EIEckyiQKBAgQIRKFCgQAQKFCgQgQIFCkSgQIECEShQoEAEChQoEIECBQpEoECBAhEoUKBABAoUKFAgAgUKFIhAgQIFIlCgQIEIFChQIAIFChSIQIECBSJQoECBCBQoUCACBQoUiECBAgUKVCBQoECBCBQoUCACBQoUiECBAgUiUKBAgQgUKFAgAgUKFIhAgQIFIlCgQIEIFChQIAIFChQoEIECBQpEoECBAhEoUKBABAoUKBCBAgUKRKBAgQIRKFCgQAQKFCgQgQIFCkSgQIECBSoQKFCgQAQKFCgQgQIFCkSgQIECEShQoEAEChQoEIECBQpEoECBAhEoUKBABAoUKBCBAgUKFIhAgQIFIlCgQIEIFChQIAIFChSIQIECBSJQoECBCBQoUCACBQoUiECBAgUiUKBAgQIVCBQoUCACBQoUiECBAgUiUKBAgQgUKFAgAgUKFIhAgQIFIlCgQIEIFChQIAIFChSIQIECBQpEoECBAhEoUKBABAoUKBCBAgUKRKBAgQIRKFCgQAQKFCgQgQIFCkSgQIECEShQoECBCgQKFCgQgQIFCkSgQIECEShQoEAEChQoEIECBQpEoECBAhEoUKBABAoUKBCBAgUKRKBAgQIFIlCgQIEIFChQIAIFChSIQIECBSJQoECBCBQoUCACBQoUiECBAgUiUKBAgQgUKFCgQAUCBQoUiECBAgUiUKBAgQgUKFAgAgUKFEgNZPPYXOvvS/lBpAAAAABJRU5ErkJggg==")
   [System.IO.File]::WriteAllBytes($letterScreenshotPath, $validPngBytes)
   [System.IO.File]::WriteAllBytes($cvScreenshotPath, $validPngBytes)
+  $browserRuntime = Get-RuntimeFingerprint -BrowserInfo ([pscustomobject]@{
+    Name = "chrome"
+    Version = "999.0.0.0-test"
+    Path = $powerShellExe
+  })
   $layoutReportPath = Join-Path $layoutDir "Layoutcheck-Bericht.json"
   Set-Content -LiteralPath $layoutReportPath -Encoding UTF8 -Value (([ordered]@{
     schemaVersion = 2
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
+    runtime = $browserRuntime
     browser = "chrome"
     sourceFolder = $candidate
     captureMode = "eine_png_pro_a4_seite"
-    pageWidth = 1
-    pageHeight = 1
+    pageWidth = 320
+    pageHeight = 453
     expectedScreenshots = 2
     results = @(
       [ordered]@{
@@ -386,6 +401,9 @@ function New-StagedFinalizationFixture {
         screenshot = $letterScreenshotPath
         screenshotSha256 = (Get-FileHash -LiteralPath $letterScreenshotPath -Algorithm SHA256).Hash
         screenshotBytes = (Get-Item -LiteralPath $letterScreenshotPath).Length
+        bottomWhitespacePx = 0
+        bottomWhitespaceMm = 0.0
+        scanBottomReserveMm = 3.0
         densityWarning = $null
       },
       [ordered]@{
@@ -396,6 +414,9 @@ function New-StagedFinalizationFixture {
         screenshot = $cvScreenshotPath
         screenshotSha256 = (Get-FileHash -LiteralPath $cvScreenshotPath -Algorithm SHA256).Hash
         screenshotBytes = (Get-Item -LiteralPath $cvScreenshotPath).Length
+        bottomWhitespacePx = 0
+        bottomWhitespaceMm = 0.0
+        scanBottomReserveMm = 3.0
         densityWarning = $null
       }
     )
@@ -405,6 +426,7 @@ function New-StagedFinalizationFixture {
   Set-Content -LiteralPath $pdfReportPath -Encoding UTF8 -Value (([ordered]@{
     schemaVersion = 1
     exportedAtUtc = [datetime]::UtcNow.ToString("o")
+    runtime = $browserRuntime
     browser = "chrome"
     sourceFolder = $candidate
     results = @(
@@ -434,6 +456,7 @@ function New-StagedFinalizationFixture {
   Set-Content -LiteralPath $atsReportPath -Encoding UTF8 -Value (([ordered]@{
     schemaVersion = 1
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
+    runtime = $browserRuntime
     folder = $candidate
     status = "ok"
     errors = @()
@@ -481,9 +504,10 @@ function New-StagedFinalizationFixture {
     }
   }
   $report = [ordered]@{
-    schemaVersion = 4
+    schemaVersion = 5
     status = "bereit_zur_sichtpruefung"
     preparedAtUtc = [datetime]::UtcNow.ToString("o")
+    runtime = $browserRuntime
     workFolder = $fixture.Work
     candidateFolder = $candidate
     targetFolder = $fixture.Folder
@@ -538,6 +562,121 @@ function Test-PngSignature {
     }
   }
   return $true
+}
+
+function ConvertTo-TestPngUInt32BigEndian {
+  param([uint32]$Value)
+  return [byte[]]@(
+    [byte](($Value -shr 24) -band 0xFF),
+    [byte](($Value -shr 16) -band 0xFF),
+    [byte](($Value -shr 8) -band 0xFF),
+    [byte]($Value -band 0xFF)
+  )
+}
+
+function Get-TestPngCrc32 {
+  param([byte[]]$TypeBytes, [byte[]]$Data)
+
+  [uint64]$crc = 0xFFFFFFFFL
+  foreach ($value in @($TypeBytes) + @($Data)) {
+    $crc = ($crc -bxor [uint64]$value) -band 0xFFFFFFFFL
+    for ($bit = 0; $bit -lt 8; $bit++) {
+      if (($crc -band 1) -ne 0) {
+        $crc = (($crc -shr 1) -bxor 0xEDB88320L) -band 0xFFFFFFFFL
+      } else {
+        $crc = ($crc -shr 1) -band 0xFFFFFFFFL
+      }
+    }
+  }
+  return [uint32](($crc -bxor 0xFFFFFFFFL) -band 0xFFFFFFFFL)
+}
+
+function Add-TestPngChunk {
+  param(
+    [System.Collections.Generic.List[byte]]$Buffer,
+    [string]$Type,
+    [byte[]]$Data
+  )
+
+  $typeBytes = [System.Text.Encoding]::ASCII.GetBytes($Type)
+  $Buffer.AddRange([byte[]](ConvertTo-TestPngUInt32BigEndian -Value ([uint32]$Data.Length)))
+  $Buffer.AddRange($typeBytes)
+  $Buffer.AddRange($Data)
+  $Buffer.AddRange([byte[]](ConvertTo-TestPngUInt32BigEndian -Value (Get-TestPngCrc32 -TypeBytes $typeBytes -Data $Data)))
+}
+
+function Get-TestPngPaethPredictor {
+  param([int]$Left, [int]$Up, [int]$UpperLeft)
+  $estimate = $Left + $Up - $UpperLeft
+  $leftDistance = [math]::Abs($estimate - $Left)
+  $upDistance = [math]::Abs($estimate - $Up)
+  $upperLeftDistance = [math]::Abs($estimate - $UpperLeft)
+  if ($leftDistance -le $upDistance -and $leftDistance -le $upperLeftDistance) { return $Left }
+  if ($upDistance -le $upperLeftDistance) { return $Up }
+  return $UpperLeft
+}
+
+function New-SyntheticPngBytes {
+  param(
+    [ValidateSet(0, 2, 6)][int]$ColorType,
+    [ValidateRange(0, 4)][int]$Filter,
+    [byte[]]$Pixels,
+    [ValidateSet(8, 16)][int]$BitDepth = 8,
+    [ValidateSet(0, 1)][int]$Interlace = 0
+  )
+
+  $width = 3
+  $height = 2
+  $channels = if ($ColorType -eq 0) { 1 } elseif ($ColorType -eq 2) { 3 } else { 4 }
+  $stride = $width * $channels
+  if ($Pixels.Length -ne $stride * $height) {
+    throw "PNG-Testpixel besitzen nicht die erwartete Länge."
+  }
+
+  $filtered = [System.Collections.Generic.List[byte]]::new()
+  for ($y = 0; $y -lt $height; $y++) {
+    $filtered.Add([byte]$Filter)
+    for ($x = 0; $x -lt $stride; $x++) {
+      $offset = ($y * $stride) + $x
+      $left = if ($x -ge $channels) { [int]$Pixels[$offset - $channels] } else { 0 }
+      $up = if ($y -gt 0) { [int]$Pixels[$offset - $stride] } else { 0 }
+      $upperLeft = if ($y -gt 0 -and $x -ge $channels) { [int]$Pixels[$offset - $stride - $channels] } else { 0 }
+      $predictor = switch ($Filter) {
+        0 { 0 }
+        1 { $left }
+        2 { $up }
+        3 { [int][math]::Floor(($left + $up) / 2.0) }
+        4 { Get-TestPngPaethPredictor -Left $left -Up $up -UpperLeft $upperLeft }
+      }
+      $filtered.Add([byte](([int]$Pixels[$offset] - $predictor) -band 0xFF))
+    }
+  }
+
+  $compressedStream = [System.IO.MemoryStream]::new()
+  try {
+    $compressor = [System.IO.Compression.ZLibStream]::new($compressedStream, [System.IO.Compression.CompressionLevel]::Optimal, $true)
+    try {
+      $filteredBytes = $filtered.ToArray()
+      $compressor.Write($filteredBytes, 0, $filteredBytes.Length)
+    } finally {
+      $compressor.Dispose()
+    }
+    $compressed = $compressedStream.ToArray()
+  } finally {
+    $compressedStream.Dispose()
+  }
+
+  $ihdr = [System.Collections.Generic.List[byte]]::new()
+  $ihdr.AddRange([byte[]](ConvertTo-TestPngUInt32BigEndian -Value ([uint32]$width)))
+  $ihdr.AddRange([byte[]](ConvertTo-TestPngUInt32BigEndian -Value ([uint32]$height)))
+  foreach ($value in @($BitDepth, $ColorType, 0, 0, $Interlace)) { $ihdr.Add([byte]$value) }
+
+  $png = [System.Collections.Generic.List[byte]]::new()
+  $png.AddRange([byte[]](137, 80, 78, 71, 13, 10, 26, 10))
+  Add-TestPngChunk -Buffer $png -Type "IHDR" -Data $ihdr.ToArray()
+  Add-TestPngChunk -Buffer $png -Type "IDAT" -Data $compressed
+  Add-TestPngChunk -Buffer $png -Type "IEND" -Data ([byte[]]@())
+  return $png.ToArray()
 }
 
 function New-DialogFact {
@@ -636,13 +775,21 @@ function New-DialogContractFixture {
     $profileUpdate.vorherSha256 = (Get-FileHash -LiteralPath $boundProfilePath -Algorithm SHA256).Hash
   }
   $work = Join-Path -Path $Root -ChildPath "Private/Bewerbungen/Dialog-Firma/_Arbeitsdateien/2026-08-05--Dialog-Rolle"
+  $target = Join-Path -Path $Root -ChildPath "Private/Bewerbungen/Dialog-Firma/2026-08-05--Dialog-Rolle"
+  $candidate = Join-Path -Path $work -ChildPath "Kandidat"
   New-Item -Path $work -ItemType Directory -Force | Out-Null
   $auftragPath = Join-Path -Path $work -ChildPath "Bewerbungsauftrag.json"
   $now = [datetime]::UtcNow.ToString("o")
   $auftrag = [ordered]@{
     schemaVersion = 4
     firma = "Dialog Firma"
+    firmaSlug = "Dialog-Firma"
     rolle = "Dialog-Rolle"
+    rolleSlug = "Dialog-Rolle"
+    datum = "2026-08-05"
+    zielOrdner = $target
+    arbeitsOrdner = $work
+    kandidatOrdner = $candidate
     dokumentmodus = "individuelle_auswahl"
     dokumentumfang = [ordered]@{
       auswahl = "D"
@@ -680,11 +827,139 @@ Set-Content -LiteralPath $script:defaultOrderPersonal -Encoding UTF8 -Value "- D
 Set-Content -LiteralPath $script:defaultOrderProfile -Encoding UTF8 -Value "# Fiktives Testprofil"
 try {
   Invoke-Test -Name "PowerShell-Dateien sind syntaktisch gültig" -Body {
-    foreach ($file in Get-ChildItem -LiteralPath $toolsRoot -Filter "*.ps1" -File) {
+    foreach ($file in Get-ChildItem -LiteralPath $toolsRoot -Recurse -File | Where-Object { $_.Extension -in @(".ps1", ".psm1") }) {
       $tokens = $null
       $parseErrors = $null
       [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
       Assert-True -Condition ($parseErrors.Count -eq 0) -Message "$($file.Name) enthält Parserfehler."
+    }
+    foreach ($file in Get-ChildItem -LiteralPath $toolsRoot -Filter "*.ps1" -File) {
+      $head = @(Get-Content -LiteralPath $file.FullName -TotalCount 3 -Encoding UTF8)
+      Assert-True -Condition ($head -contains "#requires -Version 7.6") -Message "$($file.Name) verlangt PowerShell 7.6 nicht ausdrücklich."
+      Assert-True -Condition ($head -contains "#requires -PSEdition Core") -Message "$($file.Name) verlangt die Core-Edition nicht ausdrücklich."
+    }
+  }
+
+  Invoke-Test -Name "Native Prozesse begrenzen Ausgaben und beenden den Prozessbaum bei Timeout" -Body {
+    $bounded = Invoke-NativeProcess `
+      -FilePath $powerShellExe `
+      -ArgumentList @(
+        "-NoLogo", "-NoProfile", "-NonInteractive", "-Command",
+        '[Console]::Out.Write(("O" * 4096)); [Console]::Error.Write(("E" * 4096))'
+      ) `
+      -TimeoutSeconds 10 `
+      -MaxStdoutChars 128 `
+      -MaxStderrChars 96
+    Assert-True -Condition ($bounded.ExitCode -eq 0 -and -not $bounded.TimedOut) -Message "Begrenzter nativer Testprozess schlug technisch fehl."
+    Assert-True -Condition ($bounded.StandardOutput.Length -le 128 -and $bounded.StdoutTruncated) -Message "stdout wurde nicht auf die konfigurierte Obergrenze begrenzt."
+    Assert-True -Condition ($bounded.StandardError.Length -le 96 -and $bounded.StderrTruncated) -Message "stderr wurde nicht auf die konfigurierte Obergrenze begrenzt."
+
+    $timeoutHelperPath = Join-Path $testRoot "native-timeout-parent.ps1"
+    $descendantPidPath = Join-Path $testRoot "native-timeout-descendant.pid"
+    Set-Content -LiteralPath $timeoutHelperPath -Encoding UTF8 -Value @'
+param([Parameter(Mandatory = $true)][string]$PidFile)
+$processPath = (Get-Process -Id $PID).Path
+$startParameters = @{
+  FilePath = $processPath
+  ArgumentList = @('-NoLogo', '-NoProfile', '-NonInteractive', '-Command', 'Start-Sleep -Seconds 30')
+  PassThru = $true
+}
+if ($IsWindows) { $startParameters.WindowStyle = 'Hidden' }
+$descendant = Start-Process @startParameters
+[System.IO.File]::WriteAllText($PidFile, [string]$descendant.Id, [System.Text.UTF8Encoding]::new($false))
+Start-Sleep -Seconds 30
+'@
+
+    $descendantPid = $null
+    try {
+      $timed = Invoke-NativeProcess `
+        -FilePath $powerShellExe `
+        -ArgumentList @("-NoLogo", "-NoProfile", "-NonInteractive", "-File", $timeoutHelperPath, "-PidFile", $descendantPidPath) `
+        -TimeoutSeconds 3 `
+        -MaxStdoutChars 128 `
+        -MaxStderrChars 128
+      Assert-True -Condition $timed.TimedOut -Message "Lang laufender nativer Prozess meldete keinen Timeout."
+      Assert-True -Condition (Test-Path -LiteralPath $descendantPidPath -PathType Leaf) -Message "Timeout-Fixture konnte die PID des Kindprozesses nicht protokollieren."
+      $parsedPid = 0
+      $pidText = (Get-Content -LiteralPath $descendantPidPath -Raw -Encoding UTF8).Trim()
+      Assert-True -Condition ([int]::TryParse($pidText, [ref]$parsedPid) -and $parsedPid -gt 0) -Message "Timeout-Fixture schrieb keine gültige Kindprozess-PID."
+      $descendantPid = $parsedPid
+      $descendantExited = $true
+      try {
+        $descendantProcess = [System.Diagnostics.Process]::GetProcessById($descendantPid)
+        $descendantExited = $descendantProcess.WaitForExit(5000)
+        $descendantProcess.Dispose()
+      } catch [System.ArgumentException] {
+        $descendantExited = $true
+      }
+      Assert-True -Condition $descendantExited -Message "Kill(true) hinterließ den gestarteten Kindprozess $descendantPid."
+    } finally {
+      if ($null -ne $descendantPid) {
+        try {
+          $remainingProcess = [System.Diagnostics.Process]::GetProcessById([int]$descendantPid)
+          if (-not $remainingProcess.HasExited) {
+            $remainingProcess.Kill($true)
+            [void]$remainingProcess.WaitForExit(5000)
+          }
+          $remainingProcess.Dispose()
+        } catch [System.ArgumentException] {
+          # Der erwartete Fall nach erfolgreichem Kill(true): Die PID existiert nicht mehr.
+        }
+      }
+    }
+  }
+
+  Invoke-Test -Name "Portabler PNG-Leser dekodiert Farbtypen und Filter und lehnt defekte Header ab" -Body {
+    $pngRoot = Join-Path $testRoot "portable-png-matrix"
+    New-Item -Path $pngRoot -ItemType Directory | Out-Null
+    $pixelCases = @(
+      [pscustomobject]@{
+        Name = "grau"; ColorType = 0; Channels = 1
+        Pixels = [byte[]](10, 40, 90, 20, 50, 100)
+        FirstRgba = @(10, 10, 10, 255)
+      },
+      [pscustomobject]@{
+        Name = "rgb"; ColorType = 2; Channels = 3
+        Pixels = [byte[]](10, 20, 30, 40, 50, 60, 70, 80, 90, 15, 25, 35, 45, 55, 65, 75, 85, 95)
+        FirstRgba = @(10, 20, 30, 255)
+      },
+      [pscustomobject]@{
+        Name = "rgba"; ColorType = 6; Channels = 4
+        Pixels = [byte[]](10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115, 125)
+        FirstRgba = @(10, 20, 30, 40)
+      }
+    )
+
+    foreach ($pixelCase in $pixelCases) {
+      foreach ($filter in 0..4) {
+        $path = Join-Path $pngRoot "$($pixelCase.Name)-filter-$filter.png"
+        [System.IO.File]::WriteAllBytes($path, [byte[]](New-SyntheticPngBytes -ColorType $pixelCase.ColorType -Filter $filter -Pixels $pixelCase.Pixels))
+        $validation = Test-PngImage -LiteralPath $path -ExpectedWidth 3 -ExpectedHeight 2
+        Assert-True -Condition ($validation.valid -and $validation.colorType -eq $pixelCase.ColorType -and $validation.channels -eq $pixelCase.Channels) -Message "PNG-Matrixfall $($pixelCase.Name)/Filter $filter wurde nicht validiert: $($validation.error)"
+        $image = Read-PngImage -LiteralPath $path
+        Assert-True -Condition ([Convert]::ToHexString($image.Pixels) -ceq [Convert]::ToHexString($pixelCase.Pixels)) -Message "PNG-Filter $filter dekodierte $($pixelCase.Name)-Pixel nicht bytegenau."
+        $firstPixel = Get-PngPixel -Image $image -X 0 -Y 0
+        $actualRgba = @($firstPixel.R, $firstPixel.G, $firstPixel.B, $firstPixel.A)
+        Assert-True -Condition (@(Compare-Object -ReferenceObject $pixelCase.FirstRgba -DifferenceObject $actualRgba -SyncWindow 0).Count -eq 0) -Message "PNG-Farbkonvertierung ist für $($pixelCase.Name)/Filter $filter falsch."
+      }
+    }
+
+    $grayPixels = [byte[]](10, 40, 90, 20, 50, 100)
+    $validBytes = [byte[]](New-SyntheticPngBytes -ColorType 0 -Filter 0 -Pixels $grayPixels)
+    $crcBytes = [byte[]]$validBytes.Clone()
+    $crcBytes[20] = [byte]($crcBytes[20] -bxor 1)
+    $invalidCases = @(
+      [pscustomobject]@{ Name = "crc"; Bytes = $crcBytes; ErrorPattern = "CRC" },
+      [pscustomobject]@{ Name = "interlace"; Bytes = [byte[]](New-SyntheticPngBytes -ColorType 0 -Filter 0 -Pixels $grayPixels -Interlace 1); ErrorPattern = "Interlaced" },
+      [pscustomobject]@{ Name = "bitdepth"; Bytes = [byte[]](New-SyntheticPngBytes -ColorType 0 -Filter 0 -Pixels $grayPixels -BitDepth 16); ErrorPattern = "8-bit" }
+    )
+    foreach ($invalidCase in $invalidCases) {
+      $path = Join-Path $pngRoot "invalid-$($invalidCase.Name).png"
+      [System.IO.File]::WriteAllBytes($path, $invalidCase.Bytes)
+      $validation = Test-PngImage -LiteralPath $path
+      Assert-True -Condition (-not $validation.valid -and $validation.error -match $invalidCase.ErrorPattern) -Message "Defekter PNG-Fall $($invalidCase.Name) wurde nicht mit dem erwarteten Grund abgelehnt: $($validation.error)"
+      $density = Measure-PngBottomWhitespace -LiteralPath $path -DocumentName "Lebenslauf - TEST.PERSON.png"
+      Assert-True -Condition (-not $density.available -and $density.warning -match "nicht automatisch ausgewertet") -Message "Dichteprüfung schlug für defekten PNG-Fall $($invalidCase.Name) nicht fail-closed fehl."
     }
   }
 
@@ -748,7 +1023,7 @@ try {
   Invoke-Test -Name "Kanonischer Prompt definiert Fähigkeiten und Fortsetzung aus Dateinachweisen" -Body {
     $canonical = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/00_AGENTEN_START_HIER.md") -Raw -Encoding UTF8
     Assert-True -Condition ($canonical -match '## Laufzeitfähigkeiten bedarfsgerecht prüfen') -Message "Fähigkeiten-Preflight fehlt im kanonischen Prompt."
-    foreach ($capability in @("Dateien lesen und schreiben", "Terminalbefehle ausführen", "PowerShell 7", "Chrome oder Edge", "PNG-Bildauswertung", "maschinenlesbare Nutzungsdaten", "Sandbox")) {
+    foreach ($capability in @("Dateien lesen und schreiben", "Terminalbefehle ausführen", "PowerShell 7", "Chrome, Edge oder Chromium", "PNG-Bildauswertung", "maschinenlesbare Nutzungsdaten", "Sandbox")) {
       Assert-True -Condition ($canonical.Contains($capability)) -Message "Fähigkeit fehlt im kanonischen Prompt: $capability"
     }
     Assert-True -Condition ($canonical -match '## Fortsetzen ohne Chatverlauf') -Message "Fortsetzungsabschnitt fehlt im kanonischen Prompt."
@@ -1378,11 +1653,12 @@ try {
     )
     Assert-True -Condition ($prepare.ExitCode -eq 0) -Message "Browserfreie E-Mail-Vorbereitung schlug fehl: $($prepare.Output -join ' | ')"
     $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
-    Assert-True -Condition ($report.schemaVersion -eq 4 -and $report.personalReview -eq "textpruefung" -and $report.expectedScreenshots -eq 0) -Message "E-Mail-only-Bericht fordert nicht die persönliche Textprüfung ohne Screenshots."
+    Assert-True -Condition ($report.schemaVersion -eq 5 -and $report.personalReview -eq "textpruefung" -and $report.expectedScreenshots -eq 0) -Message "E-Mail-only-Bericht fordert nicht die persönliche Textprüfung ohne Screenshots."
+    Assert-True -Condition (-not [string]::IsNullOrWhiteSpace([string]$report.runtime.os) -and $report.runtime.psEdition -eq "Core") -Message "Finalisierungsbericht enthält keinen gültigen Runtime-Fingerprint."
     Assert-True -Condition (@($report.artifacts.html).Count -eq 0 -and @($report.artifacts.pdf).Count -eq 0 -and @($report.artifacts.screenshots).Count -eq 0) -Message "E-Mail-only erzeugte HTML-, PDF- oder Screenshotartefakte."
     foreach ($reportPath in @($report.layoutReport, $report.pdfReport, $report.atsReport)) {
       $skipped = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
-      Assert-True -Condition ($skipped.status -eq "nicht_erforderlich") -Message "Nicht erforderlicher Browserbericht ist nicht entsprechend markiert: $reportPath"
+      Assert-True -Condition ($skipped.status -eq "nicht_erforderlich" -and $skipped.runtime.os -eq $report.runtime.os) -Message "Nicht erforderlicher Browserbericht ist nicht entsprechend markiert oder ohne Runtime gebunden: $reportPath"
     }
     $preparedStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
     Assert-True -Condition ($preparedStatusResult.ExitCode -eq 0) -Message "Vorbereiteter E-Mail-Stand ließ sich nicht rekonstruieren."
@@ -1395,6 +1671,21 @@ try {
     $invalidatedStatus = ($invalidatedStatusResult.Output -join "`n") | ConvertFrom-Json
     Assert-True -Condition (-not $invalidatedStatus.finalReportValid -and $invalidatedStatus.phase -eq "technische_vorbereitung") -Message "Zusätzliche ungebundene Kandidatendatei entwertete den vorbereiteten Status nicht."
     Remove-Item -LiteralPath $unboundCandidatePath -Force
+
+    $platformBoundReportJson = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8
+    $foreignPlatformReport = $platformBoundReportJson | ConvertFrom-Json
+    $foreignPlatformReport.runtime.os = if ([string]$foreignPlatformReport.runtime.os -eq "windows") { "linux" } else { "windows" }
+    Set-Content -LiteralPath $fixture.FinalReport -Encoding UTF8 -Value ($foreignPlatformReport | ConvertTo-Json -Depth 12)
+    $foreignStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
+    Assert-True -Condition ($foreignStatusResult.ExitCode -eq 0) -Message "Statusprüfung eines fremden Runtime-Fingerprints schlug technisch fehl."
+    $foreignStatus = ($foreignStatusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition (-not $foreignStatus.finalReportValid -and $foreignStatus.phase -eq "technische_vorbereitung") -Message "OS-Wechsel entwertete die technischen Nachweise nicht."
+    $foreignPublish = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @(
+      "-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile,
+      "-Veroeffentlichen", "-VisuellGeprueft"
+    )
+    Assert-True -Condition ($foreignPublish.ExitCode -ne 0) -Message "Fremder OS-Fingerprint wurde für die Veröffentlichung akzeptiert."
+    [System.IO.File]::WriteAllText($fixture.FinalReport, $platformBoundReportJson, [System.Text.UTF8Encoding]::new($false))
 
     $preparedReportJson = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8
     $invalidSchemaReport = $preparedReportJson | ConvertFrom-Json
@@ -1464,8 +1755,8 @@ try {
     Assert-True -Condition ($qualityText -match 'Persönliche Textprüfung: bestätigt' -and $qualityText -notmatch 'jede gerenderte A4-Seite wurde') -Message "E-Mail-only-Qualitätsbericht beschreibt nicht die tatsächliche persönliche Textprüfung."
   }
 
-  Invoke-Test -Name "Ordnerhelfer legt Schema-4-Auftrag mit Dokumentumfang und Logistik-Snapshot an" -Body {
-    $root = Join-Path $testRoot "schema3-order"
+  Invoke-Test -Name "Ordnerhelfer legt portablen Schema-5-Auftrag mit Dokumentumfang und Logistik-Snapshot an" -Body {
+    $root = Join-Path $testRoot "schema5-order"
     $data = New-ValidPrivateDataFixture -Root $root
     $applicationsRoot = Join-Path $root "Private/Bewerbungen"
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
@@ -1479,12 +1770,174 @@ try {
     Assert-True -Condition ($result.ExitCode -eq 0) -Message "Ordnerhelfer schlug fehl: $($result.Output -join ' | ')"
     $auftragPath = Join-Path $applicationsRoot "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle/Bewerbungsauftrag.json"
     $auftrag = Get-Content -LiteralPath $auftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    Assert-True -Condition ($auftrag.schemaVersion -eq 4) -Message "Bewerbungsauftrag verwendet nicht Schema 4."
+    Assert-True -Condition ($auftrag.schemaVersion -eq 5) -Message "Bewerbungsauftrag verwendet nicht Schema 5."
+    Assert-True -Condition ($auftrag.pfadModus -eq "relativ_zu_bewerbungen_root") -Message "Schema-5-Auftrag weist den portablen Pfadmodus nicht aus."
+    Assert-True -Condition ($auftrag.zielOrdner -ceq "Audit-Firma/2026-07-14--Audit-Rolle") -Message "Zielordner ist nicht relativ und '/'-normalisiert."
+    Assert-True -Condition ($auftrag.arbeitsOrdner -ceq "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle") -Message "Arbeitsordner ist nicht relativ und '/'-normalisiert."
+    Assert-True -Condition ($auftrag.kandidatOrdner -ceq "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle/Kandidat") -Message "Kandidatenordner ist nicht relativ und '/'-normalisiert."
+    foreach ($storedPath in @($auftrag.zielOrdner, $auftrag.arbeitsOrdner, $auftrag.kandidatOrdner)) {
+      Assert-True -Condition (-not [System.IO.Path]::IsPathRooted([string]$storedPath) -and -not ([string]$storedPath).Contains("\")) -Message "Schema-5-Auftrag enthält einen absoluten oder betriebssystemspezifischen Pfad: $storedPath"
+    }
     Assert-True -Condition ($auftrag.dokumentmodus -eq "vollbewerbung") -Message "Standard-Dokumentmodus ist nicht vollbewerbung."
     Assert-True -Condition ($auftrag.dokumentumfang.kennung -eq "komplette_bewerbung" -and $auftrag.dokumentumfang.lebenslauf -eq "individuell" -and $auftrag.dokumentumfang.anschreiben -and $auftrag.dokumentumfang.emailNachricht) -Message "Dokumentumfang A wurde nicht vollständig gespeichert."
     Assert-True -Condition ($auftrag.bewerbungslogistik.stellenart -eq "Vollzeit" -and $auftrag.bewerbungslogistik.arbeitsmodell -eq "hybrid") -Message "Logistik-Snapshot ist unvollständig."
     Assert-True -Condition ($auftrag.bewerbungsentscheidung -eq "noch_festzulegen") -Message "Initiale Bewerbungsentscheidung ist nicht offen markiert."
     Assert-True -Condition ($auftrag.quellnachweise.stammdatenSha256BeiAnlage -eq (Get-FileHash -LiteralPath $data.Personal -Algorithm SHA256).Hash) -Message "Stammdaten-Quellhash fehlt oder stimmt nicht."
+  }
+
+  Invoke-Test -Name "Ordnerhelfer kodiert Firma und Rolle sicher in HTML und JSON" -Body {
+    $root = Join-Path $testRoot "escaping-order"
+    $applicationsRoot = Join-Path $root "Private/Bewerbungen"
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
+      "-Firma", 'A&B <X>', "-Rolle", 'R "Q"', "-Datum", "2026-07-14",
+      "-UmfangAuswahl", "A", "-BewerbungenRoot", $applicationsRoot
+    )
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Anlage mit HTML-Sonderzeichen schlug fehl: $($result.Output -join ' | ')"
+    $work = Join-Path $applicationsRoot "AundB-X/_Arbeitsdateien/2026-07-14--R-Q"
+    $html = Get-Content -LiteralPath (Join-Path $work "Lebenslauf--AundB-X--ENTWURF.html") -Raw -Encoding UTF8
+    Assert-True -Condition ($html.Contains("A&amp;B &lt;X&gt;") -and $html.Contains("R &quot;Q&quot;")) -Message "Firma oder Rolle wurde im HTML-Entwurf nicht kontextgerecht kodiert."
+    $order = Get-Content -LiteralPath (Join-Path $work "Bewerbungsauftrag.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($order.firma -ceq 'A&B <X>' -and $order.rolle -ceq 'R "Q"') -Message "Firma oder Rolle wurde im JSON semantisch verändert."
+  }
+
+  Invoke-Test -Name "CRLF- und Steuerzeichenwerte werden als gültiges JSON maskiert" -Body {
+    $root = Join-Path $testRoot "crlf-control-order"
+    $personal = Join-Path $root "crlf-personal.md"
+    $profile = Join-Path $root "crlf-profile.md"
+    New-Item -Path $root -ItemType Directory | Out-Null
+    $personalText = "- Dateiname-Name: CRLF.PERSON`r`n- Verfügbarkeit: sofort`toder$([char]1)später`r`n"
+    [System.IO.File]::WriteAllText($personal, $personalText, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($profile, "# Fiktives CRLF-Testprofil`r`n", [System.Text.UTF8Encoding]::new($false))
+    $applicationsRoot = Join-Path $root "Private/Bewerbungen"
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
+      "-Firma", "CRLF Firma", "-Rolle", "CRLF Rolle", "-Datum", "2026-07-14",
+      "-UmfangAuswahl", "A", "-StammdatenPath", $personal, "-ProfilPath", $profile,
+      "-BewerbungenRoot", $applicationsRoot
+    )
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "CRLF-/Steuerzeichen-Fixture schlug fehl: $($result.Output -join ' | ')"
+    $orderPath = Join-Path $applicationsRoot "CRLF-Firma/_Arbeitsdateien/2026-07-14--CRLF-Rolle/Bewerbungsauftrag.json"
+    $raw = Get-Content -LiteralPath $orderPath -Raw -Encoding UTF8
+    $order = $raw | ConvertFrom-Json
+    Assert-True -Condition ($order.bewerbungslogistik.verfuegbarkeit -ceq "sofort`toder$([char]1)später") -Message "CRLF-/Steuerzeichenwert wurde semantisch verändert."
+    Assert-True -Condition ($raw.Contains("\t") -and $raw.Contains("\u0001") -and -not $raw.Contains([string][char]1)) -Message "Steuerzeichen wurde nicht JSON-konform maskiert."
+  }
+
+  Invoke-Test -Name "Schema-5-Pfade lassen sich unter zwei Roots sicher und identisch rekonstruieren" -Body {
+    $rootOne = Join-Path $testRoot "portable-root-one"
+    $rootTwo = Join-Path $testRoot "portable-root-two"
+    New-Item -Path $rootOne -ItemType Directory | Out-Null
+    New-Item -Path $rootTwo -ItemType Directory | Out-Null
+    $order = [pscustomobject][ordered]@{
+      schemaVersion = 5
+      pfadModus = "relativ_zu_bewerbungen_root"
+      firma = "Audit Firma"
+      firmaSlug = "Audit-Firma"
+      rolle = "Audit Rolle"
+      rolleSlug = "Audit-Rolle"
+      datum = "2026-07-14"
+      zielOrdner = "Audit-Firma/2026-07-14--Audit-Rolle"
+      arbeitsOrdner = "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle"
+      kandidatOrdner = "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle/Kandidat"
+    }
+    $before = $order | ConvertTo-Json -Depth 6 -Compress
+    $first = Resolve-BewerbungsauftragPathSet -Auftrag $order -BewerbungenRoot $rootOne
+    $second = Resolve-BewerbungsauftragPathSet -Auftrag $order -BewerbungenRoot $rootTwo
+    $inferred = Resolve-BewerbungsauftragPathSet -Auftrag $order -Arbeitsordner $first.ArbeitsOrdner
+    Assert-True -Condition ($first.ZielOrdner -ceq (Join-Path $rootOne "Audit-Firma/2026-07-14--Audit-Rolle")) -Message "Schema-5-Zielpfad wurde am ersten Root falsch rekonstruiert."
+    Assert-True -Condition ($second.ZielOrdner -ceq (Join-Path $rootTwo "Audit-Firma/2026-07-14--Audit-Rolle")) -Message "Schema-5-Zielpfad wurde am zweiten Root falsch rekonstruiert."
+    Assert-True -Condition ($inferred.BewerbungenRoot -ceq $first.BewerbungenRoot -and $inferred.ArbeitsOrdner -ceq $first.ArbeitsOrdner) -Message "Schema-5-Root wurde aus dem validierten Arbeitsordner nicht korrekt abgeleitet."
+    Assert-True -Condition (($order | ConvertTo-Json -Depth 6 -Compress) -ceq $before) -Message "Reine Schema-5-Pfadauflösung schrieb den Auftrag um."
+  }
+
+  Invoke-Test -Name "Schema-5-Pfade verwerfen absolute, aufsteigende und betriebssystemspezifische Werte" -Body {
+    $root = Join-Path $testRoot "portable-invalid-root"
+    New-Item -Path $root -ItemType Directory | Out-Null
+    $baseline = [ordered]@{
+      schemaVersion = 5
+      pfadModus = "relativ_zu_bewerbungen_root"
+      firma = "Audit Firma"
+      firmaSlug = "Audit-Firma"
+      rolle = "Audit Rolle"
+      rolleSlug = "Audit-Rolle"
+      datum = "2026-07-14"
+      zielOrdner = "Audit-Firma/2026-07-14--Audit-Rolle"
+      arbeitsOrdner = "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle"
+      kandidatOrdner = "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle/Kandidat"
+    }
+    $absolutePath = [System.IO.Path]::GetFullPath((Join-Path $testRoot "ausserhalb"))
+    $invalidCases = @(
+      @{ Field = "zielOrdner"; Value = $absolutePath; Label = "absolut" },
+      @{ Field = "arbeitsOrdner"; Value = "Audit-Firma/../Ausbruch"; Label = ".." },
+      @{ Field = "kandidatOrdner"; Value = "Audit-Firma\_Arbeitsdateien\2026-07-14--Audit-Rolle\Kandidat"; Label = "Backslash" },
+      @{ Field = "firmaSlug"; Value = "Andere-Firma"; Label = "Slug-Abweichung" }
+    )
+    foreach ($case in $invalidCases) {
+      $order = ($baseline | ConvertTo-Json -Depth 6 | ConvertFrom-Json)
+      $order.($case.Field) = $case.Value
+      $rejected = $false
+      try {
+        [void](Resolve-BewerbungsauftragPathSet -Auftrag $order -BewerbungenRoot $root)
+      } catch {
+        $rejected = $true
+      }
+      Assert-True -Condition $rejected -Message "Schema-5-Auflösung akzeptierte ungültigen Fall: $($case.Label)."
+    }
+  }
+
+  Invoke-Test -Name "Schema-5-Containment erkennt einen Symlink-Escape" -Body {
+    $root = Join-Path $testRoot "portable-symlink-root"
+    $outside = Join-Path $testRoot "portable-symlink-outside"
+    New-Item -Path $root -ItemType Directory | Out-Null
+    New-Item -Path $outside -ItemType Directory | Out-Null
+    $link = Join-Path $root "Audit-Firma"
+    if ($IsWindows) {
+      New-Item -Path $link -ItemType Junction -Target $outside | Out-Null
+    } else {
+      New-Item -Path $link -ItemType SymbolicLink -Target $outside | Out-Null
+    }
+    $order = [pscustomobject][ordered]@{
+      schemaVersion = 5
+      pfadModus = "relativ_zu_bewerbungen_root"
+      firma = "Audit Firma"
+      firmaSlug = "Audit-Firma"
+      rolle = "Audit Rolle"
+      rolleSlug = "Audit-Rolle"
+      datum = "2026-07-14"
+      zielOrdner = "Audit-Firma/2026-07-14--Audit-Rolle"
+      arbeitsOrdner = "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle"
+      kandidatOrdner = "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle/Kandidat"
+    }
+    $rejected = $false
+    try {
+      [void](Resolve-BewerbungsauftragPathSet -Auftrag $order -BewerbungenRoot $root)
+    } catch {
+      $rejected = $true
+    }
+    Assert-True -Condition $rejected -Message "Schema-5-Auflösung folgte einem Symlink aus BewerbungenRoot heraus."
+  }
+
+  Invoke-Test -Name "Legacy-Schemata 1 bis 4 bleiben absolut lesbar und werden nicht umgeschrieben" -Body {
+    $root = Join-Path $testRoot "legacy-path-orders"
+    New-Item -Path $root -ItemType Directory | Out-Null
+    $target = Join-Path $root "Legacy-Firma/2026-07-14--Legacy-Rolle"
+    $work = Join-Path $root "Legacy-Firma/_Arbeitsdateien/2026-07-14--Legacy-Rolle"
+    $candidate = Join-Path $work "Kandidat"
+    foreach ($schema in 1..4) {
+      $path = Join-Path $testRoot "legacy-order-$schema.json"
+      $order = [ordered]@{
+        schemaVersion = $schema
+        zielOrdner = $target
+        arbeitsOrdner = $work
+        kandidatOrdner = $candidate
+      }
+      Set-Content -LiteralPath $path -Encoding UTF8 -Value ($order | ConvertTo-Json -Depth 4)
+      $beforeHash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+      $loaded = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+      $resolved = Resolve-BewerbungsauftragPathSet -Auftrag $loaded -BewerbungenRoot $root -Arbeitsordner $work
+      Assert-True -Condition ($resolved.SchemaVersion -eq $schema -and $resolved.PfadModus -eq "legacy_gespeichert") -Message "Legacy-Schema $schema wurde nicht im Legacy-Modus gelesen."
+      Assert-True -Condition ($resolved.ZielOrdner -ceq [System.IO.Path]::GetFullPath($target)) -Message "Legacy-Schema $schema änderte den gespeicherten Zielpfad."
+      Assert-True -Condition ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -eq $beforeHash) -Message "Legacy-Schema $schema wurde beim Lesen umgeschrieben."
+    }
   }
 
   Invoke-Test -Name "Ordnerhelfer übernimmt universellen Lebenslauf unverändert und erzeugt keinen CV-Entwurf" -Body {
@@ -1508,11 +1961,31 @@ try {
     $candidatePath = Join-Path $work "Kandidat/Lebenslauf - TEST.PERSON.html"
     $auftrag = Get-Content -LiteralPath (Join-Path $work "Bewerbungsauftrag.json") -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ($auftrag.dokumentmodus -eq "anschreiben_mit_universalem_lebenslauf") -Message "Anschreiben-Modus fehlt im Auftrag."
+    Assert-True -Condition ($auftrag.schemaVersion -eq 5 -and $auftrag.universalLebenslauf.sourceHtmlPfadModus -eq "extern_nicht_gespeichert") -Message "Externe Universalquelle wurde nicht portabel gebunden."
+    Assert-True -Condition ($null -eq $auftrag.universalLebenslauf.PSObject.Properties["sourceHtmlPath"]) -Message "Schema-5-Auftrag speichert einen betriebssystemspezifischen Pfad zur externen Universalquelle."
     Assert-True -Condition ((Get-FileHash $candidatePath -Algorithm SHA256).Hash -eq (Get-FileHash $universalPath -Algorithm SHA256).Hash) -Message "Universalquelle wurde beim Übernehmen verändert."
     Assert-True -Condition (-not (Test-Path (Join-Path $work "Lebenslauf--Universal-Firma--ENTWURF.html"))) -Message "Im Anschreiben-Modus wurde fälschlich ein Lebenslaufentwurf erzeugt."
 
+    $otherUniversalDir = Join-Path $root "Private/LebenslaufUniversal/AndereQuelle"
+    New-Item -Path $otherUniversalDir -ItemType Directory -Force | Out-Null
+    $otherUniversalPath = Join-Path $otherUniversalDir "Lebenslauf - TEST.PERSON.html"
+    Copy-Item -LiteralPath $universalPath -Destination $otherUniversalPath
+    $portableResume = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
+      "-Firma", "Universal Firma", "-Rolle", "Universal Rolle", "-Datum", "2026-07-14",
+      "-Dokumentmodus", "anschreiben_mit_universalem_lebenslauf", "-UniversalLebenslaufPath", $otherUniversalPath,
+      "-StammdatenPath", $data.Personal, "-ProfilPath", $data.Profile, "-BewerbungenRoot", $applicationsRoot, "-Fortsetzen"
+    )
+    Assert-True -Condition ($portableResume.ExitCode -eq 0) -Message "Hashgleiche externe Universalquelle wurde unter neuem Systempfad nicht fortgesetzt: $($portableResume.Output -join ' | ')"
+
     $auftrag.schemaVersion = 2
+    $auftrag.zielOrdner = Join-Path $applicationsRoot "Universal-Firma/2026-07-14--Universal-Rolle"
+    $auftrag.arbeitsOrdner = $work
+    $auftrag.kandidatOrdner = Join-Path $work "Kandidat"
+    $auftrag.PSObject.Properties.Remove("pfadModus")
     $auftrag.PSObject.Properties.Remove("dokumentumfang")
+    $auftrag.universalLebenslauf | Add-Member -NotePropertyName sourceHtmlPath -NotePropertyValue $universalPath -Force
+    $auftrag.universalLebenslauf.PSObject.Properties.Remove("sourceHtmlPfadModus")
+    $auftrag.universalLebenslauf.PSObject.Properties.Remove("sourceHtmlDateiname")
     Set-Content -LiteralPath (Join-Path $work "Bewerbungsauftrag.json") -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 12)
     $legacyResume = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
       "-Firma", "Universal Firma", "-Rolle", "Universal Rolle", "-Datum", "2026-07-14",
@@ -1521,10 +1994,6 @@ try {
     )
     Assert-True -Condition ($legacyResume.ExitCode -eq 0) -Message "Expliziter Universalmodus eines Schema-2-Auftrags wurde nicht als Auswahl B fortgesetzt: $($legacyResume.Output -join ' | ')"
 
-    $otherUniversalDir = Join-Path $root "Private/LebenslaufUniversal/AndereQuelle"
-    New-Item -Path $otherUniversalDir -ItemType Directory -Force | Out-Null
-    $otherUniversalPath = Join-Path $otherUniversalDir "Lebenslauf - TEST.PERSON.html"
-    Copy-Item -LiteralPath $universalPath -Destination $otherUniversalPath
     $differentPath = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
       "-Firma", "Universal Firma", "-Rolle", "Universal Rolle", "-Datum", "2026-07-14",
       "-Dokumentmodus", "anschreiben_mit_universalem_lebenslauf", "-UniversalLebenslaufPath", $otherUniversalPath,
@@ -1680,6 +2149,90 @@ try {
     Assert-True -Condition ($result.ExitCode -ne 0) -Message "Nicht festgelegte Seitenstrategie wurde akzeptiert."
   }
 
+  Invoke-Test -Name "ATS-Bericht erbt nur einen vollständigen aktuellen Browser-Fingerprint" -Body {
+    $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "ats-runtime-contract")
+    $pdfReportPath = Join-Path $fixture.Work "PDF-Export/PDF-Export-Bericht.json"
+    $atsReportPath = Join-Path $fixture.Work "ATS-Pruefbericht.json"
+    $pdfReportJson = Get-Content -LiteralPath $pdfReportPath -Raw -Encoding UTF8
+    $pdfReport = $pdfReportJson | ConvertFrom-Json
+
+    $valid = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-ATS.ps1") -Arguments @(
+      "-Ordner", $fixture.Candidate,
+      "-StammdatenPath", $fixture.Personal,
+      "-AuftragPath", $fixture.Auftrag,
+      "-BerichtPath", $atsReportPath,
+      "-PdfExportBerichtPath", $pdfReportPath,
+      "-MinTextabdeckungProzent", "40"
+    )
+    Assert-True -Condition ($valid.ExitCode -eq 0) -Message "ATS-Runtime-Fixture wurde abgelehnt: $($valid.Output -join ' | ')"
+    $atsReport = Get-Content -LiteralPath $atsReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $expectedFingerprint = $pdfReport.runtime | ConvertTo-Json -Depth 8 -Compress
+    $actualFingerprint = $atsReport.runtime | ConvertTo-Json -Depth 8 -Compress
+    Assert-True -Condition ($actualFingerprint -ceq $expectedFingerprint) -Message "ATS-Bericht übernahm den PDF-Runtime-Fingerprint nicht unverändert."
+    Assert-True -Condition (
+      -not [string]::IsNullOrWhiteSpace([string]$atsReport.runtime.browser.name) -and
+      -not [string]::IsNullOrWhiteSpace([string]$atsReport.runtime.browser.version) -and
+      -not [string]::IsNullOrWhiteSpace([string]$atsReport.runtime.browser.executable)
+    ) -Message "ATS-Bericht enthält keinen vollständigen Browser-Fingerprint."
+
+    $invalidCases = @(
+      [pscustomobject]@{ Label = "fehlender Browser"; Kind = "browser" },
+      [pscustomobject]@{ Label = "fremdes Betriebssystem"; Kind = "os" },
+      [pscustomobject]@{ Label = "falsches Runtime-Schema"; Kind = "schema" }
+    )
+    foreach ($invalidCase in $invalidCases) {
+      $invalidPdfReport = $pdfReportJson | ConvertFrom-Json
+      switch ($invalidCase.Kind) {
+        "browser" { $invalidPdfReport.runtime.browser = $null }
+        "os" { $invalidPdfReport.runtime.os = if ([string]$invalidPdfReport.runtime.os -eq "windows") { "linux" } else { "windows" } }
+        "schema" { $invalidPdfReport.runtime.schemaVersion = 2 }
+      }
+      Set-Content -LiteralPath $pdfReportPath -Encoding UTF8 -Value ($invalidPdfReport | ConvertTo-Json -Depth 10)
+      if (Test-Path -LiteralPath $atsReportPath -PathType Leaf) {
+        Remove-Item -LiteralPath $atsReportPath -Force
+      }
+      $rejected = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-ATS.ps1") -Arguments @(
+        "-Ordner", $fixture.Candidate,
+        "-StammdatenPath", $fixture.Personal,
+        "-AuftragPath", $fixture.Auftrag,
+        "-BerichtPath", $atsReportPath,
+        "-PdfExportBerichtPath", $pdfReportPath,
+        "-MinTextabdeckungProzent", "40"
+      )
+      Assert-True -Condition ($rejected.ExitCode -ne 0) -Message "ATS-Prüfung akzeptierte $($invalidCase.Label)."
+      Assert-True -Condition (($rejected.Output -join "`n") -match "Runtime-Fingerprint") -Message "ATS-Prüfung lehnte $($invalidCase.Label) nicht aus dem erwarteten Runtime-Grund ab: $($rejected.Output -join ' | ')"
+      Assert-True -Condition (-not (Test-Path -LiteralPath $atsReportPath)) -Message "ATS-Prüfung schrieb trotz $($invalidCase.Label) einen Bericht."
+    }
+    [System.IO.File]::WriteAllText($pdfReportPath, $pdfReportJson, [System.Text.UTF8Encoding]::new($false))
+  }
+
+  Invoke-Test -Name "Status und Finalisierung verwerfen ungültige Runtime-Schemata" -Body {
+    $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "runtime-schema-contract")
+    Set-Content -LiteralPath (Join-Path $fixture.Work "Arbeitsnotizen.md") -Encoding UTF8 -Value "# Fiktiver Runtime-Schema-Teststand"
+    $baselineReportJson = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8
+    foreach ($invalidRuntimeSchema in @("1", 2)) {
+      $invalidReport = $baselineReportJson | ConvertFrom-Json
+      $invalidReport.runtime.schemaVersion = $invalidRuntimeSchema
+      Set-Content -LiteralPath $fixture.FinalReport -Encoding UTF8 -Value ($invalidReport | ConvertTo-Json -Depth 12)
+
+      $statusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
+      Assert-True -Condition ($statusResult.ExitCode -eq 0) -Message "Statusprüfung eines ungültigen Runtime-Schemas schlug technisch fehl: $($statusResult.Output -join ' | ')"
+      $status = ($statusResult.Output -join "`n") | ConvertFrom-Json
+      Assert-True -Condition (-not $status.finalReportValid -and $status.phase -notin @("persoenliche_pruefung", "veroeffentlicht")) -Message "Status akzeptierte Runtime-Schema '$invalidRuntimeSchema' als belastbaren technischen Nachweis: $($status | ConvertTo-Json -Depth 6 -Compress)"
+
+      $publish = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @(
+        "-Arbeitsordner", $fixture.Work,
+        "-StammdatenPath", $fixture.Personal,
+        "-ProfilPath", $fixture.Profile,
+        "-Veroeffentlichen", "-VisuellGeprueft"
+      )
+      Assert-True -Condition ($publish.ExitCode -ne 0) -Message "Finalisierung akzeptierte Runtime-Schema '$invalidRuntimeSchema'."
+      Assert-True -Condition (($publish.Output -join "`n") -match "Runtime-Fingerprint") -Message "Finalisierung lehnte Runtime-Schema '$invalidRuntimeSchema' nicht aus dem erwarteten Runtime-Grund ab: $($publish.Output -join ' | ')"
+      Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Force).Count -eq 0) -Message "Ungültiges Runtime-Schema befüllte den finalen Zielordner."
+    }
+    [System.IO.File]::WriteAllText($fixture.FinalReport, $baselineReportJson, [System.Text.UTF8Encoding]::new($false))
+  }
+
   Invoke-Test -Name "Finalisierung verlangt eine ausdrückliche Sichtprüfung" -Body {
     $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-needs-visual")
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Veroeffentlichen")
@@ -1741,6 +2294,21 @@ try {
     )
     Assert-True -Condition ($emptyResult.ExitCode -ne 0) -Message "Leere technische Ergebnisliste wurde trotz aktualisiertem Berichtsdateihash akzeptiert."
     Assert-True -Condition (@(Get-ChildItem -LiteralPath $emptyFixture.Folder -Force).Count -eq 0) -Message "Zielordner wurde trotz leerem technischen Bericht befüllt."
+
+    $densityFixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-missing-density")
+    $densityReport = Get-Content -LiteralPath $densityFixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
+    $densityLayout = Get-Content -LiteralPath $densityReport.layoutReport -Raw -Encoding UTF8 | ConvertFrom-Json
+    $densityLayout.results[0].PSObject.Properties.Remove("bottomWhitespacePx")
+    Set-Content -LiteralPath $densityReport.layoutReport -Encoding UTF8 -Value ($densityLayout | ConvertTo-Json -Depth 10)
+    $densityReport.layoutReportArtifact.bytes = (Get-Item -LiteralPath $densityReport.layoutReport).Length
+    $densityReport.layoutReportArtifact.sha256 = (Get-FileHash -LiteralPath $densityReport.layoutReport -Algorithm SHA256).Hash
+    Set-Content -LiteralPath $densityFixture.FinalReport -Encoding UTF8 -Value ($densityReport | ConvertTo-Json -Depth 12)
+    $densityResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @(
+      "-Arbeitsordner", $densityFixture.Work, "-StammdatenPath", $densityFixture.Personal, "-ProfilPath", $densityFixture.Profile,
+      "-Veroeffentlichen", "-VisuellGeprueft"
+    )
+    Assert-True -Condition ($densityResult.ExitCode -ne 0) -Message "Fehlende Dichteauswertung wurde trotz konsistentem Berichtsdateihash akzeptiert."
+    Assert-True -Condition (@(Get-ChildItem -LiteralPath $densityFixture.Folder -Force).Count -eq 0) -Message "Zielordner wurde trotz fehlendem Dichtenachweis befüllt."
 
     $pngFixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-invalid-png")
     $pngReport = Get-Content -LiteralPath $pngFixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -1934,6 +2502,10 @@ Text vor dem Doctype
     $legacyOrderPath = Join-Path $work "Bewerbungsauftrag.json"
     $legacyOrder = Get-Content -LiteralPath $legacyOrderPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $legacyOrder.schemaVersion = 2
+    $legacyOrder.zielOrdner = Join-Path $root "Audit-Firma/2026-07-14--Audit-Rolle"
+    $legacyOrder.arbeitsOrdner = $work
+    $legacyOrder.kandidatOrdner = Join-Path $work "Kandidat"
+    $legacyOrder.PSObject.Properties.Remove("pfadModus")
     $legacyOrder.PSObject.Properties.Remove("dokumentumfang")
     $legacyOrder.PSObject.Properties.Remove("dokumentmodus")
     Set-Content -LiteralPath $legacyOrderPath -Encoding UTF8 -Value ($legacyOrder | ConvertTo-Json -Depth 12)
@@ -1945,6 +2517,72 @@ Text vor dem Doctype
       "-UmfangAuswahl", "C", "-StellenbeschreibungPath", $source, "-BewerbungenRoot", $root, "-Fortsetzen"
     )
     Assert-True -Condition ($legacyMismatch.ExitCode -eq 2) -Message "Legacy-Vollauftrag wurde mit engerem Umfang fortgesetzt."
+  }
+
+  Invoke-Test -Name "Schema-5-Fortsetzung bindet Firma, Rolle und Datum unveränderlich" -Body {
+    $identityCases = @(
+      [pscustomobject]@{ Field = "firma"; Value = "Andere Firma" },
+      [pscustomobject]@{ Field = "rolle"; Value = "Andere Rolle" },
+      [pscustomobject]@{ Field = "datum"; Value = "2026-07-15" }
+    )
+    foreach ($identityCase in $identityCases) {
+      $root = Join-Path $testRoot ("resume-schema5-identity-" + $identityCase.Field)
+      $applicationsRoot = Join-Path $root "Private/Bewerbungen"
+      $arguments = @(
+        "-Firma", "Audit Firma", "-Rolle", "Audit Rolle", "-Datum", "2026-07-14",
+        "-BewerbungenRoot", $applicationsRoot
+      )
+      $created = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments $arguments
+      Assert-True -Condition ($created.ExitCode -eq 0) -Message "Schema-5-Fixture für $($identityCase.Field) konnte nicht angelegt werden: $($created.Output -join ' | ')"
+      $work = Join-Path $applicationsRoot "Audit-Firma/_Arbeitsdateien/2026-07-14--Audit-Rolle"
+      $orderPath = Join-Path $work "Bewerbungsauftrag.json"
+      $order = Get-Content -LiteralPath $orderPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      Assert-True -Condition ($order.schemaVersion -eq 5) -Message "Fortsetzungs-Fixture verwendet nicht Schema 5."
+      $order.($identityCase.Field) = $identityCase.Value
+      Set-Content -LiteralPath $orderPath -Encoding UTF8 -Value ($order | ConvertTo-Json -Depth 16)
+
+      $beforeHashes = [ordered]@{}
+      foreach ($file in Get-ChildItem -LiteralPath $work -Recurse -File | Sort-Object FullName) {
+        $relativePath = [System.IO.Path]::GetRelativePath($work, $file.FullName).Replace("\", "/")
+        $beforeHashes[$relativePath] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
+      }
+      $continued = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @($arguments + "-Fortsetzen")
+      Assert-True -Condition ($continued.ExitCode -eq 2) -Message "Schema-5-Fortsetzung akzeptierte eine abweichende gespeicherte Identität: $($identityCase.Field)."
+
+      $afterFiles = @(Get-ChildItem -LiteralPath $work -Recurse -File | Sort-Object FullName)
+      Assert-True -Condition ($afterFiles.Count -eq $beforeHashes.Count) -Message "Abgewiesene Fortsetzung veränderte den relativen Dateibaum für $($identityCase.Field)."
+      foreach ($file in $afterFiles) {
+        $relativePath = [System.IO.Path]::GetRelativePath($work, $file.FullName).Replace("\", "/")
+        Assert-True -Condition ($beforeHashes.Contains($relativePath)) -Message "Abgewiesene Fortsetzung ergänzte eine Datei für $($identityCase.Field): $relativePath"
+        Assert-True -Condition ($beforeHashes[$relativePath] -eq (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) -Message "Abgewiesene Fortsetzung änderte eine Datei für $($identityCase.Field): $relativePath"
+      }
+    }
+  }
+
+  Invoke-Test -Name "Fortsetzen lehnt untypisierte Schema- und Dokumentumfangswerte ab" -Body {
+    $root = Join-Path $testRoot "resume-schema-types"
+    $arguments = @("-Firma", "Typ Firma", "-Rolle", "Typ Rolle", "-Datum", "2026-07-14", "-BewerbungenRoot", $root)
+    $created = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments $arguments
+    Assert-True -Condition ($created.ExitCode -eq 0) -Message "Vorbereitung der Schema-Typ-Fixture schlug fehl."
+    $orderPath = Join-Path $root "Typ-Firma/_Arbeitsdateien/2026-07-14--Typ-Rolle/Bewerbungsauftrag.json"
+    $baselineJson = Get-Content -LiteralPath $orderPath -Raw -Encoding UTF8
+
+    foreach ($invalidVersion in @("5", $true, 5.0)) {
+      $order = $baselineJson | ConvertFrom-Json
+      $order.schemaVersion = $invalidVersion
+      Set-Content -LiteralPath $orderPath -Encoding UTF8 -Value ($order | ConvertTo-Json -Depth 12)
+      $continued = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @($arguments + "-Fortsetzen")
+      Assert-True -Condition ($continued.ExitCode -eq 2) -Message "Nicht-ganzzahlige schemaVersion '$invalidVersion' wurde beim Fortsetzen akzeptiert."
+    }
+
+    foreach ($booleanField in @("anschreiben", "emailNachricht", "emailAlleinBestaetigt")) {
+      $order = $baselineJson | ConvertFrom-Json
+      $order.dokumentumfang.$booleanField = ([bool]$order.dokumentumfang.$booleanField).ToString().ToLowerInvariant()
+      Set-Content -LiteralPath $orderPath -Encoding UTF8 -Value ($order | ConvertTo-Json -Depth 12)
+      $continued = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @($arguments + "-Fortsetzen")
+      Assert-True -Condition ($continued.ExitCode -eq 2) -Message "Stringifizierter Dokumentumfangswert '$booleanField' wurde beim Fortsetzen akzeptiert."
+    }
+    [System.IO.File]::WriteAllText($orderPath, $baselineJson, [System.Text.UTF8Encoding]::new($false))
   }
 
   Invoke-Test -Name "Unvollständige Bewerbung kann nicht blind fortgesetzt werden" -Body {
@@ -1977,26 +2615,105 @@ Text vor dem Doctype
     $matrixDraft = Join-Path $work "Anforderungsmatrix--ENTWURF.json"
     Remove-Item -LiteralPath $matrixDraft -Force
     New-Item -Path $matrixDraft -ItemType Directory | Out-Null
+    $candidate = Join-Path $work "Kandidat"
+    Remove-Item -LiteralPath $candidate -Recurse -Force
     $second = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @($arguments + "-Fortsetzen")
     Assert-True -Condition ($second.ExitCode -ne 0) -Message "Verzeichnis an einem erwarteten Arbeitsdateipfad wurde als vorhandene Datei akzeptiert."
-    Assert-True -Condition (($second.Output -join "`n") -match "keine reguläre Datei") -Message "Unerwarteter Fehlergrund für den maskierten Arbeitsdateipfad: $($second.Output -join ' | ')"
+    Assert-True -Condition (($second.Output -join "`n") -match "(?:keine|muss eine) reguläre Datei") -Message "Unerwarteter Fehlergrund für den maskierten Arbeitsdateipfad: $($second.Output -join ' | ')"
+    Assert-True -Condition (-not (Test-Path -LiteralPath $candidate)) -Message "Abgebrochene Fortsetzung hinterließ den erst in diesem Lauf erzeugten Kandidatenordner."
   }
 
-  $gitBash = Join-Path $env:USERPROFILE "scoop/apps/git/current/bin/bash.exe"
-  if (Test-Path -LiteralPath $gitBash -PathType Leaf) {
-    Invoke-Test -Name "Bash-Regressionssuite besteht" -Body {
-      & $gitBash (Join-Path $PSScriptRoot "Bash/test-neue-bewerbung.sh")
-      Assert-True -Condition ($LASTEXITCODE -eq 0) -Message "Bash-Regressionssuite lieferte Exitcode $LASTEXITCODE."
+  Invoke-Test -Name "Direkter PowerShell-Einstieg und portabler Launcher erzeugen denselben Auftrag" -Body {
+    $root = Join-Path $testRoot "differential-entrypoints"
+    $data = New-ValidPrivateDataFixture -Root $root
+    $applicationsRoot = Join-Path $root "Private/Bewerbungen"
+    $jobSource = Join-Path $root "Stelle mit Leerzeichen.md"
+    Set-Content -LiteralPath $jobSource -Encoding UTF8 -Value "Fiktive identische Differential-Stelle"
+    $directArguments = @(
+      "-Firma", "Differential Ä Firma", "-Rolle", "Senior Entwicklung", "-Datum", "2026-07-14",
+      "-UmfangAuswahl", "A", "-StellenbeschreibungPath", $jobSource,
+      "-StammdatenPath", $data.Personal, "-ProfilPath", $data.Profile,
+      "-BewerbungenRoot", $applicationsRoot
+    )
+    $direct = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments $directArguments
+    Assert-True -Condition ($direct.ExitCode -eq 0) -Message "Direkte PowerShell-Anlage schlug fehl: $($direct.Output -join ' | ')"
+
+    function Get-EntryPointSnapshot {
+      param([string]$RootPath)
+      $snapshot = [ordered]@{}
+      foreach ($file in Get-ChildItem -LiteralPath $RootPath -Recurse -File | Sort-Object FullName) {
+        $relative = [System.IO.Path]::GetRelativePath($RootPath, $file.FullName).Replace("\", "/")
+        $text = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
+        $normalizedText = $text.Replace("`r`n", "`n").Replace("`r", "`n")
+        if ($file.Extension -eq ".json") {
+          $normalizedText = [regex]::Replace(
+            $normalizedText,
+            '(?m)("(?:bestaetigtAtUtc|updatedAtUtc|createdAtUtc)"\s*:\s*)"[^"]+"',
+            '$1"<dynamic-utc>"'
+          )
+          $normalizedText = ($normalizedText | ConvertFrom-Json -AsHashtable | ConvertTo-Json -Depth 20 -Compress)
+        }
+        $snapshot[$relative] = $normalizedText
+      }
+      return $snapshot
     }
-  } else {
-    Write-Host "[INFO] Git Bash nicht gefunden; Bash-Lauf wird in CI ausgeführt."
+
+    $directSnapshot = Get-EntryPointSnapshot -RootPath $applicationsRoot
+    $directJobHash = (Get-FileHash -LiteralPath (Join-Path $applicationsRoot "Differential-Ae-Firma/_Arbeitsdateien/2026-07-14--Senior-Entwicklung/Kandidat/Stellenbeschreibung.md") -Algorithm SHA256).Hash
+    Remove-Item -LiteralPath $applicationsRoot -Recurse -Force
+
+    $bashCommand = Get-Command bash -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    $bashUsable = $false
+    if ($null -ne $bashCommand) {
+      $null = & $bashCommand.Source -lc "command -v pwsh >/dev/null 2>&1" 2>$null
+      $bashUsable = $LASTEXITCODE -eq 0
+    }
+    if ($bashUsable) {
+      Push-Location $repoRoot
+      try {
+        $launcherOutput = & $bashCommand.Source "Tools/bewerbung.sh" "neu" `
+          "--firma" "Differential Ä Firma" `
+          "--rolle" "Senior Entwicklung" `
+          "--datum" "2026-07-14" `
+          "--umfang" "A" `
+          "--stellenbeschreibung-path" $jobSource `
+          "--stammdaten-path" $data.Personal `
+          "--profil-path" $data.Profile `
+          "--bewerbungen-root" $applicationsRoot 2>&1
+        $launcherExitCode = $LASTEXITCODE
+      } finally {
+        Pop-Location
+      }
+      Assert-True -Condition ($launcherExitCode -eq 0) -Message "Bash-Launcher-Anlage schlug fehl: $(@($launcherOutput) -join ' | ')"
+    } else {
+      $launcher = Get-Content -LiteralPath (Join-Path $toolsRoot "bewerbung.sh") -Raw -Encoding UTF8
+      Assert-True -Condition ($launcher.Contains('"$@"') -and $launcher -notmatch '(^|[^A-Za-z])eval([^A-Za-z]|$)') -Message "Bash-Launcher reicht Argumente nicht unverändert oder verwendet eval."
+      $dispatcher = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "bewerbung.ps1") -Arguments @(
+        "neu", "--firma", "Differential Ä Firma", "--rolle", "Senior Entwicklung", "--datum", "2026-07-14",
+        "--umfang", "A", "--stellenbeschreibung-path", $jobSource,
+        "--stammdaten-path", $data.Personal, "--profil-path", $data.Profile,
+        "--bewerbungen-root", $applicationsRoot
+      )
+      Assert-True -Condition ($dispatcher.ExitCode -eq 0) -Message "Dispatcher-Anlage schlug fehl: $($dispatcher.Output -join ' | ')"
+    }
+
+    $launcherSnapshot = Get-EntryPointSnapshot -RootPath $applicationsRoot
+    Assert-True -Condition (@(Compare-Object -ReferenceObject @($directSnapshot.Keys) -DifferenceObject @($launcherSnapshot.Keys)).Count -eq 0) -Message "Die Einstiege erzeugten unterschiedliche relative Dateibäume."
+    foreach ($relativePath in $directSnapshot.Keys) {
+      Assert-True -Condition ($launcherSnapshot.Contains($relativePath) -and $launcherSnapshot[$relativePath] -ceq $directSnapshot[$relativePath]) -Message "Dateiinhalt unterscheidet sich zwischen den Einstiegen: $relativePath"
+    }
+    $launcherJobHash = (Get-FileHash -LiteralPath (Join-Path $applicationsRoot "Differential-Ae-Firma/_Arbeitsdateien/2026-07-14--Senior-Entwicklung/Kandidat/Stellenbeschreibung.md") -Algorithm SHA256).Hash
+    Assert-True -Condition ($launcherJobHash -eq $directJobHash) -Message "Identische Stellenquelle erhielt über die Einstiege unterschiedliche SHA-256-Bindungen."
   }
 
   if ($MitBrowser) {
-    $chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe"
-    if (-not (Test-Path -LiteralPath $chrome -PathType Leaf)) {
-      Write-Host "[INFO] Chrome nicht gefunden; Browser-Regressionsfälle übersprungen."
-    } else {
+    $script:browserSmokeInfo = $null
+    Invoke-Test -Name "Browser-Smoke löst eine Chromium-Runtime plattformneutral auf" -Body {
+      $script:browserSmokeInfo = Resolve-BrowserExecutable -RequestedBrowser "auto" -RequireChromium
+      Assert-True -Condition ($null -ne $script:browserSmokeInfo -and $script:browserSmokeInfo.Engine -eq "chromium" -and (Test-Path -LiteralPath $script:browserSmokeInfo.Path -PathType Leaf)) -Message "Kein ausführbarer Chromium-Browser für den ausdrücklich angeforderten Browser-Smoke gefunden."
+    }
+    if ($null -ne $script:browserSmokeInfo) {
+      $browserArtifactName = [string]$script:browserSmokeInfo.Name
       Invoke-Test -Name "Layoutcheck akzeptiert keine unveränderten Pseudo-PNGs" -Body {
         $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "layout-browser")
         $companyDir = Split-Path -Path $folder -Parent
@@ -2008,14 +2725,14 @@ Text vor dem Doctype
           $fake[$index] = 65
         }
         $fakePaths = @(
-          (Join-Path $layoutDir "Anschreiben---TEST.PERSON--seite-1-von-1--chrome.png"),
-          (Join-Path $layoutDir "Lebenslauf---TEST.PERSON--seite-1-von-1--chrome.png")
+          (Join-Path $layoutDir "Anschreiben---TEST.PERSON--seite-1-von-1--$browserArtifactName.png"),
+          (Join-Path $layoutDir "Lebenslauf---TEST.PERSON--seite-1-von-1--$browserArtifactName.png")
         )
         foreach ($path in $fakePaths) {
           [System.IO.File]::WriteAllBytes($path, $fake)
           (Get-Item -LiteralPath $path).IsReadOnly = $true
         }
-        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Layoutcheck-Bewerbung.ps1") -Arguments @("-Ordner", $folder, "-Browser", "chrome", "-TimeoutSeconds", "60")
+        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Layoutcheck-Bewerbung.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -eq 0) -Message "Layoutcheck konnte die Pseudo-PNGs nicht durch frische Screenshots ersetzen: $($result.Output -join ' | ')"
         foreach ($path in $fakePaths) {
           Assert-True -Condition (Test-PngSignature -Path $path) -Message "Layoutcheck akzeptierte eine unveränderte Pseudo-PNG-Datei."
@@ -2043,11 +2760,11 @@ Text vor dem Doctype
         $companyDir = Split-Path -Path $folder -Parent
         $roleDir = Split-Path -Path $folder -Leaf
         $layoutDir = Join-Path $companyDir "_Arbeitsdateien/$roleDir/Layoutcheck"
-        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Layoutcheck-Bewerbung.ps1") -Arguments @("-Ordner", $folder, "-Browser", "chrome", "-TimeoutSeconds", "60")
+        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Layoutcheck-Bewerbung.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -eq 0) -Message "Mehrseiten-Layoutcheck schlug fehl: $($result.Output -join ' | ')"
         $pngs = @(Get-ChildItem -LiteralPath $layoutDir -Filter "*.png" -File)
         Assert-True -Condition ($pngs.Count -eq 3) -Message "Erwartet wurden drei Seitenscreenshots, erzeugt wurden $($pngs.Count)."
-        Assert-True -Condition (Test-Path -LiteralPath (Join-Path $layoutDir "Lebenslauf---TEST.PERSON--seite-2-von-2--chrome.png") -PathType Leaf) -Message "Screenshot der zweiten Lebenslaufseite fehlt."
+        Assert-True -Condition (Test-Path -LiteralPath (Join-Path $layoutDir "Lebenslauf---TEST.PERSON--seite-2-von-2--$browserArtifactName.png") -PathType Leaf) -Message "Screenshot der zweiten Lebenslaufseite fehlt."
         $layoutData = Get-Content -LiteralPath (Join-Path $layoutDir "Layoutcheck-Bericht.json") -Raw -Encoding UTF8 | ConvertFrom-Json
         Assert-True -Condition (@($layoutData.results).Count -eq 3 -and $layoutData.expectedScreenshots -eq 3) -Message "Layoutbericht bildet nicht alle A4-Seiten ab."
       }
@@ -2055,10 +2772,11 @@ Text vor dem Doctype
       Invoke-Test -Name "Finalisierungs-Vorbereitung erzeugt gebundene Browser- und PDF-Nachweise" -Body {
         $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-browser")
         Remove-Item -LiteralPath $fixture.FinalReport -Force
-        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Browser", "chrome", "-TimeoutSeconds", "60")
+        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -eq 0) -Message "Browsergestützte Finalisierungsvorbereitung schlug fehl: $($result.Output -join ' | ')"
         $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
-        Assert-True -Condition ($report.schemaVersion -eq 4 -and $report.status -eq "bereit_zur_sichtpruefung") -Message "Finalisierungsbericht hat nicht das erwartete Schema oder den Vorbereitungsstatus."
+        Assert-True -Condition ($report.schemaVersion -eq 5 -and $report.status -eq "bereit_zur_sichtpruefung") -Message "Finalisierungsbericht hat nicht das erwartete Schema oder den Vorbereitungsstatus."
+        Assert-True -Condition ($report.runtime.browser.executable -eq $script:browserSmokeInfo.Path -and -not [string]::IsNullOrWhiteSpace([string]$report.runtime.browser.version)) -Message "Finalisierungsbericht enthält nicht den ausgeführten Browser-Fingerprint."
         Assert-True -Condition (@($report.artifacts.html).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei HTML-Nachweise."
         Assert-True -Condition (@($report.artifacts.pdf).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei PDF-Nachweise."
         Assert-True -Condition (@($report.artifacts.screenshots).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei Screenshot-Nachweise."
@@ -2072,6 +2790,8 @@ Text vor dem Doctype
           "-Arbeitsordner", $fixture.Work,
           "-StammdatenPath", $fixture.Personal,
           "-ProfilPath", $fixture.Profile,
+          "-Browser", "auto",
+          "-BrowserExecutablePath", $script:browserSmokeInfo.Path,
           "-Veroeffentlichen",
           "-VisuellGeprueft",
           "-VisuelleFreigabeNotiz", "Alle erzeugten Testseiten geprüft; keine Überlappung oder abgeschnittener Inhalt."
@@ -2091,7 +2811,7 @@ Text vor dem Doctype
           $text = $text.Replace('</body>', '<section style="width:210mm;height:297mm;background:#fff">Absichtlich zusätzliche Druckseite</section></body>')
           Set-Content -LiteralPath $html.FullName -Value $text -Encoding UTF8
         }
-        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "chrome", "-TimeoutSeconds", "60")
+        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -ne 0) -Message "PDF mit zusätzlichen Druckseiten wurde fälschlich akzeptiert."
         Assert-True -Condition (($result.Output -join "`n") -match "PDF-Seitenzahl stimmt nicht mit dem HTML überein") -Message "Export scheiterte nicht aus dem erwarteten Seitenzahl-Grund: $($result.Output -join ' | ')"
         Assert-True -Condition (@(Get-ChildItem -LiteralPath $folder -Filter "*.pdf" -File).Count -eq 0) -Message "Fehlgeschlagener Export hinterließ finale PDFs."
@@ -2099,7 +2819,7 @@ Text vor dem Doctype
 
       Invoke-Test -Name "Erfolgreicher PDF-Export ersetzt alte Dateien nach Validierung" -Body {
         $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "valid-pdf")
-        $first = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "chrome", "-TimeoutSeconds", "60")
+        $first = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($first.ExitCode -eq 0) -Message "Erster gültiger PDF-Export schlug fehl: $($first.Output -join ' | ')"
         $pdfs = @(Get-ChildItem -LiteralPath $folder -Filter "*.pdf" -File)
         Assert-True -Condition ($pdfs.Count -eq 2) -Message "Es wurden nicht genau zwei PDFs erzeugt."
@@ -2120,7 +2840,7 @@ Text vor dem Doctype
           $text = $text.Replace("Fiktiver Testinhalt", "Geänderter sichtbarer Testinhalt")
           Set-Content -LiteralPath $html.FullName -Value $text -Encoding UTF8
         }
-        $second = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "chrome", "-TimeoutSeconds", "60")
+        $second = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($second.ExitCode -eq 0) -Message "Zweiter gültiger PDF-Export schlug fehl: $($second.Output -join ' | ')"
         foreach ($pdf in Get-ChildItem -LiteralPath $folder -Filter "*.pdf" -File) {
           Assert-True -Condition ($hashes[$pdf.FullName] -ne (Get-FileHash -LiteralPath $pdf.FullName -Algorithm SHA256).Hash) -Message "Alter PDF-Inhalt wurde trotz Erfolg unverändert weiterverwendet."
@@ -2134,7 +2854,7 @@ Text vor dem Doctype
 
       Invoke-Test -Name "PDF-Export stellt alte PDFs wieder her, wenn der Berichtstausch scheitert" -Body {
         $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "pdf-report-rollback")
-        $first = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "chrome", "-TimeoutSeconds", "60")
+        $first = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($first.ExitCode -eq 0) -Message "Vorbereitung des PDF-Rollbacktests schlug fehl: $($first.Output -join ' | ')"
         $originalHashes = @{}
         foreach ($pdf in Get-ChildItem -LiteralPath $folder -Filter "*.pdf" -File) {
@@ -2146,7 +2866,7 @@ Text vor dem Doctype
         $invalidReportTarget = Join-Path $testRoot "pdf-report-is-directory"
         New-Item -Path $invalidReportTarget -ItemType Directory | Out-Null
         $failedPublish = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @(
-          "-Ordner", $folder, "-Browser", "chrome", "-TimeoutSeconds", "60", "-BerichtPath", $invalidReportTarget
+          "-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60", "-BerichtPath", $invalidReportTarget
         )
         Assert-True -Condition ($failedPublish.ExitCode -ne 0) -Message "Ungültiger Berichtspfad ließ den PDF-/Berichtstausch erfolgreich erscheinen."
         foreach ($pdf in Get-ChildItem -LiteralPath $folder -Filter "*.pdf" -File) {
@@ -2158,9 +2878,9 @@ Text vor dem Doctype
         $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "pdf-target-directory")
         $invalidTarget = Join-Path $folder "Anschreiben - TEST.PERSON.pdf"
         New-Item -Path $invalidTarget -ItemType Directory | Out-Null
-        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "chrome", "-TimeoutSeconds", "60")
+        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -ne 0) -Message "PDF-Zielverzeichnis wurde als gültige Datei behandelt."
-        Assert-True -Condition (($result.Output -join "`n") -match "keine reguläre Datei") -Message "Unerwarteter Fehlergrund für PDF-Zielverzeichnis: $($result.Output -join ' | ')"
+        Assert-True -Condition (($result.Output -join "`n") -match "(?:keine|muss eine) reguläre Datei") -Message "Unerwarteter Fehlergrund für PDF-Zielverzeichnis: $($result.Output -join ' | ')"
       }
     }
   }

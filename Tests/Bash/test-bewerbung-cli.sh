@@ -38,6 +38,9 @@ assert_exit() {
 for required_file in "$dispatcher" "$launcher" "$compat_launcher"; do
   [[ -f "$required_file" ]] || fail "Erforderliche CLI-Datei fehlt: $required_file"
 done
+for executable_file in "$launcher" "$compat_launcher"; do
+  [[ -x "$executable_file" ]] || fail "Shell-Einstieg besitzt nicht den Git-Ausführungsmodus 100755: $executable_file"
+done
 
 bash -n "$launcher"
 bash -n "$compat_launcher"
@@ -58,15 +61,16 @@ if [[ ! "$pwsh_version" =~ ^([0-9]+)\.([0-9]+) ]] || ((BASH_REMATCH[1] < 7 || (B
 fi
 
 dispatch_root="$test_root/dispatcher"
-mkdir -p "$dispatch_root/Tools" "$dispatch_root/Tests"
+mkdir -p "$dispatch_root/Tools/Common" "$dispatch_root/Tests"
 cp -- "$dispatcher" "$dispatch_root/Tools/bewerbung.ps1"
+cp -- "$repo_root/Tools/Common/Platform.psm1" "$dispatch_root/Tools/Common/Platform.psm1"
 
 # shellcheck disable=SC2016 # PowerShell variables must remain literal here.
 printf '%s\n' \
   '#requires -Version 7.6' \
   '#requires -PSEdition Core' \
   '[CmdletBinding()]' \
-  'param([string]$Firma, [string]$Rolle, [string]$UmfangAuswahl, [string[]]$Dokumente, [switch]$Fortsetzen)' \
+  'param([string]$Firma, [string]$Rolle = "Bewerbung", [string]$UmfangAuswahl, [string[]]$Dokumente, [switch]$Fortsetzen)' \
   '[ordered]@{ firma = $Firma; rolle = $Rolle; umfang = $UmfangAuswahl; dokumente = @($Dokumente); fortsetzen = [bool]$Fortsetzen } | ConvertTo-Json -Compress' \
   > "$dispatch_root/Tools/Neue-Bewerbung.ps1"
 
@@ -119,6 +123,9 @@ done
 
 assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" unbekannt
 assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --rolle Test
+default_role_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma Test)"
+[[ "$default_role_output" == *'"firma":"Test"'* ]] || fail "Kompatibler Neu-Aufruf ohne --rolle wurde abgewiesen."
+[[ "$default_role_output" == *'"rolle":"Bewerbung"'* ]] || fail "Kompatibler Neu-Aufruf erbte nicht die bisherige Standardrolle Bewerbung."
 assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma Test --unbekannt Wert
 assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma
 assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma Test --fortsetzen=true

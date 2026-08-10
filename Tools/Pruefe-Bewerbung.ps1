@@ -1,3 +1,6 @@
+#requires -Version 7.6
+#requires -PSEdition Core
+
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]
@@ -11,11 +14,49 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+
 $errors = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
 $oks = New-Object System.Collections.Generic.List[string]
 $script:PathComparison = if ($env:OS -eq "Windows_NT") { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
 $script:PathComparer = if ($env:OS -eq "Windows_NT") { [System.StringComparer]::OrdinalIgnoreCase } else { [System.StringComparer]::Ordinal }
+
+function Get-ApplicationsRootFromPath {
+  param([string]$Path, [switch]$Container)
+
+  $fullPath = [System.IO.Path]::GetFullPath($Path)
+  $directory = if ($Container) {
+    [System.IO.DirectoryInfo]::new($fullPath)
+  } else {
+    [System.IO.DirectoryInfo]::new((Split-Path -Path $fullPath -Parent))
+  }
+  while ($null -ne $directory) {
+    if ([string]::Equals($directory.Name, 'Bewerbungen', $script:PathComparison) -and
+        $null -ne $directory.Parent -and
+        [string]::Equals($directory.Parent.Name, 'Private', $script:PathComparison)) {
+      return $directory.FullName
+    }
+    $directory = $directory.Parent
+  }
+  return $null
+}
+
+function ConvertTo-SafeFileList {
+  param([object[]]$Files, [string]$Root, [string]$Context)
+
+  $safeFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+  foreach ($file in @($Files)) {
+    try {
+      $safePath = Resolve-SafePath -Candidate $file.FullName -Root $Root -MustExist -PathType Leaf
+      $safeFiles.Add((Get-Item -LiteralPath $safePath -Force))
+    } catch {
+      Write-Host "[FEHLER] $Context enthält einen unsicheren Dateipfad: $($file.FullName): $($_.Exception.Message)" -ForegroundColor Red
+      exit 2
+    }
+  }
+  return $safeFiles.ToArray()
+}
 
 function Add-ErrorMessage {
   param([string]$Message)
@@ -122,13 +163,13 @@ function Get-DocumentScope {
   }
   $schema = [int]$schemaValue
   $configured = Get-JsonProperty -Object $auftrag -Name "dokumentumfang"
-  if ($schema -eq 4) {
+  if ($schema -ge 4 -and $schema -le 5) {
     if ($null -eq $configured) {
-      throw "Bewerbungsauftrag mit schemaVersion 4 enthält keinen dokumentumfang."
+      throw "Bewerbungsauftrag mit schemaVersion $schema enthält keinen dokumentumfang."
     }
     return ConvertTo-DocumentScope -Configured $configured -Context "Bewerbungsauftrag"
-  } elseif ($schema -lt 1 -or $schema -gt 4) {
-    throw "Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 4."
+  } elseif ($schema -lt 1 -or $schema -gt 5) {
+    throw "Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 5."
   } elseif ([string](Get-JsonProperty -Object $auftrag -Name "dokumentmodus") -eq "anschreiben_mit_universalem_lebenslauf") {
     $scope.LebenslaufArt = "universal_unveraendert"
   }
@@ -433,9 +474,9 @@ function Test-PublicationManifest {
       Add-ErrorMessage "Manifest.json enthält keine Dateinachweise."
       return
     }
-    $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
-    $manifestFull = (Resolve-Path -LiteralPath $ManifestPath).Path
-    $actualFiles = @(Get-ChildItem -LiteralPath $Root -Recurse -File | Where-Object { -not (Test-PathEqual -Left $_.FullName -Right $manifestFull) })
+    $rootFull = (Resolve-SafePath -Candidate $Root -Root $script:ApplicationsRoot -MustExist -PathType Container).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    $manifestFull = Resolve-SafePath -Candidate $ManifestPath -Root $rootFull -MustExist -PathType Leaf
+    $actualFiles = @(ConvertTo-SafeFileList -Files @(Get-ChildItem -LiteralPath $Root -Recurse -File) -Root $rootFull -Context 'Veröffentlichung' | Where-Object { -not (Test-PathEqual -Left $_.FullName -Right $manifestFull) })
     if ($records.Count -ne $actualFiles.Count) {
       Add-ErrorMessage "Manifest-Dateizahl stimmt nicht mit der Veröffentlichung überein ($($records.Count) statt $($actualFiles.Count))."
     }
@@ -459,13 +500,10 @@ function Test-PublicationManifest {
         Add-ErrorMessage "Manifest enthält einen doppelten Dateipfad: $relativePath"
         continue
       }
-      $filePath = [System.IO.Path]::GetFullPath((Join-Path -Path $Root -ChildPath ($normalizedRelative -replace '/', [System.IO.Path]::DirectorySeparatorChar)))
-      if (-not $filePath.StartsWith($rootFull + [System.IO.Path]::DirectorySeparatorChar, $script:PathComparison)) {
-        Add-ErrorMessage "Manifestpfad liegt außerhalb des Veröffentlichungsordners: $relativePath"
-        continue
-      }
-      if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
-        Add-ErrorMessage "Manifest-Datei fehlt: $relativePath"
+      try {
+        $filePath = Resolve-SafePath -Candidate (Join-Path -Path $Root -ChildPath ($normalizedRelative -replace '/', [System.IO.Path]::DirectorySeparatorChar)) -Root $rootFull -MustExist -PathType Leaf
+      } catch {
+        Add-ErrorMessage "Manifest-Datei fehlt oder verlässt den Veröffentlichungsordner: $relativePath"
         continue
       }
       $fileInfo = Get-Item -LiteralPath $filePath
@@ -496,13 +534,29 @@ if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
   exit 1
 }
 
-$resolvedFolder = (Resolve-Path -LiteralPath $Ordner).Path
+$script:ApplicationsRoot = Get-ApplicationsRootFromPath -Path $Ordner -Container
+if ([string]::IsNullOrWhiteSpace($script:ApplicationsRoot)) {
+  Write-Host "[FEHLER] Ordner muss unter <Projektwurzel>/Private/Bewerbungen liegen: $Ordner" -ForegroundColor Red
+  exit 2
+}
+try {
+  $script:ApplicationsRoot = Resolve-SafePath -Candidate $script:ApplicationsRoot -Root $script:ApplicationsRoot -AllowRoot -MustExist -PathType Container
+  $resolvedFolder = Resolve-SafePath -Candidate $Ordner -Root $script:ApplicationsRoot -MustExist -PathType Container
+} catch {
+  Write-Host "[FEHLER] Unsicherer Bewerbungsordner: $($_.Exception.Message)" -ForegroundColor Red
+  exit 2
+}
 Write-Host "Pruefe Bewerbung: $resolvedFolder"
 
-$internalFolder = Join-Path -Path $resolvedFolder -ChildPath "Intern"
-$shippingFolder = Join-Path -Path $resolvedFolder -ChildPath "Versand"
+try {
+  $internalFolder = Resolve-SafePath -Candidate (Join-Path -Path $resolvedFolder -ChildPath "Intern") -Root $resolvedFolder -PathType Container
+  $shippingFolder = Resolve-SafePath -Candidate (Join-Path -Path $resolvedFolder -ChildPath "Versand") -Root $resolvedFolder -PathType Container
+  $manifestPath = Resolve-SafePath -Candidate (Join-Path -Path $resolvedFolder -ChildPath "Manifest.json") -Root $resolvedFolder -PathType Leaf
+} catch {
+  Write-Host "[FEHLER] Unsicherer Intern-, Versand- oder Manifestpfad: $($_.Exception.Message)" -ForegroundColor Red
+  exit 2
+}
 $isStructuredPublication = (Test-Path -LiteralPath $internalFolder -PathType Container) -and (Test-Path -LiteralPath $shippingFolder -PathType Container)
-$manifestPath = Join-Path -Path $resolvedFolder -ChildPath "Manifest.json"
 $manifestDocumentScope = $null
 if ($isStructuredPublication -and (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
   try {
@@ -514,6 +568,7 @@ if ($isStructuredPublication -and (Test-Path -LiteralPath $manifestPath -PathTyp
 
 try {
   if (-not [string]::IsNullOrWhiteSpace($AuftragPath)) {
+    $AuftragPath = Resolve-SafePath -Candidate $AuftragPath -Root $script:ApplicationsRoot -MustExist -PathType Leaf
     $documentScope = Get-DocumentScope -Path $AuftragPath
     if ($null -ne $manifestDocumentScope -and -not (Test-DocumentScopeEqual -Left $documentScope -Right $manifestDocumentScope)) {
       Add-ErrorMessage "Dokumentumfang im Manifest stimmt nicht mit dem Bewerbungsauftrag überein."
@@ -567,7 +622,9 @@ $fixedRequired = @(
 
 foreach ($fileName in $fixedRequired) {
   $path = Join-Path -Path $documentFolder -ChildPath $fileName
-  if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+  try {
+    $path = Resolve-SafePath -Candidate $path -Root $documentFolder -MustExist -PathType Leaf
+  } catch {
     Add-ErrorMessage "Pflichtdatei fehlt oder ist keine Datei: $fileName"
     continue
   }
@@ -580,8 +637,8 @@ foreach ($fileName in $fixedRequired) {
   }
 }
 
-$documentFiles = @(Get-ChildItem -LiteralPath $documentFolder -File)
-$emailAreaFiles = if ($isStructuredPublication) { @(Get-ChildItem -LiteralPath $emailFolder -File) } else { @() }
+$documentFiles = @(ConvertTo-SafeFileList -Files @(Get-ChildItem -LiteralPath $documentFolder -File) -Root $documentFolder -Context 'Dokumentenordner')
+$emailAreaFiles = if ($isStructuredPublication) { @(ConvertTo-SafeFileList -Files @(Get-ChildItem -LiteralPath $emailFolder -File) -Root $emailFolder -Context 'Versandordner') } else { @() }
 $allFiles = @($documentFiles + $emailAreaFiles)
 $htmlFiles = @($documentFiles | Where-Object { $_.Extension -ieq ".html" })
 $markdownFiles = @($allFiles | Where-Object { $_.Extension -ieq ".md" })
@@ -594,7 +651,7 @@ foreach ($draft in $draftFiles) {
 $personPattern = '[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z0-9][A-Za-z0-9.-]*'
 $cvFiles = @($htmlFiles | Where-Object { $_.Name -match "^Lebenslauf - $personPattern\.html$" })
 $letterFiles = @($htmlFiles | Where-Object { $_.Name -match "^Anschreiben - $personPattern\.html$" })
-$emailFiles = @(Get-ChildItem -LiteralPath $emailFolder -File -Filter "Email-Nachricht--*.md" | Where-Object { $_.Name -match '^Email-Nachricht--[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$' })
+$emailFiles = @(ConvertTo-SafeFileList -Files @(Get-ChildItem -LiteralPath $emailFolder -File -Filter "Email-Nachricht--*.md") -Root $emailFolder -Context 'E-Mail-Ordner' | Where-Object { $_.Name -match '^Email-Nachricht--[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$' })
 
 $allowedInternalMarkdown = @($fixedRequired + "Offene_Fragen.md")
 $unexpectedMarkdown = @($markdownFiles | Where-Object {
@@ -649,7 +706,7 @@ foreach ($expectedPdfName in $expectedPdfNames) {
 }
 
 if ($isStructuredPublication) {
-  $shippingPdfs = @(Get-ChildItem -LiteralPath $shippingFolder -File | Where-Object { $_.Extension -ieq ".pdf" })
+  $shippingPdfs = @($emailAreaFiles | Where-Object { $_.Extension -ieq ".pdf" })
   $shippingPdfNamesExact = $shippingPdfs.Count -eq $expectedPdfNames.Count -and
     @($shippingPdfs | Where-Object { -not $expectedPdfNameSet.Contains($_.Name) }).Count -eq 0
   if (-not $shippingPdfNamesExact) {
@@ -657,13 +714,13 @@ if ($isStructuredPublication) {
   } else {
     Add-OkMessage "Versandordner enthält genau die zu den ausgewählten HTML-Dateien gehörenden PDF-Anlagen."
   }
-  $unexpectedShipping = @(Get-ChildItem -LiteralPath $shippingFolder -File | Where-Object {
+  $unexpectedShipping = @($emailAreaFiles | Where-Object {
     $_.Extension -notin @(".pdf", ".md") -or ($_.Extension -eq ".md" -and $_.Name -notmatch '^Email-Nachricht--')
   })
   if ($unexpectedShipping.Count -gt 0) {
     Add-ErrorMessage "Versandordner enthält interne oder unerwartete Dateien: $($unexpectedShipping.Name -join ', ')"
   }
-  $misplacedPdfs = @(Get-ChildItem -LiteralPath $resolvedFolder -Recurse -File | Where-Object {
+  $misplacedPdfs = @(ConvertTo-SafeFileList -Files @(Get-ChildItem -LiteralPath $resolvedFolder -Recurse -File) -Root $resolvedFolder -Context 'Veröffentlichung' | Where-Object {
     $_.Extension -ieq ".pdf" -and -not (Test-PathEqual -Left $_.DirectoryName -Right $shippingFolder)
   })
   if ($misplacedPdfs.Count -gt 0) {
@@ -671,7 +728,7 @@ if ($isStructuredPublication) {
   }
   Test-PublicationManifest -Root $resolvedFolder -ManifestPath $manifestPath
 } else {
-  $candidatePdfs = @(Get-ChildItem -LiteralPath $resolvedFolder -Recurse -File | Where-Object { $_.Extension -ieq ".pdf" })
+  $candidatePdfs = @(ConvertTo-SafeFileList -Files @(Get-ChildItem -LiteralPath $resolvedFolder -Recurse -File) -Root $resolvedFolder -Context 'Kandidatenordner' | Where-Object { $_.Extension -ieq ".pdf" })
   $unexpectedCandidatePdfs = @($candidatePdfs | Where-Object {
     -not (Test-PathEqual -Left $_.DirectoryName -Right $resolvedFolder) -or
     -not $expectedPdfNameSet.Contains($_.Name)

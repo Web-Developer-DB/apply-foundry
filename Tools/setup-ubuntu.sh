@@ -5,7 +5,9 @@ set -Eeuo pipefail
 readonly EXIT_RUNTIME_ERROR=1
 readonly EXIT_USAGE_OR_PLATFORM=2
 readonly MICROSOFT_REPOSITORY_URL='https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb'
+readonly MICROSOFT_POWERSHELL_APT_SOURCE='https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages'
 readonly GOOGLE_SIGNING_KEY_URL='https://dl.google.com/linux/linux_signing_key.pub'
+readonly GOOGLE_SIGNING_KEY_FINGERPRINT='EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796'
 readonly GOOGLE_REPOSITORY_LINE='deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main'
 
 install_runtime=0
@@ -49,7 +51,8 @@ cleanup() {
       "$setup_tmp_dir/packages-microsoft-prod.deb" \
       "$setup_tmp_dir/google-linux-signing-key.pub" \
       "$setup_tmp_dir/google-chrome.gpg" \
-      "$setup_tmp_dir/google-chrome.list"
+      "$setup_tmp_dir/google-chrome.list" \
+      "$setup_tmp_dir/powershell-origin.pref"
     rmdir -- "$setup_tmp_dir" 2>/dev/null || true
   fi
 }
@@ -185,6 +188,42 @@ fonts_ok() {
   return 1
 }
 
+list_official_powershell_versions() {
+  apt-cache madison powershell 2>/dev/null |
+    awk -F '|' -v expected_source="$MICROSOFT_POWERSHELL_APT_SOURCE" '
+      function trim(value) {
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+        return value
+      }
+      {
+        package_name = trim($1)
+        package_version = trim($2)
+        package_source = trim($3)
+        if (package_name == "powershell" &&
+            package_source == expected_source &&
+            package_version ~ /^7[.]6[.][0-9]+-[0-9]+[.]deb$/) {
+          print package_version
+        }
+      }
+    '
+}
+
+get_latest_official_powershell_version() {
+  list_official_powershell_versions | sort -V | tail -n 1
+}
+
+get_primary_openpgp_fingerprints() {
+  local key_path=$1
+  gpg --batch --with-colons --show-keys --fingerprint "$key_path" 2>/dev/null |
+    awk -F ':' '
+      $1 == "pub" { awaiting_primary_fingerprint = 1; next }
+      awaiting_primary_fingerprint && $1 == "fpr" {
+        print toupper($10)
+        awaiting_primary_fingerprint = 0
+      }
+    '
+}
+
 runtime_needed=0
 browser_needed=0
 fonts_needed=0
@@ -278,27 +317,39 @@ if ((runtime_needed == 1 || browser_needed == 1)); then
 fi
 
 if ((runtime_needed == 1)); then
-  if ! apt-cache madison powershell 2>/dev/null | awk '{print $3}' | grep -Eq '^7[.]6[.][0-9]+-[0-9]+[.]deb$'; then
+  existing_official_powershell_version=$(get_latest_official_powershell_version)
+  if [[ ! "$existing_official_powershell_version" =~ ^7\.6\.[0-9]+-[0-9]+\.deb$ ]]; then
     curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
       "$MICROSOFT_REPOSITORY_URL" --output "$setup_tmp_dir/packages-microsoft-prod.deb"
     dpkg-deb --info "$setup_tmp_dir/packages-microsoft-prod.deb" >/dev/null
+    microsoft_repository_package_name=$(dpkg-deb --field "$setup_tmp_dir/packages-microsoft-prod.deb" Package)
+    microsoft_repository_package_architecture=$(dpkg-deb --field "$setup_tmp_dir/packages-microsoft-prod.deb" Architecture)
+    if [[ "$microsoft_repository_package_name" != 'packages-microsoft-prod' ||
+          "$microsoft_repository_package_architecture" != 'all' ]]; then
+      die_runtime "Microsoft-Repositorypaket besitzt unerwartete Metadaten: Package=$microsoft_repository_package_name Architecture=$microsoft_repository_package_architecture"
+    fi
     as_root dpkg -i "$setup_tmp_dir/packages-microsoft-prod.deb"
     runtime_status='paketquelle_registriert'
     apt_updated=0
     ensure_apt_updated
   fi
 
-  powershell_package_version=$(
-    apt-cache madison powershell 2>/dev/null |
-      awk '{print $3}' |
-      grep -E '^7[.]6[.][0-9]+-[0-9]+[.]deb$' |
-      sort -V |
-      tail -n 1 || true
-  )
+  powershell_package_version=$(get_latest_official_powershell_version)
   if [[ ! "$powershell_package_version" =~ ^7\.6\.[0-9]+-[0-9]+\.deb$ ]]; then
-    die_runtime 'Microsoft-Paketquelle bietet keine validierbare PowerShell-7.6-Version an.'
+    die_runtime 'Die offizielle packages.microsoft.com-Quelle für Ubuntu 24.04/prod bietet keine validierbare PowerShell-7.6-Version an.'
   fi
-  as_root apt-get install -y --allow-downgrades "powershell=$powershell_package_version"
+  printf '%s\n' \
+    'Package: powershell' \
+    'Pin: origin "packages.microsoft.com"' \
+    'Pin-Priority: 1001' \
+    '' \
+    'Package: powershell' \
+    'Pin: origin "*"' \
+    'Pin-Priority: -1' \
+    > "$setup_tmp_dir/powershell-origin.pref"
+  as_root apt-get \
+    -o "Dir::Etc::preferences=$setup_tmp_dir/powershell-origin.pref" \
+    install -y --allow-downgrades "powershell=$powershell_package_version"
   runtime_status='paket_installiert_validierung_ausstehend'
   runtime_ok || {
     die_runtime 'Installierte PowerShell meldet nicht Core 7.6.x.'
@@ -309,10 +360,17 @@ fi
 if ((browser_needed == 1)); then
   curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
     "$GOOGLE_SIGNING_KEY_URL" --output "$setup_tmp_dir/google-linux-signing-key.pub"
+  google_key_fingerprints=$(get_primary_openpgp_fingerprints "$setup_tmp_dir/google-linux-signing-key.pub")
+  if [[ "$google_key_fingerprints" != "$GOOGLE_SIGNING_KEY_FINGERPRINT" ]]; then
+    die_runtime "Google-Signaturschlüssel besitzt nicht den erwarteten Fingerprint $GOOGLE_SIGNING_KEY_FINGERPRINT."
+  fi
   gpg --batch --yes --dearmor \
     --output "$setup_tmp_dir/google-chrome.gpg" \
     "$setup_tmp_dir/google-linux-signing-key.pub"
-  gpg --batch --show-keys "$setup_tmp_dir/google-chrome.gpg" >/dev/null
+  google_dearmored_fingerprints=$(get_primary_openpgp_fingerprints "$setup_tmp_dir/google-chrome.gpg")
+  if [[ "$google_dearmored_fingerprints" != "$GOOGLE_SIGNING_KEY_FINGERPRINT" ]]; then
+    die_runtime 'Google-Signaturschlüssel konnte nach der Konvertierung nicht identisch validiert werden.'
+  fi
   printf '%s\n' "$GOOGLE_REPOSITORY_LINE" > "$setup_tmp_dir/google-chrome.list"
   as_root install -m 0644 "$setup_tmp_dir/google-chrome.gpg" /usr/share/keyrings/google-chrome.gpg
   as_root install -m 0644 "$setup_tmp_dir/google-chrome.list" /etc/apt/sources.list.d/google-chrome.list

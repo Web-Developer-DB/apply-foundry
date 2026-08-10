@@ -1,8 +1,8 @@
 # Interaktiver Bewerbungsdialog – Testszenarien
 
-Stand: 05.08.2026
+Stand: 09.08.2026
 
-Dieses Dokument beschreibt die neun verbindlichen Nutzerfälle für Umfangsauswahl, gezielte Profilrückfragen und kontrollierte Profilaktualisierung. Die fachliche Quelle ist [`Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`](../Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md). Der sitzungsübergreifende Zustand liegt im `Bewerbungsauftrag.json` nach Schema 4; dieses Dokument führt keinen zweiten Dialog- oder Datenvertrag ein.
+Dieses Dokument beschreibt die neun verbindlichen Nutzerfälle für Umfangsauswahl, gezielte Profilrückfragen und kontrollierte Profilaktualisierung. Die fachliche Quelle ist [`Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`](../Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md). Neue sitzungsübergreifende Zustände liegen im portablen `Bewerbungsauftrag.json` nach Schema 5; bestehende Aufträge der Schemata 1 bis 4 bleiben ohne automatische Umschreibung lesbar. Dieses Dokument führt keinen zweiten Dialog- oder Datenvertrag ein.
 
 Automatisierte Vertrags- und Fixturetests werden mit folgendem Befehl ausgeführt:
 
@@ -49,7 +49,7 @@ Ich möchte mich auf diese Stelle bewerben.
 **Erwarteter Dateizustand**
 
 - Private Profildateien bleiben unverändert.
-- Ohne eindeutig bestätigten Umfang wird kein neuer Schema-4-Auftrag und kein Kandidatendokument angelegt.
+- Ohne eindeutig bestätigten Umfang wird kein neuer Schema-5-Auftrag und kein Kandidatendokument angelegt.
 - Wird eine bestehende Bewerbung fortgesetzt, darf ihr bereits gültiger Umfang durch eine mehrdeutige Antwort nicht überschrieben werden; der offene Klärungsbedarf bleibt blockierend.
 
 **Status:** Der Auswahl- und Nicht-Standardisierungsvertrag ist automatisiert; die natürlichsprachliche Modellsitzung ist dokumentiert.
@@ -70,11 +70,12 @@ Erstelle nur ein Anschreiben.
 
 **Erwarteter Dateizustand**
 
-- `Bewerbungsauftrag.json` hat `schemaVersion` 4 und kennzeichnet ausschließlich das Anschreiben als ausgewählten neuen Bestandteil.
+- `Bewerbungsauftrag.json` hat `schemaVersion` 5 und kennzeichnet ausschließlich das Anschreiben als ausgewählten neuen Bestandteil.
+- `pfadModus` ist `relativ_zu_bewerbungen_root`; Ziel-, Arbeits- und Kandidatenpfad sind `/`-normalisierte Relativpfade ohne `..`.
 - Die Auswahlquelle ist der ausdrückliche Nutzerauftrag.
 - Im Kandidatenordner werden nur die laut Umfang erforderlichen Dokumente erwartet.
 
-**Status:** Der Direktstart- und Schema-4-Umfangsvertrag ist automatisiert; die echte Modellsitzung ist dokumentiert.
+**Status:** Der Direktstart- und Schema-5-Auftragsvertrag ist automatisiert; die echte Modellsitzung ist dokumentiert.
 
 ## Test 3 – Bekannte Anforderungen
 
@@ -97,7 +98,7 @@ Erstelle eine vollständige Bewerbung für diese fiktive Stelle. Gefordert werde
 **Erwarteter Dateizustand**
 
 - Das Testprofil bleibt unverändert.
-- Der Schema-4-Auftrag enthält keine erfundene neue Nutzerangabe und keine unnötige offene Dialogfrage.
+- Der Schema-5-Auftrag enthält keine erfundene neue Nutzerangabe und keine unnötige offene Dialogfrage.
 - Die Anforderungsmatrix verweist auf die bereits vorhandenen Belege.
 
 **Status:** Der Rückfragefilter- und Keine-Dublette-Vertrag ist automatisiert; die sprachliche Qualität des Dialogs ist dokumentiert.
@@ -121,7 +122,7 @@ Ich habe TypeScript in zwei privaten React-Projekten eingesetzt.
 
 **Erwarteter Dateizustand**
 
-- Der Schema-4-Auftrag speichert nur die normalisierte, fachlich relevante Angabe und ihre Einordnung, kein vollständiges Chattranskript.
+- Der Schema-5-Auftrag speichert nur die normalisierte, fachlich relevante Angabe und ihre Einordnung, kein vollständiges Chattranskript.
 - Bis zur ausdrücklichen Speicherentscheidung gilt die Angabe für den aktuellen Auftrag; die Profildatei bleibt unverändert.
 - Die betreffende Anforderung kann nach der Antwort auf den belegbaren Status aktualisiert werden, ohne daraus Berufserfahrung zu machen.
 
@@ -146,10 +147,10 @@ Nein, nur für diese Bewerbung verwenden.
 **Erwarteter Dateizustand**
 
 - Der SHA-256-Wert der fiktiven Profildatei ist vor und nach der Entscheidung identisch.
-- Der Schema-4-Auftrag kennzeichnet die normalisierte Angabe eindeutig als nur für diesen Auftrag und die Profilaktualisierung als nicht durchgeführt.
+- Der Schema-5-Auftrag kennzeichnet die normalisierte Angabe eindeutig als nur für diesen Auftrag und die Profilaktualisierung als nicht durchgeführt.
 - Eine spätere Bewerbung darf die Angabe nicht als dauerhaft bestätigtes Profilwissen übernehmen.
 
-**Status:** Automatisierter Fixturetest mit unverändertem Profilhash und geprüftem Schema-4-Zustand.
+**Status:** Automatisierter Fixturetest mit unverändertem Profilhash und geprüftem Schema-5-Zustand.
 
 ## Test 6 – Dauerhafte Speicherung
 
@@ -172,7 +173,7 @@ Ja, dauerhaft übernehmen.
 - Ausschließlich die passende fiktive Profildatei wird an der fachlich zuständigen Stelle verändert.
 - Datei, Abschnitt, fachlicher Zieltyp, exakter Formulierungsvorschlag und Ausgangshash sind bereits vor der Zustimmung im Pending-Snapshot gespeichert; abweichende Aufrufswerte werden abgelehnt.
 - Die technische Übernahme dupliziert eine exakt bereits vorhandene bestätigte Formulierung nicht; die vorgelagerte semantische Dublettenprüfung bleibt Teil des dokumentierten Agentenvertrags.
-- Der Schema-4-Auftrag protokolliert normalisierte Angabe, Einordnung, ausdrückliche Zustimmung, Zeitpunkt, Profildatei und erfolgreiche Aktualisierung.
+- Der Schema-5-Auftrag protokolliert normalisierte Angabe, Einordnung, ausdrückliche Zustimmung, Zeitpunkt, Profildatei und erfolgreiche Aktualisierung.
 - Andere Profilabschnitte und Dateien bleiben bytegleich; erneute identische Zustimmung erzeugt keine zweite Eintragung.
 - Eine erstmalige Übernahme mit `dialog.status = dokumenterstellung` oder `abgeschlossen` scheitert, damit bestehende Folgeartefakte nicht stillschweigend veralten.
 
@@ -193,7 +194,7 @@ Im fiktiven Profil steht `TypeScript: Grundkenntnisse`. Der Nutzer erklärt ansc
 **Erwarteter Dateizustand**
 
 - Die Profildatei bleibt bis zur eindeutigen Bestätigung unverändert.
-- Der Schema-4-Auftrag hält den Punkt als offen beziehungsweise widersprüchlich fest, ohne eine dauerhafte Zustimmung zu behaupten.
+- Der Schema-5-Auftrag hält den Punkt als offen beziehungsweise widersprüchlich fest, ohne eine dauerhafte Zustimmung zu behaupten.
 - Solange die Wahrheitsebene widersprüchlich oder unklar ist, wird noch keine Speicherentscheidung geöffnet.
 - Erst die bestätigte Auflösung darf den auftragsbezogenen Zustand und gegebenenfalls das Profil aktualisieren.
 
@@ -221,7 +222,7 @@ Setze die zuletzt begonnene Bewerbung fort.
 
 **Erwarteter Dateizustand**
 
-- `Bewerbungsauftrag.json` bleibt ein lesbarer und konsistenter Schema-4-Auftrag.
+- `Bewerbungsauftrag.json` bleibt ein lesbarer und konsistenter Schema-5-Auftrag.
 - Der gespeicherte Dialogzustand genügt zur Fortsetzung ohne Chat-Memory; `Arbeitsnotizen.md` darf ihn erklären, ersetzt ihn aber nicht.
 - Kandidaten- oder Profildateien werden durch eine reine Standrekonstruktion nicht verändert.
 
@@ -247,7 +248,7 @@ A – wobei ich vielleicht doch nur ein Anschreiben möchte.
 
 **Erwarteter Dateizustand**
 
-- Ohne eindeutige Auswahl wird kein neuer Schema-4-Auftrag erzeugt; bei einem vorhandenen Auftrag bleibt der letzte gültige Umfang unverändert und der Dialogstatus blockierend.
+- Ohne eindeutige Auswahl wird kein neuer Schema-5-Auftrag erzeugt; bei einem vorhandenen Auftrag bleibt der letzte gültige Umfang unverändert und der Dialogstatus blockierend.
 - Keine Profildatei wird verändert und keine dauerhafte Zustimmung eingetragen.
 - Bereits gültige Zustandsdaten werden durch eine fehlerhafte Modellinterpretation nicht überschrieben.
 
@@ -255,4 +256,4 @@ A – wobei ich vielleicht doch nur ein Anschreiben möchte.
 
 ## Abnahmeregel
 
-Die neun Szenarien gelten dokumentarisch nur dann als aktuell, wenn ihre Feld- und Statusaussagen mit Prompt 01 und dem implementierten Schema 4 übereinstimmen. Nach einer Änderung am Dialog- oder Auftragsvertrag müssen diese Datei und die zugehörigen Prüfungen in `Run-RegressionTests.ps1` gemeinsam aktualisiert werden. Ein bestandener deterministischer Test darf niemals als bestandene Sitzung mit Codex, OpenCode, Claude Code oder einem Ollama-Modell ausgegeben werden.
+Die neun Szenarien gelten dokumentarisch nur dann als aktuell, wenn ihre Feld- und Statusaussagen mit Prompt 01 und dem implementierten Schema 5 übereinstimmen. Nach einer Änderung am Dialog- oder Auftragsvertrag müssen diese Datei und die zugehörigen Prüfungen in `Run-RegressionTests.ps1` gemeinsam aktualisiert werden. Ein bestandener deterministischer Test darf niemals als bestandene Sitzung mit Codex, OpenCode, Claude Code oder einem Ollama-Modell ausgegeben werden.

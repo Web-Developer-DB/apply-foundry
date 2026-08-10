@@ -33,12 +33,34 @@ assert_exit() {
 }
 
 [[ -f "$setup" ]] || fail "Ubuntu-Setup fehlt: $setup"
+[[ -x "$setup" ]] || fail "Ubuntu-Setup besitzt nicht den Git-Ausführungsmodus 100755."
 bash -n "$setup"
+
+grep -Fq "readonly GOOGLE_SIGNING_KEY_FINGERPRINT='EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796'" "$setup" ||
+  fail 'Ubuntu-Setup bindet den Google-Schlüssel nicht an den erwarteten Fingerprint.'
+grep -Fq "readonly MICROSOFT_POWERSHELL_APT_SOURCE='https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages'" "$setup" ||
+  fail 'Ubuntu-Setup bindet PowerShell nicht an die exakte offizielle Microsoft-Quelle.'
+grep -Fq 'package_source == expected_source' "$setup" ||
+  fail 'Ubuntu-Setup filtert apt-cache-Ergebnisse nicht auf die erwartete Microsoft-Quelle.'
 
 help_output="$(bash "$setup")"
 [[ "$help_output" == *'Ohne Auswahl wird nichts verändert.'* ]] || fail 'Aufruf ohne Auswahl zeigt nicht ausschließlich die sichere Hilfe.'
 assert_exit 2 bash "$setup" --unbekannt
 assert_exit 2 bash "$setup" --browser firefox
+
+wrong_os_release="$test_root/wrong-os-release"
+wrong_os_setup="$test_root/setup-wrong-os.sh"
+printf '%s\n' 'ID=debian' 'VERSION_ID="12"' >"$wrong_os_release"
+sed "s#/etc/os-release#$wrong_os_release#g" "$setup" >"$wrong_os_setup"
+assert_exit 2 bash "$wrong_os_setup" --all --dry-run
+grep -Fq 'Nicht unterstützte Plattform' "$test_root/output.txt" ||
+  fail 'Falsches Betriebssystem wurde nicht mit einer eindeutigen Plattformmeldung abgewiesen.'
+
+if [[ ! -r /etc/os-release ]]; then
+  printf '[INFO] Host stellt /etc/os-release nicht bereit; Ubuntu-spezifische Laufzeitprüfungen entfallen.\n'
+  printf '[OK] Ubuntu-Setup-Parser-, Herkunfts- und OS-Abweisungstests bestanden.\n'
+  exit 0
+fi
 
 distribution_id="$(sed -n 's/^ID=//p' /etc/os-release | head -n 1 | tr -d '"')"
 distribution_version="$(sed -n 's/^VERSION_ID=//p' /etc/os-release | head -n 1 | tr -d '"')"

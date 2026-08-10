@@ -1,0 +1,28 @@
+name: Browser smoke (staged)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 4 * * 2"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-smoke:
+    name: Browser smoke (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Synthetische Browser-Regressionssuite
+        shell: pwsh
+        run: ./Tests/Run-RegressionTests.ps1 -MitBrowser
