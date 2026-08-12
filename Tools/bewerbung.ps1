@@ -17,6 +17,7 @@ $script:CommandOrder = @(
   "diagnose",
   "neu",
   "status",
+  "checkpoint",
   "stammdaten",
   "dialog-pruefen",
   "dialog-uebernehmen",
@@ -97,6 +98,16 @@ $script:Commands = @{
     Required = @()
     Options = [ordered]@{
       "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--als-json" = New-CliOption -Parameter "AlsJson" -Kind switch
+    }
+  }
+  "checkpoint" = @{
+    RelativePath = "Aktualisiere-WorkflowCheckpoint.ps1"
+    Summary = "Kompakten, hashgebundenen Workflow-Checkpoint aktualisieren"
+    Required = @("--arbeitsordner", "--schritt")
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--schritt" = New-CliOption -Parameter "Schritt" -Kind enum -Allowed @("auftrag_angelegt", "profilabgleich_abgeschlossen", "analyse_abgeschlossen", "dokumente_abgeschlossen", "fachpruefung_abgeschlossen", "technische_vorbereitung_abgeschlossen", "sichtpruefung_bestaetigt", "veroeffentlicht") -Placeholder "NAME"
       "--als-json" = New-CliOption -Parameter "AlsJson" -Kind switch
     }
   }

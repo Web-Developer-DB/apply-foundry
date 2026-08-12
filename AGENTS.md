@@ -50,6 +50,7 @@ Fehlt eine Fähigkeit, benenne den betroffenen Schritt und nutze nur eine im kan
 - Eine ausgewählte E-Mail-Nachricht ist ausschließlich Text: `Email-Nachricht--FIRMEN-SLUG.md`. Der exakte Firmen-Slug stammt aus `Bewerbungsauftrag.json`; weder eine HTML-E-Mail noch ein frei gewählter Name ist zulässig.
 - Leite HTML-Dokumente von der A4-Struktur aus `Prompts/08_HTML_CSS_DESIGNREGELN.md` ab: eingebettetes CSS mit `@page { size: A4; margin: 0; }` sowie `.page { width: 210mm; height: 297mm; }`. Ersetze die feste Höhe nicht durch `min-height`.
 - Starte für neue oder fortgesetzte Bewerbungen nicht direkt `Exportiere-PDF.ps1`, sondern den vollständigen Einstieg `Tools/bewerbung.ps1 finalisieren`. Einzelwerkzeuge dienen nur der gezielten Diagnose und lockern keinen dieser Verträge.
+- Aktualisiere nach jeder sinnvollen Workflow-Grenze den privaten `Workflow-Checkpoint.json` über `Tools/bewerbung.ps1 checkpoint`. Der Checkpoint enthält nur Schritt, Status, Pfade, Größen und SHA-256-Werte; er speichert weder Rohchat noch Kopien privater Quellen und ist nie selbst ein Freigabe- oder Wahrheitsnachweis. Ist er veraltet, rekonstruiere den Stand weiterhin aus den Originalartefakten.
 
 ## Token- und Nutzungsangaben
 

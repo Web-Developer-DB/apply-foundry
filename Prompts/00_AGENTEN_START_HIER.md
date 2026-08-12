@@ -110,6 +110,20 @@ Verwende zuerst `Tools/Ermittle-Bewerbungsstatus.ps1 -AlsJson`. Das Werkzeug wä
 
 Zeitstempel allein beweisen keine Gültigkeit. Hashnachweise aus dem Finalisierungsbericht und dem Manifest haben für die jeweils gebundenen Artefakte Vorrang. Eine Sichtprüfungsbestätigung aus einem früheren Chat ohne passenden unveränderten Dateinachweis darf nicht wiederverwendet werden.
 
+## Kompakter Workflow-Checkpoint
+
+Nach jeder sinnvollen Workflow-Grenze schreibt der Agent einen privaten, vollständigen aktuellen Checkpoint. Sinnvolle Grenzen sind die Auftragsanlage, der abgeschlossene Profilabgleich, die Analyse/Muss-Kann-Matrix, die vollständige Dokumenterstellung, die fachliche Prüfung, die technische Vorbereitung, die bestätigte persönliche Prüfung und die Veröffentlichung. Mikro-Schritte ohne neue oder geänderte Arbeitsartefakte erhalten keinen eigenen Eintrag.
+
+Verwende dafür nach dem Schreiben und Validieren der betroffenen Dateien:
+
+```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 checkpoint --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --schritt analyse_abgeschlossen
+```
+
+Unter Linux ist derselbe Aufruf über `./Tools/bewerbung.sh checkpoint ...` zulässig. Der Ordnerhelfer erstellt den Schritt `auftrag_angelegt`; die Finalisierung aktualisiert die Schritte `technische_vorbereitung_abgeschlossen` und `veroeffentlicht` selbst.
+
+`Workflow-Checkpoint.json` enthält keine Chatprotokolle, Stellenanzeigentexte, Profilkopien oder freien Agententexte. Er speichert ausschließlich einen kleinen Auftrags-/Dialogüberblick, den letzten Schritt, eine auf 24 Einträge begrenzte Schritt-Historie sowie relative Arbeitsartefaktpfade, Größen und SHA-256-Werte. Die referenzierten Originaldateien bleiben die einzigen fachlichen Quellen. `bewerbung.ps1 status --als-json` meldet, ob der Checkpoint aktuell ist; bei jeder Hashabweichung wird er nur als veraltet gemeldet und der Status vollständig aus den Originalartefakten rekonstruiert.
+
 ## Arbeitsablauf
 
 1. Bestimme vor dem Lesen privater Daten und vor jeder Ordner- oder Dokumenterstellung den vom Nutzer gewünschten Dokumentumfang nach `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`. Ist er bereits eindeutig genannt, frage nicht erneut. Bei einer bloßen Stellenbeschreibung oder einem allgemeinen Bewerbungswunsch frage A–E und stoppe bis zur Antwort. Führe nach der eindeutigen Auswahl `Tools/Pruefe-Stammdaten.ps1` aus. Identitäts- oder Kontaktfehler blockieren sofort.

@@ -1014,6 +1014,7 @@ Start-Sleep -Seconds 30
       "Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md",
       "Tests/Agenten-Kompatibilitaet.md",
       "Tools/Aktualisiere-Tokenbericht.ps1",
+      "Tools/Aktualisiere-WorkflowCheckpoint.ps1",
       "Tools/Ermittle-Bewerbungsstatus.ps1"
     )) {
       Assert-True -Condition (Test-ExactRelativePath -Root $repoRoot -RelativePath $relativePath) -Message "Pfad fehlt oder Groß-/Kleinschreibung stimmt nicht: $relativePath"
@@ -1027,7 +1028,7 @@ Start-Sleep -Seconds 30
       Assert-True -Condition ($canonical.Contains($capability)) -Message "Fähigkeit fehlt im kanonischen Prompt: $capability"
     }
     Assert-True -Condition ($canonical -match '## Fortsetzen ohne Chatverlauf') -Message "Fortsetzungsabschnitt fehlt im kanonischen Prompt."
-    foreach ($evidence in @("Arbeitsnotizen.md", "Bewerbungsauftrag.json", "Anforderungsmatrix.json", "Kandidat/", "Finalisierungsbericht.json", "Manifest.json", "SHA-256")) {
+    foreach ($evidence in @("Arbeitsnotizen.md", "Bewerbungsauftrag.json", "Anforderungsmatrix.json", "Workflow-Checkpoint.json", "Kandidat/", "Finalisierungsbericht.json", "Manifest.json", "SHA-256")) {
       Assert-True -Condition ($canonical.Contains($evidence)) -Message "Fortsetzungsnachweis fehlt: $evidence"
     }
     Assert-True -Condition ($canonical -match 'Chat-Memory|Chatverlauf') -Message "Unabhängigkeit vom Chat-Memory ist nicht festgelegt."
@@ -1554,6 +1555,35 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ((Get-FileHash -LiteralPath $fixture.Auftrag -Algorithm SHA256).Hash -eq $beforeOrderHash) -Message "Statusrekonstruktion veränderte den Auftrag."
   }
 
+  Invoke-Test -Name "Workflow-Checkpoint bindet Arbeitsartefakte ohne Quellkopien und wird bei Änderungen verworfen" -Body {
+    $fixture = New-DialogContractFixture -Root (Join-Path $testRoot "workflow-checkpoint") -DialogStatus "profilabgleich_ausstehend"
+    $notesPath = Join-Path $fixture.Work "Arbeitsnotizen.md"
+    Set-Content -LiteralPath $notesPath -Encoding UTF8 -Value "# Fiktiver Arbeitsstand"
+    $tool = Join-Path $toolsRoot "Aktualisiere-WorkflowCheckpoint.ps1"
+    $first = Invoke-ChildScript -ScriptPath $tool -Arguments @("-Arbeitsordner", $fixture.Work, "-Schritt", "profilabgleich_abgeschlossen", "-AlsJson")
+    Assert-True -Condition ($first.ExitCode -eq 0) -Message "Workflow-Checkpoint konnte nicht geschrieben werden: $($first.Output -join ' | ')"
+    $checkpointPath = Join-Path $fixture.Work "Workflow-Checkpoint.json"
+    Assert-True -Condition (Test-Path -LiteralPath $checkpointPath -PathType Leaf) -Message "Workflow-Checkpoint-Datei fehlt."
+    $checkpoint = Get-Content -LiteralPath $checkpointPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($checkpoint.schemaVersion -eq 1 -and $checkpoint.kind -eq "workflow_checkpoint" -and $checkpoint.lastCompletedStep -eq "profilabgleich_abgeschlossen") -Message "Workflow-Checkpoint verwendet kein gültiges Grundschema."
+    Assert-True -Condition ($checkpoint.dataPolicy.copiesSourceContents -eq $false -and $checkpoint.dataPolicy.containsRawChat -eq $false -and $checkpoint.dataPolicy.sourceOfTruth -eq "referenzierte_arbeitsartefakte") -Message "Workflow-Checkpoint verletzt die Datenminimierung."
+    Assert-True -Condition (@($checkpoint.artifacts | Where-Object { $_.path -eq "Bewerbungsauftrag.json" }).Count -eq 1 -and @($checkpoint.artifacts | Where-Object { $_.path -eq "Arbeitsnotizen.md" }).Count -eq 1) -Message "Workflow-Checkpoint bindet die vorhandenen Arbeitsartefakte nicht exakt."
+    Assert-True -Condition (($checkpoint.PSObject.Properties.Name -notcontains "rawChat") -and ($checkpoint.PSObject.Properties.Name -notcontains "stellenbeschreibung") -and ($checkpoint.PSObject.Properties.Name -notcontains "profilKopie")) -Message "Workflow-Checkpoint enthält eine verbotene Quell- oder Chatkopie."
+    $currentStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
+    Assert-True -Condition ($currentStatusResult.ExitCode -eq 0) -Message "Statusprüfung mit aktuellem Checkpoint schlug fehl."
+    $currentStatus = ($currentStatusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition ($currentStatus.workflowCheckpoint.valid -and $currentStatus.workflowCheckpoint.lastCompletedStep -eq "profilabgleich_abgeschlossen") -Message "Statuswerkzeug erkennt den aktuellen Workflow-Checkpoint nicht."
+    Add-Content -LiteralPath $notesPath -Encoding UTF8 -Value "- Neue Notiz"
+    $staleStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
+    Assert-True -Condition ($staleStatusResult.ExitCode -eq 0) -Message "Statusprüfung nach Checkpoint-Entwertung schlug fehl."
+    $staleStatus = ($staleStatusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition (-not $staleStatus.workflowCheckpoint.valid -and $staleStatus.workflowCheckpoint.reason -eq "artefakte_veraltet" -and $staleStatus.phase -eq "profilabgleich") -Message "Ein veralteter Checkpoint wurde nicht fail-closed behandelt."
+    $second = Invoke-ChildScript -ScriptPath $tool -Arguments @("-Arbeitsordner", $fixture.Work, "-Schritt", "profilabgleich_abgeschlossen")
+    Assert-True -Condition ($second.ExitCode -eq 0) -Message "Aktualisierung des veralteten Workflow-Checkpoints schlug fehl."
+    $updatedCheckpoint = Get-Content -LiteralPath $checkpointPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition (@($updatedCheckpoint.history).Count -eq 2 -and @($updatedCheckpoint.history)[1].sequence -eq 2) -Message "Workflow-Checkpoint führt keine begrenzte, konsistente Schritt-Historie."
+  }
+
   Invoke-Test -Name "Dialogfall 9: Unklarer Kleinmodellzustand bleibt nach einer Wiederholung fail-closed" -Body {
     $question = [ordered]@{
       id = "umfang-unklar"
@@ -1670,6 +1700,7 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($preparedStatusResult.ExitCode -eq 0) -Message "Vorbereiteter E-Mail-Stand ließ sich nicht rekonstruieren."
     $preparedStatus = ($preparedStatusResult.Output -join "`n") | ConvertFrom-Json
     Assert-True -Condition ($preparedStatus.phase -eq "persoenliche_pruefung" -and $preparedStatus.finalReportValid) -Message "Statuswerkzeug erkannte den gültig vorbereiteten E-Mail-Stand nicht."
+    Assert-True -Condition ($preparedStatus.workflowCheckpoint.valid -and $preparedStatus.workflowCheckpoint.lastCompletedStep -eq "technische_vorbereitung_abgeschlossen") -Message "Technische Vorbereitung aktualisierte den Workflow-Checkpoint nicht."
     $unboundCandidatePath = Join-Path $fixture.Candidate "Nicht-gebundene-Datei.tmp"
     Set-Content -LiteralPath $unboundCandidatePath -Encoding UTF8 -Value "Nicht an den Finalisierungsbericht gebunden."
     $invalidatedStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
@@ -1755,6 +1786,7 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($publishedStatusResult.ExitCode -eq 0) -Message "Veröffentlichter E-Mail-Stand ließ sich nicht rekonstruieren."
     $publishedStatus = ($publishedStatusResult.Output -join "`n") | ConvertFrom-Json
     Assert-True -Condition ($publishedStatus.phase -eq "veroeffentlicht" -and $publishedStatus.finalReportValid) -Message "Statuswerkzeug erkannte den veröffentlichten E-Mail-Stand nicht."
+    Assert-True -Condition ($publishedStatus.workflowCheckpoint.valid -and $publishedStatus.workflowCheckpoint.lastCompletedStep -eq "veroeffentlicht") -Message "Veröffentlichung aktualisierte den Workflow-Checkpoint nicht."
     $staticPublished = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder)
     Assert-True -Condition ($staticPublished.ExitCode -eq 0) -Message "E-Mail-only-Veröffentlichung wurde ohne privaten Auftragspfad fälschlich als Vollumfang geprüft: $($staticPublished.Output -join ' | ')"
     $qualityText = Get-Content -LiteralPath (Join-Path $fixture.Folder "Intern/Qualitaetscheck.md") -Raw -Encoding UTF8
@@ -1789,6 +1821,8 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($auftrag.bewerbungslogistik.stellenart -eq "Vollzeit" -and $auftrag.bewerbungslogistik.arbeitsmodell -eq "hybrid") -Message "Logistik-Snapshot ist unvollständig."
     Assert-True -Condition ($auftrag.bewerbungsentscheidung -eq "noch_festzulegen") -Message "Initiale Bewerbungsentscheidung ist nicht offen markiert."
     Assert-True -Condition ($auftrag.quellnachweise.stammdatenSha256BeiAnlage -eq (Get-FileHash -LiteralPath $data.Personal -Algorithm SHA256).Hash) -Message "Stammdaten-Quellhash fehlt oder stimmt nicht."
+    $checkpoint = Get-Content -LiteralPath (Join-Path (Split-Path -Path $auftragPath -Parent) "Workflow-Checkpoint.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($checkpoint.lastCompletedStep -eq "auftrag_angelegt" -and $checkpoint.artifacts.Count -gt 0) -Message "Ordnerhelfer erzeugte keinen gebundenen Initial-Checkpoint."
   }
 
   Invoke-Test -Name "Ordnerhelfer kodiert Firma und Rolle sicher in HTML und JSON" -Body {
@@ -2648,6 +2682,10 @@ Text vor dem Doctype
       param([string]$RootPath)
       $snapshot = [ordered]@{}
       foreach ($file in Get-ChildItem -LiteralPath $RootPath -Recurse -File | Sort-Object FullName) {
+        # Der Checkpoint bindet bewusst die bei der jeweiligen Anlage entstandenen
+        # Artefakthashes und einen Zeitstempel. Er ist damit kein byteidentisches
+        # Dokumentartefakt zwischen zwei ansonsten gleichen Ausführungen.
+        if ($file.Name -eq 'Workflow-Checkpoint.json') { continue }
         $relative = [System.IO.Path]::GetRelativePath($RootPath, $file.FullName).Replace("\", "/")
         $text = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
         $normalizedText = $text.Replace("`r`n", "`n").Replace("`r", "`n")

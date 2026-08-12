@@ -45,6 +45,7 @@ $script:PathComparison = if ([System.IO.Path]::DirectorySeparatorChar -eq '\') {
 $orderPathsModule = Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "OrderPaths.psm1"
 Import-Module -Name $orderPathsModule -Force -ErrorAction Stop
 Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "Platform.psm1") -Force -ErrorAction Stop
+Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "WorkflowCheckpoint.psm1") -Force -ErrorAction Stop
 
 function Stop-WithValidationError {
   param([string]$Message)
@@ -885,11 +886,14 @@ Ziel: Die sichtbare A4-Seite wird ohne Browser-Dateipfad, URL, Datum oder Browse
 "@
 }
 
+$workflowCheckpoint = Write-WorkflowCheckpoint -Arbeitsordner $arbeitsDir -Schritt 'auftrag_angelegt'
+
 Write-Output "Bewerbungsordner: $zielDir"
 Write-Output "Arbeitsdateien: $arbeitsDir"
 Write-Output "Kandidatendateien: $kandidatDir"
 Write-Output "Dokumentmodus: $Dokumentmodus"
 Write-Output "Dokumentumfang: $scopeSummary"
+Write-Output "Workflow-Checkpoint: $($workflowCheckpoint.path)"
 if ($cvKind -eq "universal_unveraendert") {
   Write-Output "Universeller Lebenslauf unverändert übernommen: $universalCandidateFile"
 }

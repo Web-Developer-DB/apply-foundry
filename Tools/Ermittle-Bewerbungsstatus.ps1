@@ -13,6 +13,7 @@ $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/OrderPaths.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/WorkflowCheckpoint.psm1") -Force
 
 function Stop-Status {
   param([string]$Message, [int]$Code = 1)
@@ -92,7 +93,8 @@ function Get-ActivityUtc {
     'ATS-Pruefbericht.json',
     'Finalisierungsbericht.json',
     'Layoutcheck-Bericht.json',
-    'PDF-Export-Bericht.json'
+    'PDF-Export-Bericht.json',
+    'Workflow-Checkpoint.json'
   )
   $items = @(Get-ChildItem -LiteralPath $Path -File -Recurse -ErrorAction SilentlyContinue | Where-Object {
     if ($_.FullName -notmatch '[\\/]Kandidat[\\/]' -and $activityNames -notcontains $_.Name) { return $false }
@@ -353,6 +355,20 @@ if (-not $scopeConfirmed) {
   $requiredPrompts = @('Prompts/09_QUALITAETSCHECK.md', 'Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md')
 }
 
+try {
+  $workflowCheckpoint = Get-WorkflowCheckpointStatus -Arbeitsordner $resolvedWork
+} catch {
+  $workflowCheckpoint = [pscustomobject][ordered]@{
+    available = $false
+    valid = $false
+    reason = 'nicht_pruefbar'
+    updatedAtUtc = $null
+    lastCompletedStep = $null
+    artifactCount = 0
+    historyCount = 0
+  }
+}
+
 $result = [ordered]@{
   schemaVersion = 1
   workFolder = $resolvedWork
@@ -363,6 +379,7 @@ $result = [ordered]@{
   missingCandidateFiles = @($missingFiles)
   finalReportValid = $finalReportValid
   finalStatus = if ([string]::IsNullOrWhiteSpace($finalStatus)) { $null } else { $finalStatus }
+  workflowCheckpoint = $workflowCheckpoint
   requiredPrompts = @($requiredPrompts)
   nextAction = $nextAction
 }
@@ -374,6 +391,13 @@ if ($AlsJson) {
   Write-Host "Phase: $phase"
   if ($blockers.Count -gt 0) { Write-Host "Blocker: $($blockers -join ', ')" }
   if ($missingFiles.Count -gt 0) { Write-Host "Fehlende Kandidatendateien: $($missingFiles -join ', ')" }
+  if ($workflowCheckpoint.valid) {
+    Write-Host "Workflow-Checkpoint: aktuell ($($workflowCheckpoint.lastCompletedStep), $($workflowCheckpoint.artifactCount) Artefakte)"
+  } elseif ($workflowCheckpoint.available) {
+    Write-Host "Workflow-Checkpoint: nicht aktuell ($($workflowCheckpoint.reason)); der Status wurde vollständig aus den Originalartefakten rekonstruiert."
+  } else {
+    Write-Host "Workflow-Checkpoint: fehlt; der Status wurde vollständig aus den Originalartefakten rekonstruiert."
+  }
   if ($requiredPrompts.Count -gt 0) { Write-Host "Jetzt benötigte Promptmodule: $($requiredPrompts -join ', ')" }
   Write-Host "Nächster Schritt: $nextAction"
 }

@@ -8,7 +8,8 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
-- Gemeinsamer Dispatcher `Tools/bewerbung.ps1` mit den Subcommands `diagnose`, `neu`, `status`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`; GNU-Langoptionen gelten auf Windows und Linux gleich.
+- Gemeinsamer Dispatcher `Tools/bewerbung.ps1` mit den Subcommands `diagnose`, `neu`, `status`, `checkpoint`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`; GNU-Langoptionen gelten auf Windows und Linux gleich.
+- Privater, hashgebundener `Workflow-Checkpoint.json` für effiziente Fortsetzungen ohne Rohchat- oder Quellkopien. Der Ordnerhelfer und die Finalisierung aktualisieren die passenden Phasengrenzen automatisch.
 - Dünner Linux-Launcher `Tools/bewerbung.sh`, Kompatibilitätswrapper `Tools/neue-bewerbung.sh` sowie ein ausschließlich opt-in verwendbares `Tools/setup-ubuntu.sh` für Ubuntu 24.04 x86_64.
 - Gemeinsame PowerShell-Module für portable Schema-5-Auftragspfade, symlinksichere Pfadvalidierung, OS- und Browsererkennung, begrenzte native Prozesse mit Timeout sowie dependency-freie PNG-Auswertung.
 - Read-only-Preflight `Tools/Pruefe-Umgebung.ps1` und eine feste browserfreie CI-Matrix auf `windows-2025` und `ubuntu-24.04`; Browser-Smokes laufen zunächst getrennt, manuell und zeitgesteuert.
@@ -22,6 +23,7 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 - Chrome, Edge und Chromium werden plattformabhängig gesucht; ein ausdrücklich angegebener Browserpfad wird auf Existenz, Version und Chromium-Engine geprüft. Firefox bleibt auf Layoutdiagnosen beschränkt.
 - Designvorlagen verwenden zusätzlich `Liberation Sans`, und alle ausführbaren PowerShell-Werkzeuge verlangen PowerShell 7.6 Core.
 - Die öffentliche CLI vereinheitlicht Exitcode `0` für Erfolg, `1` für fachliche oder technische Laufzeitfehler und `2` für ungültige beziehungsweise unsichere CLI-Eingaben, nicht unterstützte Umgebungen oder eine fehlende Kernruntime.
+- Die Statusrekonstruktion meldet den Checkpoint ausschließlich bei exakter Artefaktbindung als aktuell und verwendet bei jeder Abweichung weiterhin die fachlichen Originaldateien als Quelle.
 - Das Ubuntu-Setup installiert nur nach ausdrücklicher Auswahl PowerShell 7.6 aus der Microsoft-Quelle, Google Chrome Stable aus der Google-Quelle und/oder `fonts-liberation2`; `--dry-run`, Bestätigung und idempotente Erkennung verhindern stille Systemänderungen.
 - Der dependency-freie PNG-Leser verarbeitet die erwarteten nicht-interlaced 8-Bit-Grau-, RGB- und RGBA-Screenshots mit Filtern 0 bis 4. Windows-/Ubuntu-Parität wird über Seitenzahl, A4-Geometrie, Dichte-, Hash- und ATS-Prüfung statt binär identischer Ausgaben bewertet.
 

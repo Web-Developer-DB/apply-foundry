@@ -152,6 +152,14 @@ Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Tokenverbrauch.
 
 Er ist ein nicht blockierendes Diagnose- und Kostenartefakt, kein Qualitätsnachweis und keine Kandidatendatei. Er gehört weder nach `Versand/` noch nach `Intern/` und wird standardmäßig nicht in `Manifest.json` aufgenommen. Er darf keine API-Schlüssel, Zugangsdaten, vollständigen Prompts oder privaten Bewerbungsinhalte enthalten.
 
+Der kompakte Fortsetzungsnachweis liegt daneben im selben Arbeitsordner:
+
+```text
+Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Workflow-Checkpoint.json
+```
+
+Er wird über `bewerbung.ps1 checkpoint` aktualisiert, enthält nur Schrittstatus sowie relative Pfade, Größen und SHA-256-Werte der vorhandenen Arbeitsartefakte und ist auf 24 Historieneinträge begrenzt. Rohchat, vollständige Quellen und Bewerberprofilkopien sind verboten. Der Checkpoint ist keine neue fachliche Stammquelle, kein Freigabenachweis und gehört weder nach `Versand/` noch standardmäßig in `Manifest.json`.
+
 Regel:
 - Entwürfe und Kandidatendateien in `_Arbeitsdateien`
 - finale Dateien ausschließlich durch `Tools/Finalisiere-Bewerbung.ps1` veröffentlichen

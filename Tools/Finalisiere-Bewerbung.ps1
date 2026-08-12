@@ -33,6 +33,7 @@ $ErrorActionPreference = "Stop"
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/OrderPaths.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/PngTools.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/WorkflowCheckpoint.psm1") -Force
 $script:ChildToolTimeoutSeconds = [math]::Min(3600, [math]::Max(120, $TimeoutSeconds * 8))
 
 trap {
@@ -60,6 +61,20 @@ function Add-Info {
 function Add-Ok {
   param([string]$Message)
   Write-Host "[OK] $Message" -ForegroundColor Green
+}
+
+function Update-WorkflowCheckpointNonBlocking {
+  param(
+    [Parameter(Mandatory)][string]$WorkFolder,
+    [Parameter(Mandatory)][string]$Step
+  )
+
+  try {
+    $checkpoint = Write-WorkflowCheckpoint -Arbeitsordner $WorkFolder -Schritt $Step
+    Add-Info "Workflow-Checkpoint aktualisiert ($($checkpoint.step), $($checkpoint.artifactCount) Artefakte)."
+  } catch {
+    Write-Host "[WARNUNG] Workflow-Checkpoint konnte nicht aktualisiert werden; die fachlichen Originalartefakte bleiben maßgeblich: $($_.Exception.Message)" -ForegroundColor Yellow
+  }
 }
 
 $script:PathComparison = if ($env:OS -eq "Windows_NT") { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
@@ -974,6 +989,7 @@ if (-not $Veroeffentlichen) {
   }
   $finalReportPath = Resolve-WorkflowContractPath -Candidate $finalReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
   Set-Content -LiteralPath $finalReportPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 10)
+  Update-WorkflowCheckpointNonBlocking -WorkFolder $resolvedWork -Step 'technische_vorbereitung_abgeschlossen'
   Add-Ok "Technische Vorbereitung erfolgreich."
   Write-Host ""
   if ($expectedScreenshots -gt 0) {
@@ -1337,6 +1353,7 @@ foreach ($obsoleteBackup in @($backupDir, $reportBackupPath)) {
     }
   }
 }
+Update-WorkflowCheckpointNonBlocking -WorkFolder $resolvedWork -Step 'veroeffentlicht'
 Add-Ok "Bewerbung vollständig und atomar veröffentlicht: $targetDir"
 Write-Host "Versandfertige Dateien: $(Join-Path -Path $targetDir -ChildPath 'Versand')"
 exit 0

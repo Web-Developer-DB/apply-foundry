@@ -1086,6 +1086,7 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine
 | `Pruefe-Umgebung.ps1` | read-only Preflight für Runtime, OS, Architektur, Browser, Temp, Schreibzugriff und Fonts | über `bewerbung.ps1 diagnose` |
 | `setup-ubuntu.sh` | ausschließlich opt-in Ubuntu-24.04-Setup mit Vorschau und Bestätigung | `--dry-run --all` |
 | `Ermittle-Bewerbungsstatus.ps1` | letzten oder angegebenen Arbeitsstand read-only aus Dateien und Hashnachweisen rekonstruieren | `-AlsJson` oder `-Arbeitsordner "..." -AlsJson` |
+| `Aktualisiere-WorkflowCheckpoint.ps1` | kompakten, hashgebundenen Fortsetzungsnachweis ohne Quellkopien schreiben | `-Arbeitsordner "..." -Schritt analyse_abgeschlossen` |
 | `Pruefe-Dialogstatus.ps1` | Umfang, Rückfragen, Angaben, Widersprüche und Speicherentscheidungen validieren | `-AuftragPath ".../Bewerbungsauftrag.json" -FuerDokumenterstellung` |
 | `Uebernehme-Dialogangabe.ps1` | bestätigte Angabe nur auftragsbezogen markieren oder kontrolliert ins zulässige Profilziel übernehmen | `-AuftragPath "..." -AngabeId "..." -Speicherentscheidung nur_auftrag` |
 | `Pruefe-Stammdaten.ps1` | Identität, Kontakt und Logistik prüfen | ohne Parameter oder mit Auftragspfad |
@@ -1097,7 +1098,17 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine
 | `Finalisiere-Bewerbung.ps1` | verbindliches Prepare-/Publish-Gate | `-Arbeitsordner "..."` |
 | `Aktualisiere-Tokenbericht.ps1` | exakte Laufzeitwerte oder eindeutige Nichtverfügbarkeit standardisiert speichern | `-Arbeitsordner "..." -Messbereich lebenslauf` |
 
-Der Dispatcher bietet `diagnose`, `neu`, `status`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`. Er normalisiert `--dokumente` einmal zentral als kommaseparierte, typgeprüfte Liste; Werte mit Leerzeichen, Umlauten oder führendem Bindestrich bleiben einzelne Argumente. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime.
+Der Dispatcher bietet `diagnose`, `neu`, `status`, `checkpoint`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`. Er normalisiert `--dokumente` einmal zentral als kommaseparierte, typgeprüfte Liste; Werte mit Leerzeichen, Umlauten oder führendem Bindestrich bleiben einzelne Argumente. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime.
+
+Nach jeder sinnvollen Workflow-Grenze aktualisiert der Agent einen kompakten Fortsetzungsnachweis. Er enthält keine Kopien von Stellenbeschreibung, Profil oder Rohchat, sondern nur den letzten Schritt sowie relative Arbeitsartefaktpfade, Größen und SHA-256-Werte:
+
+```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 checkpoint `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --schritt analyse_abgeschlossen
+```
+
+`Workflow-Checkpoint.json` bleibt privat, ist auf 24 Historieneinträge begrenzt und nie selbst eine fachliche Quelle oder ein Freigabenachweis. `status --als-json` meldet den Checkpoint nur als aktuell, wenn alle gebundenen Arbeitsartefakte unverändert sind; sonst rekonstruiert es den Stand aus Auftrag, Matrix, Kandidaten und Prüfberichten.
 
 `Uebernehme-Dialogangabe.ps1` darf eine dauerhafte Änderung nur mit `-Speicherentscheidung dauerhaft`, zulässigem `-ProfilPath`, `-Abschnitt`, der zuvor gezeigten `-Formulierung`, `-ErwarteterDateiHash` und `-ZustimmungBestaetigt` ausführen. Alle vier Inhaltsparameter müssen exakt zum vor der Zustimmung gespeicherten Pending-Snapshot passen; dessen `fachlicherZieltyp` bindet Datei 01 an persönliche Daten und Bewerbungslogistik beziehungsweise Datei 02 an das fachliche Bewerberprofil. Eine erstmalige Übernahme nach Beginn oder Abschluss der Dokumenterstellung wird abgelehnt. Ohne dauerhafte Zustimmung wird ausschließlich `-Speicherentscheidung nur_auftrag` verwendet; dann darf das Werkzeug keine Profildatei lesen oder verändern und entfernt den nicht mehr benötigten Vorschlagssnapshot.
 
@@ -1111,6 +1122,7 @@ Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Fü
 | --- | --- | --- | --- |
 | `Bewerbungsauftrag.json` | Dispatcher, danach Agent | Schema-5-Pflichtquelle mit Root-relativen Pfaden sowie `dokumentumfang`, normalisierten Rückfragen und Angaben, Speicherentscheidungen, Logistik, Darstellungsoptionen und Bewerbungsentscheidung | Dialog-, Stammdaten-, Inhalts- und Finalisierungswerkzeug |
 | `Anforderungsmatrix.json` | Agent aus dem Entwurfsgerüst | Pflicht vor Dokumenterstellung und Finalisierung | Inhaltsprüfer und fachlicher Abschlusstest |
+| `Workflow-Checkpoint.json` | Agent über `checkpoint`; bei Anlage und Finalisierung automatisch | kompakter Fortsetzungsindex mit Schritten und Hashreferenzen, nie fachliche Quelle | Statusanzeige und Agentenfortsetzung |
 | `Kandidat/*` | Agent; PDFs durch Exporttool | gemäß Umfang vollständiger Release Candidate mit späteren Dateinamen | statischer Prüfer, Inhaltsprüfer, gegebenenfalls Layout, PDF und ATS sowie Publisher |
 | Prüfberichte und Screenshots | jeweiliges Prüfwerkzeug | umfangsabhängige Nachweise; nicht benötigte Browserprüfungen werden als `nicht_erforderlich` dokumentiert | `Finalisiere-Bewerbung.ps1` und persönliche Sicht- oder Textprüfung |
 | `Versand/`, `Intern/`, `Manifest.json` | Finalisierungswerkzeug über privates Staging | einziger veröffentlichter Vertrag | Nutzer, Archivierung und nachträglicher statischer Check |
@@ -1276,6 +1288,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | technischer Workflow | `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md` |
 | gemeinsamer CLI-Einstieg und Schema-5-Ordnererstellung | `Tools/bewerbung.ps1`, `Tools/bewerbung.sh`, `Tools/Neue-Bewerbung.ps1` |
 | dateibasierte Statusrekonstruktion | `Tools/Ermittle-Bewerbungsstatus.ps1` |
+| kompakter, hashgebundener Fortsetzungscheckpoint | `Tools/Aktualisiere-WorkflowCheckpoint.ps1`, `Tools/Common/WorkflowCheckpoint.psm1` |
 | Dialogzustand und kontrollierte Profilübernahme | `Tools/Pruefe-Dialogstatus.ps1`, `Tools/Uebernehme-Dialogangabe.ps1` |
 | Stammdaten und Inhalt | `Tools/Pruefe-Stammdaten.ps1`, `Tools/Pruefe-Bewerbungsinhalt.ps1` |
 | Finalisierung | `Tools/Finalisiere-Bewerbung.ps1` |
