@@ -14,11 +14,12 @@ Ordne den aktuellen Nutzerauftrag ohne zusätzliche Startformel einem dieser Ein
 
 - **Neue Vollbewerbung:** ausdrücklicher Auftrag für Lebenslauf, Anschreiben und E-Mail; verwende den bestätigten Umfang A.
 - **Anschreiben mit universellem Lebenslauf:** Nur wenn der Nutzer universellen Lebenslauf, Anschreiben **und E-Mail-Nachricht** wünscht, verwende Auswahl B beziehungsweise den Kompatibilitätsmodus `anschreiben_mit_universalem_lebenslauf`. Wünscht er universellen Lebenslauf und Anschreiben ohne E-Mail, verwende Auswahl E mit genau diesen beiden Bestandteilen.
+- **Universellen Lebenslauf erstellen oder aktualisieren:** Behandle dies als eigenständigen, stellenunabhängigen Auftrag. Verwende den Universalprozess aus `Prompts/00_AGENTEN_START_HIER.md`; lege Arbeitsstand und Aktivfassung ausschließlich unter `Private/Bewerbungen/_Universal-Lebenslauf/` an.
 - **Private Bewerberdaten einrichten oder prüfen:** Prüfe zuerst `Private/Daten/`; verwende `Private.example/Daten/` nur als Strukturvorlage und führe danach den Stammdatencheck aus.
 - **Bestehende Bewerbung fortsetzen oder ihren Stand erklären:** Rekonstruiere den Zustand aus den Projektdateien nach dem Abschnitt „Fortsetzen ohne Chatverlauf“ in `Prompts/00_AGENTEN_START_HIER.md`.
 - **Projekt technisch weiterentwickeln:** Bearbeite nur auftragsrelevante Prompts, Werkzeuge, Tests oder Dokumentation; aktualisiere bei funktionalen Änderungen `CHANGELOG.md` und führe passende Tests aus.
 
-Bei einem eindeutigen Auftrag beginne unmittelbar mit dem passenden Ablauf. Wenn das Repository lediglich geöffnet wurde oder der Nutzer nur allgemein grüßt, führe keine Shell-Befehle aus, erfinde keine Bewerbung und ändere keine Dateien. Antworte knapp, dass das Projekt erkannt wurde, und nenne die fünf Einstiege oben.
+Bei einem eindeutigen Auftrag beginne unmittelbar mit dem passenden Ablauf. Wenn das Repository lediglich geöffnet wurde oder der Nutzer nur allgemein grüßt, führe keine Shell-Befehle aus, erfinde keine Bewerbung und ändere keine Dateien. Antworte knapp, dass das Projekt erkannt wurde, und nenne die sechs Einstiege oben.
 
 Bei einer reinen Projektfrage antworte auf die konkrete Frage, ohne eine Bewerbung zu starten oder Dateien zu ändern.
 

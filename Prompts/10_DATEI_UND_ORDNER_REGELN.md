@@ -27,19 +27,29 @@ Privat und ignoriert:
 ```text
 Private/
 Private/Daten/
+Private/Daten/Passfoto.png   # optional, nur für individuelle Lebensläufe
 Private/Bewerbungen/
 Private/Bewertungen/
-Private/LebenslaufUniversal/
 Private/Archiv/
 ```
 
-Empfohlene aktive Universalquelle:
+Eigenständiger Universal-Lebenslauf:
 
 ```text
-Private/LebenslaufUniversal/Aktiv/Lebenslauf - NACHNAME.VORNAME.html
+Private/Bewerbungen/_Universal-Lebenslauf/
+├─ _Arbeitsdateien/
+│  └─ YYYY-MM-DD--Softwareentwicklung/
+│     ├─ Universalauftrag.json
+│     ├─ Kandidat/
+│     ├─ Layoutcheck/
+│     └─ PDF-Export/
+└─ Aktiv/
+   ├─ Versand/Lebenslauf - NACHNAME.VORNAME.pdf
+   ├─ Intern/Lebenslauf - NACHNAME.VORNAME.html
+   └─ Manifest.json
 ```
 
-Sie wird bei `dokumentumfang.lebenslauf = universal_unveraendert` per SHA-256 als unveränderter Snapshot eingebunden. Liegt die Quelle unter dem Repository, speichert Schema 5 ihren projekt-relativen Pfad. Bei einer externen Quelle werden nur Dateiname, Kandidatensnapshot und SHA-256 gebunden; ein betriebssystemspezifischer absoluter Quellpfad wird nicht gespeichert. Frühere Versionen gehören unter `Private/LebenslaufUniversal/Archiv/`.
+Die aktive HTML-Datei wird bei `dokumentumfang.lebenslauf = universal_unveraendert` per SHA-256 als unveränderter Snapshot eingebunden. `Aktiv/` entsteht erst nach technischem Check und persönlicher Sichtprüfung. Nach erfolgreicher Aktivierung wird der genau zugehörige datierte Arbeitsordner vollständig gelöscht; im aktiven Paket bleiben ausschließlich HTML, Versand-PDF und deren Manifest. Eine frühere `Private/LebenslaufUniversal/`-Quelle darf nur noch als ausdrücklich angegebene unveränderte Legacy-Quelle gelesen werden und ist kein Ziel für neue Dateien.
 
 ## Hauptordner für Bewerbungen
 
@@ -105,6 +115,8 @@ YYYY-MM-DD--ROLLENNAME/
 ```
 
 `Versand/` enthält ausschließlich die laut `dokumentumfang` ausgewählten PDF-Anlagen und gegebenenfalls den E-Mail-Text. `Intern/` enthält vorhandene HTML-Quellen und gemeinsame Nachweise, aber keine PDF-Dubletten. `Manifest.json` weist den Dokumentumfang und alle Dateien außer sich selbst mit relativem Pfad, Größe und SHA-256 nach.
+
+`Passfoto.png` bleibt immer unter `Private/Daten/` und wird nie als eigenständige Kandidaten- oder Versanddatei kopiert. Bei einem individuellen Lebenslauf darf ausschließlich seine bytegleiche Base64-Einbettung im privaten HTML und im daraus erzeugten PDF erscheinen. Der Finalisierungs- und Manifestnachweis führt `passfoto` nur bei tatsächlich vorhandener und verwendeter Quelle.
 
 Bei universellem Lebenslauf ist die PDF keine neu geschriebene Stellenfassung, sondern die frisch gerenderte, inhaltlich unveränderte Universalquelle.
 
@@ -187,6 +199,8 @@ Die Skripte benötigen einen ausdrücklich geklärten Umfang A–E. Bei E werden
 Existiert die bereinigte Kombination aus Firma, Datum und Rolle bereits, muss der Dispatcher standardmäßig abbrechen. Eine vorhandene Bewerbung darf nur mit `--fortsetzen` ergänzt werden, wenn Ziel- und Arbeitsordner vollständig vorhanden sind und `Arbeitsnotizen.md` exakt dieselbe Firma und Zielrolle bestätigt. Direkte Legacy-Aufrufe von `Neue-Bewerbung.ps1` mit `-Fortsetzen` bleiben unterstützt. Eine abweichende vorhandene `Stellenbeschreibung.md` darf nie überschrieben werden.
 
 Platzhalter, Warnhinweise und Entwürfe der Hilfsskripte gehören ausschließlich in `_Arbeitsdateien`. Stellenbeschreibung und Druckhinweis dürfen bereits im Kandidatenordner liegen. Der finale Bewerbungsordner bleibt durch das Hilfsskript vollständig leer.
+
+Browserprofile, isolierte Capture-HTMLs, Staging- und Backup-Verzeichnisse sind technische Laufzeitdaten. Sie werden nach Erfolg und nach kontrollierten Fehlerpfaden mit begrenzten Wiederholungsversuchen entfernt. Leere globale `.browser-tmp`-Wurzeln dürfen nach dem Lauf nicht bestehen bleiben.
 
 ## Plattformregeln
 

@@ -3,7 +3,8 @@
 
 [CmdletBinding()]
 param(
-  [switch]$MitBrowser
+  [switch]$MitBrowser,
+  [string]$TestNamePattern
 )
 
 Set-StrictMode -Version Latest
@@ -15,8 +16,10 @@ $powerShellExe = (Get-Process -Id $PID).Path
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bewerbungs-agent-tests-" + [guid]::NewGuid().ToString("N"))
 $passed = New-Object System.Collections.Generic.List[string]
 $failed = New-Object System.Collections.Generic.List[string]
+$script:selectedTestCount = 0
 
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/OrderPaths.psm1") -Force
+Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/Passfoto.psm1") -Force
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/PngTools.psm1") -Force
 
@@ -75,6 +78,9 @@ function Invoke-Test {
     [string]$Name,
     [scriptblock]$Body
   )
+
+  if (-not [string]::IsNullOrWhiteSpace($TestNamePattern) -and $Name -notmatch $TestNamePattern) { return }
+  $script:selectedTestCount++
 
   try {
     & $Body
@@ -353,9 +359,10 @@ end
 }
 
 function New-StagedFinalizationFixture {
-  param([string]$Root)
+  param([string]$Root, [switch]$WithPassfoto)
 
   $fixture = New-ValidContentFixture -Root $Root
+  Set-Content -LiteralPath (Join-Path $fixture.Work 'Arbeitsnotizen.md') -Encoding UTF8 -Value "Fiktiver rekonstruierbarer Testauftrag."
   $candidate = Join-Path -Path $fixture.Work -ChildPath "Kandidat"
   New-Item -Path $candidate -ItemType Directory -Force | Out-Null
   foreach ($file in Get-ChildItem -LiteralPath $fixture.Folder -File) {
@@ -367,6 +374,19 @@ function New-StagedFinalizationFixture {
   $cvHtmlPath = Join-Path $candidate "Lebenslauf - TEST.PERSON.html"
   $letterPdfPath = Join-Path $candidate "Anschreiben - TEST.PERSON.pdf"
   $cvPdfPath = Join-Path $candidate "Lebenslauf - TEST.PERSON.pdf"
+  $passfotoPath = Join-Path (Split-Path -Path $fixture.Personal -Parent) 'Passfoto.png'
+  if ($WithPassfoto) {
+    $photoPixels = [byte[]](
+      248, 220, 196, 240, 210, 188, 232, 202, 182,
+      224, 194, 176, 216, 186, 170, 208, 178, 164
+    )
+    [System.IO.File]::WriteAllBytes($passfotoPath, [byte[]](New-SyntheticPngBytes -ColorType 2 -Filter 0 -Pixels $photoPixels))
+    $cvHtml = Get-Content -LiteralPath $cvHtmlPath -Raw -Encoding UTF8
+    $cvHtml = $cvHtml.Replace('</main>', "<!-- passfoto:start -->`n{{PASSFOTO_BLOCK}}`n<!-- passfoto:end -->`n</main>")
+    $sourceState = Get-PassfotoSourceState -DataRoot (Split-Path -Path $passfotoPath -Parent)
+    $cvHtml = Update-PassfotoHtml -Html $cvHtml -SourceState $sourceState
+    [System.IO.File]::WriteAllText($cvHtmlPath, $cvHtml, [System.Text.UTF8Encoding]::new($false))
+  }
   $layoutDir = Join-Path -Path $fixture.Work -ChildPath "Layoutcheck"
   New-Item -Path $layoutDir -ItemType Directory -Force | Out-Null
   $letterScreenshotPath = Join-Path $layoutDir "Anschreiben---TEST.PERSON--seite-1-von-1--chrome.png"
@@ -503,6 +523,15 @@ function New-StagedFinalizationFixture {
       sha256 = (Get-FileHash -LiteralPath $File.FullName -Algorithm SHA256).Hash
     }
   }
+  $sourceInputs = [ordered]@{
+    stammdaten = & $record (Get-Item -LiteralPath $fixture.Personal)
+    profil = & $record (Get-Item -LiteralPath $fixture.Profile)
+    bewerbungsauftrag = & $record (Get-Item -LiteralPath $fixture.Auftrag)
+    anforderungsmatrix = & $record (Get-Item -LiteralPath $fixture.Matrix)
+  }
+  if ($WithPassfoto) {
+    $sourceInputs.passfoto = & $record (Get-Item -LiteralPath $passfotoPath)
+  }
   $report = [ordered]@{
     schemaVersion = 5
     status = "bereit_zur_sichtpruefung"
@@ -525,12 +554,7 @@ function New-StagedFinalizationFixture {
     }
     personalReview = "png_sichtpruefung"
     layoutWarnings = @()
-    sourceInputs = [ordered]@{
-      stammdaten = & $record (Get-Item -LiteralPath $fixture.Personal)
-      profil = & $record (Get-Item -LiteralPath $fixture.Profile)
-      bewerbungsauftrag = & $record (Get-Item -LiteralPath $fixture.Auftrag)
-      anforderungsmatrix = & $record (Get-Item -LiteralPath $fixture.Matrix)
-    }
+    sourceInputs = $sourceInputs
     artifacts = [ordered]@{
       html = @(Get-ChildItem -LiteralPath $candidate -File -Filter "*.html" | Sort-Object Name | ForEach-Object { & $record $_ })
       pdf = @(Get-ChildItem -LiteralPath $candidate -File -Filter "*.pdf" | Sort-Object Name | ForEach-Object { & $record $_ })
@@ -543,6 +567,7 @@ function New-StagedFinalizationFixture {
 
   $fixture | Add-Member -NotePropertyName Candidate -NotePropertyValue $candidate
   $fixture | Add-Member -NotePropertyName FinalReport -NotePropertyValue $finalReport
+  $fixture | Add-Member -NotePropertyName Passfoto -NotePropertyValue $(if ($WithPassfoto) { $passfotoPath } else { $null })
   return $fixture
 }
 
@@ -963,6 +988,45 @@ Start-Sleep -Seconds 30
     }
   }
 
+  Invoke-Test -Name "Passfoto-Modul entfernt optionale Blöcke und bindet gültige PNG-Bytes idempotent" -Body {
+    $root = Join-Path $testRoot "passfoto-module"
+    $dataRoot = Join-Path $root "Private/Daten"
+    New-Item -Path $dataRoot -ItemType Directory -Force | Out-Null
+    $html = "<main><!-- passfoto:start -->`n{{PASSFOTO_BLOCK}}`n<!-- passfoto:end --></main>"
+
+    $missingState = Get-PassfotoSourceState -DataRoot $dataRoot
+    $withoutPhoto = Update-PassfotoHtml -Html $html -SourceState $missingState
+    $missingValidation = Test-PassfotoEmbedding -Html $withoutPhoto -SourceState $missingState
+    Assert-True -Condition ($missingValidation.Valid -and $missingValidation.EmbeddedCount -eq 0) -Message "Fehlende Fotodatei hinterließ ein Fotoelement."
+    Assert-True -Condition ($withoutPhoto -notmatch '\{\{' -and $withoutPhoto -notmatch 'bewerbungsfoto') -Message "Fehlende Fotodatei hinterließ Platzhalter oder reservierenden Fotoinhalt."
+
+    $photoPixels = [byte[]](
+      248, 220, 196, 240, 210, 188, 232, 202, 182,
+      224, 194, 176, 216, 186, 170, 208, 178, 164
+    )
+    $photoPath = Join-Path $dataRoot "Passfoto.png"
+    [System.IO.File]::WriteAllBytes($photoPath, [byte[]](New-SyntheticPngBytes -ColorType 2 -Filter 0 -Pixels $photoPixels))
+    $sourceState = Get-PassfotoSourceState -DataRoot $dataRoot
+    $withPhoto = Update-PassfotoHtml -Html $html -SourceState $sourceState
+    $photoValidation = Test-PassfotoEmbedding -Html $withPhoto -SourceState $sourceState
+    Assert-True -Condition ($photoValidation.Valid -and $photoValidation.EmbeddedCount -eq 1 -and $photoValidation.SourceSha256 -ceq $photoValidation.EmbeddedSha256) -Message "Gültiges Passfoto wurde nicht bytegleich eingebettet."
+    Assert-True -Condition ((Update-PassfotoHtml -Html $withPhoto -SourceState $sourceState) -ceq $withPhoto) -Message "Wiederholte Passfoto-Integration veränderte einen bereits gültigen Stand."
+
+    $otherPixels = [byte[]](
+      10, 20, 30, 40, 50, 60, 70, 80, 90,
+      100, 110, 120, 130, 140, 150, 160, 170, 180
+    )
+    $otherData = [Convert]::ToBase64String([byte[]](New-SyntheticPngBytes -ColorType 2 -Filter 0 -Pixels $otherPixels))
+    $mismatchedHtml = [regex]::Replace($withPhoto, 'data:image/png;base64,[A-Za-z0-9+/=]+', "data:image/png;base64,$otherData", 1)
+    $mismatch = Test-PassfotoEmbedding -Html $mismatchedHtml -SourceState $sourceState
+    Assert-True -Condition (-not $mismatch.Valid -and $mismatch.Error -match 'bytegleich') -Message "Abweichende eingebettete PNG-Bytes wurden akzeptiert."
+
+    [System.IO.File]::WriteAllBytes($photoPath, [byte[]](1..32))
+    $invalidRejected = $false
+    try { $null = Get-PassfotoSourceState -DataRoot $dataRoot } catch { $invalidRejected = $_.Exception.Message -match 'PNG' }
+    Assert-True -Condition $invalidRejected -Message "Beschädigte Passfoto.png wurde als gültiges PNG akzeptiert."
+  }
+
   Invoke-Test -Name "Universeller Agenteneinstieg routet alle Betriebsmodi sicher" -Body {
     $agentsPath = Join-Path $repoRoot "AGENTS.md"
     $claudePath = Join-Path $repoRoot "CLAUDE.md"
@@ -980,7 +1044,7 @@ Start-Sleep -Seconds 30
     $openCode = Get-Content -LiteralPath $openCodePath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ($agents -match 'Prompts/00_AGENTEN_START_HIER\.md') -Message "AGENTS.md verweist nicht auf den fachlichen Einstieg."
     Assert-True -Condition ($agents -match 'README\.md.+keine verbindliche operative Agentenanweisung') -Message "README wird nicht eindeutig vom operativen Einstieg abgegrenzt."
-    foreach ($entry in @("Neue Vollbewerbung", "Anschreiben mit universellem Lebenslauf", "Private Bewerberdaten einrichten oder prüfen", "Bestehende Bewerbung fortsetzen", "Projekt technisch weiterentwickeln")) {
+    foreach ($entry in @("Neue Vollbewerbung", "Anschreiben mit universellem Lebenslauf", "Universellen Lebenslauf erstellen oder aktualisieren", "Private Bewerberdaten einrichten oder prüfen", "Bestehende Bewerbung fortsetzen", "Projekt technisch weiterentwickeln")) {
       Assert-True -Condition ($agents.Contains($entry)) -Message "Einstieg fehlt in AGENTS.md: $entry"
     }
     Assert-True -Condition ($agents -match 'persönliche Sichtprüfung') -Message "Persönliche Sichtprüfung ist nicht ausdrücklich zwingend."
@@ -1015,7 +1079,12 @@ Start-Sleep -Seconds 30
       "Tests/Agenten-Kompatibilitaet.md",
       "Tools/Aktualisiere-Tokenbericht.ps1",
       "Tools/Aktualisiere-WorkflowCheckpoint.ps1",
-      "Tools/Ermittle-Bewerbungsstatus.ps1"
+      "Tools/Ermittle-Bewerbungsstatus.ps1",
+      "Tools/Neue-UniversalLebenslauf.ps1",
+      "Tools/Ermittle-UniversalLebenslaufStatus.ps1",
+      "Tools/Finalisiere-UniversalLebenslauf.ps1",
+      "Tools/Integriere-Passfoto.ps1",
+      "Tools/Common/Passfoto.psm1"
     )) {
       Assert-True -Condition (Test-ExactRelativePath -Root $repoRoot -RelativePath $relativePath) -Message "Pfad fehlt oder Groß-/Kleinschreibung stimmt nicht: $relativePath"
     }
@@ -1044,7 +1113,9 @@ Start-Sleep -Seconds 30
     $qualityPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/09_QUALITAETSCHECK.md") -Raw -Encoding UTF8
     $canonicalPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/00_AGENTEN_START_HIER.md") -Raw -Encoding UTF8
     $emailPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/05_EMAIL_NACHRICHT_REGELN.md") -Raw -Encoding UTF8
+    $designPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/08_HTML_CSS_DESIGNREGELN.md") -Raw -Encoding UTF8
     $technicalPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md") -Raw -Encoding UTF8
+    $cvTemplate = Get-Content -LiteralPath (Join-Path $repoRoot "Vorlagen/Designreferenz-Lebenslauf.html") -Raw -Encoding UTF8
 
     Assert-True -Condition ($canonicalPrompt -match 'genau eine gebündelte Rückfrage' -and $canonicalPrompt -match 'Ersatzwerte dürfen nicht automatisch übernommen werden') -Message "Unklare Firma oder Zielrolle kann weiterhin mit einem Platzhalter in Auftragspfade gelangen."
     Assert-True -Condition ($canonicalPrompt -notmatch 'Dokumentmodus: vollständige Bewerbung oder nur neues Anschreiben') -Message "Kanonischer Inputvertrag verwendet noch die veraltete Zwei-Modi-Auswahl."
@@ -1060,6 +1131,10 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($canonicalPrompt -match 'Dummy' -and $canonicalPrompt -match 'firmaSlug' -and $canonicalPrompt -match 'min-height.+kein Ersatz') -Message "Kanonischer Workflow klärt Kandidatenverträge nicht eindeutig."
     Assert-True -Condition ($emailPrompt -match 'FIRMEN-SLUG' -and $emailPrompt -match 'firmaSlug' -and $emailPrompt -match 'Markdown') -Message "E-Mail-Modul klärt Dateiname, Quelle und Format nicht eindeutig."
     Assert-True -Condition ($technicalPrompt -match 'Exportiere-PDF\.ps1.+kein allgemeiner Konverter' -and $technicalPrompt -match 'Dummy' -and $technicalPrompt -match 'min-height.+nicht') -Message "Technischer Workflow grenzt Diagnose und Finalisierung nicht eindeutig ab."
+    Assert-True -Condition ($resumePrompt -match 'Private/Daten/Passfoto\.png' -and $resumePrompt -match 'Fehlt die Datei.+weder Fotoelement noch Platzhalter' -and $resumePrompt -match 'universal_unveraendert.+ausdrücklich nicht') -Message "Lebenslaufregeln definieren die optionale Passfoto- und Universal-Ausnahme nicht eindeutig."
+    Assert-True -Condition ($designPrompt -match 'data:image/png;base64' -and $designPrompt -match 'konkreten Bewerbungsdesign' -and $qualityPrompt -match 'Gesichtsausschnitt') -Message "Design- oder Sichtprüfungsvertrag für das optionale Passfoto fehlt."
+    Assert-True -Condition ($technicalPrompt -match 'bewerbung\.ps1 passfoto' -and $technicalPrompt -match 'Bildbytes werden nie ausgegeben') -Message "Technischer Passfoto-Einbettungsvertrag fehlt."
+    Assert-True -Condition ($cvTemplate -match '<!-- passfoto:start -->' -and $cvTemplate -match '\{\{PASSFOTO_BLOCK\}\}' -and $cvTemplate -match 'bewerbungsfoto-rahmen') -Message "Lebenslaufreferenz enthält keinen vollständig optionalen Passfoto-Block."
   }
 
   Invoke-Test -Name "Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben" -Body {
@@ -1169,6 +1244,36 @@ Start-Sleep -Seconds 30
     Set-Content -LiteralPath $stalePdf -Encoding ASCII -Value "%PDF-1.4 stale-test"
     $staleResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $folder)
     Assert-True -Condition ($staleResult.ExitCode -ne 0) -Message "Zusätzliche oder falsch benannte PDF im flachen Kandidatenordner wurde akzeptiert."
+  }
+
+  Invoke-Test -Name "Zweiseitige Lebensläufe halten fachliche Abschnitte atomar" -Body {
+    $fixture = New-ValidContentFixture -Root (Join-Path $testRoot "semantic-pages")
+    $cvPath = Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.html"
+    $cv = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
+    $body = @"
+<body>
+  <main class="page page-1">
+    <header data-cv-page-header><h1>Test Person</h1></header>
+    <section data-cv-section="projekte"><h2>Projekte</h2><p>Entwicklungsprojekte</p></section>
+    <footer class="page-footer">Seite 1 von 2</footer>
+  </main>
+  <main class="page page-2">
+    <header data-cv-page-header><h2>Test Person</h2></header>
+    <section data-cv-section="berufserfahrung"><h2>Berufserfahrung</h2><p>01/2020 - 12/2020</p></section>
+    <section data-cv-section="ausbildung"><h2>Ausbildung</h2><p>02/2021 - 03/2022</p></section>
+    <footer class="page-footer">Seite 2 von 2</footer>
+  </main>
+</body>
+"@
+    $cv = [regex]::Replace($cv, '(?is)<body>.*?</body>', $body)
+    Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+    $valid = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder, "-AuftragPath", $fixture.Auftrag)
+    Assert-True -Condition ($valid.ExitCode -eq 0) -Message "Semantisch sauberer Zweiseiter wurde abgelehnt: $($valid.Output -join ' | ')"
+
+    $split = $cv.Replace('<section data-cv-section="ausbildung">', '<section data-cv-section="berufserfahrung">')
+    Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $split
+    $invalid = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder, "-AuftragPath", $fixture.Auftrag)
+    Assert-True -Condition ($invalid.ExitCode -ne 0 -and ($invalid.Output -join "`n") -match 'dürfen nicht über Seiten geteilt') -Message "Über zwei Seiten geteilter Fachabschnitt wurde akzeptiert."
   }
 
   Invoke-Test -Name "Stammdatenprüfer lehnt Platzhalter in Pflichtfeldern ab" -Body {
@@ -2050,6 +2155,92 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($differentCandidateName.ExitCode -eq 2) -Message "Abweichender eingefrorener Kandidatenname wurde beim Fortsetzen akzeptiert."
   }
 
+  Invoke-Test -Name "Eigener Universalprozess liegt vollständig unter Private/Bewerbungen" -Body {
+    $root = Join-Path $testRoot "universal-workflow"
+    $data = New-ValidPrivateDataFixture -Root $root
+    $applicationsRoot = Join-Path $root "Private/Bewerbungen"
+    $create = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-UniversalLebenslauf.ps1") -Arguments @(
+      "-Datum", "2026-08-18", "-StammdatenPath", $data.Personal, "-ProfilPath", $data.Profile, "-BewerbungenRoot", $applicationsRoot
+    )
+    Assert-True -Condition ($create.ExitCode -eq 0) -Message "Universal-Arbeitsablauf ließ sich nicht anlegen: $($create.Output -join ' | ')"
+    $work = Join-Path $applicationsRoot "_Universal-Lebenslauf/_Arbeitsdateien/2026-08-18--Softwareentwicklung"
+    $candidate = Join-Path $work "Kandidat"
+    $orderPath = Join-Path $work "Universalauftrag.json"
+    Assert-True -Condition ((Test-Path -LiteralPath $orderPath -PathType Leaf) -and (Test-Path -LiteralPath $candidate -PathType Container)) -Message "Universalauftrag oder Kandidatenordner fehlt."
+    $order = Get-Content -LiteralPath $orderPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($order.auftragsart -eq 'universal_lebenslauf' -and $order.zielOrdner -ceq '_Universal-Lebenslauf/Aktiv') -Message "Universalauftrag bindet nicht den neuen Bewerbungen-Pfad."
+    Assert-True -Condition ((@($order.seitenstrategie.seite1) -join ',') -ceq 'kurzprofil,technologien,projekte') -Message "Recruiter-Seitenplan für Entwicklungsbelege fehlt."
+    Assert-True -Condition ((@($order.seitenstrategie.seite2) -join ',') -ceq 'berufserfahrung,weiterbildung,ausbildung,schulbildung') -Message "Vollständiger formaler Seitenplan fehlt."
+    foreach ($name in @('Stellenbeschreibung.md', 'Analyse.md', 'Qualitaetscheck.md', 'Druck-Hinweis.md')) {
+      Assert-True -Condition (Test-Path -LiteralPath (Join-Path $candidate $name) -PathType Leaf) -Message "Universal-Kandidatengerüst fehlt: $name"
+    }
+    $continue = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-UniversalLebenslauf.ps1") -Arguments @(
+      "-Datum", "2026-08-18", "-StammdatenPath", $data.Personal, "-ProfilPath", $data.Profile, "-BewerbungenRoot", $applicationsRoot, "-Fortsetzen"
+    )
+    Assert-True -Condition ($continue.ExitCode -eq 0) -Message "Universal-Arbeitsstand ließ sich nicht idempotent fortsetzen."
+    $status = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-UniversalLebenslaufStatus.ps1") -Arguments @(
+      "-BewerbungenRoot", $applicationsRoot, "-Arbeitsordner", $work, "-AlsJson"
+    )
+    Assert-True -Condition ($status.ExitCode -eq 0 -and (($status.Output -join "`n") | ConvertFrom-Json).phase -ceq 'dokumenterstellung') -Message "Universalstatus rekonstruiert den angelegten Arbeitsstand nicht."
+    $validPlanHtml = @"
+<!doctype html><html lang="de"><head><style>@page { size: A4; margin: 0; } .page { width: 210mm; height: 297mm; overflow: hidden; }</style></head><body>
+<main class="page"><header data-cv-page-header>Test Person</header><section data-cv-section="kurzprofil">Kurzprofil</section><section data-cv-section="technologien">Technologien</section><section data-cv-section="projekte">Projekte</section><footer class="page-footer">Seite 1 von 2</footer></main>
+<main class="page"><header data-cv-page-header>Test Person</header><section data-cv-section="berufserfahrung">Berufserfahrung</section><section data-cv-section="weiterbildung">Weiterbildung</section><section data-cv-section="ausbildung">Ausbildung</section><section data-cv-section="schulbildung">Schulbildung</section><footer class="page-footer">Seite 2 von 2</footer></main>
+</body></html>
+"@
+    Set-Content -LiteralPath (Join-Path $candidate 'Lebenslauf - TEST.PERSON.html') -Encoding UTF8 -Value $validPlanHtml
+    $notReady = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-UniversalLebenslauf.ps1") -Arguments @(
+      "-Arbeitsordner", $work, "-StammdatenPath", $data.Personal, "-ProfilPath", $data.Profile
+    )
+    Assert-True -Condition ($notReady.ExitCode -ne 0 -and ($notReady.Output -join "`n") -match 'noch nicht fachlich abgeschlossen') -Message "Unfertiges Universal-Gerüst passierte das Freigabe-Gate."
+    $completeEvidence = 'Dieser synthetische Nachweis dokumentiert vollständig die recruiterfreundliche, wahrheitsgebundene und atomare Seitenstrategie für den Softwareentwicklungs-Lebenslauf.'
+    foreach ($name in @('Stellenbeschreibung.md', 'Analyse.md', 'Qualitaetscheck.md', 'Druck-Hinweis.md')) {
+      Set-Content -LiteralPath (Join-Path $candidate $name) -Encoding UTF8 -Value "# Nachweis`n`n$completeEvidence"
+    }
+    $wrongOrderHtml = @"
+<!doctype html><html lang="de"><head><style>@page { size: A4; margin: 0; } .page { width: 210mm; height: 297mm; overflow: hidden; }</style></head><body>
+<main class="page"><header data-cv-page-header>Test Person</header><section data-cv-section="projekte">Projekte</section><section data-cv-section="technologien">Technologien</section><section data-cv-section="kurzprofil">Kurzprofil</section><footer class="page-footer">Seite 1 von 2</footer></main>
+<main class="page"><header data-cv-page-header>Test Person</header><section data-cv-section="berufserfahrung">Berufserfahrung</section><section data-cv-section="weiterbildung">Weiterbildung</section><section data-cv-section="ausbildung">Ausbildung</section><section data-cv-section="schulbildung">Schulbildung</section><footer class="page-footer">Seite 2 von 2</footer></main>
+</body></html>
+"@
+    Set-Content -LiteralPath (Join-Path $candidate 'Lebenslauf - TEST.PERSON.html') -Encoding UTF8 -Value $wrongOrderHtml
+    $wrongOrder = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Finalisiere-UniversalLebenslauf.ps1') -Arguments @(
+      '-Arbeitsordner', $work, '-StammdatenPath', $data.Personal, '-ProfilPath', $data.Profile
+    )
+    Assert-True -Condition ($wrongOrder.ExitCode -ne 0 -and ($wrongOrder.Output -join "`n") -match 'exakt die Abschnitte') -Message 'Falsche Universal-Abschnittsreihenfolge erreichte die Browserphase.'
+
+    $activeInternal = Join-Path $applicationsRoot "_Universal-Lebenslauf/Aktiv/Intern"
+    $activeShipping = Join-Path $applicationsRoot "_Universal-Lebenslauf/Aktiv/Versand"
+    New-Item -Path $activeInternal -ItemType Directory -Force | Out-Null
+    New-Item -Path $activeShipping -ItemType Directory -Force | Out-Null
+    $activeHtml = Join-Path $activeInternal "Lebenslauf - TEST.PERSON.html"
+    $activePdf = Join-Path $activeShipping "Lebenslauf - TEST.PERSON.pdf"
+    Set-Content -LiteralPath $activeHtml -Encoding UTF8 -Value '<!doctype html><html lang="de"><head><style>@page { size: A4; margin: 0; } .page { width: 210mm; height: 297mm; overflow: hidden; }</style></head><body><main class="page"><h1>Test Person</h1></main></body></html>'
+    [IO.File]::WriteAllBytes($activePdf, [byte[]](1..32))
+    $unapproved = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
+      "-Firma", "Aktiv Firma", "-Rolle", "Entwicklung", "-Datum", "2026-08-19", "-UmfangAuswahl", "B",
+      "-StammdatenPath", $data.Personal, "-ProfilPath", $data.Profile, "-BewerbungenRoot", $applicationsRoot
+    )
+    Assert-True -Condition ($unapproved.ExitCode -ne 0 -and ($unapproved.Output -join "`n") -match 'keinen gültigen persönlichen Freigabe') -Message "Nicht manifestierte Universalquelle wurde automatisch als freigegeben behandelt."
+    $activeRoot = Split-Path $activeInternal -Parent
+    $activeRecords = @($activeHtml, $activePdf | ForEach-Object {
+      $item = Get-Item -LiteralPath $_
+      [ordered]@{ path = [IO.Path]::GetRelativePath($activeRoot, $item.FullName).Replace('\', '/'); name = $item.Name; bytes = $item.Length; sha256 = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash }
+    })
+    $activeManifest = [ordered]@{
+      schemaVersion = 1
+      auftragsart = 'universal_lebenslauf'
+      personalReview = [ordered]@{ confirmed = $true }
+      files = $activeRecords
+    }
+    Set-Content -LiteralPath (Join-Path $activeRoot 'Manifest.json') -Encoding UTF8 -Value ($activeManifest | ConvertTo-Json -Depth 6)
+    $application = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Neue-Bewerbung.ps1") -Arguments @(
+      "-Firma", "Aktiv Firma", "-Rolle", "Entwicklung", "-Datum", "2026-08-19", "-UmfangAuswahl", "B",
+      "-StammdatenPath", $data.Personal, "-ProfilPath", $data.Profile, "-BewerbungenRoot", $applicationsRoot
+    )
+    Assert-True -Condition ($application.ExitCode -eq 0) -Message "Aktive Universalquelle unter Bewerbungen wurde nicht automatisch verwendet: $($application.Output -join ' | ')"
+  }
+
   Invoke-Test -Name "Bewerbungsspezifische Logistik überschreibt ungeklärte globale Kernwerte" -Body {
     $fixture = Convert-ToSchema2Fixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "application-logistics"))
     $text = Get-Content -LiteralPath $fixture.Personal -Raw -Encoding UTF8
@@ -2069,6 +2260,52 @@ Start-Sleep -Seconds 30
     $fixture = New-ValidContentFixture -Root (Join-Path $testRoot "valid-content")
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
     Assert-True -Condition ($result.ExitCode -eq 0) -Message "Vollständiger Inhaltsabgleich wurde abgelehnt: $($result.Output -join ' | ')"
+  }
+
+  Invoke-Test -Name "Passfoto-Subcommand und Inhaltsprüfung unterscheiden fehlende, gültige und ungültige Quellen" -Body {
+    $fixture = New-ValidContentFixture -Root (Join-Path $testRoot "passfoto-content")
+    $cvPath = Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.html"
+    $cvHtml = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
+    $cvHtml = $cvHtml.Replace('</main>', "<!-- passfoto:start -->`n{{PASSFOTO_BLOCK}}`n<!-- passfoto:end -->`n</main>")
+    Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cvHtml
+
+    $withoutPhoto = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Integriere-Passfoto.ps1") -Arguments @("-Arbeitsordner", $fixture.Work)
+    Assert-True -Condition ($withoutPhoto.ExitCode -eq 0 -and ($withoutPhoto.Output -join "`n") -match 'nicht_vorhanden') -Message "Fehlendes optionales Passfoto wurde nicht als gültiger Zustand verarbeitet: $($withoutPhoto.Output -join ' | ')"
+    $withoutPhotoHtml = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
+    Assert-True -Condition ($withoutPhotoHtml -notmatch '\{\{' -and $withoutPhotoHtml -notmatch '<img\b[^>]*bewerbungsfoto') -Message "Fotoloser Lebenslauf enthält Platzhalter oder Fotoelement."
+
+    $photoPixels = [byte[]](
+      248, 220, 196, 240, 210, 188, 232, 202, 182,
+      224, 194, 176, 216, 186, 170, 208, 178, 164
+    )
+    $photoPath = Join-Path (Split-Path -Path $fixture.Personal -Parent) "Passfoto.png"
+    [System.IO.File]::WriteAllBytes($photoPath, [byte[]](New-SyntheticPngBytes -ColorType 2 -Filter 0 -Pixels $photoPixels))
+    $withPhoto = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Integriere-Passfoto.ps1") -Arguments @("-Arbeitsordner", $fixture.Work)
+    Assert-True -Condition ($withPhoto.ExitCode -eq 0 -and ($withPhoto.Output -join "`n") -notmatch 'iVBOR') -Message "Passfoto-Einbettung schlug fehl oder gab Bilddaten aus: $($withPhoto.Output -join ' | ')"
+    $embeddedHash = (Get-FileHash -LiteralPath $cvPath -Algorithm SHA256).Hash
+    $again = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Integriere-Passfoto.ps1") -Arguments @("-Arbeitsordner", $fixture.Work)
+    Assert-True -Condition ($again.ExitCode -eq 0 -and (Get-FileHash -LiteralPath $cvPath -Algorithm SHA256).Hash -eq $embeddedHash) -Message "Passfoto-Subcommand ist nicht idempotent."
+
+    $reportPath = Join-Path $fixture.Work "Inhalt-Passfoto.json"
+    $content = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @(
+      "-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile,
+      "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix, "-BerichtPath", $reportPath
+    )
+    Assert-True -Condition ($content.ExitCode -eq 0) -Message "Bytegleich eingebettetes Passfoto wurde abgelehnt: $($content.Output -join ' | ')"
+    $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($report.schemaVersion -eq 4 -and $report.passfoto.status -eq 'eingebettet' -and $report.passfoto.sourceSha256 -eq $report.passfoto.embeddedSha256) -Message "Inhaltsbericht weist die Passfoto-Bindung nicht korrekt aus."
+
+    $validHtml = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
+    $photoTag = [regex]::Match($validHtml, '(?is)<img\b[^>]*class="bewerbungsfoto"[^>]*>').Value
+    Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value ($validHtml.Replace('</main>', "$photoTag</main>"))
+    $duplicate = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($duplicate.ExitCode -ne 0) -Message "Doppeltes Bewerbungsfoto wurde akzeptiert."
+    [System.IO.File]::WriteAllText($cvPath, $validHtml, [System.Text.UTF8Encoding]::new($false))
+
+    [System.IO.File]::WriteAllBytes($photoPath, [byte[]](1..32))
+    $beforeInvalidRun = (Get-FileHash -LiteralPath $cvPath -Algorithm SHA256).Hash
+    $invalid = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Integriere-Passfoto.ps1") -Arguments @("-Arbeitsordner", $fixture.Work)
+    Assert-True -Condition ($invalid.ExitCode -ne 0 -and (Get-FileHash -LiteralPath $cvPath -Algorithm SHA256).Hash -eq $beforeInvalidRun) -Message "Ungültige Passfoto.png wurde akzeptiert oder veränderte den Kandidaten."
   }
 
   Invoke-Test -Name "Prüfer lehnen boolesche und gebrochene Schemaversionen ab" -Body {
@@ -2114,6 +2351,15 @@ Start-Sleep -Seconds 30
       kandidatDatei = "Lebenslauf - TEST.PERSON.html"
     }) -Force
     Set-Content -LiteralPath $fixture.Auftrag -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 8)
+    $photoPixels = [byte[]](
+      248, 220, 196, 240, 210, 188, 232, 202, 182,
+      224, 194, 176, 216, 186, 170, 208, 178, 164
+    )
+    $photoPath = Join-Path (Split-Path -Path $fixture.Personal -Parent) "Passfoto.png"
+    [System.IO.File]::WriteAllBytes($photoPath, [byte[]](New-SyntheticPngBytes -ColorType 2 -Filter 0 -Pixels $photoPixels))
+    $universalHash = (Get-FileHash -LiteralPath $cvPath -Algorithm SHA256).Hash
+    $photoAttempt = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Integriere-Passfoto.ps1") -Arguments @("-Arbeitsordner", $fixture.Work)
+    Assert-True -Condition ($photoAttempt.ExitCode -ne 0 -and (Get-FileHash -LiteralPath $cvPath -Algorithm SHA256).Hash -eq $universalHash) -Message "Passfoto-Subcommand veränderte einen universellen Lebenslauf."
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
     Assert-True -Condition ($result.ExitCode -eq 0) -Message "Unveränderter Universal-Lebenslauf wurde abgelehnt: $($result.Output -join ' | ')"
 
@@ -2307,6 +2553,50 @@ Start-Sleep -Seconds 30
     $newFileResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $newFileFixture.Work, "-StammdatenPath", $newFileFixture.Personal, "-ProfilPath", $newFileFixture.Profile, "-Veroeffentlichen", "-VisuellGeprueft")
     Assert-True -Condition ($newFileResult.ExitCode -ne 0) -Message "Neu hinzugefügte ungeprüfte Kandidatendatei wurde akzeptiert."
     Assert-True -Condition (@(Get-ChildItem -LiteralPath $newFileFixture.Folder -Force).Count -eq 0) -Message "Zielordner wurde trotz neuer ungeprüfter Datei befüllt."
+  }
+
+  Invoke-Test -Name "Passfoto-Quelle ist optional hashgebunden und entwertet den vorbereiteten Status bei jeder Zustandsänderung" -Body {
+    $changedFixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-stale-passfoto") -WithPassfoto
+    $initialStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $changedFixture.Work, "-AlsJson")
+    Assert-True -Condition ($initialStatusResult.ExitCode -eq 0) -Message "Statusprüfung des vorbereiteten Passfoto-Quellnachweises schlug technisch fehl: $($initialStatusResult.Output -join ' | ')"
+    $initialStatus = ($initialStatusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition $initialStatus.finalReportValid -Message "Vorbereiteter Passfoto-Quellnachweis wurde nicht als gültig erkannt."
+
+    $otherPixels = [byte[]](
+      10, 20, 30, 40, 50, 60, 70, 80, 90,
+      100, 110, 120, 130, 140, 150, 160, 170, 180
+    )
+    [System.IO.File]::WriteAllBytes($changedFixture.Passfoto, [byte[]](New-SyntheticPngBytes -ColorType 2 -Filter 0 -Pixels $otherPixels))
+    $changedStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $changedFixture.Work, "-AlsJson")
+    $changedStatus = ($changedStatusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition (-not $changedStatus.finalReportValid) -Message "Geändertes Passfoto entwertete den vorbereiteten Status nicht."
+    $changedPublish = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $changedFixture.Work, "-StammdatenPath", $changedFixture.Personal, "-ProfilPath", $changedFixture.Profile, "-Veroeffentlichen", "-VisuellGeprueft")
+    Assert-True -Condition ($changedPublish.ExitCode -ne 0 -and @(Get-ChildItem -LiteralPath $changedFixture.Folder -Force).Count -eq 0) -Message "Geändertes Passfoto wurde mit altem Sichtnachweis veröffentlicht."
+
+    $addedFixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-added-passfoto")
+    $addedPath = Join-Path (Split-Path -Path $addedFixture.Personal -Parent) 'Passfoto.png'
+    [System.IO.File]::WriteAllBytes($addedPath, [byte[]](New-SyntheticPngBytes -ColorType 2 -Filter 0 -Pixels $otherPixels))
+    $addedStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $addedFixture.Work, "-AlsJson")
+    $addedStatus = ($addedStatusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition (-not $addedStatus.finalReportValid) -Message "Nachträglich hinzugefügtes Passfoto entwertete den vorbereiteten Status nicht."
+
+    $deletedFixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-deleted-passfoto") -WithPassfoto
+    Remove-Item -LiteralPath $deletedFixture.Passfoto -Force
+    $deletedStatusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $deletedFixture.Work, "-AlsJson")
+    $deletedStatus = ($deletedStatusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition (-not $deletedStatus.finalReportValid) -Message "Gelöschtes Passfoto entwertete den vorbereiteten Status nicht."
+  }
+
+  Invoke-Test -Name "Veröffentlichung protokolliert verwendetes Passfoto ohne separate Bilddatei" -Body {
+    $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-valid-passfoto") -WithPassfoto
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Veroeffentlichen", "-VisuellGeprueft")
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Gültige Veröffentlichung mit Passfoto schlug fehl: $($result.Output -join ' | ')"
+    $manifestPath = Join-Path $fixture.Folder 'Manifest.json'
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($manifest.sourceInputs.passfoto.name -ceq 'Passfoto.png' -and $manifest.sourceInputs.passfoto.sha256 -eq (Get-FileHash -LiteralPath $fixture.Passfoto -Algorithm SHA256).Hash) -Message "Manifest bindet das verwendete Passfoto nicht korrekt."
+    Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Recurse -File -Filter 'Passfoto.png').Count -eq 0) -Message "Passfoto.png wurde als separate Veröffentlichungsdatei kopiert."
+    $staticResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder)
+    Assert-True -Condition ($staticResult.ExitCode -eq 0) -Message "Manifest mit optionalem Passfoto-Quellnachweis wurde abgelehnt: $($staticResult.Output -join ' | ')"
   }
 
   Invoke-Test -Name "Layoutwarnung verlangt eine nachvollziehbare Freigabenotiz" -Body {
@@ -2790,13 +3080,15 @@ Text vor dem Doctype
       }
 
       Invoke-Test -Name "Layoutcheck erfasst jede explizite A4-Seite einzeln" -Body {
-        $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "layout-multipage")
+        $fixtureRoot = Join-Path $testRoot "layout-multipage"
+        $folder = New-ValidApplicationFixture -Root $fixtureRoot
         $cvPath = Join-Path $folder "Lebenslauf - TEST.PERSON.html"
         $cv = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
         $twoPages = @"
 <body>
-  <main class="page"><h1>Lebenslauf Seite 1</h1><footer class="page-footer">Seite 1 von 2</footer></main>
-  <main class="page"><h2>Lebenslauf Seite 2</h2><footer class="page-footer">Seite 2 von 2</footer></main>
+  <main class="preface">Darf nie als A4-Seite erfasst werden.</main>
+  <main class="page" style="background:#eaf4ff"><header data-cv-page-header><h1>Lebenslauf Seite 1</h1></header><section data-cv-section="projekte">Projekte</section><footer class="page-footer">Seite 1 von 2</footer></main>
+  <main class="page" style="background:#fff1e6"><header data-cv-page-header><h2>Lebenslauf Seite 2</h2></header><section data-cv-section="berufserfahrung">Berufserfahrung</section><footer class="page-footer">Seite 2 von 2</footer></main>
 </body>
 "@
         $cv = [regex]::Replace($cv, '(?is)<body>.*?</body>', $twoPages)
@@ -2804,17 +3096,91 @@ Text vor dem Doctype
         $companyDir = Split-Path -Path $folder -Parent
         $roleDir = Split-Path -Path $folder -Leaf
         $layoutDir = Join-Path $companyDir "_Arbeitsdateien/$roleDir/Layoutcheck"
-        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Layoutcheck-Bewerbung.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
+        $reportPath = Join-Path $layoutDir "Layoutcheck-Bericht.json"
+        $relativeReportPath = [System.IO.Path]::GetRelativePath($fixtureRoot, $reportPath)
+        Push-Location $fixtureRoot
+        try {
+          $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Layoutcheck-Bewerbung.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60", "-BerichtPath", $relativeReportPath)
+        } finally {
+          Pop-Location
+        }
         Assert-True -Condition ($result.ExitCode -eq 0) -Message "Mehrseiten-Layoutcheck schlug fehl: $($result.Output -join ' | ')"
         $pngs = @(Get-ChildItem -LiteralPath $layoutDir -Filter "*.png" -File)
         Assert-True -Condition ($pngs.Count -eq 3) -Message "Erwartet wurden drei Seitenscreenshots, erzeugt wurden $($pngs.Count)."
-        Assert-True -Condition (Test-Path -LiteralPath (Join-Path $layoutDir "Lebenslauf---TEST.PERSON--seite-2-von-2--$browserArtifactName.png") -PathType Leaf) -Message "Screenshot der zweiten Lebenslaufseite fehlt."
-        $layoutData = Get-Content -LiteralPath (Join-Path $layoutDir "Layoutcheck-Bericht.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+        $pageTwoPng = Join-Path $layoutDir "Lebenslauf---TEST.PERSON--seite-2-von-2--$browserArtifactName.png"
+        Assert-True -Condition (Test-Path -LiteralPath $pageTwoPng -PathType Leaf) -Message "Screenshot der zweiten Lebenslaufseite fehlt."
+        $pageTwoImage = Read-PngImage -LiteralPath $pageTwoPng
+        $pageTwoPixel = Get-PngPixel -Image $pageTwoImage -X 10 -Y 10
+        Assert-True -Condition ($pageTwoPixel.R -ge 250 -and $pageTwoPixel.G -ge 235 -and $pageTwoPixel.G -le 247 -and $pageTwoPixel.B -ge 220 -and $pageTwoPixel.B -le 238) -Message "Seitencapture zeigt nicht den vollständigen oberen Bereich der zweiten A4-Seite."
+        Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $layoutDir $relativeReportPath))) -Message "Relativer Berichtspfad wurde fälschlich unter dem Layoutordner verschachtelt."
+        Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path (Split-Path $companyDir -Parent) '.browser-tmp'))) -Message "Leerer Browser-Temporärroot blieb nach erfolgreichem Layoutcheck zurück."
+        $layoutData = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
         Assert-True -Condition (@($layoutData.results).Count -eq 3 -and $layoutData.expectedScreenshots -eq 3) -Message "Layoutbericht bildet nicht alle A4-Seiten ab."
       }
 
-      Invoke-Test -Name "Finalisierungs-Vorbereitung erzeugt gebundene Browser- und PDF-Nachweise" -Body {
-        $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-browser")
+      Invoke-Test -Name "Universal-Freigabe veröffentlicht nur das Aktivpaket und entfernt den Arbeitsordner" -Body {
+        $root = Join-Path $testRoot 'universal-browser'
+        $data = New-ValidPrivateDataFixture -Root $root
+        $applicationsRoot = Join-Path $root 'Private/Bewerbungen'
+        $create = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Neue-UniversalLebenslauf.ps1') -Arguments @(
+          '-Datum', '2026-08-18', '-StammdatenPath', $data.Personal, '-ProfilPath', $data.Profile, '-BewerbungenRoot', $applicationsRoot
+        )
+        Assert-True -Condition ($create.ExitCode -eq 0) -Message "Universal-Browsertest konnte den Arbeitsstand nicht anlegen: $($create.Output -join ' | ')"
+        $work = Join-Path $applicationsRoot '_Universal-Lebenslauf/_Arbeitsdateien/2026-08-18--Softwareentwicklung'
+        $candidate = Join-Path $work 'Kandidat'
+        $htmlPath = Join-Path $candidate 'Lebenslauf - TEST.PERSON.html'
+        $supportText = 'Dieser synthetische Nachweis beschreibt vollständig den geprüften recruiterfreundlichen Softwareentwicklungs-Lebenslauf und seine wahrheitsgebundene Seitenstrategie.'
+        foreach ($name in @('Stellenbeschreibung.md', 'Analyse.md', 'Qualitaetscheck.md', 'Druck-Hinweis.md')) {
+          Set-Content -LiteralPath (Join-Path $candidate $name) -Encoding UTF8 -Value "# $name`n`n$supportText"
+        }
+        $html = @"
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: Arial, "Liberation Sans", sans-serif; color: #172033; }
+.page { width: 210mm; height: 297mm; padding: 14mm; overflow: hidden; position: relative; background: #fff; break-after: page; }
+.page:last-child { break-after: auto; }
+header { border-bottom: 2px solid #315f88; margin-bottom: 7mm; padding-bottom: 4mm; }
+section { margin-bottom: 7mm; break-inside: avoid; }
+h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; } p, li { font-size: 12px; line-height: 1.45; }
+.page-footer { position: absolute; left: 14mm; right: 14mm; bottom: 8mm; border-top: 1px solid #ccd5df; padding-top: 2mm; text-align: right; }
+@media print { .page { width: 210mm; height: 297mm; margin: 0; box-shadow: none; } }
+</style></head><body>
+<main class="page"><header data-cv-page-header><h1>Test Person</h1><p>Frontend-, Backend- und Fullstack-Entwicklung</p></header>
+<section data-cv-section="kurzprofil"><h2>Kurzprofil</h2><p>Softwareentwickler mit klarer Ausrichtung auf wartbare Webanwendungen, nachvollziehbare Schnittstellen und verlässliche Zusammenarbeit.</p></section>
+<section data-cv-section="technologien"><h2>Technologien</h2><ul><li>HTML, CSS, JavaScript und TypeScript</li><li>Backend-Schnittstellen, relationale Daten und automatisierte Tests</li></ul></section>
+<section data-cv-section="projekte"><h2>Projekte</h2><p>Entwicklung einer responsiven Webanwendung mit klarer Komponentenstruktur.</p><p>Umsetzung einer serverseitigen API mit Datenvalidierung und Tests.</p><p>Integration von Frontend und Backend in einem durchgängigen Fullstack-Projekt.</p></section>
+<footer class="page-footer">Seite 1 von 2</footer></main>
+<main class="page"><header data-cv-page-header><h1>Test Person</h1><p>Beruflicher und formaler Werdegang</p></header>
+<section data-cv-section="berufserfahrung"><h2>Berufserfahrung</h2><p>01/2020 - 12/2020 · Testrolle · Testunternehmen</p><p>Übertragbare technische Erfahrung und strukturierte Arbeitsweise.</p></section>
+<section data-cv-section="weiterbildung"><h2>Weiterbildung</h2><p>01/2021 - 12/2021 · Weiterbildung Softwareentwicklung</p></section>
+<section data-cv-section="ausbildung"><h2>Ausbildung</h2><p>01/2018 - 12/2019 · Fachliche Ausbildung</p></section>
+<section data-cv-section="schulbildung"><h2>Schulbildung</h2><p>Schulabschluss · Testschule</p></section>
+<footer class="page-footer">Seite 2 von 2</footer></main>
+</body></html>
+"@
+        Set-Content -LiteralPath $htmlPath -Encoding UTF8 -Value $html
+        $prepare = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Finalisiere-UniversalLebenslauf.ps1') -Arguments @(
+          '-Arbeitsordner', $work, '-StammdatenPath', $data.Personal, '-ProfilPath', $data.Profile,
+          '-Browser', 'auto', '-BrowserExecutablePath', $script:browserSmokeInfo.Path, '-TimeoutSeconds', '60'
+        )
+        Assert-True -Condition ($prepare.ExitCode -eq 0) -Message "Universal-Vorbereitung schlug fehl: $($prepare.Output -join ' | ')"
+        Assert-True -Condition (@(Get-ChildItem -LiteralPath (Join-Path $work 'Layoutcheck') -File -Filter '*.png').Count -eq 2) -Message 'Universal-Vorbereitung erzeugte nicht genau zwei Seitenscreenshots.'
+        $publish = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Finalisiere-UniversalLebenslauf.ps1') -Arguments @(
+          '-Arbeitsordner', $work, '-StammdatenPath', $data.Personal, '-ProfilPath', $data.Profile,
+          '-Veroeffentlichen', '-VisuellGeprueft', '-VisuelleFreigabeNotiz', 'Beide synthetischen Seiten geprüft; kein Beschnitt und keine Überlappung.'
+        )
+        Assert-True -Condition ($publish.ExitCode -eq 0) -Message "Universal-Aktivierung schlug fehl: $($publish.Output -join ' | ')"
+        Assert-True -Condition (-not (Test-Path -LiteralPath $work)) -Message 'Datierter Universal-Arbeitsordner blieb nach erfolgreicher Aktivierung bestehen.'
+        $active = Join-Path $applicationsRoot '_Universal-Lebenslauf/Aktiv'
+        Assert-True -Condition (@(Get-ChildItem -LiteralPath $active -Recurse -File).Count -eq 3) -Message 'Aktivfassung enthält mehr als HTML, PDF und Manifest.'
+        $status = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Ermittle-UniversalLebenslaufStatus.ps1') -Arguments @('-BewerbungenRoot', $applicationsRoot, '-AlsJson')
+        Assert-True -Condition ($status.ExitCode -eq 0 -and (($status.Output -join "`n") | ConvertFrom-Json).phase -ceq 'aktiv') -Message 'Status erkennt die bereinigte Aktivfassung nicht.'
+      }
+
+      Invoke-Test -Name "Finalisierungs-Vorbereitung rendert ein Passfoto und erzeugt gebundene Browser-, PDF- und ATS-Nachweise" -Body {
+        $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-browser-passfoto") -WithPassfoto
         Remove-Item -LiteralPath $fixture.FinalReport -Force
         $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -eq 0) -Message "Browsergestützte Finalisierungsvorbereitung schlug fehl: $($result.Output -join ' | ')"
@@ -2824,6 +3190,7 @@ Text vor dem Doctype
         Assert-True -Condition (@($report.artifacts.html).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei HTML-Nachweise."
         Assert-True -Condition (@($report.artifacts.pdf).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei PDF-Nachweise."
         Assert-True -Condition (@($report.artifacts.screenshots).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei Screenshot-Nachweise."
+        Assert-True -Condition ($report.sourceInputs.passfoto.name -ceq 'Passfoto.png' -and $report.sourceInputs.passfoto.sha256 -eq (Get-FileHash -LiteralPath $fixture.Passfoto -Algorithm SHA256).Hash) -Message "Reale Browservorbereitung bindet das gerenderte Passfoto nicht als Quelle."
         Assert-True -Condition (Test-Path -LiteralPath $report.atsReport -PathType Leaf) -Message "Finalisierung schrieb keinen ATS-Prüfbericht."
         Assert-True -Condition (Test-Path -LiteralPath $report.tokenUsageReport.path -PathType Leaf) -Message "Finalisierung schrieb keinen referenzierten Tokenbericht."
         Assert-True -Condition (-not $report.tokenUsageReport.blocksFinalization -and -not $report.tokenUsageReport.includedInManifest) -Message "Tokenbericht ist nicht ausdrücklich nicht blockierend und manifestfrei."
@@ -2843,6 +3210,7 @@ Text vor dem Doctype
         Assert-True -Condition ($publish.ExitCode -eq 0) -Message "Veröffentlichung nach realer Browservorbereitung schlug fehl: $($publish.Output -join ' | ')"
         Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Versand/Lebenslauf - TEST.PERSON.pdf") -PathType Leaf) -Message "Realer Versand-Lebenslauf fehlt."
         Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Manifest.json") -PathType Leaf) -Message "Manifest der realen Veröffentlichung fehlt."
+        Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Recurse -File -Filter 'Passfoto.png').Count -eq 0) -Message "Reale Browserveröffentlichung kopierte das Passfoto als separate Datei."
         Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Recurse -File -Filter "Tokenverbrauch.json").Count -eq 0) -Message "Tokenbericht wurde bei realer Veröffentlichung mitveröffentlicht."
         $publishedStatic = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $fixture.Folder)
         Assert-True -Condition ($publishedStatic.ExitCode -eq 0) -Message "Reale strukturierte Veröffentlichung wurde abgelehnt: $($publishedStatic.Output -join ' | ')"
@@ -2940,6 +3308,9 @@ Text vor dem Doctype
 }
 
 Write-Host ""
+if (-not [string]::IsNullOrWhiteSpace($TestNamePattern) -and $script:selectedTestCount -eq 0) {
+  $failed.Add("Kein Test entspricht dem Muster: $TestNamePattern") | Out-Null
+}
 Write-Host "Testergebnis: $($passed.Count) bestanden, $($failed.Count) fehlgeschlagen."
 foreach ($failure in $failed) {
   Write-Host "- $failure" -ForegroundColor Red

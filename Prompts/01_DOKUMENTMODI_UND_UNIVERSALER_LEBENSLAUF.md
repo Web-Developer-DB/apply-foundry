@@ -364,7 +364,7 @@ Eine reine Standabfrage verändert weder Auftrag noch Profil. Ein anderer Agent 
 
 Bei `lebenslauf = universal_unveraendert` wird ein bereits freigegebener universeller Lebenslauf als konkreter HTML-Snapshot verwendet:
 
-- Die Quelle liegt empfohlen unter `Private/LebenslaufUniversal/Aktiv/Lebenslauf - NACHNAME.VORNAME.html`.
+- Die automatisch verwendete Quelle liegt unter `Private/Bewerbungen/_Universal-Lebenslauf/Aktiv/Intern/Lebenslauf - NACHNAME.VORNAME.html` und besitzt dort ein gültiges hashgebundenes `Manifest.json` mit bestätigter persönlicher Sichtprüfung.
 - Sie muss frei von Platzhaltern sein und nach dem Pflichtschema benannt sein.
 - Liegt die Quelle unter dem Repository, werden ihr projekt-relativer Pfad, Dateiname und SHA-256-Wert eingefroren.
 - Bei einer Quelle außerhalb des Repositorys wird kein betriebssystemspezifischer absoluter Pfad gespeichert. Dateiname, Kandidatensnapshot und SHA-256 bleiben die Bindung; beim Fortsetzen entscheidet der Hash.
@@ -373,7 +373,7 @@ Bei `lebenslauf = universal_unveraendert` wird ein bereits freigegebener univers
 - Der Lebenslauf-zu-Anschreiben-Abgleich verwendet den Snapshot als Referenz.
 - Eine belegte Anforderung, die im universellen Lebenslauf fehlt, darf im Anschreiben erklärt werden. Ist dies für Glaubwürdigkeit oder formale Eignung nicht ausreichend, wird ein individueller Lebenslauf empfohlen; der Umfang wird nicht stillschweigend gewechselt.
 
-Fehlt bei Auswahl B eine gültige freigegebene Universalquelle, bleibt der Umfang bekannt, aber die Dokumenterstellung blockiert. Frage nach einer vorhandenen Quelle oder biete den getrennten Erstellungs- und Freigabeprozess für einen universellen Lebenslauf an. Improvisiere keinen Ersatz und ändere eine Universalquelle nur nach einem neuen ausdrücklichen Auftrag mit eigener Prüfung und Freigabe.
+Fehlt bei Auswahl B eine gültige freigegebene Universalquelle, bleibt der Umfang bekannt, aber die Dokumenterstellung blockiert. Frage nach einer vorhandenen ausdrücklich angegebenen Legacy-/externen Quelle oder biete den getrennten Erstellungs- und Freigabeprozess mit `bewerbung.ps1 universal-neu`, `universal-status` und `universal-finalisieren` an. Neue lokale Fassungen entstehen ausschließlich unter `Private/Bewerbungen/_Universal-Lebenslauf/`; `Private/LebenslaufUniversal/` bleibt höchstens eine explizit angegebene, unverändert lesbare Legacy-Quelle. Improvisiere keinen Ersatz und ändere eine Universalquelle nur nach einem neuen ausdrücklichen Auftrag mit eigener Prüfung und Freigabe.
 
 ## Umfangsabhängige Ausgabe
 

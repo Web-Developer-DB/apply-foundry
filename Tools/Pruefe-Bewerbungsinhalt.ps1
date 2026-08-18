@@ -25,6 +25,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Passfoto.psm1") -Force
 
 $errors = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
@@ -171,7 +172,8 @@ function Write-JsonReport {
     [string]$SchoolMode,
     [string]$ProfileLinksMode,
     [string]$DocumentMode,
-    [object]$DocumentScope
+    [object]$DocumentScope,
+    [object]$Passfoto
   )
   if ([string]::IsNullOrWhiteSpace($Path)) { return }
   $fullPath = $script:ResolvedReportPath
@@ -185,7 +187,7 @@ function Write-JsonReport {
   $null = Resolve-SafePath -Candidate $parent -Root $script:WorkRoot -AllowRoot -MustExist -PathType Container
   $fullPath = Resolve-SafePath -Candidate $fullPath -Root $script:WorkRoot -ForWrite -PathType Leaf
   $report = [ordered]@{
-    schemaVersion = 3
+    schemaVersion = 4
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     applicationFolder = [System.IO.Path]::GetFullPath($Ordner)
     status = if ($errors.Count -gt 0) { "fehler" } elseif ($warnings.Count -gt 0) { "warnung" } else { "ok" }
@@ -199,6 +201,7 @@ function Write-JsonReport {
     profileLinksMode = $ProfileLinksMode
     documentMode = $DocumentMode
     documentScope = $DocumentScope
+    passfoto = $Passfoto
     fitAssessment = $FitAssessment
   }
   Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 6)
@@ -321,6 +324,39 @@ $letterHtml = if ($expectedLetter -and $letterFiles.Count -eq 1) { Get-Content -
 $emailText = if ($expectedEmail -and $emailFiles.Count -eq 1) { Get-Content -LiteralPath $emailFiles[0].FullName -Raw -Encoding UTF8 } else { "" }
 $cvText = Convert-HtmlToText -Html $cvHtml
 $letterText = Convert-HtmlToText -Html $letterHtml
+
+$passfotoReport = [ordered]@{
+  applicable = ($expectedCv -and $cvKind -eq 'individuell')
+  status = if ($expectedCv -and $cvKind -eq 'individuell') { 'ausstehend' } else { 'nicht_erforderlich' }
+  sourceExists = $false
+  embeddedCount = 0
+  sourceSha256 = $null
+  embeddedSha256 = $null
+}
+if ($passfotoReport.applicable) {
+  try {
+    $passfotoSource = Get-PassfotoSourceState -DataRoot $dataRoot
+    $passfotoValidation = Test-PassfotoEmbedding -Html $cvHtml -SourceState $passfotoSource
+    $passfotoReport.sourceExists = [bool]$passfotoSource.Exists
+    $passfotoReport.embeddedCount = [int]$passfotoValidation.EmbeddedCount
+    $passfotoReport.sourceSha256 = $passfotoValidation.SourceSha256
+    $passfotoReport.embeddedSha256 = $passfotoValidation.EmbeddedSha256
+    if ($passfotoValidation.Valid) {
+      $passfotoReport.status = if ($passfotoSource.Exists) { 'eingebettet' } else { 'nicht_vorhanden' }
+      if ($passfotoSource.Exists) {
+        Add-OkMessage "Passfoto.png ist als genau ein bytegleiches eingebettetes Bewerbungsfoto im individuellen Lebenslauf enthalten."
+      } else {
+        Add-OkMessage "Passfoto.png ist nicht vorhanden; der individuelle Lebenslauf enthält folgerichtig kein Bewerbungsfoto."
+      }
+    } else {
+      $passfotoReport.status = 'fehler'
+      Add-ErrorMessage $passfotoValidation.Error
+    }
+  } catch {
+    $passfotoReport.status = 'fehler'
+    Add-ErrorMessage "Passfoto-Prüfung fehlgeschlagen: $($_.Exception.Message)"
+  }
+}
 
 Write-Host "Pruefe Bewerbungsinhalt: $resolvedFolder"
 
@@ -715,7 +751,7 @@ foreach ($pattern in $defensivePatterns) {
   }
 }
 
-Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode -DocumentMode $documentMode -DocumentScope $effectiveScope
+Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode -DocumentMode $documentMode -DocumentScope $effectiveScope -Passfoto $passfotoReport
 
 Write-Host ""
 Write-Host "Zusammenfassung:"

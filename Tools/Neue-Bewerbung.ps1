@@ -87,6 +87,37 @@ function Get-MarkdownField {
   return ""
 }
 
+function Test-ApprovedUniversalActiveSource {
+  param([string]$HtmlPath, [string]$ActiveFolder)
+
+  $manifestPath = Join-Path $ActiveFolder 'Manifest.json'
+  if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) { return $false }
+  try {
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $records = @($manifest.files)
+    if ([int]$manifest.schemaVersion -ne 1 -or [string]$manifest.auftragsart -cne 'universal_lebenslauf' -or
+        $manifest.personalReview.confirmed -isnot [bool] -or -not [bool]$manifest.personalReview.confirmed -or $records.Count -ne 2) {
+      return $false
+    }
+    $htmlRelative = [IO.Path]::GetRelativePath($ActiveFolder, $HtmlPath).Replace('\', '/')
+    $pdfRelative = 'Versand/' + [IO.Path]::GetFileName([IO.Path]::ChangeExtension($HtmlPath, '.pdf'))
+    $recordPaths = @($records | ForEach-Object { ([string]$_.path).Replace('\', '/') })
+    if (@($recordPaths | Where-Object { $_ -ceq $htmlRelative }).Count -ne 1 -or
+        @($recordPaths | Where-Object { $_ -ceq $pdfRelative }).Count -ne 1) { return $false }
+    foreach ($record in $records) {
+      $relative = [string]$record.path
+      if ([string]::IsNullOrWhiteSpace($relative) -or [IO.Path]::IsPathRooted($relative) -or $relative -match '(^|/|\\)\.\.($|/|\\)') { return $false }
+      $path = Resolve-SafePath -Candidate (Join-Path $ActiveFolder $relative) -Root $ActiveFolder -MustExist -PathType Leaf
+      $file = Get-Item -LiteralPath $path
+      if ($file.Length -ne [long]$record.bytes -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ine [string]$record.sha256) { return $false }
+    }
+    $actualPaths = @(Get-ChildItem -LiteralPath $ActiveFolder -Recurse -File | Where-Object { $_.Name -cne 'Manifest.json' } | ForEach-Object { [IO.Path]::GetRelativePath($ActiveFolder, $_.FullName).Replace('\', '/') } | Sort-Object)
+    return (($actualPaths -join "`n") -ceq (($recordPaths | Sort-Object) -join "`n"))
+  } catch {
+    return $false
+  }
+}
+
 function Invoke-RequiredTool {
   param([string]$ScriptPath, [string[]]$Arguments)
 
@@ -280,7 +311,20 @@ $universalSourcePathMode = ""
 $universalSourceRelativePath = ""
 if ($cvKind -eq "universal_unveraendert") {
   if ([string]::IsNullOrWhiteSpace($UniversalLebenslaufPath)) {
-    Stop-WithValidationError -Message "Ein unveränderter universeller Lebenslauf erfordert -UniversalLebenslaufPath."
+    $preferredUniversalPath = Join-Path -Path $bewerbungenRootLexical -ChildPath "_Universal-Lebenslauf/Aktiv/Intern/Lebenslauf - $applicantFileName.html"
+    $legacyUniversalPath = Join-Path -Path $projectRoot -ChildPath "Private/LebenslaufUniversal/Aktiv/Lebenslauf - $applicantFileName.html"
+    if (Test-Path -LiteralPath $preferredUniversalPath -PathType Leaf) {
+      $preferredActiveFolder = Split-Path -Path (Split-Path -Path $preferredUniversalPath -Parent) -Parent
+      if (-not (Test-ApprovedUniversalActiveSource -HtmlPath $preferredUniversalPath -ActiveFolder $preferredActiveFolder)) {
+        Stop-WithValidationError -Message 'Die lokale Universalquelle unter Private/Bewerbungen besitzt keinen gültigen persönlichen Freigabe- und Hashnachweis.'
+      }
+      $UniversalLebenslaufPath = $preferredUniversalPath
+    } elseif (Test-Path -LiteralPath $legacyUniversalPath -PathType Leaf) {
+      $UniversalLebenslaufPath = $legacyUniversalPath
+      Write-Host "[WARNUNG] Legacy-Universalquelle wird weiterhin gelesen. Neue Freigaben gehören unter Private/Bewerbungen/_Universal-Lebenslauf/Aktiv." -ForegroundColor Yellow
+    } else {
+      Stop-WithValidationError -Message "Keine aktive Universalquelle gefunden. Zuerst 'bewerbung.ps1 universal-neu' und 'universal-finalisieren' ausführen oder -UniversalLebenslaufPath ausdrücklich angeben."
+    }
   }
   if (-not (Test-Path -LiteralPath $UniversalLebenslaufPath -PathType Leaf)) {
     Stop-WithValidationError -Message "UniversalLebenslaufPath muss auf eine vorhandene HTML-Datei zeigen: $UniversalLebenslaufPath"

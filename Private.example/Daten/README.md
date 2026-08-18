@@ -26,6 +26,14 @@ Nicht hier eintragen:
 - Ausbildung, Weiterbildung oder Schulbildung
 - Kenntnisse, Projekte, Zielrollen oder Kurzprofile
 
+## Optionales Passfoto
+
+Ein Bewerbungsfoto ist freiwillig. Wenn individuelle Lebensläufe automatisch ein Foto verwenden sollen, lege die eigene PNG-Datei ausschließlich und mit exakter Schreibweise hier ab:
+
+`Private/Daten/Passfoto.png`
+
+Fehlt die Datei, erstellt der Agent ohne Rückfrage einen Lebenslauf ohne Foto. Lege kein fiktives oder öffentliches Beispielbild unter `Private.example/` ab. Das Original bleibt privat, wird nicht verändert und nicht separat nach `Versand/` kopiert; der individuelle Lebenslauf enthält bei Verwendung nur eine bytegleiche eingebettete Datenressource. Universelle Lebensläufe bleiben unabhängig von dieser Datei unverändert.
+
 Hinweis zum Gehaltswunsch:
 
 - Eine manuelle Gehaltsangabe in Datei `01` hat Vorrang.

@@ -176,6 +176,20 @@ Die Stammdaten definieren nur, welche öffentlichen Profile verfügbar sind. Der
 
 Nicht ausgewählte Links dürfen nicht beiläufig im Kontaktblock verbleiben. Ein Portfolio- oder Repository-Link wird nur ausgewählt, wenn die dort sichtbaren Inhalte die konkrete Rolle stützen und keine widersprüchliche Positionierung erzeugen. Die URL selbst wird niemals erfunden oder verändert.
 
+## Optionales Passfoto
+
+Diese Regel gilt ausschließlich für `dokumentumfang.lebenslauf = individuell`:
+
+- Prüfe unmittelbar vor der Lebenslauferstellung ausschließlich den exakten Pfad `Private/Daten/Passfoto.png`. Stelle keine Rückfrage nach einem Foto und suche nicht nach ähnlich benannten Bilddateien.
+- Fehlt die Datei, enthält der Lebenslauf weder Fotoelement noch Platzhalter oder reservierte Leerfläche. Das Fehlen ist kein Fehler und keine Warnung.
+- Ist die Datei vorhanden, muss sie eine gültige PNG-Signatur und einen gültigen IHDR-Header besitzen. Eine beschädigte oder nur umbenannte Datei blockiert die Dokumenterstellung; sie wird nicht stillschweigend ausgelassen.
+- Setze an der designgerechten Stelle genau einen optionalen Block mit `<!-- passfoto:start -->`, `{{PASSFOTO_BLOCK}}` und `<!-- passfoto:end -->`. Führe danach `pwsh -NoProfile -File Tools/bewerbung.ps1 passfoto --arbeitsordner "ARBEITSORDNER"` aus. Das Werkzeug entfernt den Platzhalter immer und bettet bei vorhandener Quelle genau ein `<img class="bewerbungsfoto" ... alt="">` als `data:image/png;base64` ein.
+- Form, Größe, Rahmen, Position und Zuschnitt folgen dem konkreten Bewerbungsdesign. Das Foto darf weder verzerrt noch dominant, unscharf, abgeschnitten oder über anderen Inhalten platziert sein. Bei `object-fit: cover` muss insbesondere der Gesichtsausschnitt im Seitenscreenshot geprüft werden.
+- Das Original wird weder verändert noch kopiert. Nur die eingebetteten Bytes liegen im privaten Lebenslauf-HTML und im daraus erzeugten PDF; `Versand/` erhält keine separate Bilddatei.
+- Bei späterem Hinzufügen, Ändern oder Löschen von `Passfoto.png` das Einbettungswerkzeug erneut ausführen und anschließend fachliche Prüfung, technische Vorbereitung und persönliche Sichtprüfung erneuern.
+
+Bei `universal_unveraendert` gilt die Fotoprüfung ausdrücklich nicht. Auch eine vorhandene `Passfoto.png` darf den eingefrorenen Universal-Lebenslauf nicht verändern.
+
 ## Recruiter-Strategie
 
 Recruiter lesen oft schnell und selektiv. Die wichtigsten Passungen müssen innerhalb der ersten 10 bis 20 Sekunden sichtbar sein.
@@ -245,8 +259,9 @@ Nur die Detailtiefe innerhalb dieser Stationen ist kürzbar. Die Station selbst 
 Wenn zwei Seiten fachlich sinnvoll sind:
 
 - Es werden zwei explizite A4-Seitencontainer erstellt.
-- Seite 1 enthält die wichtigsten Recruiter-Signale: Name, Zielrolle, Kurzprofil, Kontakt, passend benannte Kompetenz- oder Profilbasis und relevante Berufserfahrung.
-- Seite 2 enthält sauber strukturierte formale Ergänzungen: Ausbildung/Studium/berufliche Bildung, Schulbildung, Weiterbildungen/Zertifikate, Sprachen und relevante Projekte/Zusatzpraxis.
+- Die Verteilung folgt fachlichen, recruiterfreundlichen Abschnitten und niemals einem technischen Umbruch: Jeder Abschnitt liegt vollständig auf genau einer Seite und trägt eine stabile `data-cv-section`-Kennung; jede Seite besitzt einen mit `data-cv-page-header` markierten Kopf.
+- Seite 1 bündelt die stärksten Recruiter-Signale für die konkrete Profilrichtung. Seite 2 bildet einen eigenständigen, logisch lesbaren Block und beginnt nicht mitten in Berufserfahrung, Projekten, Ausbildung oder einer anderen Rubrik.
+- Für den eigenständigen universellen Softwareentwicklungs-Lebenslauf gilt verbindlich: Seite 1 enthält vollständig Kurzprofil, Technologien und sämtliche ausgewählten Entwicklungsprojekte; Seite 2 enthält vollständig Berufserfahrung, Weiterbildung, Ausbildung und Schulbildung. Dadurch bleiben Entwicklungsbelege vorne scanbar und die gesamte formale Chronologie geschlossen zusammen.
 - Seite 2 darf nicht wie ein zufälliger Rest wirken.
 - Seite 1 darf nicht halb leer wirken; Seite 2 darf kein ausgelagerter Rest mit unten abgeschnittenen formalen Stationen sein.
 - Wenn Seite 1 deutlich zu wenig Inhalt trägt oder Seite 2 nur durch einzelne verschobene Rubriken entsteht, muss neu verteilt, fachlich gekürzt oder wieder ein kompakter Einseiten-Lebenslauf erstellt werden.

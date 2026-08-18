@@ -12,6 +12,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/OrderPaths.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Passfoto.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/WorkflowCheckpoint.psm1") -Force
 
@@ -141,9 +142,38 @@ function Test-ArtifactRecordSetExact {
 function Test-FinalReportArtifacts {
   param([object]$Report, [string]$CandidateFolder, [string]$WorkFolder, [string]$ApplicationsRoot)
   $privateRoot = Split-Path -Path $ApplicationsRoot -Parent
-  foreach ($sourceName in @('stammdaten', 'profil', 'bewerbungsauftrag', 'anforderungsmatrix')) {
-    $sources = Get-JsonProperty -Object $Report -Name 'sourceInputs'
-    $sourceRoot = if ($sourceName -in @('stammdaten', 'profil')) { $privateRoot } else { $WorkFolder }
+  $sources = Get-JsonProperty -Object $Report -Name 'sourceInputs'
+  if ($null -eq $sources) { return $false }
+  $expectedSourceNames = [System.Collections.Generic.List[string]]::new()
+  foreach ($requiredSourceName in @('stammdaten', 'profil', 'bewerbungsauftrag', 'anforderungsmatrix')) {
+    $expectedSourceNames.Add($requiredSourceName)
+  }
+  try {
+    $orderPath = Resolve-SafePath -Candidate (Join-Path -Path $WorkFolder -ChildPath 'Bewerbungsauftrag.json') -Root $WorkFolder -MustExist -ForWrite -PathType Leaf
+    $order = Get-Content -LiteralPath $orderPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $schema = [int](Get-JsonProperty -Object $order -Name 'schemaVersion')
+    $scope = Get-JsonProperty -Object $order -Name 'dokumentumfang'
+    $cvKind = if ($schema -ge 4) {
+      [string](Get-JsonProperty -Object $scope -Name 'lebenslauf')
+    } elseif ([string](Get-JsonProperty -Object $order -Name 'dokumentmodus') -eq 'anschreiben_mit_universalem_lebenslauf') {
+      'universal_unveraendert'
+    } else {
+      'individuell'
+    }
+    if ($cvKind -eq 'individuell') {
+      $dataRoot = Resolve-SafePath -Candidate (Join-Path -Path $privateRoot -ChildPath 'Daten') -Root $privateRoot -MustExist -PathType Container
+      $passfotoSource = Get-PassfotoSourceState -DataRoot $dataRoot
+      if ($passfotoSource.Exists) { $expectedSourceNames.Add('passfoto') }
+    }
+  } catch {
+    return $false
+  }
+  $actualSourceNames = @($sources.PSObject.Properties.Name | Sort-Object)
+  if (@(Compare-Object -ReferenceObject @($expectedSourceNames | Sort-Object) -DifferenceObject $actualSourceNames).Count -gt 0) {
+    return $false
+  }
+  foreach ($sourceName in $expectedSourceNames) {
+    $sourceRoot = if ($sourceName -in @('stammdaten', 'profil', 'passfoto')) { $privateRoot } else { $WorkFolder }
     if (-not (Test-ArtifactRecord -Record (Get-JsonProperty -Object $sources -Name $sourceName) -Root $sourceRoot)) { return $false }
   }
   $artifacts = Get-JsonProperty -Object $Report -Name 'artifacts'

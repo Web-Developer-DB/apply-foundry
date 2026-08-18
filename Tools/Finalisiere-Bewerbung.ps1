@@ -31,6 +31,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/OrderPaths.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Passfoto.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/PngTools.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/WorkflowCheckpoint.psm1") -Force
@@ -877,6 +878,15 @@ $expectedCv = [string]$documentScope.lebenslauf -ne "nicht_enthalten"
 $expectedLetter = [bool]$documentScope.anschreiben
 $expectedEmail = [bool]$documentScope.emailNachricht
 $expectedHtmlCount = [int]$expectedCv + [int]$expectedLetter
+$passfotoSource = $null
+if ([string]$documentScope.lebenslauf -eq 'individuell') {
+  try {
+    $dataRoot = Resolve-SafePath -Candidate (Join-Path -Path $privateRoot -ChildPath 'Daten') -Root $privateRoot -MustExist -PathType Container
+    $passfotoSource = Get-PassfotoSourceState -DataRoot $dataRoot
+  } catch {
+    Stop-Finalization -Message "Passfoto-Quelle ist ungültig oder unsicher: $($_.Exception.Message)"
+  }
+}
 try {
   $orderPaths = Resolve-BewerbungsauftragPathSet -Auftrag $auftrag -Arbeitsordner $resolvedWork -BewerbungenRoot $applicationsRootForWork
 } catch {
@@ -960,6 +970,15 @@ if (-not $Veroeffentlichen) {
   $tokenUsageReference = Update-TokenReportNonBlocking -ScriptPath $tokenReportTool -WorkFolder $resolvedWork -ReportPath $tokenReportPath -WorkflowRoot $applicationsRootForWork
   $layoutReportPath = Resolve-WorkflowContractPath -Candidate $layoutReportPath -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
   $layoutRuntime = (Get-Content -LiteralPath $layoutReportPath -Raw -Encoding UTF8 | ConvertFrom-Json).runtime
+  $preparedSourceInputs = [ordered]@{
+    stammdaten = Get-ArtifactRecord -File (Get-Item -LiteralPath $StammdatenPath)
+    profil = Get-ArtifactRecord -File (Get-Item -LiteralPath $ProfilPath)
+    bewerbungsauftrag = Get-ArtifactRecord -File (Get-Item -LiteralPath $auftragPath) -Root $applicationsRootForWork
+    anforderungsmatrix = Get-ArtifactRecord -File (Get-Item -LiteralPath $matrixPath) -Root $applicationsRootForWork
+  }
+  if ($null -ne $passfotoSource -and $passfotoSource.Exists) {
+    $preparedSourceInputs.passfoto = Get-ArtifactRecord -File (Get-Item -LiteralPath $passfotoSource.Path)
+  }
   $report = [ordered]@{
     schemaVersion = 5
     status = "bereit_zur_sichtpruefung"
@@ -979,12 +998,7 @@ if (-not $Veroeffentlichen) {
     personalReview = if ($expectedScreenshots -gt 0) { "png_sichtpruefung" } else { "textpruefung" }
     layoutWarnings = $layoutWarnings
     tokenUsageReport = $tokenUsageReference
-    sourceInputs = [ordered]@{
-      stammdaten = Get-ArtifactRecord -File (Get-Item -LiteralPath $StammdatenPath)
-      profil = Get-ArtifactRecord -File (Get-Item -LiteralPath $ProfilPath)
-      bewerbungsauftrag = Get-ArtifactRecord -File (Get-Item -LiteralPath $auftragPath) -Root $applicationsRootForWork
-      anforderungsmatrix = Get-ArtifactRecord -File (Get-Item -LiteralPath $matrixPath) -Root $applicationsRootForWork
-    }
+    sourceInputs = $preparedSourceInputs
     artifacts = $artifacts
   }
   $finalReportPath = Resolve-WorkflowContractPath -Candidate $finalReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
@@ -1127,11 +1141,14 @@ $expectedSourcePaths = [ordered]@{
   bewerbungsauftrag = [System.IO.Path]::GetFullPath($auftragPath)
   anforderungsmatrix = [System.IO.Path]::GetFullPath($matrixPath)
 }
+if ($null -ne $passfotoSource -and $passfotoSource.Exists) {
+  $expectedSourcePaths.passfoto = [System.IO.Path]::GetFullPath([string]$passfotoSource.Path)
+}
 $sourceProperties = @($sourceInputs.PSObject.Properties)
 $actualSourceNames = @($sourceProperties.Name | Sort-Object)
 if ($sourceProperties.Count -ne $expectedSourcePaths.Count -or
     @(Compare-Object -ReferenceObject @($expectedSourcePaths.Keys | Sort-Object) -DifferenceObject $actualSourceNames).Count -gt 0) {
-  Stop-Finalization -Message "Finalisierungsbericht muss genau die vier vorbereiteten Quellnachweise enthalten. Erneute Vorbereitung erforderlich."
+  Stop-Finalization -Message "Finalisierungsbericht enthält nicht exakt die aktuell erforderlichen Quellnachweise einschließlich des optionalen Passfotos. Erneute Vorbereitung erforderlich."
 }
 foreach ($sourceName in $expectedSourcePaths.Keys) {
   $sourceRecord = $sourceInputs.PSObject.Properties[$sourceName].Value
@@ -1139,7 +1156,7 @@ foreach ($sourceName in $expectedSourcePaths.Keys) {
   if (-not (Test-PathEqual -Left $preparedSourcePath -Right $expectedSourcePaths[$sourceName])) {
     Stop-Finalization -Message "Beim Veröffentlichungslauf wurde eine andere Quelldatei übergeben: $sourceName"
   }
-  $sourceRoot = if ($sourceName -in @("bewerbungsauftrag", "anforderungsmatrix")) { $applicationsRootForWork } else { $null }
+  $sourceRoot = if ($sourceName -in @("bewerbungsauftrag", "anforderungsmatrix")) { $applicationsRootForWork } else { $privateRoot }
   Test-ArtifactSetUnchanged -Records @($sourceRecord) -Root $sourceRoot
 }
 
