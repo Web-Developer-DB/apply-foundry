@@ -33,11 +33,13 @@
     }
     .header {
       display: grid;
-      grid-template-columns: 1fr 78mm;
-      gap: 8mm;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 7mm;
       padding-bottom: 4.5mm;
       border-bottom: 1px solid #b9c6d3;
     }
+    .header-copy { min-width: 0; }
     h1 {
       margin: 0 0 1.5mm;
       color: #071b34;
@@ -58,10 +60,9 @@
     }
     .contact {
       display: grid;
-      grid-template-columns: 18mm 1fr;
-      align-self: end;
+      grid-template-columns: 18mm minmax(0, 1fr) 18mm minmax(0, 1fr);
       gap: 1.2mm 2.5mm;
-      margin: 0;
+      margin: 3mm 0 0;
       font-size: 10.55px;
       line-height: 1.2;
     }
@@ -73,6 +74,23 @@
     .contact dd {
       margin: 0;
       overflow-wrap: anywhere;
+    }
+    /* Neutrale Referenz: Geometrie, Ecken und Zuschnitt je Bewerbungsdesign anpassen. */
+    .bewerbungsfoto-rahmen {
+      width: 32mm;
+      height: 42mm;
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid #b9c6d3;
+      border-radius: 1.5mm;
+      background: #eef2f6;
+    }
+    .bewerbungsfoto {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 20%;
     }
     .layout {
       display: grid;
@@ -159,25 +177,28 @@
   <main class="page">
     <div class="accent"></div>
 
-    <header class="header">
-      <div>
+    <header class="header" data-cv-page-header>
+      <div class="header-copy">
         <h1>{{NAME}}</h1>
         <p class="target">{{ZIELROLLE}}</p>
         <p class="headline">{{KURZPROFIL_KOMPAKT}}</p>
+        <dl class="contact">
+          <dt>Adresse</dt><dd>{{ADRESSE}}</dd>
+          <dt>Telefon</dt><dd>{{TELEFON}}</dd>
+          <dt>E-Mail</dt><dd>{{EMAIL}}</dd>
+          <dt>GitHub</dt><dd>{{GITHUB}}</dd>
+          <dt>Portfolio</dt><dd>{{PORTFOLIO}}</dd>
+          <dt>Verfügbar</dt><dd>{{VERFUEGBARKEIT}}</dd>
+        </dl>
       </div>
-      <dl class="contact">
-        <dt>Adresse</dt><dd>{{ADRESSE}}</dd>
-        <dt>Telefon</dt><dd>{{TELEFON}}</dd>
-        <dt>E-Mail</dt><dd>{{EMAIL}}</dd>
-        <dt>GitHub</dt><dd>{{GITHUB}}</dd>
-        <dt>Portfolio</dt><dd>{{PORTFOLIO}}</dd>
-        <dt>Verfügbar</dt><dd>{{VERFUEGBARKEIT}}</dd>
-      </dl>
+      <!-- passfoto:start -->
+      {{PASSFOTO_BLOCK}}
+      <!-- passfoto:end -->
     </header>
 
     <div class="layout">
       <aside>
-        <section>
+        <section data-cv-section="kompetenzen">
           <h2>Kompetenzen</h2>
           <dl class="skills">
             <div>
@@ -199,14 +220,14 @@
           </dl>
         </section>
 
-        <section>
+        <section data-cv-section="arbeitsweise">
           <h2>Arbeitsweise</h2>
           <ul class="compact-list">
             {{ARBEITSWEISE_BULLETS}}
           </ul>
         </section>
 
-        <section>
+        <section data-cv-section="sprachen">
           <h2>Sprachen</h2>
           <ul class="compact-list">
             {{SPRACHEN_BULLETS}}
@@ -215,26 +236,26 @@
       </aside>
 
       <article>
-        <section>
+        <section data-cv-section="kurzprofil">
           <h2>Kurzprofil</h2>
           <p>{{KURZPROFIL_DETAIL}}</p>
         </section>
 
-        <section>
+        <section data-cv-section="berufserfahrung">
           <h2>Beruflicher Werdegang</h2>
           <div class="timeline">
             {{BERUFLICHER_WERDEGANG}}
           </div>
         </section>
 
-        <section>
+        <section data-cv-section="praxis">
           <h2>{{PRAXIS_ABSCHNITT_TITEL}}</h2>
           <div class="timeline">
             {{PRAXIS_EINTRAEGE}}
           </div>
         </section>
 
-        <section>
+        <section data-cv-section="weiterbildung">
           <h2>Weiterbildung und berufliche Bildung</h2>
           <div class="timeline">
             {{BILDUNG_EINTRAEGE}}

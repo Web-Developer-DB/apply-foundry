@@ -346,6 +346,9 @@ function Export-HtmlToPdf {
     $arguments = @(
       "--headless=new",
       "--disable-gpu",
+      "--disable-gpu-sandbox",
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
       "--no-first-run",
       "--disable-background-networking",
       "--disable-extensions",
@@ -378,14 +381,7 @@ function Export-HtmlToPdf {
   } catch {
     return $_.Exception.Message
   } finally {
-    if (Test-Path -LiteralPath $browserRunRoot -PathType Container) {
-      try {
-        $safeBrowserRunRoot = Resolve-SafePath -Candidate $browserRunRoot -Root $BrowserTempRoot -MustExist -ForWrite -PathType Container
-        Remove-Item -LiteralPath $safeBrowserRunRoot -Recurse -Force -ErrorAction SilentlyContinue
-      } catch {
-        Add-Warn "Temporärer Browserordner konnte nicht sicher bereinigt werden: $browserRunRoot"
-      }
-    }
+    Remove-PdfRunDirectory -Path $browserRunRoot -WorkDirectory $BrowserTempRoot
   }
 }
 
@@ -484,8 +480,23 @@ function Publish-PdfSet {
 function Remove-PdfRunDirectory {
   param([string]$Path, [string]$WorkDirectory)
   if (-not (Test-Path -LiteralPath $Path -PathType Container)) { return }
-  $safePath = Resolve-SafePath -Candidate $Path -Root $WorkDirectory -MustExist -ForWrite -PathType Container
-  Remove-Item -LiteralPath $safePath -Recurse -Force -ErrorAction SilentlyContinue
+  for ($attempt = 1; $attempt -le 5; $attempt++) {
+    try {
+      $safePath = Resolve-SafePath -Candidate $Path -Root $WorkDirectory -MustExist -ForWrite -PathType Container
+      Remove-Item -LiteralPath $safePath -Recurse -Force -ErrorAction Stop
+    } catch {
+      if ($attempt -lt 5) { Start-Sleep -Milliseconds 200 }
+    }
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+  }
+  Add-Warn "Temporärer PDF-Arbeitsordner konnte nicht vollständig bereinigt werden: $Path"
+}
+
+function Remove-EmptyBrowserTempRoot {
+  param([string]$Path)
+  if ((Test-Path -LiteralPath $Path -PathType Container) -and @(Get-ChildItem -LiteralPath $Path -Force).Count -eq 0) {
+    Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+  }
 }
 
 if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
@@ -579,6 +590,8 @@ try {
 }
 if ([string]::IsNullOrWhiteSpace($BerichtPath)) {
   $BerichtPath = Join-Path -Path $workDir -ChildPath "PDF-Export-Bericht.json"
+} elseif (-not [System.IO.Path]::IsPathFullyQualified($BerichtPath)) {
+  $BerichtPath = [System.IO.Path]::GetFullPath($BerichtPath)
 }
 try {
   if ([System.IO.Path]::GetExtension($BerichtPath) -cne ".json") {
@@ -702,6 +715,7 @@ foreach ($candidate in $browserCandidates) {
         Write-Host "- $($item.FinalPath) ($($pdfInfo.Length) Bytes, $(Get-PdfPageCount -Path $item.FinalPath) Seite(n), $mediaBoxSummary)"
       }
       Remove-PdfRunDirectory -Path $runDir -WorkDirectory $workDir
+      Remove-EmptyBrowserTempRoot -Path $browserTempRoot
       Add-Ok "PDF-Export-Bericht geschrieben: $BerichtPath"
       Write-Host ""
       Write-Host "ERGEBNIS: OK" -ForegroundColor Green
@@ -713,6 +727,7 @@ foreach ($candidate in $browserCandidates) {
       } else {
         Add-Warn "Rollback-Sicherungen bleiben zur manuellen Wiederherstellung erhalten: $runDir"
       }
+      Remove-EmptyBrowserTempRoot -Path $browserTempRoot
       Add-Fail "$($candidate.Name): Veröffentlichung der validierten PDFs fehlgeschlagen: $($_.Exception.Message)"
       exit 1
     }
@@ -725,5 +740,6 @@ foreach ($candidate in $browserCandidates) {
 foreach ($message in $browserErrors) {
   Add-Fail $message
 }
+Remove-EmptyBrowserTempRoot -Path $browserTempRoot
 Add-Fail "PDF-Export fehlgeschlagen: Kein Browser hat den laut Dokumentumfang ausgewählten PDF-Satz frisch, seitenrichtig und vollständig erzeugt."
 exit 1

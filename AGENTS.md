@@ -14,11 +14,12 @@ Ordne den aktuellen Nutzerauftrag ohne zusätzliche Startformel einem dieser Ein
 
 - **Neue Vollbewerbung:** ausdrücklicher Auftrag für Lebenslauf, Anschreiben und E-Mail; verwende den bestätigten Umfang A.
 - **Anschreiben mit universellem Lebenslauf:** Nur wenn der Nutzer universellen Lebenslauf, Anschreiben **und E-Mail-Nachricht** wünscht, verwende Auswahl B beziehungsweise den Kompatibilitätsmodus `anschreiben_mit_universalem_lebenslauf`. Wünscht er universellen Lebenslauf und Anschreiben ohne E-Mail, verwende Auswahl E mit genau diesen beiden Bestandteilen.
+- **Universellen Lebenslauf erstellen oder aktualisieren:** Behandle dies als eigenständigen, stellenunabhängigen Auftrag. Verwende den Universalprozess aus `Prompts/00_AGENTEN_START_HIER.md`; lege Arbeitsstand und Aktivfassung ausschließlich unter `Private/Bewerbungen/_Universal-Lebenslauf/` an.
 - **Private Bewerberdaten einrichten oder prüfen:** Prüfe zuerst `Private/Daten/`; verwende `Private.example/Daten/` nur als Strukturvorlage und führe danach den Stammdatencheck aus.
 - **Bestehende Bewerbung fortsetzen oder ihren Stand erklären:** Rekonstruiere den Zustand aus den Projektdateien nach dem Abschnitt „Fortsetzen ohne Chatverlauf“ in `Prompts/00_AGENTEN_START_HIER.md`.
 - **Projekt technisch weiterentwickeln:** Bearbeite nur auftragsrelevante Prompts, Werkzeuge, Tests oder Dokumentation; aktualisiere bei funktionalen Änderungen `CHANGELOG.md` und führe passende Tests aus.
 
-Bei einem eindeutigen Auftrag beginne unmittelbar mit dem passenden Ablauf. Wenn das Repository lediglich geöffnet wurde oder der Nutzer nur allgemein grüßt, führe keine Shell-Befehle aus, erfinde keine Bewerbung und ändere keine Dateien. Antworte knapp, dass das Projekt erkannt wurde, und nenne die fünf Einstiege oben.
+Bei einem eindeutigen Auftrag beginne unmittelbar mit dem passenden Ablauf. Wenn das Repository lediglich geöffnet wurde oder der Nutzer nur allgemein grüßt, führe keine Shell-Befehle aus, erfinde keine Bewerbung und ändere keine Dateien. Antworte knapp, dass das Projekt erkannt wurde, und nenne die sechs Einstiege oben.
 
 Bei einer reinen Projektfrage antworte auf die konkrete Frage, ohne eine Bewerbung zu starten oder Dateien zu ändern.
 
@@ -42,6 +43,15 @@ Fehlt eine Fähigkeit, benenne den betroffenen Schritt und nutze nur eine im kan
 - Änderungen an Quellen oder Kandidatendateien entwerten vorhandene Prüf- und Sichtnachweise. Bereite den geänderten Stand vollständig neu vor und verlange eine neue Sichtprüfungsbestätigung beziehungsweise bei einem bestätigten reinen E-Mail-Auftrag eine neue Textprüfungsbestätigung; verwende niemals eine alte Bestätigung.
 - Nimm keine echten privaten Daten in Tests, Logs oder Git auf.
 - Neue Angaben aus einem Bewerbungsdialog gelten zunächst nur für den aktuellen Auftrag. Ändere `Private/Daten/01_PERSOENLICHE_DATEN.md` oder `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` erst nach transparenter Zielformulierung und eindeutiger Zustimmung zur dauerhaften Speicherung. Protokolliere nur die normalisierte fachliche Angabe und die Entscheidung im privaten `Bewerbungsauftrag.json`, niemals einen vollständigen Chatverlauf.
+
+## Technische Finalisierung: feste Verträge
+
+- Erzeuge Kandidaten und Prüfberichte ausschließlich im angelegten Pfad `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE/`. Ein loses Verzeichnis `Bewerbungen/` oder ein öffentlicher Projektordner ist kein zulässiger Ersatz.
+- Erstelle die gemeinsamen Nachweise `Stellenbeschreibung.md`, `Analyse.md`, `Qualitaetscheck.md` und `Druck-Hinweis.md` mit ihrem tatsächlichen Inhalt. Erzeuge niemals leere, minimale oder als „Dummy“ gedachte Dateien, nur um eine Prüfung zu passieren.
+- Eine ausgewählte E-Mail-Nachricht ist ausschließlich Text: `Email-Nachricht--FIRMEN-SLUG.md`. Der exakte Firmen-Slug stammt aus `Bewerbungsauftrag.json`; weder eine HTML-E-Mail noch ein frei gewählter Name ist zulässig.
+- Leite HTML-Dokumente von der A4-Struktur aus `Prompts/08_HTML_CSS_DESIGNREGELN.md` ab: eingebettetes CSS mit `@page { size: A4; margin: 0; }` sowie `.page { width: 210mm; height: 297mm; }`. Ersetze die feste Höhe nicht durch `min-height`.
+- Starte für neue oder fortgesetzte Bewerbungen nicht direkt `Exportiere-PDF.ps1`, sondern den vollständigen Einstieg `Tools/bewerbung.ps1 finalisieren`. Einzelwerkzeuge dienen nur der gezielten Diagnose und lockern keinen dieser Verträge.
+- Aktualisiere nach jeder sinnvollen Workflow-Grenze den privaten `Workflow-Checkpoint.json` über `Tools/bewerbung.ps1 checkpoint`. Der Checkpoint enthält nur Schritt, Status, Pfade, Größen und SHA-256-Werte; er speichert weder Rohchat noch Kopien privater Quellen und ist nie selbst ein Freigabe- oder Wahrheitsnachweis. Ist er veraltet, rekonstruiere den Stand weiterhin aus den Originalartefakten.
 
 ## Token- und Nutzungsangaben
 

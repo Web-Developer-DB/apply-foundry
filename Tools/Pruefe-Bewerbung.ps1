@@ -324,6 +324,35 @@ function Test-MultipageFooterContract {
   }
 }
 
+function Test-SemanticMultipageCvContract {
+  param(
+    [object[]]$PageMatches,
+    [string]$FileName
+  )
+
+  $seenSections = @{}
+  for ($index = 0; $index -lt $PageMatches.Count; $index++) {
+    $pageNumber = $index + 1
+    $body = $PageMatches[$index].Groups['body'].Value
+    if ($body -notmatch '(?is)<header\b[^>]*\bdata-cv-page-header(?:\s*=|\s|>)') {
+      Add-ErrorMessage "${FileName}: Seite $pageNumber besitzt keinen semantisch markierten Seitenkopf (`data-cv-page-header`)."
+    }
+    $sectionTags = @([regex]::Matches($body, '(?is)<section\b[^>]*>'))
+    $sectionMatches = @([regex]::Matches($body, '(?is)<section\b[^>]*\bdata-cv-section\s*=\s*["''](?<id>[a-z0-9]+(?:-[a-z0-9]+)*)["''][^>]*>'))
+    if ($sectionTags.Count -eq 0 -or $sectionMatches.Count -ne $sectionTags.Count) {
+      Add-ErrorMessage "${FileName}: Auf Seite $pageNumber muss jeder fachliche `<section>`-Block eine stabile `data-cv-section`-Kennung tragen."
+    }
+    foreach ($match in $sectionMatches) {
+      $id = $match.Groups['id'].Value
+      if ($seenSections.ContainsKey($id)) {
+        Add-ErrorMessage "${FileName}: Abschnitt '$id' ist auf Seite $($seenSections[$id]) und Seite $pageNumber vorhanden; fachliche Abschnitte dürfen nicht über Seiten geteilt werden."
+      } else {
+        $seenSections[$id] = $pageNumber
+      }
+    }
+  }
+}
+
 function Test-OverflowHiddenOnlyOnPage {
   param(
     [string]$Text,
@@ -417,6 +446,7 @@ function Test-HtmlFile {
       Add-OkMessage "${name}: $pageCount explizite A4-Seitencontainer gefunden."
       if ($pageCount -eq 2) {
         Test-MultipageFooterContract -PageMatches $pageMatches -FileName $name
+        Test-SemanticMultipageCvContract -PageMatches $pageMatches -FileName $name
       }
     }
   } elseif ($pageCount -eq 0) {
@@ -443,15 +473,17 @@ function Test-PublicationManifest {
     }
 
     $sourceInputs = Get-JsonProperty -Object $manifest -Name "sourceInputs"
-    $expectedSourceNames = @("stammdaten", "profil", "bewerbungsauftrag", "anforderungsmatrix")
+    $requiredSourceNames = @("stammdaten", "profil", "bewerbungsauftrag", "anforderungsmatrix")
+    $allowedSourceNames = @($requiredSourceNames + "passfoto")
     if ($null -eq $sourceInputs) {
       Add-ErrorMessage "Manifest.json enthält keine Quellnachweise."
     } else {
       $sourceProperties = @($sourceInputs.PSObject.Properties)
       $actualSourceNames = @($sourceProperties.Name | Sort-Object)
-      if ($sourceProperties.Count -ne $expectedSourceNames.Count -or
-          @(Compare-Object -ReferenceObject ($expectedSourceNames | Sort-Object) -DifferenceObject $actualSourceNames).Count -gt 0) {
-        Add-ErrorMessage "Manifest.json muss genau die vier Quellnachweise stammdaten, profil, bewerbungsauftrag und anforderungsmatrix enthalten."
+      $missingRequiredSources = @($requiredSourceNames | Where-Object { $actualSourceNames -notcontains $_ })
+      $unexpectedSources = @($actualSourceNames | Where-Object { $allowedSourceNames -notcontains $_ })
+      if ($missingRequiredSources.Count -gt 0 -or $unexpectedSources.Count -gt 0 -or $sourceProperties.Count -notin @(4, 5)) {
+        Add-ErrorMessage "Manifest.json muss die vier Pflichtquellen und darf zusätzlich ausschließlich den optionalen Quellnachweis passfoto enthalten."
       }
       foreach ($sourceProperty in $sourceProperties) {
         $sourceName = [string](Get-JsonProperty -Object $sourceProperty.Value -Name "name")
@@ -461,6 +493,9 @@ function Test-PublicationManifest {
         }
         if ($sourceHash -notmatch '^[A-Fa-f0-9]{64}$') {
           Add-ErrorMessage "Manifest-Quellnachweis enthält keinen gültigen SHA-256-Wert: $($sourceProperty.Name)"
+        }
+        if ($sourceProperty.Name -ceq 'passfoto' -and $sourceName -cne 'Passfoto.png') {
+          Add-ErrorMessage "Der optionale Manifest-Quellnachweis passfoto muss exakt auf Passfoto.png verweisen."
         }
       }
     }

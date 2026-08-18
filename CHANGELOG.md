@@ -8,19 +8,28 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
-- Gemeinsamer Dispatcher `Tools/bewerbung.ps1` mit den Subcommands `diagnose`, `neu`, `status`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`; GNU-Langoptionen gelten auf Windows und Linux gleich.
+- Optionales, ausschließlich privates `Private/Daten/Passfoto.png` für individuelle Lebensläufe sowie das idempotente Subcommand `bewerbung.ps1 passfoto`, das einen markierten HTML-Block ohne Ausgabe der Bilddaten befüllt oder entfernt.
+- Gemeinsame PNG-Header-, Base64- und Bytegleichheitsprüfung für Passfoto-Einbettung, Inhaltsbericht, Finalisierungsnachweis, Manifest und dateibasierte Statusrekonstruktion.
+- Gemeinsamer Dispatcher `Tools/bewerbung.ps1` einschließlich `universal-neu`, `universal-status` und `universal-finalisieren`; GNU-Langoptionen gelten auf Windows und Linux gleich.
+- Eigenständiger, statusfähiger Universal-Lebenslauf-Prozess mit `universal-neu`, `universal-status` und `universal-finalisieren` vollständig unter `Private/Bewerbungen/_Universal-Lebenslauf/`.
+- Privater, hashgebundener `Workflow-Checkpoint.json` für effiziente Fortsetzungen ohne Rohchat- oder Quellkopien. Der Ordnerhelfer und die Finalisierung aktualisieren die passenden Phasengrenzen automatisch.
 - Dünner Linux-Launcher `Tools/bewerbung.sh`, Kompatibilitätswrapper `Tools/neue-bewerbung.sh` sowie ein ausschließlich opt-in verwendbares `Tools/setup-ubuntu.sh` für Ubuntu 24.04 x86_64.
 - Gemeinsame PowerShell-Module für portable Schema-5-Auftragspfade, symlinksichere Pfadvalidierung, OS- und Browsererkennung, begrenzte native Prozesse mit Timeout sowie dependency-freie PNG-Auswertung.
 - Read-only-Preflight `Tools/Pruefe-Umgebung.ps1` und eine feste browserfreie CI-Matrix auf `windows-2025` und `ubuntu-24.04`; Browser-Smokes laufen zunächst getrennt, manuell und zeitgesteuert.
 
 ### Geändert
 
+- Individuelle Lebensläufe binden ein vorhandenes Passfoto vollständig als private PNG-Datenressource ein und passen dessen Darstellung an das konkrete Design an. Fehlt die Datei, entstehen weder Rückfrage noch Fotoplatz; universelle Lebensläufe bleiben stets unverändert.
+- Zweiseitige Lebensläufe markieren Seitenköpfe und fachliche Abschnitte semantisch; ein Abschnitt darf nicht technisch über zwei Seiten geteilt werden. Der universelle Softwareentwicklungs-Lebenslauf bindet zusätzlich seine exakte recruiterfreundliche Abschnittsfolge.
+- Technische Vorbereitung und Veröffentlichung führen `passfoto` nur bei tatsächlicher Verwendung als optionalen fünften Quellnachweis. Hinzufügen, Ändern oder Löschen der Datei entwertet bestehende technische und persönliche Sichtnachweise.
+- Die Agenten-, E-Mail- und Technikhinweise benennen jetzt explizit den privaten Kandidatenpfad, die vier inhaltlich erforderlichen Nachweise, den aus `firmaSlug` abgeleiteten Markdown-Dateinamen der E-Mail, die feste A4-CSS-Geometrie und `bewerbung.ps1 finalisieren` als einzigen Standardweg. Dadurch dürfen lokale Modelle weder Dummy-Dateien noch HTML-E-Mails oder lose Direkt-Exporte als zulässige Abkürzung interpretieren.
 - PowerShell 7.6 Core ist die einzige fachliche Implementierung. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und benötigt dafür weder `jq`, Python, Node noch externe SHA-Werkzeuge.
 - Neue `Bewerbungsauftrag.json` verwenden Schema 5 und speichern Ziel-, Arbeits- und Kandidatenpfad portabel relativ zu `BewerbungenRoot`. Altaufträge der Schemata 1 bis 4 bleiben ohne automatische Migration lesbar.
 - Layout-, PDF-, ATS- und Finalisierungsnachweise erhalten einen Runtime-Fingerprint; ein Plattformwechsel entwertet technische Nachweise, aber weder Auftrag noch Kandidatenbestand.
 - Chrome, Edge und Chromium werden plattformabhängig gesucht; ein ausdrücklich angegebener Browserpfad wird auf Existenz, Version und Chromium-Engine geprüft. Firefox bleibt auf Layoutdiagnosen beschränkt.
 - Designvorlagen verwenden zusätzlich `Liberation Sans`, und alle ausführbaren PowerShell-Werkzeuge verlangen PowerShell 7.6 Core.
 - Die öffentliche CLI vereinheitlicht Exitcode `0` für Erfolg, `1` für fachliche oder technische Laufzeitfehler und `2` für ungültige beziehungsweise unsichere CLI-Eingaben, nicht unterstützte Umgebungen oder eine fehlende Kernruntime.
+- Die Statusrekonstruktion meldet den Checkpoint ausschließlich bei exakter Artefaktbindung als aktuell und verwendet bei jeder Abweichung weiterhin die fachlichen Originaldateien als Quelle.
 - Das Ubuntu-Setup installiert nur nach ausdrücklicher Auswahl PowerShell 7.6 aus der Microsoft-Quelle, Google Chrome Stable aus der Google-Quelle und/oder `fonts-liberation2`; `--dry-run`, Bestätigung und idempotente Erkennung verhindern stille Systemänderungen.
 - Der dependency-freie PNG-Leser verarbeitet die erwarteten nicht-interlaced 8-Bit-Grau-, RGB- und RGBA-Screenshots mit Filtern 0 bis 4. Windows-/Ubuntu-Parität wird über Seitenzahl, A4-Geometrie, Dichte-, Hash- und ATS-Prüfung statt binär identischer Ausgaben bewertet.
 
@@ -30,10 +39,15 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 - Die ShellCheck-Ausnahme für die beabsichtigt literale PowerShell-Versionsabfrage steht vor dem vollständigen `if`-Block und verursacht keine Parserfehler mehr.
 - Vertrags-, Bericht-, Artefakt-, Publish- und Rollbackpfade werden unmittelbar vor Lesen oder Schreiben erneut symlinksicher geprüft; Verzeichnis- und interne Link-Aliasse können keine regulären Dateien oder fremden Bewerbungsziele mehr maskieren.
 - Browserprofile und transiente PNG-/PDF-Ausgaben verwenden kurze, GUID-isolierte private Runroots und werden erst nach Frische-, Struktur- und Hashprüfung atomar an den endgültigen Ort übernommen.
+- Headless-Chrome-Export und Layoutcheck verwenden unter verwalteten Windows-Umgebungen zusätzliche GPU-/Sandbox-Kompatibilitätsflags, damit Chrome bei deaktivierter GPU zuverlässig PDF- und PNG-Ausgaben erzeugt.
+- Der Layoutcheck isoliert den tatsächlich ausgewählten A4-Seitencontainer statt ihn über fehleranfällige `nth-of-type`-Regeln auszublenden; relative Berichtspfade werden nicht mehr versehentlich unter dem Ausgabeordner verschachtelt.
+- Browserprofile und leere `.browser-tmp`-Wurzeln werden mit begrenzten Wiederholungen bereinigt. Nach Freigabe eines Universal-Lebenslaufs bleibt nur das hashgebundene Aktivpaket; der datierte Arbeitsordner wird vollständig entfernt.
+- Der atomare Austausch einer Universal-Aktivfassung stellt bei einem Verifikationsfehler die vorherige Fassung wieder her und kann nach einer isoliert fehlgeschlagenen Arbeitsordnerbereinigung idempotent fortgesetzt werden.
 
 ### Tests und Verifikation
 
-- Die vollständige browserfreie PowerShell-Suite bestand lokal unter Windows mit 73 von 73 synthetischen Fällen; die Chrome-Suite bestand mit 81 von 81 Fällen einschließlich Screenshot, A4-PDF, ATS, Ersatz und Rollback.
+- Synthetische Passfoto-Fälle decken fehlende, gültige, beschädigte, abweichende und doppelte Einbettungen, idempotente Verarbeitung, Universal-Snapshot-Schutz, optionale Manifestbindung und die Entwertung nach Quellenänderungen ab.
+- Die vollständige browserfreie PowerShell-Suite bestand lokal unter Windows mit 80 von 80 synthetischen Fällen. Die fokussierten realen Chromium-Regressionsfälle für Runtime-Auflösung sowie Universal-Vorbereitung, Aktivierung und Arbeitsordnerbereinigung bestanden mit 2 von 2 Fällen.
 - Bash-Syntax sowie Dispatcher-/Kompatibilitätstests bestanden unter Git Bash. Die Ubuntu-24.04-WSL-Tests für Parser, OS-Abweisung, Herkunft, Dry-run und Idempotenz bestanden ohne Paketinstallation.
 - Ein vollständiger PowerShell-/Browserlauf unter Ubuntu wurde lokal noch nicht ausgeführt. Die feste CI-Matrix und die getrennten Browser-Smokes sind eingerichtet; Ubuntu bleibt bis zu den dokumentierten Nachweisen Alpha.
 

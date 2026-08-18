@@ -117,7 +117,7 @@ diagnose_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root
 [[ "$diagnose_output" == *'"json":true'* && "$diagnose_output" == *'"required":true'* ]] || fail "Diagnose-Schalter wurden nicht korrekt gebunden."
 
 help_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" --help)"
-for command_name in diagnose neu status stammdaten dialog-pruefen dialog-uebernehmen inhalt pruefen layout pdf ats finalisieren tokenbericht tests; do
+for command_name in diagnose neu universal-neu universal-status universal-finalisieren status checkpoint stammdaten dialog-pruefen dialog-uebernehmen passfoto inhalt pruefen layout pdf ats finalisieren tokenbericht tests; do
   [[ "$help_output" == *"$command_name"* ]] || fail "Subcommand fehlt in der globalen Hilfe: $command_name"
 done
 

@@ -16,10 +16,15 @@ $ErrorActionPreference = "Stop"
 $script:CommandOrder = @(
   "diagnose",
   "neu",
+  "universal-neu",
+  "universal-status",
+  "universal-finalisieren",
   "status",
+  "checkpoint",
   "stammdaten",
   "dialog-pruefen",
   "dialog-uebernehmen",
+  "passfoto",
   "inhalt",
   "pruefen",
   "layout",
@@ -91,12 +96,61 @@ $script:Commands = @{
       "--fortsetzen" = New-CliOption -Parameter "Fortsetzen" -Kind switch
     }
   }
+  "universal-neu" = @{
+    RelativePath = "Neue-UniversalLebenslauf.ps1"
+    Summary = "Universellen Softwareentwicklungs-Lebenslauf unter Private/Bewerbungen anlegen"
+    Required = @()
+    Options = [ordered]@{
+      "--datum" = New-CliOption -Parameter "Datum" -Placeholder "YYYY-MM-DD"
+      "--stammdaten-path" = New-CliOption -Parameter "StammdatenPath" -Placeholder "PFAD"
+      "--profil-path" = New-CliOption -Parameter "ProfilPath" -Placeholder "PFAD"
+      "--bewerbungen-root" = New-CliOption -Parameter "BewerbungenRoot" -Placeholder "PFAD"
+      "--fortsetzen" = New-CliOption -Parameter "Fortsetzen" -Kind switch
+    }
+  }
+  "universal-status" = @{
+    RelativePath = "Ermittle-UniversalLebenslaufStatus.ps1"
+    Summary = "Gespeicherten Stand des universellen Lebenslaufs ermitteln"
+    Required = @()
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--bewerbungen-root" = New-CliOption -Parameter "BewerbungenRoot" -Placeholder "PFAD"
+      "--als-json" = New-CliOption -Parameter "AlsJson" -Kind switch
+    }
+  }
+  "universal-finalisieren" = @{
+    RelativePath = "Finalisiere-UniversalLebenslauf.ps1"
+    Summary = "Universellen Lebenslauf vorbereiten oder lokal aktivieren"
+    Required = @("--arbeitsordner")
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--browser" = New-CliOption -Parameter "Browser" -Kind enum -Allowed @("auto", "chrome", "edge", "chromium") -Placeholder "NAME"
+      "--browser-executable-path" = New-CliOption -Parameter "BrowserExecutablePath" -Placeholder "PFAD"
+      "--stammdaten-path" = New-CliOption -Parameter "StammdatenPath" -Placeholder "PFAD"
+      "--profil-path" = New-CliOption -Parameter "ProfilPath" -Placeholder "PFAD"
+      "--veroeffentlichen" = New-CliOption -Parameter "Veroeffentlichen" -Kind switch
+      "--visuell-geprueft" = New-CliOption -Parameter "VisuellGeprueft" -Kind switch
+      "--visuelle-freigabe-notiz" = New-CliOption -Parameter "VisuelleFreigabeNotiz" -Placeholder "TEXT"
+      "--ersetzen" = New-CliOption -Parameter "Ersetzen" -Kind switch
+      "--timeout-seconds" = New-CliOption -Parameter "TimeoutSeconds" -Kind int -Min 1 -Max 600 -Placeholder "SEKUNDEN"
+    }
+  }
   "status" = @{
     RelativePath = "Ermittle-Bewerbungsstatus.ps1"
     Summary = "Gespeicherten Bewerbungsstand ermitteln"
     Required = @()
     Options = [ordered]@{
       "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--als-json" = New-CliOption -Parameter "AlsJson" -Kind switch
+    }
+  }
+  "checkpoint" = @{
+    RelativePath = "Aktualisiere-WorkflowCheckpoint.ps1"
+    Summary = "Kompakten, hashgebundenen Workflow-Checkpoint aktualisieren"
+    Required = @("--arbeitsordner", "--schritt")
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--schritt" = New-CliOption -Parameter "Schritt" -Kind enum -Allowed @("auftrag_angelegt", "profilabgleich_abgeschlossen", "analyse_abgeschlossen", "dokumente_abgeschlossen", "fachpruefung_abgeschlossen", "technische_vorbereitung_abgeschlossen", "sichtpruefung_bestaetigt", "veroeffentlicht") -Placeholder "NAME"
       "--als-json" = New-CliOption -Parameter "AlsJson" -Kind switch
     }
   }
@@ -136,6 +190,14 @@ $script:Commands = @{
       "--formulierung" = New-CliOption -Parameter "Formulierung" -Placeholder "TEXT"
       "--erwarteter-datei-hash" = New-CliOption -Parameter "ErwarteterDateiHash" -Placeholder "SHA256"
       "--zustimmung-bestaetigt" = New-CliOption -Parameter "ZustimmungBestaetigt" -Kind switch
+    }
+  }
+  "passfoto" = @{
+    RelativePath = "Integriere-Passfoto.ps1"
+    Summary = "Optionales Passfoto in individuellen Lebenslauf einbetten"
+    Required = @("--arbeitsordner")
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
     }
   }
   "inhalt" = @{
@@ -395,7 +457,7 @@ if (-not $script:Commands.ContainsKey($commandName)) {
 }
 
 $definition = $script:Commands[$commandName]
-$arguments = @($CliArguments)
+$arguments = @($CliArguments | Where-Object { $null -ne $_ })
 if ($arguments.Count -gt 0 -and $arguments[0] -in @("-h", "--help")) {
   if ($arguments.Count -ne 1) {
     Stop-Cli "Die Subcommand-Hilfe akzeptiert keine weiteren Argumente."

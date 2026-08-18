@@ -192,6 +192,11 @@ function New-PageCaptureHtml {
   )
 
   $html = $HtmlText
+  $pageMatches = @(Get-HtmlPageMatches -Html $html)
+  if ($PageNumber -lt 1 -or $PageNumber -gt $pageMatches.Count) {
+    throw "A4-Seite $PageNumber ist in $($HtmlFile.Name) nicht vorhanden."
+  }
+  $selectedPage = $pageMatches[$PageNumber - 1].Value
   $captureCss = @"
 <style id="layoutcheck-page-capture">
   html, body {
@@ -203,13 +208,13 @@ function New-PageCaptureHtml {
     overflow: hidden !important;
     background: #fff !important;
   }
-  body > main.page { display: none !important; }
-  body > main.page:nth-of-type($PageNumber) {
-    display: block !important;
+  body > main.page {
     width: 210mm !important;
     height: 297mm !important;
     margin: 0 !important;
     box-shadow: none !important;
+    break-after: auto !important;
+    break-before: auto !important;
   }
 </style>
 "@
@@ -218,7 +223,39 @@ function New-PageCaptureHtml {
     throw "HTML enthält kein schließendes head-Element: $($HtmlFile.Name)"
   }
   $captureHtml = [regex]::Replace($html, '(?is)</head\s*>', $captureCss + "`r`n</head>", 1)
+  $bodyPattern = [regex]::new('(?is)(?<open><body\b[^>]*>).*?(?<close></body\s*>)')
+  if (-not $bodyPattern.IsMatch($captureHtml)) {
+    throw "HTML enthält kein vollständiges body-Element: $($HtmlFile.Name)"
+  }
+  $captureHtml = $bodyPattern.Replace(
+    $captureHtml,
+    [System.Text.RegularExpressions.MatchEvaluator]{
+      param($match)
+      return $match.Groups['open'].Value + "`r`n" + $selectedPage + "`r`n" + $match.Groups['close'].Value
+    },
+    1
+  )
   Set-Content -LiteralPath $TargetPath -Encoding UTF8 -Value $captureHtml
+}
+
+function Remove-TemporaryDirectoryWithRetry {
+  param(
+    [Parameter(Mandatory)][string]$Path,
+    [Parameter(Mandatory)][string]$Root,
+    [int]$Attempts = 5
+  )
+
+  if (-not (Test-Path -LiteralPath $Path -PathType Container)) { return $true }
+  for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+    try {
+      $safePath = Resolve-SafePath -Candidate $Path -Root $Root -MustExist -ForWrite -PathType Container
+      Remove-Item -LiteralPath $safePath -Recurse -Force -ErrorAction Stop
+    } catch {
+      if ($attempt -lt $Attempts) { Start-Sleep -Milliseconds 200 }
+    }
+    if (-not (Test-Path -LiteralPath $Path)) { return $true }
+  }
+  return $false
 }
 
 function Get-HtmlSnapshotError {
@@ -347,6 +384,9 @@ function Invoke-BrowserScreenshot {
       $arguments = @(
         "--headless=new",
         "--disable-gpu",
+        "--disable-gpu-sandbox",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
         "--no-first-run",
         "--disable-background-networking",
         "--disable-extensions",
@@ -432,13 +472,8 @@ function Invoke-BrowserScreenshot {
         Remove-Item -LiteralPath $pendingPath -Force -ErrorAction SilentlyContinue
       }
     }
-    if (Test-Path -LiteralPath $browserRunRoot -PathType Container) {
-      try {
-        $safeBrowserRunRoot = Resolve-SafePath -Candidate $browserRunRoot -Root $BrowserTempRoot -MustExist -ForWrite -PathType Container
-        Remove-Item -LiteralPath $safeBrowserRunRoot -Recurse -Force -ErrorAction SilentlyContinue
-      } catch {
-        Add-Warn "Temporärer Browserordner konnte nicht sicher bereinigt werden: $browserRunRoot"
-      }
+    if (-not (Remove-TemporaryDirectoryWithRetry -Path $browserRunRoot -Root $BrowserTempRoot)) {
+      Add-Warn "Temporärer Browserordner konnte nicht vollständig bereinigt werden: $browserRunRoot"
     }
   }
 
@@ -514,6 +549,8 @@ try {
 }
 if ([string]::IsNullOrWhiteSpace($BerichtPath)) {
   $BerichtPath = Join-Path -Path $layoutDir -ChildPath "Layoutcheck-Bericht.json"
+} elseif (-not [System.IO.Path]::IsPathFullyQualified($BerichtPath)) {
+  $BerichtPath = [System.IO.Path]::GetFullPath($BerichtPath)
 }
 try {
   if ([System.IO.Path]::GetExtension($BerichtPath) -cne ".json") {
@@ -683,6 +720,9 @@ foreach ($candidate in $browserCandidates) {
   }
   if ($candidateOk) {
     Write-LayoutReport -Path $BerichtPath -BrowserInfo $candidate -Results $candidateResults -ExpectedWidth $Width -ExpectedHeight $Height
+    if ((Test-Path -LiteralPath $browserTempRoot -PathType Container) -and @(Get-ChildItem -LiteralPath $browserTempRoot -Force).Count -eq 0) {
+      Remove-Item -LiteralPath $browserTempRoot -Force -ErrorAction SilentlyContinue
+    }
     Add-Ok "Layoutcheck erfolgreich mit Browser: $($candidate.Name)"
     Add-Ok "Layoutcheck-Bericht geschrieben: $BerichtPath"
     exit 0
@@ -712,6 +752,9 @@ foreach ($candidate in $browserCandidates) {
 
 foreach ($message in $browserErrors) {
   Add-Fail $message
+}
+if ((Test-Path -LiteralPath $browserTempRoot -PathType Container) -and @(Get-ChildItem -LiteralPath $browserTempRoot -Force).Count -eq 0) {
+  Remove-Item -LiteralPath $browserTempRoot -Force -ErrorAction SilentlyContinue
 }
 Add-Fail "Layoutcheck fehlgeschlagen: Kein Browser hat alle erwarteten Ausgabedateien frisch und gültig erzeugt."
 exit 1

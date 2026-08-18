@@ -30,6 +30,9 @@ Vor der technischen Vorbereitung prüft der Agent den fachlichen Kandidatenstand
 - Entsprechen Stellenart und ausgewählte Profil-Links exakt dem Auftrag?
 - Ist ein individueller Lebenslauf stellenbezogen beziehungsweise ein universeller Lebenslauf hashgleich und unverändert?
 - Ist die gewählte Ein- oder Zwei-Seiten-Strategie fachlich plausibel, ohne versteckte oder abgeschnittene Inhalte?
+- Liegt bei einem Zweiseiter jeder fachliche Abschnitt vollständig auf genau einer Seite, sind Seitenköpfe und Abschnitte semantisch markiert und beginnt Seite 2 als logisch geschlossener Block statt mitten in einer Rubrik?
+- Wurde bei einem individuellen Lebenslauf exakt `Private/Daten/Passfoto.png` geprüft, eine vorhandene Datei bytegleich eingebettet und bei fehlender Datei jeder Fotoblock vollständig entfernt?
+- Passt ein vorhandenes Foto visuell zum konkreten Design, ohne Verzerrung, problematischen Zuschnitt, Überlappung oder Verdrängung wichtiger Inhalte?
 
 ## Anschreiben, falls ausgewählt
 
@@ -62,6 +65,7 @@ Der verbindliche Vorbereitungslauf muss anschließend bestätigen:
 - PDF-Datei mit korrektem Namen, Struktur, Seitenzahl und DIN-A4-MediaBox für jedes ausgewählte HTML-Dokument;
 - extrahierbare Unicode-Textschicht, Pflichttexte, ausreichende Textabdeckung und grundlegende Lesereihenfolge;
 - Hashbindung von Quellen, Kandidaten, Screenshots, Berichten und PDFs.
+- optionaler Passfoto-Quellhash ausschließlich dann, wenn `Passfoto.png` für einen individuellen Lebenslauf tatsächlich vorhanden und eingebettet ist.
 
 Eine Firefox- oder andere manuelle Vorschau ist optional und zählt nur, wenn sie wirklich geöffnet und bewertet wurde. Sie ersetzt nicht den verbindlichen Chrome-/Edge-Nachweis.
 
@@ -69,7 +73,7 @@ Die Finalisierung verwaltet den Abschnitt `## Technischer Prüfbericht (automati
 
 ## Persönliches Freigabe-Gate
 
-- Jeder im aktuellen Lauf erzeugte Seitenscreenshot muss tatsächlich geöffnet und visuell auf Beschnitt, Überlappung, Lesbarkeit, Seitenverteilung, Footer und problematische Leerflächen geprüft werden.
+- Jeder im aktuellen Lauf erzeugte Seitenscreenshot muss tatsächlich geöffnet und visuell auf Beschnitt, Überlappung, Lesbarkeit, Seitenverteilung, Footer, problematische Leerflächen und bei vorhandenem Passfoto zusätzlich auf Schärfe, Proportionen sowie Gesichtsausschnitt geprüft werden.
 - Automatische Dichte- oder Layoutwarnungen benötigen eine konkrete Sichtbewertung und gegebenenfalls `-VisuelleFreigabeNotiz`.
 - Ohne HTML muss jede ausgewählte Textdatei persönlich vollständig geprüft werden.
 - Jede nachträgliche Quellen- oder Kandidatenänderung entwertet Vorbereitung und Sichtbestätigung.

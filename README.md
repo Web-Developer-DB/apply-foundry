@@ -259,6 +259,8 @@ Nenne mir am Ende die beiden Datendateien, die ich persönlich kontrollieren mus
 
 Du kannst dem Agenten anschließend deinen bisherigen Lebenslauf, Stationen, Ausbildungen, Weiterbildungen, Kenntnisse, Projekte, gewünschte Rollen und Rahmenbedingungen geben. Bearbeite immer nur Angaben, die wirklich zu dir gehören.
 
+Ein Bewerbungsfoto ist freiwillig. Wenn individuelle Lebensläufe automatisch ein Foto enthalten sollen, lege dein eigenes PNG exakt als `Private/Daten/Passfoto.png` ab. Ohne diese Datei erstellt der Agent ohne Rückfrage einen Lebenslauf ohne Foto. Das Original bleibt privat, wird nicht verändert und nie separat nach `Versand/` kopiert; universelle Lebensläufe bleiben unabhängig davon unverändert.
+
 > [!CAUTION]
 > Die Vorlagen enthalten **glaubwürdig wirkende, aber vollständig erfundene Beispieldaten**. Ein automatischer Prüfer kann nicht erkennen, ob ein plausibler Name oder Arbeitgeber wirklich zu dir gehört. Fahre erst fort, wenn du alle Beispiele persönlich ersetzt oder entfernt hast.
 
@@ -291,6 +293,7 @@ Copy-Item "Private.example/Daten/README.md" "Private/Daten/README.md"
 ```text
 Private/Daten/01_PERSOENLICHE_DATEN.md
 Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
+Private/Daten/Passfoto.png (optional)
 ```
 
 Kontrolliere vor der ersten Bewerbung:
@@ -300,6 +303,7 @@ Kontrolliere vor der ersten Bewerbung:
 - [ ] Kenntnisse und Projekte sind korrekt als beruflich, Weiterbildung, Projektpraxis oder private Praxis eingeordnet.
 - [ ] Beispielpersonen, Beispielunternehmen und erfundene Zertifikate wurden vollständig entfernt.
 - [ ] Unsichere oder fehlende Informationen sind offen markiert und wurden nicht geraten.
+- [ ] Falls `Passfoto.png` vorhanden ist: Es ist das gewünschte eigene Bewerbungsfoto und besitzt den exakten Dateinamen.
 
 Lass danach den maschinellen Stammdatencheck vom geöffneten Agenten ausführen:
 
@@ -346,11 +350,13 @@ Für Auswahl B kannst du den freigegebenen Universal-Lebenslauf ausdrücklich ne
 ```text
 Verwende meinen freigegebenen universellen Lebenslauf unverändert.
 Verwende die freigegebene HTML-Quelle unter
-Private/LebenslaufUniversal/Aktiv/Lebenslauf - NACHNAME.VORNAME.html
+Private/Bewerbungen/_Universal-Lebenslauf/Aktiv/Intern/Lebenslauf - NACHNAME.VORNAME.html
 unverändert. Erstelle nur Anschreiben und E-Mail neu und prüfe den Lebenslauf-Snapshot trotzdem technisch mit.
 ```
 
 Die Kurzform `Erstelle nur ein Anschreiben und verwende meinen universellen Lebenslauf` wird als Einstieg mit Universal-Lebenslauf erkannt. Soll abweichend von Auswahl B keine E-Mail-Nachricht entstehen, nenne das ausdrücklich.
+
+Zum erstmaligen Erstellen oder bewussten Aktualisieren der Universalquelle genügt der Auftrag `Erstelle beziehungsweise aktualisiere meinen universellen Softwareentwicklungs-Lebenslauf.` Der getrennte Ablauf verwendet `bewerbung.ps1 universal-neu`, `universal-status` und `universal-finalisieren`. Erst nach Prüfung beider PNG-Seiten entsteht das kleine Aktivpaket; sein datierter Arbeitsordner wird danach vollständig entfernt.
 
 Weitere eindeutige Beispiele sind `Erstelle nur ein Anschreiben.` und `Erstelle nur einen individuellen Lebenslauf.` Eine reine E-Mail-Nachricht ohne Lebenslauf und Anschreiben muss der Agent vor der Auftragsanlage noch einmal ausdrücklich als Auftrag ohne Anlagen bestätigen lassen.
 
@@ -1005,12 +1011,16 @@ Private/
 ├─ Daten/
 │  ├─ README.md
 │  ├─ 01_PERSOENLICHE_DATEN.md
-│  └─ 02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
-├─ LebenslaufUniversal/
-│  ├─ Aktiv/
-│  │  └─ Lebenslauf - NACHNAME.VORNAME.html
-│  └─ Archiv/
+│  ├─ 02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
+│  └─ Passfoto.png                         # optional
 └─ Bewerbungen/
+   ├─ _Universal-Lebenslauf/
+   │  ├─ _Arbeitsdateien/
+   │  │  └─ YYYY-MM-DD--Softwareentwicklung/   # nach erfolgreicher Aktivierung gelöscht
+   │  └─ Aktiv/
+   │     ├─ Versand/Lebenslauf - NACHNAME.VORNAME.pdf
+   │     ├─ Intern/Lebenslauf - NACHNAME.VORNAME.html
+   │     └─ Manifest.json
    └─ FIRMA/
       ├─ _Arbeitsdateien/
       │  └─ YYYY-MM-DD--ROLLENNAME/
@@ -1053,13 +1063,13 @@ Private/
 
 `Anforderungsmatrix--ENTWURF.json` ist nur das Startgerüst; verbindlich ist anschließend `Anforderungsmatrix.json`. Entwurfsgerüste können im privaten Arbeitsordner verbleiben, dürfen aber weder als Kandidat noch als Veröffentlichung interpretiert werden.
 
-Weitere private Bereiche wie `Archiv/` oder `Bewertungen/` können lokal existieren. `LebenslaufUniversal/` ist die optionale, technisch eingebundene Quelle, wenn `dokumentumfang.lebenslauf` auf `universal_unveraendert` steht. Umfang und normalisierter Dialogzustand liegen direkt im `Bewerbungsauftrag.json`; es gibt keine zweite Chatprotokolldatei.
+Weitere private Bereiche wie `Archiv/` oder `Bewertungen/` können lokal existieren. `_Universal-Lebenslauf/Aktiv/Intern/` ist die automatisch verwendete, technisch freigegebene Quelle, wenn `dokumentumfang.lebenslauf` auf `universal_unveraendert` steht. Der Aktivordner enthält nur HTML, Versand-PDF und Manifest; der zugehörige Arbeitsordner wird nach der persönlichen Freigabe vollständig entfernt. Umfang und normalisierter Dialogzustand liegen direkt im `Bewerbungsauftrag.json`; es gibt keine zweite Chatprotokolldatei.
 
 </details>
 
 ### Prompt-System
 
-Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine bedarfsgerechte Fähigkeitenprüfung und routet Bewerbungsaufträge zum fachlichen Einstieg [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) importieren ausschließlich die gemeinsamen Regeln; fachliche Abläufe werden dort nicht dupliziert. OpenCode liest `AGENTS.md` nativ. Die zusätzliche [`opencode.json`](opencode.json) schaltet das Teilen von Sitzungen aus, enthält bewusst keine zweite Promptliste und lässt Provider sowie Modell für OpenCode, eine Editor-Integration oder `ollama launch opencode` offen. Änderungen gehören in das fachlich passende Promptmodul:
+Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die sechs Einstiege, verlangt eine bedarfsgerechte Fähigkeitenprüfung und routet Bewerbungsaufträge zum fachlichen Einstieg [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) importieren ausschließlich die gemeinsamen Regeln; fachliche Abläufe werden dort nicht dupliziert. OpenCode liest `AGENTS.md` nativ. Die zusätzliche [`opencode.json`](opencode.json) schaltet das Teilen von Sitzungen aus, enthält bewusst keine zweite Promptliste und lässt Provider sowie Modell für OpenCode, eine Editor-Integration oder `ollama launch opencode` offen. Änderungen gehören in das fachlich passende Promptmodul:
 
 | Datei | Verantwortung |
 | --- | --- |
@@ -1086,8 +1096,10 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine
 | `Pruefe-Umgebung.ps1` | read-only Preflight für Runtime, OS, Architektur, Browser, Temp, Schreibzugriff und Fonts | über `bewerbung.ps1 diagnose` |
 | `setup-ubuntu.sh` | ausschließlich opt-in Ubuntu-24.04-Setup mit Vorschau und Bestätigung | `--dry-run --all` |
 | `Ermittle-Bewerbungsstatus.ps1` | letzten oder angegebenen Arbeitsstand read-only aus Dateien und Hashnachweisen rekonstruieren | `-AlsJson` oder `-Arbeitsordner "..." -AlsJson` |
+| `Aktualisiere-WorkflowCheckpoint.ps1` | kompakten, hashgebundenen Fortsetzungsnachweis ohne Quellkopien schreiben | `-Arbeitsordner "..." -Schritt analyse_abgeschlossen` |
 | `Pruefe-Dialogstatus.ps1` | Umfang, Rückfragen, Angaben, Widersprüche und Speicherentscheidungen validieren | `-AuftragPath ".../Bewerbungsauftrag.json" -FuerDokumenterstellung` |
 | `Uebernehme-Dialogangabe.ps1` | bestätigte Angabe nur auftragsbezogen markieren oder kontrolliert ins zulässige Profilziel übernehmen | `-AuftragPath "..." -AngabeId "..." -Speicherentscheidung nur_auftrag` |
+| `Integriere-Passfoto.ps1` | optionales privates PNG bytegleich in einen individuellen Lebenslauf einbetten oder den Fotoblock entfernen | über `bewerbung.ps1 passfoto --arbeitsordner "..."` |
 | `Pruefe-Stammdaten.ps1` | Identität, Kontakt und Logistik prüfen | ohne Parameter oder mit Auftragspfad |
 | `Pruefe-Bewerbungsinhalt.ps1` | Inhalt gegen Auftrag und Matrix prüfen | `-Ordner "..." -AuftragPath "..." -AnforderungsmatrixPath "..."` |
 | `Pruefe-Bewerbung.ps1` | umfangsabhängigen statischen Mindestcheck ausführen | `-Ordner "..." -AuftragPath "..."` |
@@ -1097,7 +1109,26 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die fünf Einstiege, verlangt eine
 | `Finalisiere-Bewerbung.ps1` | verbindliches Prepare-/Publish-Gate | `-Arbeitsordner "..."` |
 | `Aktualisiere-Tokenbericht.ps1` | exakte Laufzeitwerte oder eindeutige Nichtverfügbarkeit standardisiert speichern | `-Arbeitsordner "..." -Messbereich lebenslauf` |
 
-Der Dispatcher bietet `diagnose`, `neu`, `status`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`. Er normalisiert `--dokumente` einmal zentral als kommaseparierte, typgeprüfte Liste; Werte mit Leerzeichen, Umlauten oder führendem Bindestrich bleiben einzelne Argumente. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime.
+Der Dispatcher bietet `diagnose`, `neu`, `status`, `checkpoint`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`. Er normalisiert `--dokumente` einmal zentral als kommaseparierte, typgeprüfte Liste; Werte mit Leerzeichen, Umlauten oder führendem Bindestrich bleiben einzelne Argumente. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime.
+
+Nach dem Erstellen eines individuellen Lebenslauf-HTMLs verarbeitet der Agent den optionalen markierten Fotoblock ohne Ausgabe der Bilddaten:
+
+```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 passfoto `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME"
+```
+
+Fehlt `Private/Daten/Passfoto.png`, ist der Befehl ein gültiger Lauf ohne Foto. Ist die Datei vorhanden, verlangt die spätere Inhaltsprüfung genau eine bytegleiche eingebettete PNG-Datenressource. Jede Änderung am Foto macht vorhandene technische und persönliche Sichtnachweise ungültig.
+
+Nach jeder sinnvollen Workflow-Grenze aktualisiert der Agent einen kompakten Fortsetzungsnachweis. Er enthält keine Kopien von Stellenbeschreibung, Profil oder Rohchat, sondern nur den letzten Schritt sowie relative Arbeitsartefaktpfade, Größen und SHA-256-Werte:
+
+```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 checkpoint `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --schritt analyse_abgeschlossen
+```
+
+`Workflow-Checkpoint.json` bleibt privat, ist auf 24 Historieneinträge begrenzt und nie selbst eine fachliche Quelle oder ein Freigabenachweis. `status --als-json` meldet den Checkpoint nur als aktuell, wenn alle gebundenen Arbeitsartefakte unverändert sind; sonst rekonstruiert es den Stand aus Auftrag, Matrix, Kandidaten und Prüfberichten.
 
 `Uebernehme-Dialogangabe.ps1` darf eine dauerhafte Änderung nur mit `-Speicherentscheidung dauerhaft`, zulässigem `-ProfilPath`, `-Abschnitt`, der zuvor gezeigten `-Formulierung`, `-ErwarteterDateiHash` und `-ZustimmungBestaetigt` ausführen. Alle vier Inhaltsparameter müssen exakt zum vor der Zustimmung gespeicherten Pending-Snapshot passen; dessen `fachlicherZieltyp` bindet Datei 01 an persönliche Daten und Bewerbungslogistik beziehungsweise Datei 02 an das fachliche Bewerberprofil. Eine erstmalige Übernahme nach Beginn oder Abschluss der Dokumenterstellung wird abgelehnt. Ohne dauerhafte Zustimmung wird ausschließlich `-Speicherentscheidung nur_auftrag` verwendet; dann darf das Werkzeug keine Profildatei lesen oder verändern und entfernt den nicht mehr benötigten Vorschlagssnapshot.
 
@@ -1111,6 +1142,7 @@ Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Fü
 | --- | --- | --- | --- |
 | `Bewerbungsauftrag.json` | Dispatcher, danach Agent | Schema-5-Pflichtquelle mit Root-relativen Pfaden sowie `dokumentumfang`, normalisierten Rückfragen und Angaben, Speicherentscheidungen, Logistik, Darstellungsoptionen und Bewerbungsentscheidung | Dialog-, Stammdaten-, Inhalts- und Finalisierungswerkzeug |
 | `Anforderungsmatrix.json` | Agent aus dem Entwurfsgerüst | Pflicht vor Dokumenterstellung und Finalisierung | Inhaltsprüfer und fachlicher Abschlusstest |
+| `Workflow-Checkpoint.json` | Agent über `checkpoint`; bei Anlage und Finalisierung automatisch | kompakter Fortsetzungsindex mit Schritten und Hashreferenzen, nie fachliche Quelle | Statusanzeige und Agentenfortsetzung |
 | `Kandidat/*` | Agent; PDFs durch Exporttool | gemäß Umfang vollständiger Release Candidate mit späteren Dateinamen | statischer Prüfer, Inhaltsprüfer, gegebenenfalls Layout, PDF und ATS sowie Publisher |
 | Prüfberichte und Screenshots | jeweiliges Prüfwerkzeug | umfangsabhängige Nachweise; nicht benötigte Browserprüfungen werden als `nicht_erforderlich` dokumentiert | `Finalisiere-Bewerbung.ps1` und persönliche Sicht- oder Textprüfung |
 | `Versand/`, `Intern/`, `Manifest.json` | Finalisierungswerkzeug über privates Staging | einziger veröffentlichter Vertrag | Nutzer, Archivierung und nachträglicher statischer Check |
@@ -1130,12 +1162,12 @@ Jede normalisierte Angabe verwendet `speicherentscheidung = ausstehend`, `nur_au
 | Bericht | Zuständiges Tool | Wesentliche Inhalte |
 | --- | --- | --- |
 | `Stammdaten-Pruefbericht.json` | `Pruefe-Stammdaten.ps1` | Status, Fehler/Warnungen, Feldzustände sowie aufgelöste Bewerbungslogistik und deren Quelle |
-| `Inhalts-Pruefbericht.json` | `Pruefe-Bewerbungsinhalt.ps1` | formale Zeiträume, Darstellungsmodi, Profil-Links, gewichtete Eignung sowie Fehler/Warnungen |
+| `Inhalts-Pruefbericht.json` | `Pruefe-Bewerbungsinhalt.ps1` | formale Zeiträume, Darstellungsmodi, Profil-Links, optionaler Passfoto-Status, gewichtete Eignung sowie Fehler/Warnungen |
 | `Layoutcheck/Layoutcheck-Bericht.json` | `Layoutcheck-Bewerbung.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, Browser, Abmessungen, HTML- und Screenshot-Hashes, Seite/Seitenzahl und Dichtehinweise oder Status `nicht_erforderlich` |
 | `PDF-Export/PDF-Export-Bericht.json` | `Exportiere-PDF.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, HTML-/PDF-Hashes, PDF-Größe, Seitenzahl und A4-MediaBox oder Status `nicht_erforderlich` |
 | `ATS-Pruefbericht.json` | `Pruefe-ATS.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, extrahierbare Zeichen, Textabdeckung, Pflichttexte, Lesereihenfolge und Ergebnis je PDF oder Status `nicht_erforderlich` |
 | `Tokenverbrauch.json` | Agent beziehungsweise `Aktualisiere-Tokenbericht.ps1` | Anbieter, Modell, optionale nicht sensible Vorgangs-ID, Messquelle, Messzeiten und ausschließlich exakt bereitgestellte Tokenfelder je Messbereich; andernfalls `unavailable` und `null` |
-| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Schema-5-Release-Status, Runtime-Fingerprint, Dokumentumfang, persönliche Prüfart, Pfade, erwartete Screenshots, Warnungen, optionale Tokenbericht-Referenz sowie Hashes der vier Quellen, der drei technischen Prüfberichte und der tatsächlich erwarteten Kandidatenartefakte |
+| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Schema-5-Release-Status, Runtime-Fingerprint, Dokumentumfang, persönliche Prüfart, Pfade, erwartete Screenshots, Warnungen, optionale Tokenbericht-Referenz sowie Hashes der vier Pflichtquellen, des nur bei Verwendung ergänzten Passfotos, der drei technischen Prüfberichte und der tatsächlich erwarteten Kandidatenartefakte |
 
 `Pruefe-Bewerbung.ps1` schreibt bewusst keinen eigenen JSON-Bericht; sein Vertrag sind Konsolenausgabe und Exitcode.
 
@@ -1147,10 +1179,10 @@ Die Runtime-Fingerprints enthalten Betriebssystem, Architektur und PowerShell-Ve
 | --- | --- | --- |
 | Ablage | finaler Bewerbungsordner | privater Arbeitsordner |
 | Entstehung | während der gemeinsamen Veröffentlichung | nach der technischen Vorbereitung, danach bei Veröffentlichung aktualisiert |
-| Dateiumfang | gespeicherter `dokumentumfang` und nur die dazu veröffentlichten Dateien in `Versand/` und `Intern/`, ohne das Manifest selbst | vier Quellartefakte sowie alle laut Umfang bei der Vorbereitung erwarteten Kandidatendateien, PDFs und Layout-PNGs |
-| Nachweise | relativer Pfad, Bytezahl und SHA-256 je veröffentlichter Datei; Namen und Hashes der vier Quellartefakte als Provenienz | absolute Prüfpfade, vorbereitete Artefakte und SHA-256-Werte, persönliche Prüfart, Layoutwarnungen und Freigabenotiz |
+| Dateiumfang | gespeicherter `dokumentumfang` und nur die dazu veröffentlichten Dateien in `Versand/` und `Intern/`, ohne das Manifest selbst | vier Pflichtquellartefakte, optional `passfoto`, sowie alle laut Umfang bei der Vorbereitung erwarteten Kandidatendateien, PDFs und Layout-PNGs |
+| Nachweise | relativer Pfad, Bytezahl und SHA-256 je veröffentlichter Datei; Namen und Hashes der Pflichtquellen sowie bei Verwendung `Passfoto.png` als Provenienz | absolute Prüfpfade, vorbereitete Artefakte und SHA-256-Werte, persönliche Prüfart, Layoutwarnungen und Freigabenotiz |
 | Statusfunktion | Integrität des veröffentlichten Satzes | Gate `bereit_zur_sichtpruefung` beziehungsweise `veroeffentlicht` |
-| Prüfung | `Pruefe-Bewerbung.ps1` validiert Pfade, Größen und Hashes aus `files[]`, die exakte HTML-/PDF-Namensbindung sowie Aufbau, Namen und Hashformat der genau vier `sourceInputs`; deren Hashes werden nicht erneut gegen die privaten Quelldateien geprüft | vor dem Zieltausch verweigert der Veröffentlichungslauf geänderte oder neue Quellen-, technische Berichts-, Kandidaten- und Screenshot-Artefakte und prüft zusätzlich deren semantische Pfad-, Hash-, Seiten- und Ergebnisbindungen |
+| Prüfung | `Pruefe-Bewerbung.ps1` validiert Pfade, Größen und Hashes aus `files[]`, die exakte HTML-/PDF-Namensbindung sowie Aufbau, Namen und Hashformat der vier Pflicht-`sourceInputs` und des optionalen `passfoto`; deren Hashes werden nicht erneut gegen die privaten Quelldateien geprüft | vor dem Zieltausch verweigert der Veröffentlichungslauf geänderte oder neue Quellen einschließlich eines hinzugefügten, geänderten oder gelöschten Passfotos sowie technische Berichts-, Kandidaten- und Screenshot-Artefakte und prüft zusätzlich deren semantische Pfad-, Hash-, Seiten- und Ergebnisbindungen |
 
 Nach erfolgreicher Veröffentlichung ergänzt der Finalisierungsbericht Pfad und SHA-256 des veröffentlichten Manifests. Während derselben Transaktion setzt die Finalisierung `Qualitaetscheck.md` auf `bestaetigt`, wiederholt die abschließenden Prüfungen und berechnet danach die Kandidatenartefakte neu. Seine Kandidatenhashes passen deshalb auch nach der Freigabe zum aktuellen Arbeitsstand. Das Manifest bindet unabhängig davon den tatsächlich veröffentlichten Satz unter `Versand/` und `Intern/`. Arbeitsberichte oder Screenshots werden nicht Bestandteil des Manifests.
 
@@ -1276,6 +1308,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | technischer Workflow | `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md` |
 | gemeinsamer CLI-Einstieg und Schema-5-Ordnererstellung | `Tools/bewerbung.ps1`, `Tools/bewerbung.sh`, `Tools/Neue-Bewerbung.ps1` |
 | dateibasierte Statusrekonstruktion | `Tools/Ermittle-Bewerbungsstatus.ps1` |
+| kompakter, hashgebundener Fortsetzungscheckpoint | `Tools/Aktualisiere-WorkflowCheckpoint.ps1`, `Tools/Common/WorkflowCheckpoint.psm1` |
 | Dialogzustand und kontrollierte Profilübernahme | `Tools/Pruefe-Dialogstatus.ps1`, `Tools/Uebernehme-Dialogangabe.ps1` |
 | Stammdaten und Inhalt | `Tools/Pruefe-Stammdaten.ps1`, `Tools/Pruefe-Bewerbungsinhalt.ps1` |
 | Finalisierung | `Tools/Finalisiere-Bewerbung.ps1` |

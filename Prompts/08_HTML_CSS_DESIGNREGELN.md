@@ -83,11 +83,13 @@ Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
 ```html
 <body>
   <main class="page page-1">
-    <!-- Seite 1 -->
+    <header data-cv-page-header><!-- wiederholbarer Seitenkopf --></header>
+    <section data-cv-section="kurzprofil"><!-- vollständiger Abschnitt --></section>
     <footer class="page-footer">Seite 1 von 2</footer>
   </main>
   <main class="page page-2">
-    <!-- Seite 2 -->
+    <header data-cv-page-header><!-- wiederholbarer Seitenkopf --></header>
+    <section data-cv-section="berufserfahrung"><!-- vollständiger Abschnitt --></section>
     <footer class="page-footer">Seite 2 von 2</footer>
   </main>
 </body>
@@ -136,6 +138,8 @@ Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
 
 Für mehrseitige Lebensläufe ist dieser Footer Pflicht. Die Maße für `left`, `right` und `bottom` müssen zur jeweiligen Seitenpolsterung passen. Der Inhalt braucht genügend unteren Abstand, damit er die Trennlinie und Seitenangabe nicht berührt. Seitenzahlen dürfen nicht als normales `<p>` am Ende des Inhaltsflusses stehen.
 
+Jeder zweiseitige Lebenslauf markiert außerdem den Seitenkopf jeder Seite mit `data-cv-page-header` und jeden fachlichen `<section>`-Block mit einer dokumentweit eindeutigen slugförmigen `data-cv-section`-Kennung. Dieselbe Kennung darf nicht auf beiden Seiten erscheinen. Eine Rubrik wird als Ganzes umverteilt; sie wird nicht durch CSS, Browserumbruch oder duplizierte Kennungen geteilt.
+
 ## Verbindlicher Chrome-/Edge-Druck
 
 Browser-Kopf- und Fußzeilen wie Dateiname, URL, Datum und Seitenzahl kommen aus dem Druckdialog, nicht aus dem HTML.
@@ -163,11 +167,13 @@ Wenn zwei Seiten nötig sind, werden zwei klare Seitencontainer genutzt:
 
 ```html
 <main class="page">
-  <!-- Inhalt Seite 1 -->
+  <header data-cv-page-header><!-- Kopf Seite 1 --></header>
+  <section data-cv-section="projekte"><!-- vollständiger Inhalt Seite 1 --></section>
   <footer class="page-footer">Seite 1 von 2</footer>
 </main>
 <main class="page">
-  <!-- Inhalt Seite 2 -->
+  <header data-cv-page-header><!-- Kopf Seite 2 --></header>
+  <section data-cv-section="berufserfahrung"><!-- vollständiger Inhalt Seite 2 --></section>
   <footer class="page-footer">Seite 2 von 2</footer>
 </main>
 ```
@@ -179,12 +185,13 @@ Vor der finalen Ausgabe eines zweiseitigen Lebenslaufs muss die Verteilung auf d
 
 - Seite 1 muss wie eine vollständig genutzte CV-Seite wirken, nicht wie ein Kopfbereich mit etwas Inhalt und großer leerer Fläche.
 - Seite 2 muss bewusst strukturiert sein und darf nicht nur aus ausgelagerten Restabschnitten bestehen.
+- Kein fachlicher Abschnitt darf auf beiden Seiten beginnen beziehungsweise fortgesetzt werden; zusammengehörige Berufserfahrung oder Projekte bleiben atomar.
 - Formale Stationen wie Ausbildung, berufliche Bildung und Schulbildung dürfen nicht am unteren Seitenrand abgeschnitten oder optisch gefährdet sein.
 - Die Footer-Trennlinie und Seitenangabe müssen auf jeder Seite sichtbar, dezent und gleich positioniert sein.
 - Der Footer darf keine Inhalte überdecken und darf nicht wie ein zufälliger Restabsatz zwischen den Seiten erscheinen.
 - Wenn die Verteilung nicht stimmt, ist das Layout nicht final; Inhalte müssen neu verteilt, gekürzt oder wieder auf einen kompakten Einseiten-Lebenslauf gebracht werden.
 
-Der automatische Layoutcheck erzeugt für jeden expliziten `.page`-Container ein eigenes PNG im Format `...--seite-X-von-Y--chrome.png`. Bei einem zweiseitigen Lebenslauf müssen daher beide Seiten einzeln geöffnet und bewertet werden; ein hoher Gesamtscreenshot oder nur die erste Bildschirmhöhe ist kein vollständiger Freigabenachweis.
+Der automatische Layoutcheck erzeugt für jeden expliziten `.page`-Container ein isoliertes Prüf-HTML und daraus ein eigenes PNG im Format `...--seite-X-von-Y--chrome.png`. Dabei wird genau der ausgewählte Seitencontainer in den Dokumentkörper übernommen; zusätzliche `<main>`-Elemente oder seine ursprüngliche Position dürfen die Seitenauswahl nicht beeinflussen. Bei einem zweiseitigen Lebenslauf müssen beide Seiten einzeln geöffnet und bewertet werden; ein hoher Gesamtscreenshot oder nur die erste Bildschirmhöhe ist kein vollständiger Freigabenachweis.
 
 Die automatische Dichteprüfung wertet ausschließlich den nutzbaren Inhaltsbereich oberhalb von Footer und unterem Sicherheitsabstand. Seitenkante, Scrollbar und fester Footer dürfen nicht als Inhalt gelten. Ein Dichtehinweis ist eine Aufforderung zur Sichtprüfung, kein Auftrag zum blinden Auffüllen, Verkleinern oder Entfernen hochwertiger Inhalte. Recruiter-Lesbarkeit und inhaltliche Priorität bleiben maßgeblich.
 
@@ -201,3 +208,15 @@ Für deutsche Bewerbungen ist der bevorzugte Lebenslaufstil:
 - keine verschachtelten Kartenlayouts
 
 Eine modernere Gestaltung ist erlaubt, wenn sie die Lesbarkeit verbessert. Sie darf den Lebenslauf aber nicht wie eine Portfolioseite, Landingpage oder reine Skill-Übersicht wirken lassen.
+
+## Design eines optionalen Bewerbungsfotos
+
+Ein Bewerbungsfoto ist nur zulässig, wenn bei einem individuellen Lebenslauf exakt `Private/Daten/Passfoto.png` vorhanden ist. Es wird als vollständig eingebettete `data:image/png;base64`-Ressource mit der stabilen Klasse `bewerbungsfoto` eingefügt. Lokale Pfade, externe URLs, CSS-Hintergrundbilder oder eine separate Bilddatei im Kandidaten- beziehungsweise Versandordner sind unzulässig.
+
+Die öffentliche Designreferenz zeigt nur eine neutrale mögliche Anordnung. Die tatsächliche Darstellung muss zum konkreten Bewerbungsdesign passen:
+
+- Der umgebende Block existiert nur mit Foto; ohne Quelle darf er weder Breite noch Höhe oder Weißraum reservieren.
+- Seitenverhältnis und Gesichtszüge dürfen nicht verzerrt werden. Ein beschnittener Darstellungsrahmen ist nur zulässig, wenn Kopf und Gesicht im aktuellen Seitenscreenshot vollständig und professionell wirken.
+- Größe, Form, Ecken, Rahmen und Position greifen Raster, Akzentfarbe und Typografie des konkreten Lebenslaufs auf, ohne Kontakt oder Recruiter-Signale zu verdrängen.
+- Das Foto muss bei 100 Prozent Skalierung im Chrome-/Edge-Screenshot und im PDF scharf, vollständig, überlappungsfrei und drucktauglich erscheinen.
+- Ein Foto darf die A4-Seitenstrategie nicht durch Verkleinern wichtiger Texte oder Abschneiden formaler Stationen retten. Inhalt und Seitenaufteilung werden bei Bedarf neu geplant.

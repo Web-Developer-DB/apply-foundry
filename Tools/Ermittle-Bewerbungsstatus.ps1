@@ -12,7 +12,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/OrderPaths.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Passfoto.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/WorkflowCheckpoint.psm1") -Force
 
 function Stop-Status {
   param([string]$Message, [int]$Code = 1)
@@ -92,7 +94,8 @@ function Get-ActivityUtc {
     'ATS-Pruefbericht.json',
     'Finalisierungsbericht.json',
     'Layoutcheck-Bericht.json',
-    'PDF-Export-Bericht.json'
+    'PDF-Export-Bericht.json',
+    'Workflow-Checkpoint.json'
   )
   $items = @(Get-ChildItem -LiteralPath $Path -File -Recurse -ErrorAction SilentlyContinue | Where-Object {
     if ($_.FullName -notmatch '[\\/]Kandidat[\\/]' -and $activityNames -notcontains $_.Name) { return $false }
@@ -139,9 +142,38 @@ function Test-ArtifactRecordSetExact {
 function Test-FinalReportArtifacts {
   param([object]$Report, [string]$CandidateFolder, [string]$WorkFolder, [string]$ApplicationsRoot)
   $privateRoot = Split-Path -Path $ApplicationsRoot -Parent
-  foreach ($sourceName in @('stammdaten', 'profil', 'bewerbungsauftrag', 'anforderungsmatrix')) {
-    $sources = Get-JsonProperty -Object $Report -Name 'sourceInputs'
-    $sourceRoot = if ($sourceName -in @('stammdaten', 'profil')) { $privateRoot } else { $WorkFolder }
+  $sources = Get-JsonProperty -Object $Report -Name 'sourceInputs'
+  if ($null -eq $sources) { return $false }
+  $expectedSourceNames = [System.Collections.Generic.List[string]]::new()
+  foreach ($requiredSourceName in @('stammdaten', 'profil', 'bewerbungsauftrag', 'anforderungsmatrix')) {
+    $expectedSourceNames.Add($requiredSourceName)
+  }
+  try {
+    $orderPath = Resolve-SafePath -Candidate (Join-Path -Path $WorkFolder -ChildPath 'Bewerbungsauftrag.json') -Root $WorkFolder -MustExist -ForWrite -PathType Leaf
+    $order = Get-Content -LiteralPath $orderPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $schema = [int](Get-JsonProperty -Object $order -Name 'schemaVersion')
+    $scope = Get-JsonProperty -Object $order -Name 'dokumentumfang'
+    $cvKind = if ($schema -ge 4) {
+      [string](Get-JsonProperty -Object $scope -Name 'lebenslauf')
+    } elseif ([string](Get-JsonProperty -Object $order -Name 'dokumentmodus') -eq 'anschreiben_mit_universalem_lebenslauf') {
+      'universal_unveraendert'
+    } else {
+      'individuell'
+    }
+    if ($cvKind -eq 'individuell') {
+      $dataRoot = Resolve-SafePath -Candidate (Join-Path -Path $privateRoot -ChildPath 'Daten') -Root $privateRoot -MustExist -PathType Container
+      $passfotoSource = Get-PassfotoSourceState -DataRoot $dataRoot
+      if ($passfotoSource.Exists) { $expectedSourceNames.Add('passfoto') }
+    }
+  } catch {
+    return $false
+  }
+  $actualSourceNames = @($sources.PSObject.Properties.Name | Sort-Object)
+  if (@(Compare-Object -ReferenceObject @($expectedSourceNames | Sort-Object) -DifferenceObject $actualSourceNames).Count -gt 0) {
+    return $false
+  }
+  foreach ($sourceName in $expectedSourceNames) {
+    $sourceRoot = if ($sourceName -in @('stammdaten', 'profil', 'passfoto')) { $privateRoot } else { $WorkFolder }
     if (-not (Test-ArtifactRecord -Record (Get-JsonProperty -Object $sources -Name $sourceName) -Root $sourceRoot)) { return $false }
   }
   $artifacts = Get-JsonProperty -Object $Report -Name 'artifacts'
@@ -353,6 +385,20 @@ if (-not $scopeConfirmed) {
   $requiredPrompts = @('Prompts/09_QUALITAETSCHECK.md', 'Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md')
 }
 
+try {
+  $workflowCheckpoint = Get-WorkflowCheckpointStatus -Arbeitsordner $resolvedWork
+} catch {
+  $workflowCheckpoint = [pscustomobject][ordered]@{
+    available = $false
+    valid = $false
+    reason = 'nicht_pruefbar'
+    updatedAtUtc = $null
+    lastCompletedStep = $null
+    artifactCount = 0
+    historyCount = 0
+  }
+}
+
 $result = [ordered]@{
   schemaVersion = 1
   workFolder = $resolvedWork
@@ -363,6 +409,7 @@ $result = [ordered]@{
   missingCandidateFiles = @($missingFiles)
   finalReportValid = $finalReportValid
   finalStatus = if ([string]::IsNullOrWhiteSpace($finalStatus)) { $null } else { $finalStatus }
+  workflowCheckpoint = $workflowCheckpoint
   requiredPrompts = @($requiredPrompts)
   nextAction = $nextAction
 }
@@ -374,6 +421,13 @@ if ($AlsJson) {
   Write-Host "Phase: $phase"
   if ($blockers.Count -gt 0) { Write-Host "Blocker: $($blockers -join ', ')" }
   if ($missingFiles.Count -gt 0) { Write-Host "Fehlende Kandidatendateien: $($missingFiles -join ', ')" }
+  if ($workflowCheckpoint.valid) {
+    Write-Host "Workflow-Checkpoint: aktuell ($($workflowCheckpoint.lastCompletedStep), $($workflowCheckpoint.artifactCount) Artefakte)"
+  } elseif ($workflowCheckpoint.available) {
+    Write-Host "Workflow-Checkpoint: nicht aktuell ($($workflowCheckpoint.reason)); der Status wurde vollständig aus den Originalartefakten rekonstruiert."
+  } else {
+    Write-Host "Workflow-Checkpoint: fehlt; der Status wurde vollständig aus den Originalartefakten rekonstruiert."
+  }
   if ($requiredPrompts.Count -gt 0) { Write-Host "Jetzt benötigte Promptmodule: $($requiredPrompts -join ', ')" }
   Write-Host "Nächster Schritt: $nextAction"
 }

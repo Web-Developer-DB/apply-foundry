@@ -13,6 +13,8 @@ Deine Aufgabe ist es, aus einer konkreten Stellenbeschreibung und dem ausdrückl
 
 Der konkrete Umfang wird durch `dokumentumfang` im Bewerbungsauftrag gesteuert. Vollbewerbung, Anschreiben mit unverändertem universellem Lebenslauf, individueller Lebenslauf, nur Anschreiben und eigene Zusammenstellungen sind zulässig. Die verbindliche Dialog- und Auswahlregel steht ausschließlich in `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`.
 
+Ein ausdrücklicher Auftrag, den universellen Lebenslauf selbst zu erstellen oder zu aktualisieren, ist dagegen kein A–E-Stellenauftrag. Er verwendet den unten beschriebenen eigenständigen Universalprozess ohne erfundene Firma oder Stellenanzeige.
+
 Die Bewerbung muss professionell, glaubwürdig, ATS-kompatibel, druckfreundlich und nicht wie generischer KI-Text wirken. Branche, Zielrolle und Profilrichtung werden nicht aus diesem öffentlichen Prompt abgeleitet, sondern aus der Stellenbeschreibung und den privaten Daten.
 
 Der Lebenslauf muss zusätzlich wie ein sauberer deutscher, recruiterfreundlicher tabellarischer Lebenslauf wirken. Er darf nicht wie eine Portfolioseite, Skill-Sammlung oder Webprofil-Karte aussehen. Gestaltung, Inhalt und Drucklayout müssen gemeinsam geplant werden.
@@ -57,6 +59,7 @@ Die privaten Daten sind bewusst getrennt:
 
 - `Private/Daten/01_PERSOENLICHE_DATEN.md` ist die einzige Stammquelle für Identität, Kontakt, Dateiname-Name, öffentliche Profile und den initialen Stand der Bewerbungslogistik. Der Ordnerhelfer übernimmt diese Logistik in den bewerbungsspezifischen `Bewerbungsauftrag.json`; danach ist dessen Snapshot für die konkrete Bewerbung maßgeblich.
 - `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` ist die fachliche Quelle für Zielrollen, Positionierung, Berufserfahrung, Ausbildung, Umschulung, Weiterbildung, Schulbildung, Kenntnisse, Projekte, private Praxis, Sprachen und Grenzen. Wenn diese Datei Belegarten wie `BERUFLICH BELEGT`, `ÜBERTRAGBAR`, `WEITERBILDUNG`, `PROJEKTPRAXIS`, `PRIVATE PRAXIS / HOME-LAB`, `GRUNDLAGEN / VERSTÄNDNIS`, `EINARBEITUNGSZIEL` oder `NICHT BEHAUPTEN` enthält, muss der Agent sie strikt auswerten.
+- `Private/Daten/Passfoto.png` ist eine rein optionale Bildquelle für individuell erstellte Lebensläufe. Fehlt sie, wird ohne Rückfrage und ohne leeren Fotoplatz ein Lebenslauf ohne Foto erstellt. Ein universeller Lebenslauf wird unabhängig davon nie verändert.
 
 Der Agent darf fachliche Lebenslaufdaten nicht aus Datei `01` ableiten, wenn Datei `02` dazu eine abweichende oder fehlende Aussage enthält. Bei Dopplungen oder Widersprüchen gilt:
 
@@ -110,6 +113,29 @@ Verwende zuerst `Tools/Ermittle-Bewerbungsstatus.ps1 -AlsJson`. Das Werkzeug wä
 
 Zeitstempel allein beweisen keine Gültigkeit. Hashnachweise aus dem Finalisierungsbericht und dem Manifest haben für die jeweils gebundenen Artefakte Vorrang. Eine Sichtprüfungsbestätigung aus einem früheren Chat ohne passenden unveränderten Dateinachweis darf nicht wiederverwendet werden.
 
+## Kompakter Workflow-Checkpoint
+
+Nach jeder sinnvollen Workflow-Grenze schreibt der Agent einen privaten, vollständigen aktuellen Checkpoint. Sinnvolle Grenzen sind die Auftragsanlage, der abgeschlossene Profilabgleich, die Analyse/Muss-Kann-Matrix, die vollständige Dokumenterstellung, die fachliche Prüfung, die technische Vorbereitung, die bestätigte persönliche Prüfung und die Veröffentlichung. Mikro-Schritte ohne neue oder geänderte Arbeitsartefakte erhalten keinen eigenen Eintrag.
+
+Verwende dafür nach dem Schreiben und Validieren der betroffenen Dateien:
+
+```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 checkpoint --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --schritt analyse_abgeschlossen
+```
+
+Unter Linux ist derselbe Aufruf über `./Tools/bewerbung.sh checkpoint ...` zulässig. Der Ordnerhelfer erstellt den Schritt `auftrag_angelegt`; die Finalisierung aktualisiert die Schritte `technische_vorbereitung_abgeschlossen` und `veroeffentlicht` selbst.
+
+`Workflow-Checkpoint.json` enthält keine Chatprotokolle, Stellenanzeigentexte, Profilkopien oder freien Agententexte. Er speichert ausschließlich einen kleinen Auftrags-/Dialogüberblick, den letzten Schritt, eine auf 24 Einträge begrenzte Schritt-Historie sowie relative Arbeitsartefaktpfade, Größen und SHA-256-Werte. Die referenzierten Originaldateien bleiben die einzigen fachlichen Quellen. `bewerbung.ps1 status --als-json` meldet, ob der Checkpoint aktuell ist; bei jeder Hashabweichung wird er nur als veraltet gemeldet und der Status vollständig aus den Originalartefakten rekonstruiert.
+
+## Eigenständiger Universal-Lebenslauf
+
+1. Prüfe die Stammdaten und lies für diesen Auftrag nur die Lebenslauf-, Wahrheits-, Design-, Qualitäts-, Datei- und Technikmodule 03 sowie 07 bis 11.
+2. Lege den Arbeitsstand mit `bewerbung.ps1 universal-neu` unter `Private/Bewerbungen/_Universal-Lebenslauf/_Arbeitsdateien/YYYY-MM-DD--Softwareentwicklung/` an. Verwende niemals einen losen öffentlichen Ordner oder `Private/LebenslaufUniversal/` als neues Ziel.
+3. Erstelle ausschließlich `Kandidat/Lebenslauf - NACHNAME.VORNAME.html` und die vier inhaltlich echten Nachweise. Für den universellen Softwareentwicklungs-Lebenslauf gilt der im `Universalauftrag.json` gespeicherte atomare Seitenplan: Seite 1 enthält vollständig Kurzprofil, Technologien und Projekte; Seite 2 vollständig Berufserfahrung, Weiterbildung, Ausbildung und Schulbildung. IT-Administration ist keine Zielrichtung.
+4. Bereite mit `bewerbung.ps1 universal-finalisieren --arbeitsordner "..."` statischen Check, PDF, ATS und genau zwei Seitenscreenshots vor. Nenne beide PNG-Dateien und stoppe bei der persönlichen Sichtprüfung.
+5. Aktiviere erst nach eindeutiger Bestätigung mit `universal-finalisieren --veroeffentlichen --visuell-geprueft`; bei einer neuen Version ist zusätzlich `--ersetzen` erforderlich. Die Aktivfassung enthält nur Versand-PDF, interne HTML-Quelle und Manifest. Nach erfolgreicher Aktivierung wird der zugehörige datierte Arbeitsordner vollständig entfernt.
+6. Rekonstruiere den Stand mit `bewerbung.ps1 universal-status --als-json`. Eine Quellen- oder Kandidatenänderung entwertet wie bei Bewerbungen alle vorhandenen Prüf- und Sichtnachweise.
+
 ## Arbeitsablauf
 
 1. Bestimme vor dem Lesen privater Daten und vor jeder Ordner- oder Dokumenterstellung den vom Nutzer gewünschten Dokumentumfang nach `Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`. Ist er bereits eindeutig genannt, frage nicht erneut. Bei einer bloßen Stellenbeschreibung oder einem allgemeinen Bewerbungswunsch frage A–E und stoppe bis zur Antwort. Führe nach der eindeutigen Auswahl `Tools/Pruefe-Stammdaten.ps1` aus. Identitäts- oder Kontaktfehler blockieren sofort.
@@ -124,7 +150,7 @@ Zeitstempel allein beweisen keine Gültigkeit. Hashnachweise aus dem Finalisieru
 10. Ist ein individueller Lebenslauf ausgewählt, lege Seitenstrategie, Schulbildungsmodus, Profil-Links, Beweislogik und Umgang mit Lücken fest. Ohne Lebenslauf werden diese Felder auf `nicht_erforderlich` gesetzt. Bei universellem Lebenslauf bleibt der Snapshot unverändert.
 11. Setze `dialog.status` vor dem Schreiben konsistent auf `bereit_zur_dokumenterstellung`, validiere mit `Tools/Pruefe-Dialogstatus.ps1 -AuftragPath ".../Bewerbungsauftrag.json" -FuerDokumenterstellung` und wechsle beim tatsächlichen Beginn auf `dokumenterstellung`.
 12. Erstelle `Analyse.md` kompakt aus Strategie, Matrixverweisen, bewussten Auslassungen, Logistik und offenen Risiken. Die Stellenbeschreibung ist zu diesem Zeitpunkt bereits vollständig gespeichert.
-13. Enthält der Umfang einen individuellen Lebenslauf, erstelle ihn im Kandidatenordner. Enthält er einen universellen Lebenslauf, prüfe die unveränderte hashgleiche Übernahme. Ohne ausgewählten Lebenslauf erzeuge keine Lebenslaufdatei.
+13. Enthält der Umfang einen individuellen Lebenslauf, erstelle ihn im Kandidatenordner und prüfe unmittelbar davor exakt `Private/Daten/Passfoto.png`. Nutze im HTML den optionalen markierten Block aus Prompt 03 und führe danach `pwsh -NoProfile -File Tools/bewerbung.ps1 passfoto --arbeitsordner "..."` aus. Das Werkzeug bettet eine vorhandene gültige PNG-Datei bytegleich ein oder entfernt den Block vollständig, wenn sie fehlt. Passe die Fotodarstellung an das konkrete Lebenslaufdesign an und prüfe den Zuschnitt später im Seitenscreenshot. Enthält der Umfang einen universellen Lebenslauf, prüfe ausschließlich die unveränderte hashgleiche Übernahme. Ohne ausgewählten Lebenslauf erzeuge keine Lebenslaufdatei.
 14. Aktualisiere den Tokenbericht nach dem Lebenslauf nur, wenn für diesen Messbereich exakte maschinenlesbare Werte vorliegen. Ohne Werte ist kein zusätzlicher Zwischenlauf nötig; die Finalisierung schreibt später einmalig `unavailable`.
 15. Ist ein Anschreiben ausgewählt, führe den Quellenabgleich aus Prompt 04 durch und erstelle es. Nutze Matrix-IDs und die stärksten zwei bis vier Passungen; dupliziere nicht die gesamte Analyse.
 16. Erstelle gegebenenfalls die E-Mail-Nachricht sowie immer `Qualitaetscheck.md`, `Druck-Hinweis.md` und bei offenen Punkten `Offene_Fragen.md`. Erzeuge und parse beziehungsweise validiere jede Kandidatendatei einzeln.
@@ -263,13 +289,23 @@ Die Skripte erstellen einen leeren finalen Zielordner, den privaten Arbeitsordne
 
 ## Technischer Abschlusscheck
 
+### Nicht verhandelbare Kandidatenverträge
+
+Der Kandidatenordner wird ausschließlich unter `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/` angelegt. Ein direkt unter `Bewerbungen/` oder öffentlich abgelegter Entwurf ist kein zulässiger Exporteingang.
+
+Die internen Nachweise `Stellenbeschreibung.md`, `Analyse.md`, `Qualitaetscheck.md` und `Druck-Hinweis.md` sind fachliche Bestandteile des Vorgangs. Sie müssen mit ihrem wirklichen Inhalt erstellt werden; leere oder minimale „Dummy“-Dateien zum Bestehen des Prüfers sind verboten.
+
+Bei ausgewählter E-Mail-Nachricht lautet der Kandidatendateiname exakt `Email-Nachricht--FIRMEN-SLUG.md`. `FIRMEN-SLUG` ist der gespeicherte `firmaSlug` aus `Bewerbungsauftrag.json`, nicht ein frei formulierter Firmenname. Die E-Mail ist Markdown-Text und niemals eine HTML-Datei.
+
+HTML-Kandidaten übernehmen vor dem ersten Prüflauf die feste A4-Grundstruktur aus `Prompts/08_HTML_CSS_DESIGNREGELN.md`, einschließlich `@page { size: A4; margin: 0; }` und `.page { width: 210mm; height: 297mm; }`. `min-height` ist kein Ersatz für die feste Höhe.
+
 Nach dem Erstellen aller Kandidatendateien wird zuerst die Finalisierung vorbereitet:
 
 ```powershell
 pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --browser auto
 ```
 
-Der Vorbereitungslauf führt Stammdatenprüfung, Inhaltsprüfung, statischen A4-Check, Seitenscreenshot-Layoutcheck, PDF-Export und ATS-Textprüfung aus. Er schreibt maschinenlesbare Berichte mit SHA-256-Bezug zu den geprüften Quellen und Kandidatendateien sowie einem Runtime-Fingerprint aus OS, Architektur, PowerShell und Browser, veröffentlicht aber noch keine Datei. Nach einem Betriebssystemwechsel bleiben Auftrag und Kandidaten erhalten, die technische Vorbereitung muss jedoch erneut laufen.
+Der Vorbereitungslauf führt Stammdatenprüfung, Inhaltsprüfung, statischen A4-Check, Seitenscreenshot-Layoutcheck, PDF-Export und ATS-Textprüfung aus. Er schreibt maschinenlesbare Berichte mit SHA-256-Bezug zu den geprüften Quellen und Kandidatendateien sowie einem Runtime-Fingerprint aus OS, Architektur, PowerShell und Browser, veröffentlicht aber noch keine Datei. Bei einem individuellen Lebenslauf bindet er `Passfoto.png` nur dann als zusätzliche Quelle, wenn die Datei tatsächlich existiert und bytegleich eingebettet ist. Hinzufügen, Ändern oder Löschen des Fotos entwertet die technische Vorbereitung. Nach einem Betriebssystemwechsel bleiben Auftrag und Kandidaten erhalten, die technische Vorbereitung muss jedoch erneut laufen.
 
 In einer bekannten Sandbox wird vor diesem Lauf geprüft, ob eine lokale Browserfreigabe verfügbar ist. Ist sie vorhanden, wird sie direkt verwendet; fehlt sie, bleibt der Browserlauf offen und darf nicht als bestanden gelten.
 
