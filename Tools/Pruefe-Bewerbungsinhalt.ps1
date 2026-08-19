@@ -28,8 +28,11 @@ $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Passfoto.psm1") -Force
-Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force -Global
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/TextContract.psm1") -Force -DisableNameChecking
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/MatrixContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/EvidenceIndexContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force -Global
 
 $errors = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
@@ -332,14 +335,10 @@ $profileText = Get-Content -LiteralPath $ProfilPath -Raw -Encoding UTF8
 $fields = Get-MarkdownFields -Path $StammdatenPath
 $auftrag = Get-Content -LiteralPath $AuftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $matrix = Get-Content -LiteralPath $AnforderungsmatrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$matrixSchemaValue = Get-JsonProperty -Object $matrix -Name "schemaVersion"
-if ($matrixSchemaValue -isnot [int] -and $matrixSchemaValue -isnot [long]) {
-  Write-Host "[FEHLER] Anforderungsmatrix enthält keine ganzzahlige schemaVersion." -ForegroundColor Red
-  exit 1
-}
-$matrixSchema = [int]$matrixSchemaValue
-if ($matrixSchema -lt 1 -or $matrixSchema -gt 5) {
-  Write-Host "[FEHLER] Anforderungsmatrix verwendet keine unterstützte schemaVersion 1 bis 5." -ForegroundColor Red
+try {
+  $matrixSchema = Get-MatrixSchemaVersion -Matrix $matrix
+} catch {
+  Write-Host "[FEHLER] $($_.Exception.Message)" -ForegroundColor Red
   exit 1
 }
 $auftragSchemaValue = Get-JsonProperty -Object $auftrag -Name "schemaVersion"
@@ -496,8 +495,12 @@ if ($matrixSchema -ge 4) {
     $evidenceIndex = $null
   }
   if ($null -ne $evidenceIndex) {
-    $indexSchema = Get-JsonProperty -Object $evidenceIndex -Name 'schemaVersion'
-    if (($indexSchema -isnot [int] -and $indexSchema -isnot [long]) -or [int]$indexSchema -ne 1) { Add-ErrorMessage 'Evidenzindex verwendet nicht schemaVersion 1.' }
+    try {
+      $indexSchema = Get-EvidenceIndexSchemaVersion -Index $evidenceIndex
+    } catch {
+      Add-ErrorMessage $_.Exception.Message
+      $indexSchema = 0
+    }
     $allEvidence = @((Get-JsonProperty -Object $evidenceIndex -Name 'belege') | Where-Object { $null -ne $_ })
     $hasProfileEvidence = @($allEvidence | Where-Object { [string](Get-JsonProperty -Object $_ -Name 'quelle') -eq 'profil' }).Count -gt 0
     $hasDialogEvidence = @($allEvidence | Where-Object { [string](Get-JsonProperty -Object $_ -Name 'quelle') -eq 'auftrag_angabe' }).Count -gt 0

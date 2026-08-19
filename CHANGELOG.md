@@ -8,6 +8,9 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
+- Phase-5-Architektur: wiederverwendbare Matrix- und Evidenzindex-Verträge, versionierte read-only Migration mit privaten Entwürfen, Hash-Recheck, Rollback und Schema-1-Migrationsbericht sowie `bewerbung.ps1 migrieren`. Matrix-Schemata 1 bis 4 und Evidenzindex-Schema 1 bleiben ohne automatische Umschreibung kompatibel.
+- `Console App.md` als kompakte, ausdrücklich nicht operative Roadmap wiederhergestellt; aktuelle Prompts, Werkzeuge und `AGENTS.md` bleiben die maßgeblichen Quellen.
+
 - Phase-4-Testsystem: vier synthetische Rollen-Fixtures für Softwareentwicklung, kaufmännische Sachbearbeitung, IT-Support-Quereinstieg und soziale Betreuung mit Umfang A bis D, Schema-5-Erwartungen und isoliertem Fixture-Runner.
 - Explizite Testkategorien `schnell`, `vollstaendig` und `browser` sowie Prompt-Suiten `prompt-pr` und `prompt-vollstaendig`; jeder Lauf kann einen bereinigten Schema-1-Bericht mit Kategorie, Dauer, Ergebnis und Fehlerklasse schreiben.
 - Maschinenlesbare Agenten-/Modellmatrix mit fest gepinnten Codex-, OpenCode-, Claude-Code- und Gemini-CLI-Versionen; Codex und OpenCode verwenden in der PR-Canary dasselbe OpenAI-Modell. Echte Prompt-Regressionsläufe isolieren Git-Repository, Benutzerprofile und Credentials und prüfen Dateimutationen deterministisch.

@@ -15,6 +15,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/DocumentScope.psm1") -Force
 
 $errors = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
@@ -120,26 +121,16 @@ function ConvertTo-DocumentScope {
     [string]$Context
   )
 
-  if ($null -eq $Configured) {
-    throw "$Context enthält keinen Dokumentumfang."
-  }
-  $cvKind = [string](Get-JsonProperty -Object $Configured -Name "lebenslauf")
-  $letterValue = Get-JsonProperty -Object $Configured -Name "anschreiben"
-  $emailValue = Get-JsonProperty -Object $Configured -Name "emailNachricht"
-  if ($cvKind -notin @("individuell", "universal_unveraendert", "nicht_enthalten")) {
-    throw "$Context enthält einen ungültigen Lebenslaufumfang: $cvKind"
-  }
-  if ($letterValue -isnot [bool] -or $emailValue -isnot [bool]) {
-    throw "$Context muss anschreiben und emailNachricht als boolesche Werte führen."
-  }
-  if ($cvKind -eq "nicht_enthalten" -and -not [bool]$letterValue -and -not [bool]$emailValue) {
-    throw "$Context wählt kein Dokument aus."
-  }
+  if ($null -eq $Configured) { throw "$Context enthält keinen Dokumentumfang." }
+  $scopeContract = Get-ContractDocumentScope -Auftrag ([pscustomobject]@{
+    schemaVersion = 5
+    dokumentumfang = $Configured
+  })
   return [ordered]@{
-    Lebenslauf = $cvKind -ne "nicht_enthalten"
-    LebenslaufArt = $cvKind
-    Anschreiben = [bool]$letterValue
-    EmailNachricht = [bool]$emailValue
+    Lebenslauf = [string]$scopeContract.lebenslauf -ne "nicht_enthalten"
+    LebenslaufArt = [string]$scopeContract.lebenslauf
+    Anschreiben = [bool]$scopeContract.anschreiben
+    EmailNachricht = [bool]$scopeContract.emailNachricht
   }
 }
 
@@ -157,22 +148,11 @@ function Get-DocumentScope {
     throw "Bewerbungsauftrag fehlt oder ist keine Datei: $Path"
   }
   $auftrag = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
-  $schemaValue = Get-JsonProperty -Object $auftrag -Name "schemaVersion"
-  if ($schemaValue -isnot [int] -and $schemaValue -isnot [long]) {
-    throw "Bewerbungsauftrag enthält keine ganzzahlige schemaVersion."
-  }
-  $schema = [int]$schemaValue
-  $configured = Get-JsonProperty -Object $auftrag -Name "dokumentumfang"
-  if ($schema -ge 4 -and $schema -le 5) {
-    if ($null -eq $configured) {
-      throw "Bewerbungsauftrag mit schemaVersion $schema enthält keinen dokumentumfang."
-    }
-    return ConvertTo-DocumentScope -Configured $configured -Context "Bewerbungsauftrag"
-  } elseif ($schema -lt 1 -or $schema -gt 5) {
-    throw "Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 5."
-  } elseif ([string](Get-JsonProperty -Object $auftrag -Name "dokumentmodus") -eq "anschreiben_mit_universalem_lebenslauf") {
-    $scope.LebenslaufArt = "universal_unveraendert"
-  }
+  $contractScope = Get-ContractDocumentScope -Auftrag $auftrag
+  $scope.Lebenslauf = [string]$contractScope.lebenslauf -ne "nicht_enthalten"
+  $scope.LebenslaufArt = [string]$contractScope.lebenslauf
+  $scope.Anschreiben = [bool]$contractScope.anschreiben
+  $scope.EmailNachricht = [bool]$contractScope.emailNachricht
   return $scope
 }
 

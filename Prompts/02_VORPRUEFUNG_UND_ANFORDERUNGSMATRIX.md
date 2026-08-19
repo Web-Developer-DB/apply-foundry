@@ -73,7 +73,7 @@ Jede relevante Anforderung erhält:
 - `beleg`: kurze, konkrete Datengrundlage
 - `behandlung`: Verwendung in Lebenslauf, Anschreiben, Analyse oder offenen Fragen
 
-Neue Bewerbungen verwenden für `Anforderungsmatrix.json` Schema 5. Die Schemata 1 bis 4 bleiben für vorhandene Bewerbungen lesbar und werden nicht automatisch migriert. Schema 5 übernimmt die verbindliche `recruiterStrategie` aus Schema 4, ergänzt `anschreibenStrategie` und `externeQuellen` sowie eine unabhängige Beweiskette:
+Neue Bewerbungen verwenden für `Anforderungsmatrix.json` Schema 5. Die Schemata 1 bis 4 bleiben für vorhandene Bewerbungen lesbar und werden nicht automatisch migriert. Eine ausdrückliche Migration erfolgt ausschließlich über `bewerbung.ps1 migrieren`; fachlich nicht ableitbare Felder werden als private Entwürfe mit offenen Ergänzungen ausgegeben. Schema 5 übernimmt die verbindliche `recruiterStrategie` aus Schema 4, ergänzt `anschreibenStrategie` und `externeQuellen` sowie eine unabhängige Beweiskette:
 
 - `stellenanzeigeAbdeckung`: SHA-256 der vollständig gespeicherten `Stellenbeschreibung.md` und zeilengebundene `fundstellen`. Jede Fundstelle enthält stabile ID, Zeilenbereich, exakten Text, Klassifikation (`anforderung`, `aufgabe` oder `nicht_anforderung`) sowie zugeordnete Matrix-IDs oder eine konkrete Begründung.
 - `stellenFundstellen`: mindestens eine Fundstellen-ID je Matrixanforderung. Explizite Muss-/Kann-Signale und Aufgaben der Anzeige dürfen weder stillschweigend fehlen noch nur durch eine freie Analyse behauptet werden.

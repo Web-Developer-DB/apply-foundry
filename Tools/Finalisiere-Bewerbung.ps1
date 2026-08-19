@@ -39,6 +39,10 @@ Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/ApprovalContract
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/DocumentScope.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/JsonContract.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/MatrixContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/EvidenceIndexContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/JsonContract.psm1") -Force -Global
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force -Global
 $script:ChildToolTimeoutSeconds = [math]::Min(3600, [math]::Max(120, $TimeoutSeconds * 8))
 
 trap {
@@ -849,7 +853,8 @@ if (-not (Test-Path -LiteralPath $candidateDir -PathType Container)) {
 $auftrag = Get-Content -LiteralPath $auftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $documentScope = Get-DocumentScope -Auftrag $auftrag
 $matrixForFinalization = Get-Content -LiteralPath $matrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$matrixSchemaForFinalization = [int](Get-JsonProperty -Object $matrixForFinalization -Name 'schemaVersion')
+$matrixContractInfoForFinalization = Get-MatrixContractInfo -Matrix $matrixForFinalization
+$matrixSchemaForFinalization = [int]$matrixContractInfoForFinalization.schemaVersion
 $evidenceIndexPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath 'Evidenzindex.json') -Root $applicationsRootForWork -ForWrite -PathType Leaf
 $expectedCv = [string]$documentScope.lebenslauf -ne "nicht_enthalten"
 $expectedLetter = [bool]$documentScope.anschreiben
@@ -953,9 +958,17 @@ if (-not $Veroeffentlichen) {
     bewerbungsauftrag = Get-ArtifactRecord -File (Get-Item -LiteralPath $auftragPath) -Root $applicationsRootForWork
     anforderungsmatrix = Get-ArtifactRecord -File (Get-Item -LiteralPath $matrixPath) -Root $applicationsRootForWork
   }
-  if ($matrixSchemaForFinalization -ge 5) {
+  if ($matrixContractInfoForFinalization.requiresAnschreibenStrategie) {
     if (-not (Test-Path -LiteralPath $evidenceIndexPath -PathType Leaf)) {
       Stop-Finalization -Message "Schema-5-Bewerbung benötigt Evidenzindex.json als gebundene Quelle."
+    }
+    try {
+      $evidenceIndexForFinalization = Get-Content -LiteralPath $evidenceIndexPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      if ((Get-EvidenceIndexSchemaVersion -Index $evidenceIndexForFinalization) -ne 1) {
+        Stop-Finalization -Message "Evidenzindex verwendet nicht die aktuelle Schema-1-Struktur."
+      }
+    } catch {
+      Stop-Finalization -Message "Evidenzindex kann vor der Hashbindung nicht vertragsgemäß gelesen werden: $($_.Exception.Message)"
     }
     $preparedSourceInputs.evidenzindex = Get-ArtifactRecord -File (Get-Item -LiteralPath $evidenceIndexPath) -Root $applicationsRootForWork
   }

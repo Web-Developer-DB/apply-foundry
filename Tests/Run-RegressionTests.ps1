@@ -49,7 +49,7 @@ function Test-FastTestName {
 
   # Fast is intentionally an explicit canary set. Full contract coverage stays in
   # the complete suite; this set must remain short enough for local and PR feedback.
-  return $Name -match '^(?:PowerShell-Dateien sind syntaktisch gültig|Native Prozesse begrenzen Ausgaben und beenden den Prozessbaum bei Timeout|Portabler PNG-Leser dekodiert Farbtypen und Filter und lehnt defekte Header ab|Passfoto-Modul entfernt optionale Blöcke und bindet gültige PNG-Bytes idempotent|Universeller Agenteneinstieg routet alle Betriebsmodi sicher|Agentenpfade besitzen plattformübergreifend die exakte Schreibweise|Kanonischer Prompt definiert Fähigkeiten und Fortsetzung aus Dateinachweisen|Promptaudit hält Routing, Autonomie und Qualitätsverträge widerspruchsfrei|Prompt-Regression-Konfiguration bindet vier Agenten und feste Modelle|Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben|Tokenbericht übernimmt Nichtverfügbarkeit ohne Schätzwerte oder sensible Felder|Tokenbericht übernimmt nur ausdrücklich bereitgestellte exakte Laufzeitwerte|README verweist nur auf vorhandene lokale Ziele und definierte Anker|README dokumentiert neutrale Agentenstarts und tatsächliche Grenzen|Schema-5-.*|Prompt-Regression-.*)$'
+  return $Name -match '^(?:PowerShell-Dateien sind syntaktisch gültig|Native Prozesse begrenzen Ausgaben und beenden den Prozessbaum bei Timeout|Portabler PNG-Leser dekodiert Farbtypen und Filter und lehnt defekte Header ab|Passfoto-Modul entfernt optionale Blöcke und bindet gültige PNG-Bytes idempotent|Universeller Agenteneinstieg routet alle Betriebsmodi sicher|Agentenpfade besitzen plattformübergreifend die exakte Schreibweise|Kanonischer Prompt definiert Fähigkeiten und Fortsetzung aus Dateinachweisen|Promptaudit hält Routing, Autonomie und Qualitätsverträge widerspruchsfrei|Prompt-Regression-Konfiguration bindet vier Agenten und feste Modelle|Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben|Tokenbericht übernimmt Nichtverfügbarkeit ohne Schätzwerte oder sensible Felder|Tokenbericht übernimmt nur ausdrücklich bereitgestellte exakte Laufzeitwerte|README verweist nur auf vorhandene lokale Ziele und definierte Anker|README dokumentiert neutrale Agentenstarts und tatsächliche Grenzen|Phase-5-Vertragstests|Matrix- und Evidenzverträge.*|Migrations.*|Console-App-Roadmap.*|Schema-5-.*|Prompt-Regression-.*)$'
 }
 
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/OrderPaths.psm1") -Force
@@ -58,6 +58,8 @@ Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/Platform.psm1") -Fo
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/PngTools.psm1") -Force
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/AtomicFile.psm1") -Force
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/ApprovalContract.psm1") -Force
+Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/MatrixContract.psm1") -Force
+Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/EvidenceIndexContract.psm1") -Force
 
 function Invoke-ChildScript {
   param(
@@ -3659,6 +3661,12 @@ for (`$i = 0; `$i -lt 5; `$i++) {
     Assert-True -Condition ($manipulated.ExitCode -ne 0) -Message 'Manipulierte Artefakthashes wurden für die Veröffentlichung akzeptiert.'
   }
 
+  Invoke-Test -Name "Phase-5-Vertragstests" -Kategorie vollstaendig -Body {
+    $phase5Script = Join-Path $PSScriptRoot 'Invoke-Phase5ContractTests.ps1'
+    $phase5Output = & $powerShellExe -NoProfile -File $phase5Script -RepoRoot $repoRoot 2>&1
+    Assert-True -Condition ($LASTEXITCODE -eq 0) -Message "Phase-5-Vertragstests schlugen fehl: $($phase5Output -join ' | ')"
+  }
+
   if ($MitBrowser) {
     $script:browserSmokeInfo = $null
     Invoke-Test -Name "Browser-Smoke löst eine Chromium-Runtime plattformneutral auf" -Kategorie browser -Body {
@@ -3927,6 +3935,7 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
         Assert-True -Condition ($result.ExitCode -ne 0) -Message "PDF-Zielverzeichnis wurde als gültige Datei behandelt."
         Assert-True -Condition (($result.Output -join "`n") -match "(?:keine|muss eine) reguläre Datei") -Message "Unerwarteter Fehlergrund für PDF-Zielverzeichnis: $($result.Output -join ' | ')"
       }
+
     }
   }
 } finally {

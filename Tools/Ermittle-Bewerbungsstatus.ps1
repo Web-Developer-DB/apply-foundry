@@ -15,6 +15,8 @@ Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/OrderPaths.psm1"
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Passfoto.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/WorkflowCheckpoint.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/MatrixContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/EvidenceIndexContract.psm1") -Force
 
 function Stop-Status {
   param([string]$Message, [int]$Code = 1)
@@ -334,12 +336,13 @@ $matrixStrategyIncomplete = $false
 if (Test-Path -LiteralPath $matrixPath -PathType Leaf) {
   try {
     $matrixForStatus = Get-Content -LiteralPath $matrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ([int](Get-JsonProperty -Object $matrixForStatus -Name 'schemaVersion') -ge 5) {
+    $matrixContractInfo = Get-MatrixContractInfo -Matrix $matrixForStatus
+    if ([int]$matrixContractInfo.schemaVersion -ge 5) {
       $letterSelectedForStatus = [bool](Get-JsonProperty -Object $scope -Name 'anschreiben')
       $letterStrategyForStatus = Get-JsonProperty -Object $matrixForStatus -Name 'anschreibenStrategie'
       $strategyStatusForStatus = if ($null -eq $letterStrategyForStatus) { '' } else { [string](Get-JsonProperty -Object $letterStrategyForStatus -Name 'status') }
       $matrixStrategyIncomplete = ($letterSelectedForStatus -and $strategyStatusForStatus -ne 'final') -or (-not $letterSelectedForStatus -and $strategyStatusForStatus -notin @('nicht_erforderlich', ''))
-      if (-not (Test-Path -LiteralPath (Join-Path $resolvedWork 'Evidenzindex.json') -PathType Leaf)) { $matrixStrategyIncomplete = $true }
+      if ($matrixContractInfo.requiresEvidenzindex -and -not (Test-Path -LiteralPath (Join-Path $resolvedWork 'Evidenzindex.json') -PathType Leaf)) { $matrixStrategyIncomplete = $true }
     }
   } catch { $matrixStrategyIncomplete = $true }
 }

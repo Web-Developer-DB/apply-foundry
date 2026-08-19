@@ -38,7 +38,7 @@ param(
   [switch]$StammdatenpruefungUeberspringen
 )
 
-Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force -Global
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -48,6 +48,9 @@ $orderPathsModule = Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "C
 Import-Module -Name $orderPathsModule -Force -ErrorAction Stop
 Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "Platform.psm1") -Force -ErrorAction Stop
 Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "WorkflowCheckpoint.psm1") -Force -ErrorAction Stop
+Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "MatrixContract.psm1") -Force -ErrorAction Stop
+Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "EvidenceIndexContract.psm1") -Force -ErrorAction Stop
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force -Global
 
 function Stop-WithValidationError {
   param([string]$Message)
@@ -754,55 +757,11 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
 }
 
 if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
-Set-Content -LiteralPath $anforderungsmatrixEntwurfFile -Encoding UTF8 -Value @"
-{
-  "schemaVersion": 5,
-  "requirements": [
-    {
-      "id": "muss-1",
-      "anforderung": "durch den Agenten aus der Stellenbeschreibung zu extrahieren",
-      "typ": "muss",
-      "kategorie": "fachlich",
-      "gewichtung": "hoch",
-      "status": "unklar",
-      "belegart": "",
-      "beleg": "",
-      "stellenFundstellen": [],
-      "belegRefIds": [],
-      "behandlung": "vor Erstellung der Kandidatendateien klären"
-    }
-  ],
-  "recruiterStrategie": {
-    "kernbotschaft": "durch den Agenten aus Zielrolle, Stellenanforderungen und den stärksten belegten Profilargumenten abzuleiten",
-    "profilSubstanz": "noch_zu_pruefen",
-    "profilSubstanzBegruendung": "vor der Dokumenterstellung anhand der relevanten Profildaten zu prüfen",
-    "prioritaetsAnforderungen": ["muss-1"],
-    "profilHighlights": [],
-    "transferbruecken": [],
-    "auslassungen": []
-  },
-  "anschreibenStrategie": {
-    "status": "$(if ($includeLetter) { 'ausstehend' } else { 'nicht_erforderlich' })",
-    "argumente": [],
-    "abweichungBegruendung": ""
-  },
-  "externeQuellen": [],
-  "stellenanzeigeAbdeckung": {
-    "sourceSha256": "aus Stellenbeschreibung.md übernehmen",
-    "fundstellen": []
-  }
-}
-"@
+  Write-AtomicJson -Path $anforderungsmatrixEntwurfFile -Value (New-MatrixDraft -IncludeLetter:$includeLetter) -Depth 12
 }
 
 if (-not (Test-Path -LiteralPath $evidenzindexEntwurfFile)) {
-  Set-Content -LiteralPath $evidenzindexEntwurfFile -Encoding UTF8 -Value @"
-{
-  "schemaVersion": 1,
-  "profilSha256": "aus Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md übernehmen",
-  "belege": []
-}
-"@
+  Write-AtomicJson -Path $evidenzindexEntwurfFile -Value (New-EvidenceIndexDraft) -Depth 8
 }
 
 if (-not (Test-Path -LiteralPath $analyseEntwurfFile)) {

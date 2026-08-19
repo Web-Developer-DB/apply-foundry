@@ -12,7 +12,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'Common/ApprovalContract.psm1') -Force
-Import-Module (Join-Path $PSScriptRoot 'Common/JsonContract.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'Common/JsonContract.psm1') -Force -Global
 Import-Module (Join-Path $PSScriptRoot 'Common/AtomicFile.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Common/WorkflowCheckpoint.psm1') -Force
 

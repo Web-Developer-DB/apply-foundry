@@ -21,6 +21,7 @@ $script:CommandOrder = @(
   "universal-finalisieren",
   "status",
   "checkpoint",
+  "migrieren",
   "stammdaten",
   "dialog-pruefen",
   "dialog-uebernehmen",
@@ -153,6 +154,17 @@ $script:Commands = @{
       "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
       "--schritt" = New-CliOption -Parameter "Schritt" -Kind enum -Allowed @("auftrag_angelegt", "profilabgleich_abgeschlossen", "analyse_abgeschlossen", "dokumente_abgeschlossen", "fachpruefung_abgeschlossen", "technische_vorbereitung_abgeschlossen", "sichtpruefung_bestaetigt", "veroeffentlicht") -Placeholder "NAME"
       "--als-json" = New-CliOption -Parameter "AlsJson" -Kind switch
+    }
+  }
+  "migrieren" = @{
+    RelativePath = "Migriere-Bewerbungsnachweise.ps1"
+    Summary = "Matrix und Evidenzindex versioniert migrieren"
+    Required = @("--arbeitsordner")
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--als-json" = New-CliOption -Parameter "AlsJson" -Kind switch
+      "--anwenden" = New-CliOption -Parameter "Anwenden" -Kind switch
+      "--bericht-path" = New-CliOption -Parameter "BerichtPath" -Placeholder "PFAD"
     }
   }
   "stammdaten" = @{
