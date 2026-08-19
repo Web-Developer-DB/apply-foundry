@@ -148,6 +148,14 @@ function Convert-HtmlToText {
   return [System.Net.WebUtility]::HtmlDecode($withoutTags)
 }
 
+function Get-FirstHtmlPageText {
+  param([string]$Html)
+  if ([string]::IsNullOrWhiteSpace($Html)) { return "" }
+  $pageMatch = [regex]::Match($Html, '(?is)<main\b[^>]*class\s*=\s*["''][^"'']*\bpage\b[^"'']*["''][^>]*>(?<body>.*?)</main>')
+  if (-not $pageMatch.Success) { return "" }
+  return Convert-HtmlToText -Html $pageMatch.Groups['body'].Value
+}
+
 function Normalize-Text {
   param([AllowEmptyString()][string]$Text)
   if ($null -eq $Text) { return "" }
@@ -173,7 +181,8 @@ function Write-JsonReport {
     [string]$ProfileLinksMode,
     [string]$DocumentMode,
     [object]$DocumentScope,
-    [object]$Passfoto
+    [object]$Passfoto,
+    [object]$RecruiterCoverage
   )
   if ([string]::IsNullOrWhiteSpace($Path)) { return }
   $fullPath = $script:ResolvedReportPath
@@ -187,7 +196,7 @@ function Write-JsonReport {
   $null = Resolve-SafePath -Candidate $parent -Root $script:WorkRoot -AllowRoot -MustExist -PathType Container
   $fullPath = Resolve-SafePath -Candidate $fullPath -Root $script:WorkRoot -ForWrite -PathType Leaf
   $report = [ordered]@{
-    schemaVersion = 4
+    schemaVersion = 5
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     applicationFolder = [System.IO.Path]::GetFullPath($Ordner)
     status = if ($errors.Count -gt 0) { "fehler" } elseif ($warnings.Count -gt 0) { "warnung" } else { "ok" }
@@ -203,6 +212,7 @@ function Write-JsonReport {
     documentScope = $DocumentScope
     passfoto = $Passfoto
     fitAssessment = $FitAssessment
+    recruiterCoverage = $RecruiterCoverage
   }
   Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 6)
 }
@@ -262,6 +272,16 @@ $profileText = Get-Content -LiteralPath $ProfilPath -Raw -Encoding UTF8
 $fields = Get-MarkdownFields -Path $StammdatenPath
 $auftrag = Get-Content -LiteralPath $AuftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $matrix = Get-Content -LiteralPath $AnforderungsmatrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$matrixSchemaValue = Get-JsonProperty -Object $matrix -Name "schemaVersion"
+if ($matrixSchemaValue -isnot [int] -and $matrixSchemaValue -isnot [long]) {
+  Write-Host "[FEHLER] Anforderungsmatrix enthält keine ganzzahlige schemaVersion." -ForegroundColor Red
+  exit 1
+}
+$matrixSchema = [int]$matrixSchemaValue
+if ($matrixSchema -lt 1 -or $matrixSchema -gt 3) {
+  Write-Host "[FEHLER] Anforderungsmatrix verwendet keine unterstützte schemaVersion 1 bis 3." -ForegroundColor Red
+  exit 1
+}
 $auftragSchemaValue = Get-JsonProperty -Object $auftrag -Name "schemaVersion"
 if ($auftragSchemaValue -isnot [int] -and $auftragSchemaValue -isnot [long]) {
   Write-Host "[FEHLER] Bewerbungsauftrag enthält keine ganzzahlige schemaVersion." -ForegroundColor Red
@@ -323,6 +343,7 @@ $cvHtml = if ($expectedCv -and $cvFiles.Count -eq 1) { Get-Content -LiteralPath 
 $letterHtml = if ($expectedLetter -and $letterFiles.Count -eq 1) { Get-Content -LiteralPath $letterFiles[0].FullName -Raw -Encoding UTF8 } else { "" }
 $emailText = if ($expectedEmail -and $emailFiles.Count -eq 1) { Get-Content -LiteralPath $emailFiles[0].FullName -Raw -Encoding UTF8 } else { "" }
 $cvText = Convert-HtmlToText -Html $cvHtml
+$cvFirstPageText = Get-FirstHtmlPageText -Html $cvHtml
 $letterText = Convert-HtmlToText -Html $letterHtml
 
 $passfotoReport = [ordered]@{
@@ -543,7 +564,7 @@ if ($expectedCv -and $schoolMode -eq "recruiter_kompakt") {
 }
 
 $requirements = @((Get-JsonProperty -Object $matrix -Name "requirements"))
-$matrixSchema = [int](Get-JsonProperty -Object $matrix -Name "schemaVersion")
+$requirementById = @{}
 $weightPoints = @{ kritisch = 4.0; hoch = 3.0; mittel = 2.0; niedrig = 1.0 }
 $statusFactors = @{ erfuellt = 1.0; teilweise = 0.5; nicht_belegt = 0.0; unklar = 0.0 }
 $fitMaximum = 0.0
@@ -556,6 +577,7 @@ if ($requirements.Count -eq 0 -or $null -eq $requirements[0]) {
   $allowedStatuses = @("erfuellt", "teilweise", "nicht_belegt", "unklar", "nicht_relevant")
   $allowedCategories = @("fachlich", "erfahrung", "formal", "arbeitsweise", "logistik")
   foreach ($requirement in $requirements) {
+    $requirementId = [string](Get-JsonProperty -Object $requirement -Name "id")
     $description = [string](Get-JsonProperty -Object $requirement -Name "anforderung")
     $kind = [string](Get-JsonProperty -Object $requirement -Name "typ")
     $status = [string](Get-JsonProperty -Object $requirement -Name "status")
@@ -564,10 +586,15 @@ if ($requirements.Count -eq 0 -or $null -eq $requirements[0]) {
     $category = [string](Get-JsonProperty -Object $requirement -Name "kategorie")
     $evidenceType = [string](Get-JsonProperty -Object $requirement -Name "belegart")
     $evidence = [string](Get-JsonProperty -Object $requirement -Name "beleg")
-    if ([string]::IsNullOrWhiteSpace($description) -or [string]::IsNullOrWhiteSpace($kind)) {
-      Add-ErrorMessage "Anforderungsmatrix enthält einen Eintrag ohne Anforderung oder Typ."
+    if ([string]::IsNullOrWhiteSpace($requirementId) -or [string]::IsNullOrWhiteSpace($description) -or [string]::IsNullOrWhiteSpace($kind)) {
+      Add-ErrorMessage "Anforderungsmatrix enthält einen Eintrag ohne ID, Anforderung oder Typ."
       continue
     }
+    if ($requirementById.ContainsKey($requirementId)) {
+      Add-ErrorMessage "Anforderungsmatrix enthält eine doppelte ID: $requirementId"
+      continue
+    }
+    $requirementById[$requirementId] = $requirement
     if ($kind -notin @("muss", "kann")) {
       Add-ErrorMessage "Anforderung '$description' enthält einen ungültigen Typ: $kind"
     }
@@ -644,6 +671,156 @@ if ($fitClassification -eq "stretch") {
   Add-WarningMessage "Gewichtete Eignungsbewertung: Stretch-Bewerbung ($fitPercent %, kritische Lücken: $($criticalGaps.Count))."
 } else {
   Add-OkMessage "Gewichtete Eignungsbewertung: $fitClassification ($fitPercent %)."
+}
+
+$recruiterCoverage = [ordered]@{
+  applicable = ($matrixSchema -ge 3 -and ($expectedCv -or $expectedLetter))
+  matrixSchemaVersion = $matrixSchema
+  status = if ($matrixSchema -ge 3 -and ($expectedCv -or $expectedLetter)) { 'ausstehend' } else { 'legacy_oder_nicht_erforderlich' }
+  kernbotschaft = $null
+  profilSubstanz = $null
+  requiredPriorityRequirementIds = @()
+  configuredPriorityRequirementIds = @()
+  firstPageRequirementIds = @()
+  highlights = @()
+  transferBridges = @()
+  omissions = @()
+}
+
+if ($recruiterCoverage.applicable) {
+  $recruiterErrorStart = $errors.Count
+  $strategy = Get-JsonProperty -Object $matrix -Name 'recruiterStrategie'
+  if ($null -eq $strategy) {
+    Add-ErrorMessage 'Schema-3-Anforderungsmatrix enthält keine recruiterStrategie.'
+  } else {
+    $kernbotschaft = [string](Get-JsonProperty -Object $strategy -Name 'kernbotschaft')
+    $profileSubstance = [string](Get-JsonProperty -Object $strategy -Name 'profilSubstanz')
+    $profileSubstanceReason = [string](Get-JsonProperty -Object $strategy -Name 'profilSubstanzBegruendung')
+    $priorityIds = @((Get-JsonProperty -Object $strategy -Name 'prioritaetsAnforderungen') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $highlights = @((Get-JsonProperty -Object $strategy -Name 'profilHighlights') | Where-Object { $null -ne $_ })
+    $transferBridges = @((Get-JsonProperty -Object $strategy -Name 'transferbruecken') | Where-Object { $null -ne $_ })
+    $omissions = @((Get-JsonProperty -Object $strategy -Name 'auslassungen') | Where-Object { $null -ne $_ })
+    $recruiterCoverage.kernbotschaft = $kernbotschaft
+    $recruiterCoverage.profilSubstanz = $profileSubstance
+    $recruiterCoverage.configuredPriorityRequirementIds = @($priorityIds)
+
+    if ([string]::IsNullOrWhiteSpace($kernbotschaft) -or $kernbotschaft.Trim().Length -lt 20) {
+      Add-ErrorMessage 'recruiterStrategie.kernbotschaft muss eine konkrete Positionierung mit mindestens 20 Zeichen enthalten.'
+    }
+    if ($profileSubstance -notin @('ausreichend', 'schmal')) {
+      Add-ErrorMessage 'recruiterStrategie.profilSubstanz muss ausreichend oder schmal sein.'
+    }
+    if ([string]::IsNullOrWhiteSpace($profileSubstanceReason)) {
+      Add-ErrorMessage 'recruiterStrategie.profilSubstanzBegruendung fehlt.'
+    }
+
+    $requiredPriorityIds = @($requirements | Where-Object {
+      $null -ne $_ -and
+      [string](Get-JsonProperty -Object $_ -Name 'gewichtung') -in @('kritisch', 'hoch') -and
+      [string](Get-JsonProperty -Object $_ -Name 'kategorie') -in @('fachlich', 'erfahrung') -and
+      [string](Get-JsonProperty -Object $_ -Name 'status') -ne 'nicht_relevant'
+    } | ForEach-Object { [string](Get-JsonProperty -Object $_ -Name 'id') })
+    $recruiterCoverage.requiredPriorityRequirementIds = @($requiredPriorityIds)
+    if (@($priorityIds | Sort-Object -Unique).Count -ne $priorityIds.Count) {
+      Add-ErrorMessage 'recruiterStrategie.prioritaetsAnforderungen enthält doppelte IDs.'
+    }
+    foreach ($priorityId in $priorityIds) {
+      if (-not $requirementById.ContainsKey($priorityId)) {
+        Add-ErrorMessage "recruiterStrategie verweist auf eine unbekannte Prioritätsanforderung: $priorityId"
+      }
+    }
+    foreach ($requiredPriorityId in $requiredPriorityIds) {
+      if ($requiredPriorityId -notin $priorityIds) {
+        Add-ErrorMessage "Kritische oder hoch gewichtete fachliche Anforderung fehlt in prioritaetsAnforderungen: $requiredPriorityId"
+      }
+    }
+
+    $documentTexts = @{ lebenslauf = $cvText; anschreiben = $letterText; email_nachricht = $emailText }
+    $selectedDocumentNames = @()
+    if ($expectedCv) { $selectedDocumentNames += 'lebenslauf' }
+    if ($expectedLetter) { $selectedDocumentNames += 'anschreiben' }
+    if ($expectedEmail) { $selectedDocumentNames += 'email_nachricht' }
+    $allowedEvidenceTypes = @('BERUFLICH BELEGT', 'ÜBERTRAGBAR', 'WEITERBILDUNG', 'PROJEKTPRAXIS', 'PRIVATE PRAXIS / HOME-LAB', 'GRUNDLAGEN / VERSTÄNDNIS', 'EINARBEITUNGSZIEL')
+    $highlightIds = @{}
+    $highlightRecords = @()
+
+    foreach ($highlight in $highlights) {
+      $highlightId = [string](Get-JsonProperty -Object $highlight -Name 'id')
+      $linkedRequirementIds = @((Get-JsonProperty -Object $highlight -Name 'anforderungIds') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+      $evidenceType = [string](Get-JsonProperty -Object $highlight -Name 'belegart')
+      $relevance = [string](Get-JsonProperty -Object $highlight -Name 'relevanz')
+      $targetDocument = [string](Get-JsonProperty -Object $highlight -Name 'zielDokument')
+      $placement = [string](Get-JsonProperty -Object $highlight -Name 'platzierung')
+      $anchors = @((Get-JsonProperty -Object $highlight -Name 'sichtbareAnker') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+      $recordValid = $true
+      if ([string]::IsNullOrWhiteSpace($highlightId) -or $highlightIds.ContainsKey($highlightId)) { Add-ErrorMessage "profilHighlights enthält eine leere oder doppelte ID: $highlightId"; $recordValid = $false } else { $highlightIds[$highlightId] = $highlight }
+      if ($linkedRequirementIds.Count -eq 0) { Add-ErrorMessage "Profilhighlight '$highlightId' enthält keine anforderungIds."; $recordValid = $false }
+      foreach ($linkedRequirementId in $linkedRequirementIds) {
+        if (-not $requirementById.ContainsKey($linkedRequirementId)) { Add-ErrorMessage "Profilhighlight '$highlightId' verweist auf eine unbekannte Anforderung: $linkedRequirementId"; $recordValid = $false }
+        elseif ([string](Get-JsonProperty -Object $requirementById[$linkedRequirementId] -Name 'status') -in @('nicht_belegt', 'unklar')) { Add-ErrorMessage "Profilhighlight '$highlightId' darf eine nicht belegte oder unklare Anforderung nicht als Direktbeleg führen: $linkedRequirementId"; $recordValid = $false }
+      }
+      if ($evidenceType -notin $allowedEvidenceTypes) { Add-ErrorMessage "Profilhighlight '$highlightId' enthält eine ungültige Belegart: $evidenceType"; $recordValid = $false }
+      if ($relevance -notin @('hoch', 'mittel', 'niedrig')) { Add-ErrorMessage "Profilhighlight '$highlightId' enthält eine ungültige Relevanz: $relevance"; $recordValid = $false }
+      if ($targetDocument -notin $selectedDocumentNames) { Add-ErrorMessage "Profilhighlight '$highlightId' verweist auf ein nicht ausgewähltes Zieldokument: $targetDocument"; $recordValid = $false }
+      if ($placement -notin @('seite_1', 'beliebig') -or ($placement -eq 'seite_1' -and $targetDocument -ne 'lebenslauf')) { Add-ErrorMessage "Profilhighlight '$highlightId' enthält eine ungültige Platzierung: $placement"; $recordValid = $false }
+      if ($anchors.Count -eq 0) { Add-ErrorMessage "Profilhighlight '$highlightId' enthält keine sichtbaren Textanker."; $recordValid = $false }
+      $targetText = if ($targetDocument -eq 'lebenslauf' -and $placement -eq 'seite_1') { $cvFirstPageText } elseif ($documentTexts.ContainsKey($targetDocument)) { [string]$documentTexts[$targetDocument] } else { '' }
+      $missingAnchors = @($anchors | Where-Object { -not (Test-ContainsText -Haystack $targetText -Needle $_) })
+      if ($missingAnchors.Count -gt 0) { Add-ErrorMessage "Profilhighlight '$highlightId' fehlt im vorgesehenen Dokument oder auf der vorgesehenen Seite: $($missingAnchors -join ', ')"; $recordValid = $false }
+      $highlightRecords += [ordered]@{ id=$highlightId; anforderungIds=@($linkedRequirementIds); belegart=$evidenceType; relevanz=$relevance; zielDokument=$targetDocument; platzierung=$placement; sichtbareAnker=@($anchors); missingAnchors=@($missingAnchors); valid=$recordValid }
+    }
+
+    $omissionRecords = @()
+    foreach ($omission in $omissions) {
+      $topic = [string](Get-JsonProperty -Object $omission -Name 'thema'); $reason = [string](Get-JsonProperty -Object $omission -Name 'begruendung'); $requirementId = [string](Get-JsonProperty -Object $omission -Name 'anforderungId'); $recordValid = $true
+      if ([string]::IsNullOrWhiteSpace($topic) -or [string]::IsNullOrWhiteSpace($reason)) { Add-ErrorMessage 'Jede recruiterStrategie.auslassung benötigt thema und begruendung.'; $recordValid = $false }
+      if (-not [string]::IsNullOrWhiteSpace($requirementId) -and -not $requirementById.ContainsKey($requirementId)) { Add-ErrorMessage "Auslassung verweist auf eine unbekannte Anforderung: $requirementId"; $recordValid = $false }
+      $omissionRecords += [ordered]@{ thema=$topic; begruendung=$reason; anforderungId=$requirementId; valid=$recordValid }
+    }
+
+    $transferRecords = @()
+    foreach ($bridge in $transferBridges) {
+      $requirementId = [string](Get-JsonProperty -Object $bridge -Name 'anforderungId'); $targetTechnology = [string](Get-JsonProperty -Object $bridge -Name 'zieltechnologie'); $basisIds = @((Get-JsonProperty -Object $bridge -Name 'basisHighlightIds') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }); $wordingLevel = [string](Get-JsonProperty -Object $bridge -Name 'formulierungsebene'); $targetDocument = [string](Get-JsonProperty -Object $bridge -Name 'zielDokument'); $placement = [string](Get-JsonProperty -Object $bridge -Name 'platzierung'); $anchors = @((Get-JsonProperty -Object $bridge -Name 'sichtbareAnker') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }); $recordValid = $true
+      if (-not $requirementById.ContainsKey($requirementId)) { Add-ErrorMessage "Transferbrücke verweist auf eine unbekannte Anforderung: $requirementId"; $recordValid = $false }
+      elseif ([string](Get-JsonProperty -Object $requirementById[$requirementId] -Name 'status') -notin @('teilweise', 'nicht_belegt', 'unklar')) { Add-ErrorMessage "Transferbrücke ist nur für teilweise, nicht belegte oder unklare Anforderungen zulässig: $requirementId"; $recordValid = $false }
+      if ([string]::IsNullOrWhiteSpace($targetTechnology)) { Add-ErrorMessage "Transferbrücke '$requirementId' enthält keine zieltechnologie."; $recordValid = $false }
+      if ($basisIds.Count -eq 0) { Add-ErrorMessage "Transferbrücke '$requirementId' enthält keine basisHighlightIds."; $recordValid = $false }
+      foreach ($basisId in $basisIds) { if (-not $highlightIds.ContainsKey($basisId)) { Add-ErrorMessage "Transferbrücke '$requirementId' verweist auf ein unbekanntes Profilhighlight: $basisId"; $recordValid=$false } elseif ([string](Get-JsonProperty -Object $highlightIds[$basisId] -Name 'belegart') -eq 'EINARBEITUNGSZIEL') { Add-ErrorMessage "Transferbrücke '$requirementId' darf kein bloßes Einarbeitungsziel als Grundlage verwenden: $basisId"; $recordValid=$false } }
+      if ($wordingLevel -notin @('ÜBERTRAGBAR', 'GRUNDLAGEN / VERSTÄNDNIS', 'EINARBEITUNGSZIEL')) { Add-ErrorMessage "Transferbrücke '$requirementId' enthält eine ungültige formulierungsebene: $wordingLevel"; $recordValid=$false }
+      if ($targetDocument -notin $selectedDocumentNames) { Add-ErrorMessage "Transferbrücke '$requirementId' verweist auf ein nicht ausgewähltes Zieldokument: $targetDocument"; $recordValid=$false }
+      if ($placement -notin @('seite_1','beliebig') -or ($placement -eq 'seite_1' -and $targetDocument -ne 'lebenslauf')) { Add-ErrorMessage "Transferbrücke '$requirementId' enthält eine ungültige Platzierung: $placement"; $recordValid=$false }
+      if ($anchors.Count -eq 0) { Add-ErrorMessage "Transferbrücke '$requirementId' enthält keine sichtbaren Textanker."; $recordValid=$false }
+      $targetText = if ($targetDocument -eq 'lebenslauf' -and $placement -eq 'seite_1') { $cvFirstPageText } elseif ($documentTexts.ContainsKey($targetDocument)) { [string]$documentTexts[$targetDocument] } else { '' }
+      $missingAnchors = @($anchors | Where-Object { -not (Test-ContainsText -Haystack $targetText -Needle $_) })
+      if ($missingAnchors.Count -gt 0) { Add-ErrorMessage "Transferbrücke '$requirementId' fehlt im vorgesehenen Dokument oder auf der vorgesehenen Seite: $($missingAnchors -join ', ')"; $recordValid=$false }
+      $transferRecords += [ordered]@{ anforderungId=$requirementId; zieltechnologie=$targetTechnology; basisHighlightIds=@($basisIds); formulierungsebene=$wordingLevel; zielDokument=$targetDocument; platzierung=$placement; sichtbareAnker=@($anchors); missingAnchors=@($missingAnchors); valid=$recordValid }
+    }
+
+    foreach ($priorityId in $priorityIds) {
+      if (-not $requirementById.ContainsKey($priorityId)) { continue }
+      $priorityStatus = [string](Get-JsonProperty -Object $requirementById[$priorityId] -Name 'status')
+      $directMatches = @($highlightRecords | Where-Object { $_.valid -and $priorityId -in @($_.anforderungIds) })
+      $bridgeMatches = @($transferRecords | Where-Object { $_.valid -and $_.anforderungId -eq $priorityId })
+      $omissionMatches = @($omissionRecords | Where-Object { $_.valid -and $_.anforderungId -eq $priorityId })
+      if ($priorityStatus -in @('erfuellt','teilweise') -and $directMatches.Count -eq 0) { Add-ErrorMessage "Prioritätsanforderung '$priorityId' besitzt keinen sichtbaren belegten Profilhighlight." }
+      elseif ($priorityStatus -in @('nicht_belegt','unklar') -and $bridgeMatches.Count -eq 0 -and $omissionMatches.Count -eq 0) { Add-ErrorMessage "Nicht belegte Prioritätsanforderung '$priorityId' benötigt eine wahre Transferbrücke oder begründete Auslassung." }
+    }
+
+    if ($expectedCv -and $cvKind -eq 'individuell') {
+      $validCvHighlights = @($highlightRecords | Where-Object { $_.valid -and $_.zielDokument -eq 'lebenslauf' -and $_.relevanz -in @('hoch','mittel') })
+      if ($profileSubstance -eq 'ausreichend' -and $validCvHighlights.Count -lt 2) { Add-ErrorMessage 'Ein individuelles Profil mit ausreichender Substanz benötigt mindestens zwei sichtbare personenspezifische Profilhighlights im Lebenslauf.' }
+      if ($profileSubstance -eq 'schmal' -and $omissionRecords.Count -eq 0) { Add-ErrorMessage 'Ein als schmal eingestuftes Profil benötigt mindestens eine begründete Auslassung beziehungsweise Substanzgrenze.' }
+      $scannablePriorityIds = @($priorityIds | Where-Object { $candidateId=$_; @($highlightRecords | Where-Object { $_.valid -and $candidateId -in @($_.anforderungIds) }).Count -gt 0 -or @($transferRecords | Where-Object { $_.valid -and $_.anforderungId -eq $candidateId }).Count -gt 0 } | Select-Object -First 3)
+      $recruiterCoverage.firstPageRequirementIds = @($scannablePriorityIds)
+      foreach ($scanId in $scannablePriorityIds) {
+        $pageOneDirect = @($highlightRecords | Where-Object { $_.valid -and $_.zielDokument -eq 'lebenslauf' -and $_.platzierung -eq 'seite_1' -and $scanId -in @($_.anforderungIds) })
+        $pageOneBridge = @($transferRecords | Where-Object { $_.valid -and $_.zielDokument -eq 'lebenslauf' -and $_.platzierung -eq 'seite_1' -and $_.anforderungId -eq $scanId })
+        if ($pageOneDirect.Count -eq 0 -and $pageOneBridge.Count -eq 0) { Add-ErrorMessage "Wichtiges Recruiter-Signal ist nicht auf der ersten Lebenslaufseite verankert: $scanId" }
+      }
+    }
+    $recruiterCoverage.highlights=@($highlightRecords); $recruiterCoverage.transferBridges=@($transferRecords); $recruiterCoverage.omissions=@($omissionRecords)
+    if ($errors.Count -eq $recruiterErrorStart) { $recruiterCoverage.status='ok'; Add-OkMessage "Recruiter-Abdeckung ist vollständig: $($highlightRecords.Count) Profilhighlights, $($transferRecords.Count) Transferbrücken." } else { $recruiterCoverage.status='fehler' }
+  }
 }
 
 $fitScorePattern = '(?im)(?:Eignung|Passung|gewichtete\s+(?:Eignungsbewertung|Anforderungsmatrix))[^\r\n]{0,100}?(?<score>\d+(?:[\.,]\d+)?)\s*(?:%|Prozent)|(?<scoreBefore>\d+(?:[\.,]\d+)?)\s*(?:%|Prozent)[^\r\n]{0,70}?(?:Eignung|Passung)'
@@ -751,7 +928,7 @@ foreach ($pattern in $defensivePatterns) {
   }
 }
 
-Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode -DocumentMode $documentMode -DocumentScope $effectiveScope -Passfoto $passfotoReport
+Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode -DocumentMode $documentMode -DocumentScope $effectiveScope -Passfoto $passfotoReport -RecruiterCoverage $recruiterCoverage
 
 Write-Host ""
 Write-Host "Zusammenfassung:"

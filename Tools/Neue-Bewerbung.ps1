@@ -753,7 +753,7 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
 if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
   Set-Content -LiteralPath $anforderungsmatrixEntwurfFile -Encoding UTF8 -Value @"
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "requirements": [
     {
       "id": "muss-1",
@@ -766,7 +766,16 @@ if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
       "beleg": "",
       "behandlung": "vor Erstellung der Kandidatendateien klären"
     }
-  ]
+  ],
+  "recruiterStrategie": {
+    "kernbotschaft": "durch den Agenten aus Zielrolle, Stellenanforderungen und den stärksten belegten Profilargumenten abzuleiten",
+    "profilSubstanz": "noch_zu_pruefen",
+    "profilSubstanzBegruendung": "vor der Dokumenterstellung anhand der relevanten Profildaten zu prüfen",
+    "prioritaetsAnforderungen": ["muss-1"],
+    "profilHighlights": [],
+    "transferbruecken": [],
+    "auslassungen": []
+  }
 }
 "@
 }
