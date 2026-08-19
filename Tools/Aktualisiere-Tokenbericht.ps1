@@ -40,6 +40,8 @@ param(
   [Nullable[long]]$GesamtTokens
 )
 
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -219,7 +221,7 @@ $report = [ordered]@{
 }
 
 $reportPath = Resolve-SafePath -Candidate $reportPath -Root $resolvedWork -ForWrite -PathType Leaf
-Set-Content -LiteralPath $reportPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 8)
+Write-AtomicJson -Path $reportPath -Value $report -Depth 8
 
 $heading = switch ($Messbereich) {
   "lebenslauf" { "Lebenslauf" }

@@ -32,6 +32,8 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - In einer als verwaltete Sandbox bekannten Umgebung vor dem Browserlauf prüfen, ob eine lokale Browserfreigabe verfügbar ist. Eine vorhandene Freigabe direkt verwenden; andernfalls die Grenze offen melden und keinen erfolgreichen Lauf behaupten.
 - Tokenzahlen niemals schätzen oder aus Textlängen beziehungsweise Teilwerten ableiten. Exakte Zahlen sind nur zulässig, wenn die Agentenlaufzeit sie maschinenlesbar bereitstellt.
 - Ein Runtime-Fingerprint aus Betriebssystem, Architektur, PowerShell-Version und – bei Browserläufen – Browsername, Version und ausführbarer Datei bindet technische Nachweise an die Laufzeit. Nach einem Plattformwechsel Auftrag und Kandidaten erhalten, Layout-, PDF-, ATS- und Finalisierungsnachweise aber vollständig neu erzeugen.
+- Berichte und Zustandsdateien werden über `Tools/Common/AtomicFile.psm1` atomar als UTF-8 geschrieben und innerhalb pfadbasierter Sperren mit begrenzten Wiederholungen aktualisiert. Ein abgebrochener Austausch darf keine Teil-JSON-Datei hinterlassen.
+- `Sichtfreigabe.json` ist der einzige technische Veröffentlichungsnachweis. Die Freigabe-ID, der vorbereitete Finalisierungsbericht und jeder geprüfte Artefakt-Hash müssen aktuell übereinstimmen; ein altes `--visuell-geprueft` ersetzt diesen Nachweis nicht.
 
 ## Gemeinsamer Plattform- und CLI-Einstieg
 
@@ -47,7 +49,7 @@ Unter Ubuntu delegiert der dünne Bash-Launcher seine Argumente unverändert an 
 ./Tools/bewerbung.sh <subcommand> ...
 ```
 
-Die gemeinsamen Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`. Beide Einstiege verwenden dieselben GNU-Langoptionen. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und hat dafür keine Abhängigkeit auf `jq`, Python, Node oder externe SHA-Werkzeuge. Direkte Aufrufe der vorhandenen PowerShell-Fachskripte bleiben kompatibel unterstützt.
+Die gemeinsamen Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht` und `tests`. Beide Einstiege verwenden dieselben GNU-Langoptionen. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und hat dafür keine Abhängigkeit auf `jq`, Python, Node oder externe SHA-Werkzeuge. Direkte Aufrufe der vorhandenen PowerShell-Fachskripte bleiben kompatibel unterstützt.
 
 `bewerbung.ps1 checkpoint --arbeitsordner "..." --schritt NAME` schreibt einen kompakten, hashgebundenen Fortsetzungsnachweis in den privaten Arbeitsordner. Er ist nach jeder sinnvollen Workflow-Grenze aufzurufen, speichert keine Quellinhalte oder Rohchatdaten und ersetzt keine fachliche Prüfung. Der Statusbefehl verwendet ihn nur bei vollständig übereinstimmenden Arbeitsartefakten als Hinweis; bei Abweichungen bleiben Auftrag, Matrix, Kandidaten und Prüfberichte maßgeblich.
 
@@ -81,6 +83,7 @@ Dieser Lauf:
 - exportiert und validiert genau die laut Dokumentumfang ausgewählten HTML-Dokumente als PDFs
 - prüft die PDF-Textschicht und Lesbarkeit für ATS
 - schreibt Hashnachweise für Quellen, sämtliche Kandidatendateien, PDFs und Seitenscreenshots; bei einem individuellen Lebenslauf mit vorhandenem Passfoto kommt exakt der optionale Quellnachweis `passfoto` hinzu
+- schreibt den Vorbereitungsbericht für individuelle Bewerbungen im Schema 6 beziehungsweise für den Universal-Lebenslauf im Schema 2 mit einer neuen, eindeutigen `approvalRequest.approvalId`; veröffentlichte Altstände bleiben lesbar, vorbereitete Altstände ohne dieses Schema werden neu vorbereitet
 - schreibt den Runtime-Fingerprint in Layout-, PDF-, ATS- und Finalisierungsbericht
 - aktualisiert den nicht blockierenden Diagnosebericht `Tokenverbrauch.json` im Arbeitsordner mindestens mit dem Verfügbarkeitsstatus und referenziert ihn optional im `Finalisierungsbericht.json`
 - veröffentlicht noch keine Datei
@@ -90,10 +93,11 @@ Dieser Lauf:
 Nach der tatsächlichen Sichtprüfung:
 
 ```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen --visuell-geprueft
+pwsh -NoProfile -File Tools/bewerbung.ps1 freigabe --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --freigabe-id FR-XXXXXXXXXXXX --bestaetigt --notiz "Sichtprüfung abgeschlossen."
+pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen
 ```
 
-Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbewertung angegeben werden, zum Beispiel `--visuelle-freigabe-notiz "Alle markierten Seiten geprüft; kein Beschnitt und keine Überlappung."`.
+Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbewertung als `--notiz "Alle markierten Seiten geprüft; kein Beschnitt und keine Überlappung."` im `freigabe`-Aufruf angegeben werden.
 
 Die Veröffentlichung wird verweigert, wenn Quellen, Auftrag, Kandidatendateien oder Screenshots nach der Vorbereitung verändert wurden. Das gilt bei individuellen Lebensläufen auch für das spätere Hinzufügen, Ändern oder Löschen von `Private/Daten/Passfoto.png`. Sie kopiert nicht dateiweise in den Zielordner, sondern veröffentlicht das validierte Set über einen privaten Staging-Ordner gemeinsam. `Versand/` enthält ausschließlich die ausgewählten PDF-Anlagen und gegebenenfalls den E-Mail-Text; `Intern/` enthält vorhandene HTML-Quellen und Nachweise. `Manifest.json` bindet Dokumentumfang und jede veröffentlichte Datei an ihren SHA-256-Wert; das Foto selbst wird nicht separat veröffentlicht.
 
@@ -273,7 +277,8 @@ Der verbindliche Finalisierungsworkflow führt nach dem PDF-Export `Tools/Pruefe
 
 - Pflichttexte wie Bewerbername, Firma und Zielrolle
 - formale Zeiträume im Lebenslauf
-- Textabdeckung zwischen HTML und PDF
+- Unicode-normalisierte Token-Abdeckung sowie geordnete Bigramm- und Trigramm-Abdeckung zwischen HTML und PDF
+- stabile Tokenisierung technischer Schreibweisen wie `C#`, `.NET` und `Node.js`
 - eine grundlegende, nachvollziehbare Lesereihenfolge
 
 Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versandfertig. Die ATS-Prüfung ersetzt weiterhin nicht die Sichtprüfung. Mehrere ausgewählte Dokumente bleiben getrennte PDFs; eine Formatforderung „PDF“ wird nicht als Gesamt-PDF interpretiert.
@@ -287,7 +292,7 @@ Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versand
 5. Jeden erzeugten Seitenscreenshot visuell öffnen und prüfen; ohne HTML die ausgewählten Textdateien persönlich prüfen.
 6. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.
 7. Bei Dichte- oder Layoutwarnungen die Sichtbewertung als Freigabenotiz dokumentieren.
-8. Erst nach neuer eindeutiger Sichtprüfungsbestätigung mit `--veroeffentlichen --visuell-geprueft` atomar veröffentlichen.
+8. Erst nach neuer eindeutiger Sichtprüfungsbestätigung die im Bericht ausgegebene ID mit `bewerbung.ps1 freigabe --bestaetigt` an den unveränderten Artefaktsatz binden und anschließend mit `--veroeffentlichen` atomar veröffentlichen. Das Legacy-Argument `--visuell-geprueft` erteilt keine Freigabe.
 9. Bei Fehlern nicht final melden; der finale Zielordner muss unverändert bleiben. Der Tokenbericht darf einen ansonsten erfolgreichen Lauf nicht blockieren.
 
 ## CI und gestufter Plattform-Rollout

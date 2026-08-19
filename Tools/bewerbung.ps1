@@ -31,6 +31,7 @@ $script:CommandOrder = @(
   "pdf",
   "ats",
   "finalisieren",
+  "freigabe",
   "tokenbericht",
   "tests"
 )
@@ -288,6 +289,17 @@ $script:Commands = @{
       "--visuelle-freigabe-notiz" = New-CliOption -Parameter "VisuelleFreigabeNotiz" -Placeholder "TEXT"
       "--ersetzen" = New-CliOption -Parameter "Ersetzen" -Kind switch
       "--timeout-seconds" = New-CliOption -Parameter "TimeoutSeconds" -Kind int -Min 1 -Max 600 -Placeholder "SEKUNDEN"
+    }
+  }
+  "freigabe" = @{
+    RelativePath = "Erzeuge-Sichtfreigabe.ps1"
+    Summary = "Chat-bestaetigte Sichtfreigabe an den aktuellen Artefaktsatz binden"
+    Required = @("--arbeitsordner", "--freigabe-id", "--bestaetigt")
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--freigabe-id" = New-CliOption -Parameter "FreigabeId" -Placeholder "ID"
+      "--bestaetigt" = New-CliOption -Parameter "Bestaetigt" -Kind switch
+      "--notiz" = New-CliOption -Parameter "Notiz" -Placeholder "TEXT"
     }
   }
   "tokenbericht" = @{

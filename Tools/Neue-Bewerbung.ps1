@@ -38,6 +38,8 @@ param(
   [switch]$StammdatenpruefungUeberspringen
 )
 
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $script:PathComparison = if ([System.IO.Path]::DirectorySeparatorChar -eq '\') { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
@@ -748,7 +750,7 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
     quellnachweise = $sourceEvidence
     createdAtUtc = [datetime]::UtcNow.ToString("o")
   }
-  Set-Content -LiteralPath $auftragFile -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 8)
+  Write-AtomicJson -Path $auftragFile -Value $auftrag -Depth 8
 }
 
 if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {

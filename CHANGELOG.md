@@ -8,6 +8,11 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
+- Phase-2-Zuverlässigkeitsverträge: gemeinsame atomare UTF-8-/JSON-Schreibfunktionen mit begrenzten Dateisperr-Wiederholungen, pfadgebundene Checkpoint-Aktualisierung und gemeinsame JSON-, Umfangs-, Slug- und Unicode-Textverträge.
+- Hashgebundene Sichtfreigaben mit neuer `freigabe`-CLI, eindeutiger Freigabe-ID, Artefaktsatzbindung und aktuellen Nachweis-Hashes für individuelle und universelle Finalisierungen.
+- ATS-Schema 2 mit Unicode-normalisiertem Token-Multiset sowie geordneten Bigramm-/Trigramm-Metriken, stabiler Tokenisierung technischer Begriffe und vollständiger Artefaktbindung.
+- Regressionstests für Freigabe-Manipulationen, atomare Unterbrechungen, Dateisperren, parallele Zustandsupdates und Token-/N-Gramm-Abgleich.
+
 - Matrix-Schema 4 mit hash- und zeilengebundener `stellenanzeigeAbdeckung`, verbindlichen Stellen-Fundstellen sowie einem privaten `Evidenzindex.json` für quellgebundene Profilbelege. Matrix-Schemata 1 bis 3 bleiben lesbar.
 - Browserseitige DOM-Geometrieprüfung für jede isolierte A4-Seite. Scrollüberlauf und sichtbare Elemente außerhalb der festen Seite blockieren die technische Vorbereitung.
 - Private Dialogtransaktion mit Mutex, geflushten temporären Dateien, Sicherungen und automatischer Wiederherstellung eines unterbrochenen Profil-/Auftragscommits.
@@ -23,6 +28,10 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 - Read-only-Preflight `Tools/Pruefe-Umgebung.ps1` und eine feste browserfreie CI-Matrix auf `windows-2025` und `ubuntu-24.04`; Browser-Smokes laufen zunächst getrennt, manuell und zeitgesteuert.
 
 ### Geändert
+
+- Die Veröffentlichung akzeptiert ausschließlich einen aktuellen `Sichtfreigabe.json`-Nachweis, der Freigabe-ID, vorbereiteten Finalisierungsbericht und den unveränderten Artefaktsatz bindet. Das bisherige `--visuell-geprueft` bleibt nur als Kompatibilitätsargument lesbar und erteilt keine Berechtigung; vorbereitete Altstände müssen neu vorbereitet werden.
+- Finalisierungsberichte verwenden für individuelle Bewerbungen Schema 6 und für den Universal-Lebenslauf Schema 2. ATS-Berichte verwenden Schema 2 und dokumentieren Token-/N-Gramm-Abdeckung, fehlende Tokens und Artefakt-Hashes.
+- Berichte und Zustandsdateien werden über die gemeinsamen atomaren Schreib- und Sperrverträge aktualisiert; ein fehlgeschlagener oder unterbrochener Austausch lässt die vorherige vollständige Datei bestehen.
 
 - Neue Bewerbungen erzeugen Schema-4-Entwürfe für Anforderungsmatrix und Evidenzindex. Erfüllte oder teilweise erfüllte Anforderungen sowie sichtbare Profilhighlights benötigen nun validierte Evidenz-IDs; `NICHT BEHAUPTEN` und `EINARBEITUNGSZIEL` können keine Direktbelege sein.
 - Der Bewerbungsworkflow arbeitet verbindlich in der Reihenfolge Stellenanforderungen, stärkste Profilbelege, wahre Transferbrücken, Inhaltsentwurf und erst danach Layout. Pauschale Obergrenzen für Projekte, Kompetenzgruppen und relevante Inhaltsblöcke wurden durch Recruiter-Relevanz und Belegsubstanz ersetzt.
@@ -55,6 +64,7 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Tests und Verifikation
 
+- Die browserfreie Regression bestand nach Phase 2 mit 90 von 90 synthetischen Fällen. Die gezielten browserabhängigen Smoke-, Layout-, Universal-, Finalisierungs- und PDF-Fälle bestanden mit 9 von 9; die nach der Artefaktbindungs-Nachschärfung erneut ausgeführten Universal- und individuellen Finalisierungsfälle bestanden mit 4 von 4.
 - Schema-4-Regressionsfälle prüfen Quellenbindung von Stellenanforderungen und Profilbelegen, fehlende explizite Stellenabdeckung, erfundene Evidenzreferenzen sowie die Wiederherstellung einer simulierten unterbrochenen Dialogtransaktion. Ein Browserfall prüft zusätzlich, dass DOM-Überlauf trotz fester A4-Geometrie abgewiesen wird.
 - Die vollständige lokale PowerShell-/Chromium-Regression bestand nach der Phase-1-Änderung mit 96 synthetischen Fällen und 0 Fehlern.
 - Schema-3-Regressionsfälle prüfen vollständige Recruiter-Abdeckung, fehlende beziehungsweise falsch platzierte Anker, ehrliche Salesforce-Transferbrücken, erfundene Direktpraxis sowie den Unterschied zwischen unnötig dünnem und dokumentiert schmalem Profil. Promptaudits verhindern erneut eingeführte pauschale Projektobergrenzen.

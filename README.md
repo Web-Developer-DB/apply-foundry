@@ -630,8 +630,9 @@ Alles in diesem Bereich bleibt privat und wird nicht versendet.
 | `Layoutcheck/*.png` | ein frischer Screenshot je expliziter A4-Seite der ausgewählten HTML-Dokumente | **jede vorhandene PNG-Datei tatsächlich öffnen und visuell prüfen** |
 | `Layoutcheck/Layoutcheck-Bericht.json` | Browser, Abmessungen, Seiten, Screenshot-Hashes und Dichtehinweise; bei E-Mail-only `nicht_erforderlich` | Layoutwarnungen einer konkreten Seite oder den bewusst entfallenen Lauf nachvollziehen |
 | `PDF-Export/PDF-Export-Bericht.json` | HTML-/PDF-Hashes, Dateigröße, Seitenzahl und A4-MediaBox; bei E-Mail-only `nicht_erforderlich` | PDF-Exportfehler oder den bewusst entfallenen Export technisch einordnen |
-| `ATS-Pruefbericht.json` | Textabdeckung, Pflichttexte und Lesereihenfolge vorhandener PDFs; bei E-Mail-only `nicht_erforderlich` | ATS-Lesbarkeit oder den bewusst entfallenen PDF-Test nachvollziehen |
-| `Finalisierungsbericht.json` | Schema-5-Vorbereitungsnachweis mit Dokumentumfang, Runtime-Fingerprint, persönlicher Prüfart und Hashes der tatsächlich erwarteten Artefakte | Status und Prüflauf nachvollziehen; für die Integrität des veröffentlichten Endstands ist `Manifest.json` maßgeblich |
+| `ATS-Pruefbericht.json` | Schema-2-Nachweis mit Pflichttexten, Unicode-normalisierten Token-/N-Gramm-Metriken, Lesereihenfolge und Artefakt-Hashes; bei E-Mail-only `nicht_erforderlich` | ATS-Lesbarkeit oder den bewusst entfallenen PDF-Test nachvollziehen |
+| `Finalisierungsbericht.json` | Schema-6-Vorbereitungsnachweis mit Dokumentumfang, Runtime-Fingerprint, persönlicher Prüfart, Freigabe-ID-Anforderung und Hashes der tatsächlich erwarteten Artefakte | Status und Prüflauf nachvollziehen; für die Integrität des veröffentlichten Endstands ist `Manifest.json` maßgeblich |
+| `Sichtfreigabe.json` | Aktueller, chatbestätigter Nachweis (Schema 1), der Freigabe-ID, vorbereiteten Bericht und unveränderten Artefaktsatz einschließlich SHA-256 bindet | Einziger technischer Berechtigungsnachweis für die lokale Veröffentlichung |
 | `Tokenverbrauch.json` | anbieterneutraler Nutzungsbericht mit exakten Laufzeitwerten oder eindeutiger Nichtverfügbarkeit | Diagnose und Kosten nachvollziehen; niemals als Qualitäts- oder Versandnachweis verwenden |
 
 Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner liegen. Sie sind keine zweite freigegebene Bewerbung. Maschinenlesbare Berichte und Screenshots werden absichtlich **nicht** nach `Intern/` kopiert.
@@ -777,13 +778,25 @@ Bei einer Layoutwarnung beschreibst du zusätzlich konkret, was du auf der betro
 pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --browser auto
 ```
 
-**2. Nach der Sichtprüfung lokal freigeben**
+**2. Nach der Sichtprüfung die vorbereitete Freigabe-ID bestätigen**
 
 ```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen --visuell-geprueft
+pwsh -NoProfile -File Tools/bewerbung.ps1 freigabe `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --freigabe-id FR-XXXXXXXXXXXX `
+  --bestaetigt `
+  --notiz "Sichtprüfung aller genannten PNG-Seiten abgeschlossen; keine abgeschnittenen oder verdeckten Inhalte."
 ```
 
-Bei einer Layoutwarnung ist zusätzlich eine ehrliche Bewertung über `--visuelle-freigabe-notiz "..."` erforderlich. Änderungen an Quellen, Arbeitsversionen oder Screenshots machen vorhandene Prüfnachweise ungültig. Ein Wechsel des Betriebssystems macht Layout-, PDF-, ATS- und Finalisierungsnachweise ebenfalls ungültig, lässt Auftrag und Kandidaten aber bestehen. Dann muss die Vorbereitung erneut laufen; öffne danach jede neu erzeugte PNG-Datei und führe Schritt 2 erst nach dieser neuen Sichtprüfung noch einmal aus.
+Die ID steht im vorbereiteten `Finalisierungsbericht.json` (beziehungsweise im Universalbericht). Der neue CLI-Schritt schreibt `Sichtfreigabe.json` nur für genau diesen unveränderten Bericht und Artefaktsatz. Bei Layoutwarnungen ist eine ehrliche, konkrete `--notiz` verpflichtend. Erst danach darf veröffentlicht werden:
+
+```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --veroeffentlichen
+```
+
+`--visuell-geprueft` ist nur noch ein veraltetes Kompatibilitätsargument und erteilt keine Berechtigung. Änderungen an Quellen, Arbeitsversionen oder Screenshots machen vorhandene Prüfnachweise und die Sichtfreigabe ungültig; der Stand muss vollständig neu vorbereitet und mit einer neuen ID geprüft werden. Bereits veröffentlichte Stände bleiben lesbar.
 
 <details>
 <summary><strong>Bereits veröffentlichte Bewerbung korrigieren</strong></summary>
@@ -791,10 +804,17 @@ Bei einer Layoutwarnung ist zusätzlich eine ehrliche Bewertung über `--visuell
 Bearbeite veröffentlichte Dateien nicht direkt unter `Versand/` oder `Intern/`. Bitte den Agenten um die Korrektur der Arbeitsversion unter `Kandidat/`, wiederhole die technische Vorbereitung und kontrolliere alle neuen Screenshots. Erst danach darf der neu geprüfte Satz den bestehenden Zielordner bewusst ersetzen:
 
 ```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen --visuell-geprueft --ersetzen
+pwsh -NoProfile -File Tools/bewerbung.ps1 freigabe `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --freigabe-id FR-XXXXXXXXXXXX `
+  --bestaetigt `
+  --notiz "Neue Sichtprüfung nach der Korrektur abgeschlossen."
+pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --veroeffentlichen --ersetzen
 ```
 
-Bei Layoutwarnungen gilt auch hier zusätzlich `--visuelle-freigabe-notiz "..."`.
+Bei Layoutwarnungen muss die konkrete Bewertung in `--notiz` der neuen Sichtfreigabe stehen.
 
 </details>
 
@@ -1107,9 +1127,11 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die sechs Einstiege, verlangt eine
 | `Exportiere-PDF.ps1` | je ausgewähltem HTML-Dokument eine PDF sicher exportieren und prüfen | Kandidaten-, Auftrags- und `-OutputRoot`-Pfad übergeben |
 | `Pruefe-ATS.ps1` | Unicode-Textschicht und Lesereihenfolge vorhandener PDFs prüfen | Bestandteil der Finalisierung für HTML-Dokumente |
 | `Finalisiere-Bewerbung.ps1` | verbindliches Prepare-/Publish-Gate | `-Arbeitsordner "..."` |
+| `Erzeuge-Sichtfreigabe.ps1` | Chat-bestätigte Freigabe-ID an den unveränderten Bericht und Artefaktsatz binden | `-Arbeitsordner "..." -FreigabeId FR-XXXXXXXXXXXX -Bestaetigt` |
+| `Tools/Common/*.psm1` | gemeinsame Atomik-, Sperr-, JSON-, Umfangs-, Slug-, Text- und Freigabeverträge | werden von den Fachwerkzeugen verwendet |
 | `Aktualisiere-Tokenbericht.ps1` | exakte Laufzeitwerte oder eindeutige Nichtverfügbarkeit standardisiert speichern | `-Arbeitsordner "..." -Messbereich lebenslauf` |
 
-Der Dispatcher bietet `diagnose`, `neu`, `status`, `checkpoint`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`. Er normalisiert `--dokumente` einmal zentral als kommaseparierte, typgeprüfte Liste; Werte mit Leerzeichen, Umlauten oder führendem Bindestrich bleiben einzelne Argumente. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime.
+Der Dispatcher bietet `diagnose`, `neu`, `status`, `checkpoint`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht` und `tests`. Er normalisiert `--dokumente` einmal zentral als kommaseparierte, typgeprüfte Liste; Werte mit Leerzeichen, Umlauten oder führendem Bindestrich bleiben einzelne Argumente. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime.
 
 Nach dem Erstellen eines individuellen Lebenslauf-HTMLs verarbeitet der Agent den optionalen markierten Fotoblock ohne Ausgabe der Bilddaten:
 
@@ -1165,9 +1187,10 @@ Jede normalisierte Angabe verwendet `speicherentscheidung = ausstehend`, `nur_au
 | `Inhalts-Pruefbericht.json` | `Pruefe-Bewerbungsinhalt.ps1` | formale Zeiträume, Darstellungsmodi, Profil-Links, optionaler Passfoto-Status, gewichtete Eignung sowie Fehler/Warnungen |
 | `Layoutcheck/Layoutcheck-Bericht.json` | `Layoutcheck-Bewerbung.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, Browser, Abmessungen, HTML- und Screenshot-Hashes, Seite/Seitenzahl und Dichtehinweise oder Status `nicht_erforderlich` |
 | `PDF-Export/PDF-Export-Bericht.json` | `Exportiere-PDF.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, HTML-/PDF-Hashes, PDF-Größe, Seitenzahl und A4-MediaBox oder Status `nicht_erforderlich` |
-| `ATS-Pruefbericht.json` | `Pruefe-ATS.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, extrahierbare Zeichen, Textabdeckung, Pflichttexte, Lesereihenfolge und Ergebnis je PDF oder Status `nicht_erforderlich` |
+| `ATS-Pruefbericht.json` | `Pruefe-ATS.ps1` beziehungsweise Finalisierung | Schema 2: Runtime-Fingerprint, extrahierbare Zeichen, Unicode-normalisierte Token-/N-Gramm-Abdeckung, Pflichttexte, Lesereihenfolge, Artefakt-Hashes und Ergebnis je PDF oder Status `nicht_erforderlich` |
 | `Tokenverbrauch.json` | Agent beziehungsweise `Aktualisiere-Tokenbericht.ps1` | Anbieter, Modell, optionale nicht sensible Vorgangs-ID, Messquelle, Messzeiten und ausschließlich exakt bereitgestellte Tokenfelder je Messbereich; andernfalls `unavailable` und `null` |
-| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Schema-5-Release-Status, Runtime-Fingerprint, Dokumentumfang, persönliche Prüfart, Pfade, erwartete Screenshots, Warnungen, optionale Tokenbericht-Referenz sowie Hashes der vier Pflichtquellen, des nur bei Verwendung ergänzten Passfotos, der drei technischen Prüfberichte und der tatsächlich erwarteten Kandidatenartefakte |
+| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Schema-6-Vorbereitungsstatus, Runtime-Fingerprint, Dokumentumfang, persönliche Prüfart, Freigabe-ID-Anforderung, Pfade, erwartete Screenshots, Warnungen, optionale Tokenbericht-Referenz sowie Hashes der vier Pflichtquellen, des nur bei Verwendung ergänzten Passfotos, der drei technischen Prüfberichte und der tatsächlich erwarteten Kandidatenartefakte |
+| `Sichtfreigabe.json` | `bewerbung.ps1 freigabe` | Schema-1-Nachweis der Chat-Bestätigung mit Freigabe-ID, vorbereitetem Bericht, Artefaktsatz und SHA-256-Werten; Voraussetzung für die lokale Veröffentlichung |
 
 `Pruefe-Bewerbung.ps1` schreibt bewusst keinen eigenen JSON-Bericht; sein Vertrag sind Konsolenausgabe und Exitcode.
 
@@ -1311,7 +1334,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | kompakter, hashgebundener Fortsetzungscheckpoint | `Tools/Aktualisiere-WorkflowCheckpoint.ps1`, `Tools/Common/WorkflowCheckpoint.psm1` |
 | Dialogzustand und kontrollierte Profilübernahme | `Tools/Pruefe-Dialogstatus.ps1`, `Tools/Uebernehme-Dialogangabe.ps1` |
 | Stammdaten und Inhalt | `Tools/Pruefe-Stammdaten.ps1`, `Tools/Pruefe-Bewerbungsinhalt.ps1` |
-| Finalisierung | `Tools/Finalisiere-Bewerbung.ps1` |
+| Finalisierung und Sichtfreigabe | `Tools/Finalisiere-Bewerbung.ps1`, `Tools/Erzeuge-Sichtfreigabe.ps1`, `Tools/Common/ApprovalContract.psm1` |
 | Tokenbericht | `Tools/Aktualisiere-Tokenbericht.ps1` |
 | statischer Check | `Tools/Pruefe-Bewerbung.ps1` |
 | Layout und PDF | `Tools/Layoutcheck-Bewerbung.ps1`, `Tools/Exportiere-PDF.ps1` |

@@ -28,6 +28,8 @@ $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Passfoto.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/TextContract.psm1") -Force -DisableNameChecking
 
 $errors = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
@@ -113,15 +115,7 @@ function Get-JsonProperty {
 
 function Convert-ToSlug {
   param([string]$Value)
-  $slug = $Value.Trim()
-  foreach ($replacement in @(
-    @{ From = "ä"; To = "ae" }, @{ From = "ö"; To = "oe" }, @{ From = "ü"; To = "ue" },
-    @{ From = "Ä"; To = "Ae" }, @{ From = "Ö"; To = "Oe" }, @{ From = "Ü"; To = "Ue" },
-    @{ From = "ß"; To = "ss" }, @{ From = "&"; To = "und" }
-  )) {
-    $slug = $slug.Replace($replacement.From, $replacement.To)
-  }
-  return (($slug -replace '[^A-Za-z0-9]+', '-').Trim('-'))
+  return ConvertTo-ContractSlug -Text $Value
 }
 
 function Get-TextSha256 {
@@ -272,7 +266,7 @@ function Write-JsonReport {
     recruiterCoverage = $RecruiterCoverage
     evidenceCoverage = $EvidenceCoverage
   }
-  Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 6)
+  Write-AtomicJson -Path $fullPath -Value $report -Depth 6
 }
 
 try {

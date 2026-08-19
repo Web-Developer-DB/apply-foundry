@@ -35,6 +35,10 @@ Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Passfoto.psm1") 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/PngTools.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/WorkflowCheckpoint.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/ApprovalContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/DocumentScope.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/JsonContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
 $script:ChildToolTimeoutSeconds = [math]::Min(3600, [math]::Max(120, $TimeoutSeconds * 8))
 
 trap {
@@ -212,50 +216,12 @@ function Test-JsonPropertyExists {
 function Test-DocumentScopeMatches {
   param([object]$Actual, [object]$Expected)
   if ($null -eq $Actual -or $null -eq $Expected) { return $false }
-  return (
-    [string](Get-JsonProperty -Object $Actual -Name "lebenslauf") -eq [string]$Expected.lebenslauf -and
-    (Get-JsonProperty -Object $Actual -Name "anschreiben") -is [bool] -and
-    (Get-JsonProperty -Object $Actual -Name "emailNachricht") -is [bool] -and
-    [bool](Get-JsonProperty -Object $Actual -Name "anschreiben") -eq [bool]$Expected.anschreiben -and
-    [bool](Get-JsonProperty -Object $Actual -Name "emailNachricht") -eq [bool]$Expected.emailNachricht
-  )
+  return Test-ContractDocumentScope -Actual $Actual -Expected $Expected
 }
 
 function Get-DocumentScope {
   param([object]$Auftrag)
-
-  $scope = [ordered]@{
-    lebenslauf = "individuell"
-    anschreiben = $true
-    emailNachricht = $true
-  }
-  $schemaValue = Get-JsonProperty -Object $Auftrag -Name "schemaVersion"
-  if ($schemaValue -isnot [int] -and $schemaValue -isnot [long]) {
-    throw "Bewerbungsauftrag enthält keine ganzzahlige schemaVersion."
-  }
-  $schema = [int]$schemaValue
-  $configured = Get-JsonProperty -Object $Auftrag -Name "dokumentumfang"
-  if ($schema -ge 4 -and $schema -le 5) {
-    if ($null -eq $configured) { throw "Bewerbungsauftrag mit schemaVersion $schema enthält keinen dokumentumfang." }
-    $cvKind = [string](Get-JsonProperty -Object $configured -Name "lebenslauf")
-    $letterValue = Get-JsonProperty -Object $configured -Name "anschreiben"
-    $emailValue = Get-JsonProperty -Object $configured -Name "emailNachricht"
-    if ($cvKind -notin @("individuell", "universal_unveraendert", "nicht_enthalten") -or
-        $letterValue -isnot [bool] -or $emailValue -isnot [bool]) {
-      throw "Bewerbungsauftrag enthält einen ungültigen oder nicht typisierten dokumentumfang."
-    }
-    if ($cvKind -eq "nicht_enthalten" -and -not [bool]$letterValue -and -not [bool]$emailValue) {
-      throw "Bewerbungsauftrag wählt kein Dokument aus."
-    }
-    $scope.lebenslauf = $cvKind
-    $scope.anschreiben = [bool]$letterValue
-    $scope.emailNachricht = [bool]$emailValue
-  } elseif ($schema -lt 1 -or $schema -gt 5) {
-    throw "Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 5."
-  } elseif ([string](Get-JsonProperty -Object $Auftrag -Name "dokumentmodus") -eq "anschreiben_mit_universalem_lebenslauf") {
-    $scope.lebenslauf = "universal_unveraendert"
-  }
-  return $scope
+  return Get-ContractDocumentScope -Auftrag $Auftrag
 }
 
 function Write-NotRequiredReport {
@@ -277,7 +243,7 @@ function Write-NotRequiredReport {
     reason = "Der gewählte Dokumentumfang enthält kein HTML-/PDF-Dokument."
     results = @()
   }
-  Set-Content -LiteralPath $Path -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 5)
+  Write-AtomicJson -Path $Path -Value $report -Depth 5
 }
 
 function Invoke-ChildTool {
@@ -418,7 +384,7 @@ $reviewLine
     $updated = $text.TrimEnd() + "`r`n`r`n" + $section.TrimEnd() + "`r`n"
   }
   $QualityPath = Resolve-WorkflowContractPath -Candidate $QualityPath -Root $WorkflowRoot -MustExist -ForWrite -PathType Leaf
-  Set-Content -LiteralPath $QualityPath -Encoding UTF8 -Value $updated
+  Write-AtomicText -Path $QualityPath -Content $updated
 }
 
 function Get-ArtifactRecord {
@@ -515,7 +481,7 @@ function New-PublicationManifest {
     }
   }
   $manifestPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $Root -ChildPath "Manifest.json") -Root $SecurityRoot -ForWrite -PathType Leaf
-  Set-Content -LiteralPath $manifestPath -Encoding UTF8 -Value ($manifest | ConvertTo-Json -Depth 8)
+  Write-AtomicJson -Path $manifestPath -Value $manifest -Depth 8
   return $manifestPath
 }
 
@@ -786,7 +752,7 @@ function Test-TechnicalReportContracts {
 
   $atsSchema = Get-JsonProperty -Object $ats -Name "schemaVersion"
   $atsResults = @((Get-JsonProperty -Object $ats -Name "results"))
-  if (-not (Test-IntegerValue -Value $atsSchema -Minimum 1) -or [int]$atsSchema -ne 1 -or
+  if (-not (Test-IntegerValue -Value $atsSchema -Minimum 1) -or [int]$atsSchema -ne 2 -or
       [string](Get-JsonProperty -Object $ats -Name "status") -notin @("ok", "warnung") -or
       @(Get-JsonProperty -Object $ats -Name "errors").Count -ne 0 -or
       $atsResults.Count -ne $ExpectedHtmlCount -or
@@ -803,12 +769,20 @@ function Test-TechnicalReportContracts {
     $pdfName = [System.IO.Path]::ChangeExtension($htmlName, ".pdf")
     $pdfRecord = Get-SingleArtifactRecord -Records $PdfRecords -Name $pdfName -Context "ATS-Prüfbericht"
     $coverage = Get-JsonProperty -Object $result -Name "textCoveragePercent"
+    $tokenCoverage = Get-JsonProperty -Object $result -Name "tokenCoveragePercent"
+    $bigramCoverage = Get-JsonProperty -Object $result -Name "orderedBigramCoveragePercent"
+    $trigramCoverage = Get-JsonProperty -Object $result -Name "orderedTrigramCoveragePercent"
+    $tokenPassed = Get-JsonProperty -Object $result -Name "tokenComparisonPassed"
     if ([string](Get-JsonProperty -Object $result -Name "htmlSha256") -ine [string](Get-JsonProperty -Object $htmlRecord -Name "sha256") -or
         [string](Get-JsonProperty -Object $result -Name "pdfFile") -cne $pdfName -or
         [string](Get-JsonProperty -Object $result -Name "pdfSha256") -ine [string](Get-JsonProperty -Object $pdfRecord -Name "sha256") -or
         @(Get-JsonProperty -Object $result -Name "missingRequiredText").Count -ne 0 -or
         ($coverage -isnot [int] -and $coverage -isnot [long] -and $coverage -isnot [double] -and $coverage -isnot [decimal]) -or
         [double]$coverage -lt 70 -or
+        ($tokenCoverage -isnot [double] -and $tokenCoverage -isnot [int] -and $tokenCoverage -isnot [long] -and $tokenCoverage -isnot [decimal]) -or
+        ($bigramCoverage -isnot [double] -and $bigramCoverage -isnot [int] -and $bigramCoverage -isnot [long] -and $bigramCoverage -isnot [decimal]) -or
+        ($trigramCoverage -isnot [double] -and $trigramCoverage -isnot [int] -and $trigramCoverage -isnot [long] -and $trigramCoverage -isnot [decimal]) -or
+        $tokenPassed -isnot [bool] -or -not [bool]$tokenPassed -or
         -not (Test-IntegerValue -Value (Get-JsonProperty -Object $result -Name "extractedComparableCharacters") -Minimum 1) -or
         [string](Get-JsonProperty -Object $result -Name "extractionEngine") -cne "interner_tounicode_parser") {
       Stop-Finalization -Message "ATS-Prüfbericht ist nicht vollständig an HTML und PDF gebunden: $pdfName"
@@ -980,7 +954,7 @@ if (-not $Veroeffentlichen) {
     $preparedSourceInputs.passfoto = Get-ArtifactRecord -File (Get-Item -LiteralPath $passfotoSource.Path)
   }
   $report = [ordered]@{
-    schemaVersion = 5
+    schemaVersion = 6
     status = "bereit_zur_sichtpruefung"
     preparedAtUtc = [datetime]::UtcNow.ToString("o")
     runtime = $layoutRuntime
@@ -1001,8 +975,16 @@ if (-not $Veroeffentlichen) {
     sourceInputs = $preparedSourceInputs
     artifacts = $artifacts
   }
+  $approvalRecords = @(Get-ContractApprovalRecords -Report $report)
+  $report.approvalRequest = [ordered]@{
+    approvalId = New-ContractApprovalId
+    reviewKind = $report.personalReview
+    artifactSetSha256 = Get-ContractArtifactSetHash -Records $approvalRecords
+    artifactCount = $approvalRecords.Count
+    createdAtUtc = [datetime]::UtcNow.ToString("o")
+  }
   $finalReportPath = Resolve-WorkflowContractPath -Candidate $finalReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Set-Content -LiteralPath $finalReportPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 10)
+  Write-AtomicJson -Path $finalReportPath -Value $report -Depth 10
   Update-WorkflowCheckpointNonBlocking -WorkFolder $resolvedWork -Step 'technische_vorbereitung_abgeschlossen'
   Add-Ok "Technische Vorbereitung erfolgreich."
   Write-Host ""
@@ -1012,17 +994,13 @@ if (-not $Veroeffentlichen) {
     Write-Host "Der Umfang enthält kein HTML-Dokument. Prüfe die ausgewählten Textdateien im Kandidatenordner persönlich: $candidateDir"
   }
   if ($layoutWarnings.Count -gt 0) {
-    Write-Host "Layoutwarnungen müssen visuell bewertet und bei der Veröffentlichung mit -VisuelleFreigabeNotiz begründet werden."
+    Write-Host "Layoutwarnungen müssen visuell bewertet und in der Chat-bestätigten Freigabe mit einer konkreten Notiz begründet werden."
   }
-  Write-Host "Nach bestätigter Sichtprüfung veröffentlichen mit:"
-  $noteExample = if ($layoutWarnings.Count -gt 0) { ' -VisuelleFreigabeNotiz "Warnungen je Seite geprüft; kein Beschnitt und keine Überlappung."' } else { "" }
-  Write-Host ".\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner `"$resolvedWork`" -Veroeffentlichen -VisuellGeprueft$noteExample"
+  Write-Host "Nach bestätigter Sichtprüfung die Freigabe-ID im Chat bestätigen und anschließend speichern:"
+  Write-Host ".\Tools\bewerbung.ps1 freigabe --arbeitsordner `"$resolvedWork`" --freigabe-id $($report.approvalRequest.approvalId) --bestaetigt"
   exit 0
 }
 
-if (-not $VisuellGeprueft) {
-  Stop-Finalization -Message "Veröffentlichung erfordert den Schalter -VisuellGeprueft nach tatsächlicher Sichtprüfung."
-}
 try {
   $finalReportPath = Resolve-WorkflowContractPath -Candidate $finalReportPath -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
 } catch {
@@ -1031,14 +1009,45 @@ try {
 $preparedReportJson = Get-Content -LiteralPath $finalReportPath -Raw -Encoding UTF8
 $report = $preparedReportJson | ConvertFrom-Json
 $reportSchemaValue = Get-JsonProperty -Object $report -Name "schemaVersion"
-if (($reportSchemaValue -isnot [int] -and $reportSchemaValue -isnot [long]) -or [int]$reportSchemaValue -ne 5) {
-  Stop-Finalization -Message "Finalisierungsbericht verwendet kein unterstütztes Schema 5. Erneute Vorbereitung erforderlich."
+if (($reportSchemaValue -isnot [int] -and $reportSchemaValue -isnot [long]) -or [int]$reportSchemaValue -ne 6) {
+  Stop-Finalization -Message "Finalisierungsbericht verwendet nicht das aktuelle Freigabeschema 6. Bereits vorbereitete Altstände müssen neu vorbereitet werden."
 }
 $reportSchema = [int]$reportSchemaValue
 foreach ($requiredReportProperty in @("status", "runtime", "workFolder", "candidateFolder", "targetFolder", "documentScope", "personalReview", "expectedScreenshots", "layoutWarnings", "layoutReport", "layoutReportArtifact", "pdfReport", "pdfReportArtifact", "atsReport", "atsReportArtifact", "sourceInputs", "artifacts")) {
   if (-not (Test-JsonPropertyExists -Object $report -Name $requiredReportProperty)) {
     Stop-Finalization -Message "Finalisierungsbericht ist unvollständig; Pflichtfeld fehlt: $requiredReportProperty. Erneute Vorbereitung erforderlich."
   }
+}
+$approvalPath = Resolve-WorkflowContractPath -Candidate (Join-Path $resolvedWork "Sichtfreigabe.json") -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
+try {
+  $approval = Read-ContractJson -Path $approvalPath
+  if ([int](Get-ContractJsonProperty $approval 'schemaVersion') -ne 1 -or [string](Get-ContractJsonProperty $approval 'kind') -cne 'sichtfreigabe' -or
+      (Get-ContractJsonProperty $approval 'humanConfirmation') -isnot [bool] -or -not [bool](Get-ContractJsonProperty $approval 'humanConfirmation')) {
+    throw 'Sichtfreigabe besitzt kein gültiges bestätigtes Schema.'
+  }
+  $request = Get-ContractJsonProperty $report 'approvalRequest'
+  if ($null -eq $request -or [string](Get-ContractJsonProperty $approval 'approvalId') -cne [string](Get-ContractJsonProperty $request 'approvalId') -or
+      [string](Get-ContractJsonProperty $approval 'artifactSetSha256') -cne [string](Get-ContractJsonProperty $request 'artifactSetSha256')) {
+    throw 'Sichtfreigabe ist nicht an die aktuelle Freigabe-ID oder den aktuellen Artefaktsatz gebunden.'
+  }
+  $approvalReport = Get-ContractJsonProperty $approval 'preparedReport'
+  if ([string](Get-ContractJsonProperty $approvalReport 'sha256') -ine (Get-FileHash -LiteralPath $finalReportPath -Algorithm SHA256).Hash) { throw 'Sichtfreigabe gehört nicht zum aktuellen Finalisierungsbericht.' }
+  $approvalRecords = @(Get-ContractApprovalRecords -Report $report)
+  Test-ContractArtifactRecordsCurrent -Records $approvalRecords -Root $resolvedWork
+  if ((Get-ContractArtifactSetHash -Records $approvalRecords) -cne [string](Get-ContractJsonProperty $approval 'artifactSetSha256')) { throw 'Artefaktsatz wurde seit der Sichtfreigabe verändert.' }
+  $boundApprovalRecords = @(Get-ContractJsonProperty $approval 'artifacts')
+  if ($boundApprovalRecords.Count -ne $approvalRecords.Count) { throw 'Sichtfreigabe enthält nicht genau den vorbereiteten Artefaktsatz.' }
+  Test-ContractArtifactRecordsCurrent -Records $boundApprovalRecords -Root $resolvedWork
+  $boundRecordsForHash = @($boundApprovalRecords | ForEach-Object {
+    $boundPath = [string](Get-ContractJsonProperty $_ 'path')
+    $absoluteBoundPath = if ([IO.Path]::IsPathRooted($boundPath)) { [IO.Path]::GetFullPath($boundPath) } else { [IO.Path]::GetFullPath((Join-Path $resolvedWork $boundPath)) }
+    $normalized = [ordered]@{ path = $absoluteBoundPath; bytes = Get-ContractJsonProperty $_ 'bytes'; sha256 = Get-ContractJsonProperty $_ 'sha256' }
+    $normalized
+  })
+  if ((Get-ContractArtifactSetHash -Records $boundRecordsForHash) -cne [string](Get-ContractJsonProperty $approval 'artifactSetSha256')) { throw 'Sichtfreigabe-Artefakthashes stimmen nicht mit dem gebundenen Satz überein.' }
+  $normalizedVisualNote = [regex]::Replace(([string](Get-ContractJsonProperty $approval 'note')).Trim(), '\s+', ' ')
+} catch {
+  Stop-Finalization -Message "Sichtfreigabe fehlt, ist veraltet oder nicht an den aktuellen Artefaktsatz gebunden: $($_.Exception.Message)"
 }
 Assert-CurrentRuntimeFingerprint -Fingerprint (Get-JsonProperty -Object $report -Name "runtime") -Context "Finalisierungsbericht" -RequireBrowser:($expectedHtmlCount -gt 0)
 if ([string](Get-JsonProperty -Object $report -Name "status") -ne "bereit_zur_sichtpruefung") {
@@ -1091,13 +1100,8 @@ $currentLayoutWarnings = @(Get-LayoutWarnings -Path $layoutReportPath)
 if ([string]::Join([char]0x1F, [string[]]$reportLayoutWarnings) -cne [string]::Join([char]0x1F, [string[]]$currentLayoutWarnings)) {
   Stop-Finalization -Message "Layoutwarnungen stimmen nicht mehr mit dem vorbereiteten Layoutbericht überein. Erneute Vorbereitung erforderlich."
 }
-if ($reportLayoutWarnings.Count -gt 0 -and [string]::IsNullOrWhiteSpace($VisuelleFreigabeNotiz)) {
-  Stop-Finalization -Message "Automatische Layoutwarnungen liegen vor. Die Sichtprüfung muss mit -VisuelleFreigabeNotiz nachvollziehbar begründet werden."
-}
-$normalizedVisualNote = if ([string]::IsNullOrWhiteSpace($VisuelleFreigabeNotiz)) {
-  ""
-} else {
-  ([regex]::Replace($VisuelleFreigabeNotiz.Trim(), '\s+', ' '))
+if ($reportLayoutWarnings.Count -gt 0 -and [string]::IsNullOrWhiteSpace($normalizedVisualNote)) {
+  Stop-Finalization -Message "Automatische Layoutwarnungen liegen vor. Die Chat-bestätigte Sichtfreigabe muss eine konkrete Notiz enthalten."
 }
 
 $artifactGroups = Get-JsonProperty -Object $report -Name "artifacts"
@@ -1253,7 +1257,7 @@ try {
   }) -Force
   $report | Add-Member -NotePropertyName visualApprovalNote -NotePropertyValue $normalizedVisualNote -Force
   $reportTempPath = Resolve-WorkflowContractPath -Candidate $reportTempPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Set-Content -LiteralPath $reportTempPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 10)
+  Write-AtomicJson -Path $reportTempPath -Value $report -Depth 10
   $reportTempPath = Resolve-WorkflowContractPath -Candidate $reportTempPath -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
   $preparedPublishedReport = Get-Content -LiteralPath $reportTempPath -Raw -Encoding UTF8 | ConvertFrom-Json
   if ([string](Get-JsonProperty -Object $preparedPublishedReport -Name "status") -ne "veroeffentlicht") {
@@ -1335,7 +1339,7 @@ try {
   } elseif (-not (Test-Path -LiteralPath $finalReportPath -PathType Leaf)) {
     try {
       $finalReportPath = Resolve-WorkflowContractPath -Candidate $finalReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-      Set-Content -LiteralPath $finalReportPath -Encoding UTF8 -Value $preparedReportJson
+      Write-AtomicText -Path $finalReportPath -Content $preparedReportJson
     } catch { $rollbackErrors.Add("Finalisierungsbericht: $($_.Exception.Message)") | Out-Null }
   }
   if (Test-Path -LiteralPath $reportTempPath -PathType Leaf) {

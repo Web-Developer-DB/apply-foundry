@@ -38,6 +38,7 @@ $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/PngTools.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
 
 $a4Ratio = 210.0 / 297.0
 if ([math]::Abs(($Width / [double]$Height) - $a4Ratio) -gt 0.01) {
@@ -267,7 +268,7 @@ function New-PageCaptureHtml {
     },
     1
   )
-  Set-Content -LiteralPath $TargetPath -Encoding UTF8 -Value $captureHtml
+  Write-AtomicText -Path $TargetPath -Content $captureHtml
 }
 
 function Remove-TemporaryDirectoryWithRetry {
@@ -350,7 +351,7 @@ function Write-LayoutReport {
     expectedScreenshots = @($Results).Count
     results = $Results
   }
-  Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 8)
+  Write-AtomicJson -Path $fullPath -Value $report -Depth 8
 }
 
 function Invoke-BrowserScreenshot {

@@ -32,6 +32,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
 $script:ToolTimeoutSeconds = [math]::Min(3600, [math]::Max(120, $TimeoutSeconds * 8))
 
 function Add-Info {
@@ -113,7 +114,7 @@ function Write-ExportReport {
     sourceFolder = $resolvedFolder
     results = $items
   }
-  Set-Content -LiteralPath $fullPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 8)
+  Write-AtomicJson -Path $fullPath -Value $report -Depth 8
 }
 
 function Get-HtmlSnapshotError {
