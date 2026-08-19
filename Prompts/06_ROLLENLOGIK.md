@@ -148,6 +148,6 @@ Diese Beispiele sind keine festen Branchenvorgaben. Die privaten Daten und die S
 
 ## Dokumentation
 
-Die gewählte Strategie wird in `Analyse.md` und am Ende von `Qualitaetscheck.md` kurz festgehalten.
+Die gewählte Strategie wird in `Analyse.md` und am Ende von `Qualitaetscheck.md` kurz festgehalten. Bei einem Anschreiben wird die maschinenlesbare `anschreibenStrategie` mit Anforderungs-, Evidenz- und Stellenfundstellen-IDs ergänzt; Arbeitgeberbezug und Nutzenargumente müssen aus den belegten Passungen konkret abgeleitet werden.
 
 Unsichere Punkte werden in `Offene_Fragen.md` dokumentiert.

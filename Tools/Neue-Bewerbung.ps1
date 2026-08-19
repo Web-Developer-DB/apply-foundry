@@ -754,9 +754,9 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
 }
 
 if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
-  Set-Content -LiteralPath $anforderungsmatrixEntwurfFile -Encoding UTF8 -Value @"
+Set-Content -LiteralPath $anforderungsmatrixEntwurfFile -Encoding UTF8 -Value @"
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "requirements": [
     {
       "id": "muss-1",
@@ -781,6 +781,12 @@ if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
     "transferbruecken": [],
     "auslassungen": []
   },
+  "anschreibenStrategie": {
+    "status": "$(if ($includeLetter) { 'ausstehend' } else { 'nicht_erforderlich' })",
+    "argumente": [],
+    "abweichungBegruendung": ""
+  },
+  "externeQuellen": [],
   "stellenanzeigeAbdeckung": {
     "sourceSha256": "aus Stellenbeschreibung.md übernehmen",
     "fundstellen": []

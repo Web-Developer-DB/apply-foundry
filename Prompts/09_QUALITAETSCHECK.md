@@ -14,9 +14,10 @@ Vor der technischen Vorbereitung prüft der Agent den fachlichen Kandidatenstand
 - Sind Belegarten aus Prompt 07 eingehalten und wurden keine Arbeitgeber, Zeiträume, Kenntnisse, Abschlüsse, Verantwortlichkeiten oder Logistikangaben erfunden?
 - Enthält die normalisierte Matrix jede eigenständige relevante Muss-/Kann-Anforderung genau einmal, ohne durch Wiederholungen der Anzeige das Gewicht zu vervielfachen?
 - Besitzt jede nicht vollständig erfüllte Muss-Anforderung eine ehrliche Behandlung in Matrix, Analyse oder offenen Fragen?
-- Ist bei Matrix-Schema 4 die `recruiterStrategie` vollständig, nach Recruiter-Relevanz geordnet und mit sichtbaren Dokumentankern belegt? Sind zusätzlich jede Anforderung an eine Stellen-Fundstelle und jeder Direktbeleg an eine valide Profilevidenz gebunden?
+- Ist bei Matrix-Schema 5 die `recruiterStrategie` vollständig, nach Recruiter-Relevanz geordnet und mit sichtbaren Dokumentankern belegt? Sind `anschreibenStrategie`, Arbeitgebernutzen, externe Quellen und Evidenzdisposition vollständig? Sind zusätzlich jede Anforderung an eine Stellen-Fundstelle und jeder Direktbeleg an eine valide Profilevidenz gebunden?
 - Besitzt jede kritische oder hoch gewichtete fachliche beziehungsweise erfahrungsbezogene erfüllte oder teilweise erfüllte Anforderung einen sichtbaren Direktbeleg im vorgesehenen Dokument?
 - Verweisen Transferbrücken ausschließlich auf vorhandene Profilhighlights und bleiben sie auf der zulässigen Wahrheitsebene?
+- Ist jede Evidenz-ID verwendet oder als begründete Auslassung erfasst, ohne Nutzung/Auslassungs-Konflikt?
 - Ist die Profilstrategie stellenbezogen, recruiterfreundlich und frei von irrelevanten Inventarlisten?
 - Wurde bei einem ausdrücklichen Bewerbungsauftrag `bewerbungsentscheidung = bewerben` beibehalten und eine Risiko- oder Stretch-Einstufung nicht als Modellveto verwendet?
 - Wurden nur wesentliche Informationslücken erfragt, höchstens drei unabhängige Fragen pro Runde gestellt und beantwortete Fragen nicht wiederholt?
@@ -48,6 +49,8 @@ Vor der technischen Vorbereitung prüft der Agent den fachlichen Kandidatenstand
 - Verbindet es diese Belege mit einem konkreten Arbeitgebernutzen und ergänzt damit die scanbaren Lebenslaufbelege?
 - Verweist `Analyse.md` für relevante Inhaltsentscheidungen knapp auf Matrix-IDs; nicht relevante Kategorien benötigen keine künstlichen Einzelentscheidungen?
 - Sind Motivation und Soft Skills mit echten Belegen verbunden und frei von generischen KI-Floskeln oder defensiven Metaformulierungen?
+- Stimmen die Argumente der `anschreibenStrategie` mit Stellen-Fundstellen, Evidenz-IDs, Arbeitgeberbezug, Nutzenargumenten und sichtbaren Anschreibenankern überein?
+- Sind Sprach-, Floskel- und Wiederholungswarnungen im Inhaltsbericht bewertet, ohne Warnungen ungeprüft durch automatische Textänderung zu beseitigen?
 - Sind Stellenart, Eintritt und Gehalt nur entsprechend Auftrag und Anzeige genannt?
 - Wurden keine Unternehmensdetails, Ansprechpartner oder Adressen erfunden?
 - Passt das Anschreiben auf genau eine feste A4-Seite?
@@ -73,7 +76,7 @@ Der verbindliche Vorbereitungslauf muss anschließend bestätigen:
 - PDF-Datei mit korrektem Namen, Struktur, Seitenzahl und DIN-A4-MediaBox für jedes ausgewählte HTML-Dokument;
 - extrahierbare Unicode-Textschicht, Pflichttexte, ausreichende Textabdeckung und grundlegende Lesereihenfolge;
 - Hashbindung von Quellen, Kandidaten, Screenshots, Berichten und PDFs.
-- bei Matrix-Schema 4 eine maschinenlesbare `recruiterCoverage` und `evidenceCoverage` im `Inhalts-Pruefbericht.json` mit vollständigen Prioritäts-, Highlight-, Transfer-, Auslassungs-, Seiten-1-, Stellenquellen- und Profilevidenznachweisen.
+- bei Matrix-Schema 5 eine maschinenlesbare `recruiterCoverage`, `evidenceCoverage`, `anschreibenCoverage`, `externalSourceCoverage`, `evidenzDisposition` und `sprachqualitaet` im `Inhalts-Pruefbericht.json`.
 - optionaler Passfoto-Quellhash ausschließlich dann, wenn `Passfoto.png` für einen individuellen Lebenslauf tatsächlich vorhanden und eingebettet ist.
 
 Eine Firefox- oder andere manuelle Vorschau ist optional und zählt nur, wenn sie wirklich geöffnet und bewertet wurde. Sie ersetzt nicht den verbindlichen Chrome-/Edge-Nachweis.

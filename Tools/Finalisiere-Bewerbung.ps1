@@ -848,6 +848,9 @@ if (-not (Test-Path -LiteralPath $candidateDir -PathType Container)) {
 
 $auftrag = Get-Content -LiteralPath $auftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $documentScope = Get-DocumentScope -Auftrag $auftrag
+$matrixForFinalization = Get-Content -LiteralPath $matrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$matrixSchemaForFinalization = [int](Get-JsonProperty -Object $matrixForFinalization -Name 'schemaVersion')
+$evidenceIndexPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath 'Evidenzindex.json') -Root $applicationsRootForWork -ForWrite -PathType Leaf
 $expectedCv = [string]$documentScope.lebenslauf -ne "nicht_enthalten"
 $expectedLetter = [bool]$documentScope.anschreiben
 $expectedEmail = [bool]$documentScope.emailNachricht
@@ -949,6 +952,12 @@ if (-not $Veroeffentlichen) {
     profil = Get-ArtifactRecord -File (Get-Item -LiteralPath $ProfilPath)
     bewerbungsauftrag = Get-ArtifactRecord -File (Get-Item -LiteralPath $auftragPath) -Root $applicationsRootForWork
     anforderungsmatrix = Get-ArtifactRecord -File (Get-Item -LiteralPath $matrixPath) -Root $applicationsRootForWork
+  }
+  if ($matrixSchemaForFinalization -ge 5) {
+    if (-not (Test-Path -LiteralPath $evidenceIndexPath -PathType Leaf)) {
+      Stop-Finalization -Message "Schema-5-Bewerbung benötigt Evidenzindex.json als gebundene Quelle."
+    }
+    $preparedSourceInputs.evidenzindex = Get-ArtifactRecord -File (Get-Item -LiteralPath $evidenceIndexPath) -Root $applicationsRootForWork
   }
   if ($null -ne $passfotoSource -and $passfotoSource.Exists) {
     $preparedSourceInputs.passfoto = Get-ArtifactRecord -File (Get-Item -LiteralPath $passfotoSource.Path)
@@ -1145,6 +1154,9 @@ $expectedSourcePaths = [ordered]@{
   bewerbungsauftrag = [System.IO.Path]::GetFullPath($auftragPath)
   anforderungsmatrix = [System.IO.Path]::GetFullPath($matrixPath)
 }
+if ($matrixSchemaForFinalization -ge 5) {
+  $expectedSourcePaths.evidenzindex = [System.IO.Path]::GetFullPath($evidenceIndexPath)
+}
 if ($null -ne $passfotoSource -and $passfotoSource.Exists) {
   $expectedSourcePaths.passfoto = [System.IO.Path]::GetFullPath([string]$passfotoSource.Path)
 }
@@ -1160,7 +1172,7 @@ foreach ($sourceName in $expectedSourcePaths.Keys) {
   if (-not (Test-PathEqual -Left $preparedSourcePath -Right $expectedSourcePaths[$sourceName])) {
     Stop-Finalization -Message "Beim Veröffentlichungslauf wurde eine andere Quelldatei übergeben: $sourceName"
   }
-  $sourceRoot = if ($sourceName -in @("bewerbungsauftrag", "anforderungsmatrix")) { $applicationsRootForWork } else { $privateRoot }
+  $sourceRoot = if ($sourceName -in @("bewerbungsauftrag", "anforderungsmatrix", "evidenzindex")) { $applicationsRootForWork } else { $privateRoot }
   Test-ArtifactSetUnchanged -Records @($sourceRecord) -Root $sourceRoot
 }
 

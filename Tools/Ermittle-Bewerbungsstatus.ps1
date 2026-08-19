@@ -151,6 +151,10 @@ function Test-FinalReportArtifacts {
   try {
     $orderPath = Resolve-SafePath -Candidate (Join-Path -Path $WorkFolder -ChildPath 'Bewerbungsauftrag.json') -Root $WorkFolder -MustExist -ForWrite -PathType Leaf
     $order = Get-Content -LiteralPath $orderPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrixPath = Resolve-SafePath -Candidate (Join-Path -Path $WorkFolder -ChildPath 'Anforderungsmatrix.json') -Root $WorkFolder -MustExist -ForWrite -PathType Leaf
+    $matrix = Get-Content -LiteralPath $matrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrixSchema = [int](Get-JsonProperty -Object $matrix -Name 'schemaVersion')
+    if ($matrixSchema -ge 5) { $expectedSourceNames.Add('evidenzindex') }
     $schema = [int](Get-JsonProperty -Object $order -Name 'schemaVersion')
     $scope = Get-JsonProperty -Object $order -Name 'dokumentumfang'
     $cvKind = if ($schema -ge 4) {
@@ -326,6 +330,19 @@ foreach ($pattern in $expectedFiles) {
 }
 
 $matrixPath = Resolve-SafePath -Candidate (Join-Path $resolvedWork 'Anforderungsmatrix.json') -Root $resolvedWork
+$matrixStrategyIncomplete = $false
+if (Test-Path -LiteralPath $matrixPath -PathType Leaf) {
+  try {
+    $matrixForStatus = Get-Content -LiteralPath $matrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ([int](Get-JsonProperty -Object $matrixForStatus -Name 'schemaVersion') -ge 5) {
+      $letterSelectedForStatus = [bool](Get-JsonProperty -Object $scope -Name 'anschreiben')
+      $letterStrategyForStatus = Get-JsonProperty -Object $matrixForStatus -Name 'anschreibenStrategie'
+      $strategyStatusForStatus = if ($null -eq $letterStrategyForStatus) { '' } else { [string](Get-JsonProperty -Object $letterStrategyForStatus -Name 'status') }
+      $matrixStrategyIncomplete = ($letterSelectedForStatus -and $strategyStatusForStatus -ne 'final') -or (-not $letterSelectedForStatus -and $strategyStatusForStatus -notin @('nicht_erforderlich', ''))
+      if (-not (Test-Path -LiteralPath (Join-Path $resolvedWork 'Evidenzindex.json') -PathType Leaf)) { $matrixStrategyIncomplete = $true }
+    }
+  } catch { $matrixStrategyIncomplete = $true }
+}
 $finalReportPath = Resolve-SafePath -Candidate (Join-Path $resolvedWork 'Finalisierungsbericht.json') -Root $resolvedWork
 $finalReportValid = $false
 $finalStatus = ''
@@ -358,6 +375,10 @@ if (-not $scopeConfirmed) {
   $phase = 'strategie_und_matrix'
   $nextAction = 'Profilstrategie festlegen und die deduplizierte Anforderungsmatrix finalisieren.'
   $requiredPrompts = @('Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md', 'Prompts/06_ROLLENLOGIK.md', 'Prompts/07_WAHRHEIT_UND_GRENZEN.md')
+} elseif ($matrixStrategyIncomplete) {
+  $phase = 'strategie_und_matrix'
+  $nextAction = 'Anschreibenstrategie, Quellenregister und Evidenzdisposition des Schema-5-Auftrags vervollständigen.'
+  $requiredPrompts = @('Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md', 'Prompts/04_ANSCHREIBEN_REGELN.md', 'Prompts/07_WAHRHEIT_UND_GRENZEN.md')
 } elseif ($missingFiles.Count -gt 0) {
   $phase = 'dokumenterstellung'
   $nextAction = 'Nur die laut Dokumentumfang noch fehlenden Kandidatendateien erstellen.'

@@ -8,6 +8,8 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
+- Phase-3-Bewerbungsqualität: Matrix-Schema 5 mit maschinenlesbarer Anschreibenstrategie, Arbeitgebernutzen- und Evidenz-IDs, strukturiertem Quellenregister, vollständiger Evidenzdisposition sowie konservativem Sprach-, Floskel- und Wiederholungswarnsystem. Der Inhaltsprüfbericht verwendet dafür Schema 6; Matrix-Schemata 1 bis 4 bleiben kompatibel.
+
 - Phase-2-Zuverlässigkeitsverträge: gemeinsame atomare UTF-8-/JSON-Schreibfunktionen mit begrenzten Dateisperr-Wiederholungen, pfadgebundene Checkpoint-Aktualisierung und gemeinsame JSON-, Umfangs-, Slug- und Unicode-Textverträge.
 - Hashgebundene Sichtfreigaben mit neuer `freigabe`-CLI, eindeutiger Freigabe-ID, Artefaktsatzbindung und aktuellen Nachweis-Hashes für individuelle und universelle Finalisierungen.
 - ATS-Schema 2 mit Unicode-normalisiertem Token-Multiset sowie geordneten Bigramm-/Trigramm-Metriken, stabiler Tokenisierung technischer Begriffe und vollständiger Artefaktbindung.

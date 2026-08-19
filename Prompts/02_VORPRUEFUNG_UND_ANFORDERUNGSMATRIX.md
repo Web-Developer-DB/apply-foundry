@@ -73,12 +73,14 @@ Jede relevante Anforderung erhält:
 - `beleg`: kurze, konkrete Datengrundlage
 - `behandlung`: Verwendung in Lebenslauf, Anschreiben, Analyse oder offenen Fragen
 
-Neue Bewerbungen verwenden für `Anforderungsmatrix.json` Schema 4. Die Schemata 1 bis 3 bleiben für vorhandene Bewerbungen lesbar und werden nicht automatisch migriert. Schema 4 übernimmt die verbindliche `recruiterStrategie` aus Schema 3 und ergänzt eine unabhängige Beweiskette:
+Neue Bewerbungen verwenden für `Anforderungsmatrix.json` Schema 5. Die Schemata 1 bis 4 bleiben für vorhandene Bewerbungen lesbar und werden nicht automatisch migriert. Schema 5 übernimmt die verbindliche `recruiterStrategie` aus Schema 4, ergänzt `anschreibenStrategie` und `externeQuellen` sowie eine unabhängige Beweiskette:
 
 - `stellenanzeigeAbdeckung`: SHA-256 der vollständig gespeicherten `Stellenbeschreibung.md` und zeilengebundene `fundstellen`. Jede Fundstelle enthält stabile ID, Zeilenbereich, exakten Text, Klassifikation (`anforderung`, `aufgabe` oder `nicht_anforderung`) sowie zugeordnete Matrix-IDs oder eine konkrete Begründung.
 - `stellenFundstellen`: mindestens eine Fundstellen-ID je Matrixanforderung. Explizite Muss-/Kann-Signale und Aufgaben der Anzeige dürfen weder stillschweigend fehlen noch nur durch eine freie Analyse behauptet werden.
 - `Evidenzindex.json`: eigenständiger, privater Index mit SHA-256 der fachlichen Profildatei. Profileinträge haben stabile ID, Zeilenbereich, exakten Profiltext und Belegart. Bestätigte auftragsbezogene Dialogangaben dürfen ebenfalls verwendet werden, aber nur mit `auftragSha256`, `angabeId`, exakter normalisierter Angabe und bestätigtem Wahrheitsstatus. Die menschenlesbare Profildatei beziehungsweise der bestätigte Auftrag bleiben die fachlichen Quellen.
 - `belegRefIds`: bei erfüllten oder teilweise erfüllten Anforderungen zwingende Evidenz-IDs. `NICHT BEHAUPTEN` und `EINARBEITUNGSZIEL` sind keine Direktbelege.
+- `anschreibenStrategie`: Bei ausgewähltem Anschreiben `status = final` und grundsätzlich zwei bis vier Argumente; bei einem als `schmal` dokumentierten Profil ist ein Argument zulässig. Jedes Argument enthält `anforderungIds`, `belegRefIds`, `stellenFundstellen` oder eine Unternehmensquelle, `arbeitgeberbezug`, `nutzenargument` und sichtbare Textanker.
+- `externeQuellen`: Liste strukturierter Unternehmens- oder Gehaltsquellen mit ID, Typ, Titel, Herausgeber, URL, Abrufzeit, optionalem Quellenstand, Aussage und Verwendungen. Eine leere Liste ist zulässig, solange keine externe Aussage verwendet wird.
 
 Die `recruiterStrategie` enthält weiterhin:
 
@@ -88,7 +90,7 @@ Die `recruiterStrategie` enthält weiterhin:
 - `prioritaetsAnforderungen`: nach Recruiter-Relevanz geordnete Matrix-IDs. Alle kritischen oder hoch gewichteten fachlichen beziehungsweise erfahrungsbezogenen Anforderungen müssen enthalten sein.
 - `profilHighlights`: belegte Stationen, Projekte, Qualifikationen oder Kenntnisse mit `id`, `anforderungIds`, `belegart`, verpflichtenden `belegRefIds`, `relevanz` (`hoch`, `mittel`, `niedrig`), `zielDokument` (`lebenslauf`, `anschreiben` oder `email_nachricht`), `platzierung` (`seite_1` nur im Lebenslauf, sonst `beliebig`) und konkreten `sichtbareAnker`n aus dem Dokumenttext.
 - `transferbruecken`: für teilweise oder nicht direkt belegte Anforderungen mit `anforderungId`, `zieltechnologie`, `basisHighlightIds`, zulässiger `formulierungsebene` (`ÜBERTRAGBAR`, `GRUNDLAGEN / VERSTÄNDNIS` oder `EINARBEITUNGSZIEL`), `zielDokument`, `platzierung` und `sichtbareAnker`n.
-- `auslassungen`: bewusst nicht verwendete Profilinhalte mit `thema`, konkreter `begruendung` und optionaler `anforderungId`.
+- `auslassungen`: bewusst nicht verwendete Profilinhalte mit `thema`, konkreter `begruendung`, optionaler `anforderungId` und bei Profilinhalten `belegRefIds`. Jede Evidenz-ID des vollständigen Index muss entweder in einer Verwendung oder in genau einer begründeten Auslassung erscheinen.
 
 Ein Highlight ist kein abstraktes Schlagwort. Sein sichtbarer Text muss Zweck oder Aufgabe, eingesetzte Kenntnisse beziehungsweise Technologien und den konkreten eigenen Beitrag so weit benennen, wie die Profildaten dies belegen. Bei Stationen darf derselbe Nachweis auch durch mehrere eng zusammengehörige Formulierungen entstehen.
 

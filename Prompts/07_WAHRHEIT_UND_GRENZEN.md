@@ -90,11 +90,12 @@ Pflichtlogik:
 
 ## Quellengebundene Belege
 
-Bei neuen Matrix-Schema-4-Bewerbungen reicht ein plausibler Belegtext nicht aus. Direkte Aussagen müssen auf eine `belegRefId` im privaten `Evidenzindex.json` verweisen. Der Index verweist seinerseits mit Hash, Zeilenbereich und exaktem Text auf `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` oder bei bestätigten nur-auftragsbezogenen Angaben mit Auftragshash, stabiler `angabeId` und der exakt normalisierten Dialogangabe auf den Bewerbungsauftrag.
+Bei neuen Matrix-Schema-5-Bewerbungen reicht ein plausibler Belegtext nicht aus. Direkte Aussagen müssen auf eine `belegRefId` im privaten `Evidenzindex.json` verweisen. Der Index verweist seinerseits mit Hash, Zeilenbereich und exaktem Text auf `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` oder bei bestätigten nur-auftragsbezogenen Angaben mit Auftragshash, stabiler `angabeId` und der exakt normalisierten Dialogangabe auf den Bewerbungsauftrag.
 
 - Nur eine valide Evidenz-ID derselben Belegart darf eine erfüllte oder teilweise erfüllte Anforderung tragen.
 - `NICHT BEHAUPTEN` und `EINARBEITUNGSZIEL` dürfen niemals als sichtbarer Direktbeleg verwendet werden.
 - Eine Zieltechnologie ohne direkte Evidenz bleibt eine Transferbrücke; ihre Grundlage sind sichtbare Profilhighlights mit eigenen validen Evidenz-IDs.
+- Jede Evidenz-ID wird im Schema 5 vollständig dispositioniert: Verwendung in Anforderung, Highlight oder Anschreibenstrategie oder genau eine begründete Auslassung. Eine gleichzeitig verwendete und ausgelassene Evidenz ist unzulässig.
 - Jede Matrixanforderung verweist zusätzlich auf eine Fundstelle in der gespeicherten Stellenbeschreibung. Anforderungen dürfen nicht aus dem Gedächtnis, aus einer Unternehmensvermutung oder aus einer Toolliste konstruiert werden.
 
 ## Wahrheitsebene von Transferbrücken

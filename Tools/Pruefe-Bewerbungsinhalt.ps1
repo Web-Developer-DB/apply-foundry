@@ -233,7 +233,11 @@ function Write-JsonReport {
     [object]$DocumentScope,
     [object]$Passfoto,
     [object]$RecruiterCoverage,
-    [object]$EvidenceCoverage
+    [object]$EvidenceCoverage,
+    [object]$LetterCoverage,
+    [object]$ExternalSourceCoverage,
+    [object]$EvidenceDisposition,
+    [object]$LanguageQuality
   )
   if ([string]::IsNullOrWhiteSpace($Path)) { return }
   $fullPath = $script:ResolvedReportPath
@@ -247,7 +251,7 @@ function Write-JsonReport {
   $null = Resolve-SafePath -Candidate $parent -Root $script:WorkRoot -AllowRoot -MustExist -PathType Container
   $fullPath = Resolve-SafePath -Candidate $fullPath -Root $script:WorkRoot -ForWrite -PathType Leaf
   $report = [ordered]@{
-    schemaVersion = 5
+    schemaVersion = 6
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     applicationFolder = [System.IO.Path]::GetFullPath($Ordner)
     status = if ($errors.Count -gt 0) { "fehler" } elseif ($warnings.Count -gt 0) { "warnung" } else { "ok" }
@@ -265,6 +269,10 @@ function Write-JsonReport {
     fitAssessment = $FitAssessment
     recruiterCoverage = $RecruiterCoverage
     evidenceCoverage = $EvidenceCoverage
+    anschreibenCoverage = $LetterCoverage
+    externalSourceCoverage = $ExternalSourceCoverage
+    evidenzDisposition = $EvidenceDisposition
+    sprachqualitaet = $LanguageQuality
   }
   Write-AtomicJson -Path $fullPath -Value $report -Depth 6
 }
@@ -330,8 +338,8 @@ if ($matrixSchemaValue -isnot [int] -and $matrixSchemaValue -isnot [long]) {
   exit 1
 }
 $matrixSchema = [int]$matrixSchemaValue
-if ($matrixSchema -lt 1 -or $matrixSchema -gt 4) {
-  Write-Host "[FEHLER] Anforderungsmatrix verwendet keine unterstützte schemaVersion 1 bis 4." -ForegroundColor Red
+if ($matrixSchema -lt 1 -or $matrixSchema -gt 5) {
+  Write-Host "[FEHLER] Anforderungsmatrix verwendet keine unterstützte schemaVersion 1 bis 5." -ForegroundColor Red
   exit 1
 }
 $auftragSchemaValue = Get-JsonProperty -Object $auftrag -Name "schemaVersion"
@@ -375,6 +383,31 @@ $effectiveScope = [ordered]@{
   lebenslauf = $cvKind
   anschreiben = $expectedLetter
   emailNachricht = $expectedEmail
+}
+
+$letterCoverage = [ordered]@{
+  applicable = ($matrixSchema -ge 5 -and $expectedLetter)
+  status = if ($matrixSchema -ge 5 -and $expectedLetter) { 'ausstehend' } elseif ($matrixSchema -ge 5) { 'nicht_erforderlich' } else { 'legacy_oder_nicht_erforderlich' }
+  argumente = @()
+}
+$externalSourceCoverage = [ordered]@{
+  applicable = ($matrixSchema -ge 5)
+  status = if ($matrixSchema -ge 5) { 'ausstehend' } else { 'legacy_oder_nicht_erforderlich' }
+  sources = @()
+}
+$evidenceDisposition = [ordered]@{
+  applicable = ($matrixSchema -ge 5)
+  status = if ($matrixSchema -ge 5) { 'ausstehend' } else { 'legacy_oder_nicht_erforderlich' }
+  used = @()
+  omitted = @()
+  unclassified = @()
+  conflicts = @()
+}
+$languageQuality = [ordered]@{
+  applicable = $expectedLetter
+  status = if ($expectedLetter) { 'ausstehend' } else { 'nicht_erforderlich' }
+  findings = @()
+  metrics = [ordered]@{}
 }
 
 # Schema 4 bindet die Matrix unabhängig an die Stellenanzeige und die privaten
@@ -1045,6 +1078,190 @@ if ($recruiterCoverage.applicable) {
   }
 }
 
+# Phase 3: externe Quellen und maschinenlesbare Anschreibenstrategie.
+$analysePath = Join-Path -Path $documentFolder -ChildPath 'Analyse.md'
+$analyseText = if (Test-Path -LiteralPath $analysePath -PathType Leaf) { Get-Content -LiteralPath $analysePath -Raw -Encoding UTF8 } else { '' }
+$externalSources = @((Get-JsonProperty -Object $matrix -Name 'externeQuellen') | Where-Object { $null -ne $_ })
+$externalById = @{}
+$externalSourceRecords = @()
+$referencedExternalIds = [System.Collections.Generic.HashSet[string]]::new()
+if ($matrixSchema -ge 5) {
+  if ($null -eq $matrix.PSObject.Properties['externeQuellen']) {
+    Add-ErrorMessage 'Schema-5-Anforderungsmatrix enthält keine externe Quellenliste externeQuellen.'
+  }
+  foreach ($source in $externalSources) {
+    $sourceId = [string](Get-JsonProperty -Object $source -Name 'id')
+    $sourceType = [string](Get-JsonProperty -Object $source -Name 'typ')
+    $title = [string](Get-JsonProperty -Object $source -Name 'titel')
+    $publisher = [string](Get-JsonProperty -Object $source -Name 'herausgeber')
+    $url = [string](Get-JsonProperty -Object $source -Name 'url')
+    $accessed = [string](Get-JsonProperty -Object $source -Name 'abgerufenAmUtc')
+    $sourceDate = [string](Get-JsonProperty -Object $source -Name 'quellenstand')
+    $claim = [string](Get-JsonProperty -Object $source -Name 'aussage')
+    $usages = @((Get-JsonProperty -Object $source -Name 'verwendungen') | Where-Object { $null -ne $_ })
+    $recordValid = $true
+    if (-not (Test-TechnicalReferenceId -Value $sourceId) -or $externalById.ContainsKey($sourceId)) { Add-ErrorMessage "Externe Quelle besitzt eine leere oder doppelte ID: '$sourceId'."; $recordValid = $false } else { $externalById[$sourceId] = $source }
+    if ($sourceType -notin @('unternehmen', 'gehalt')) { Add-ErrorMessage "Externe Quelle '$sourceId' verwendet einen ungültigen Typ: $sourceType"; $recordValid = $false }
+    if ([string]::IsNullOrWhiteSpace($title) -or [string]::IsNullOrWhiteSpace($publisher) -or [string]::IsNullOrWhiteSpace($claim)) { Add-ErrorMessage "Externe Quelle '$sourceId' benötigt Titel, Herausgeber und Aussage."; $recordValid = $false }
+    if ($url -notmatch '^https?://[^\s]+$') { Add-ErrorMessage "Externe Quelle '$sourceId' benötigt eine absolute HTTP(S)-URL."; $recordValid = $false }
+    $accessDate = [datetime]::MinValue
+    if (-not [datetime]::TryParse($accessed, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind, [ref]$accessDate) -or $accessDate.ToUniversalTime() -gt [datetime]::UtcNow.AddMinutes(5)) { Add-ErrorMessage "Externe Quelle '$sourceId' benötigt einen gültigen, nicht zukünftigen Abrufzeitpunkt."; $recordValid = $false }
+    if (-not [string]::IsNullOrWhiteSpace($sourceDate)) {
+      $parsedSourceDate = [datetime]::MinValue
+      if (-not [datetime]::TryParse($sourceDate, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AllowWhiteSpaces, [ref]$parsedSourceDate) -or $parsedSourceDate.Date -gt [datetime]::UtcNow.Date.AddDays(1)) { Add-ErrorMessage "Externe Quelle '$sourceId' enthält keinen gültigen Quellenstand."; $recordValid = $false }
+    }
+    if ($usages.Count -eq 0) { Add-ErrorMessage "Externe Quelle '$sourceId' enthält keine Verwendung."; $recordValid = $false }
+    $usageRecords = @()
+    foreach ($usage in $usages) {
+      $purpose = [string](Get-JsonProperty -Object $usage -Name 'zweck')
+      $targetDocument = [string](Get-JsonProperty -Object $usage -Name 'zielDokument')
+      $anchors = @((Get-JsonProperty -Object $usage -Name 'sichtbareAnker') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+      $usageValid = $true
+      if ($purpose -notin @('arbeitgeberbezug', 'gehaltsschaetzung', 'sonstiges')) { Add-ErrorMessage "Externe Quelle '$sourceId' enthält einen ungültigen Verwendungszweck: $purpose"; $usageValid = $false }
+      if ($targetDocument -notin @('anschreiben', 'analyse')) { Add-ErrorMessage "Externe Quelle '$sourceId' verweist auf ein ungültiges Zieldokument: $targetDocument"; $usageValid = $false }
+      if ($targetDocument -eq 'anschreiben' -and -not $expectedLetter) { Add-ErrorMessage "Externe Quelle '$sourceId' verweist auf ein nicht ausgewähltes Anschreiben."; $usageValid = $false }
+      if ($anchors.Count -eq 0) { Add-ErrorMessage "Externe Quelle '$sourceId' benötigt sichtbare Textanker."; $usageValid = $false }
+      $targetText = if ($targetDocument -eq 'anschreiben') { $letterText } else { $analyseText }
+      $missing = @($anchors | Where-Object { -not (Test-ContainsText -Haystack $targetText -Needle $_) })
+      if ($missing.Count -gt 0) { Add-ErrorMessage "Externe Quelle '$sourceId' fehlt im Zieldokument: $($missing -join ', ')"; $usageValid = $false }
+      if ($purpose -eq 'gehaltsschaetzung' -and $sourceType -ne 'gehalt') { Add-ErrorMessage "Gehaltsverwendung '$sourceId' benötigt eine Quelle vom Typ gehalt."; $usageValid = $false }
+      $usageRecords += [ordered]@{ zweck=$purpose; zielDokument=$targetDocument; sichtbareAnker=@($anchors); fehlendeAnker=@($missing); valid=$usageValid }
+      $null = $referencedExternalIds.Add($sourceId)
+    }
+    $externalSourceRecords += [ordered]@{ id=$sourceId; typ=$sourceType; url=$url; verwendungen=@($usageRecords); valid=$recordValid -and (@($usageRecords | Where-Object { -not $_.valid }).Count -eq 0) }
+  }
+  $externalSourceCoverage.sources = @($externalSourceRecords)
+  $externalSourceCoverage.status = if ($errors.Count -eq $schema4ErrorStart) { 'ok' } else { 'fehler' }
+  $applicationLogistics = Get-JsonProperty -Object $auftrag -Name 'bewerbungslogistik'
+  $salaryLogic = [string](Get-JsonProperty -Object $applicationLogistics -Name 'gehaltslogik')
+  $automaticSalary = $salaryLogic -match '(?i)(automatisch|schätz|marktüblich|benchmark)'
+  if ($automaticSalary -and @($externalSourceRecords | Where-Object { $_.valid -and $_.typ -eq 'gehalt' }).Count -eq 0) { Add-ErrorMessage 'Eine automatische Gehaltsschätzung benötigt mindestens eine gültige externe Gehaltsquelle.' }
+  $letterStrategy = Get-JsonProperty -Object $matrix -Name 'anschreibenStrategie'
+  if ($expectedLetter) {
+    if ($null -eq $letterStrategy) { Add-ErrorMessage 'Schema-5-Anforderungsmatrix enthält keine anschreibenStrategie.' }
+    else {
+      $letterStatus = [string](Get-JsonProperty -Object $letterStrategy -Name 'status')
+      $arguments = @((Get-JsonProperty -Object $letterStrategy -Name 'argumente') | Where-Object { $null -ne $_ })
+      $substance = [string](Get-JsonProperty -Object $strategy -Name 'profilSubstanz')
+      $argumentLimitValid = ($arguments.Count -ge 2 -and $arguments.Count -le 4) -or ($substance -eq 'schmal' -and $arguments.Count -eq 1)
+      if ($letterStatus -ne 'final') { Add-ErrorMessage 'anschreibenStrategie.status muss bei ausgewähltem Anschreiben final sein.' }
+      if (-not $argumentLimitValid) { Add-ErrorMessage 'anschreibenStrategie benötigt zwei bis vier Argumente; bei schmalem Profil ist genau eines zulässig.' }
+      $argumentRecords = @()
+      $argumentIdsSeen = [System.Collections.Generic.HashSet[string]]::new()
+      foreach ($argument in $arguments) {
+        $argumentId = [string](Get-JsonProperty -Object $argument -Name 'id')
+        $requirementIds = @((Get-JsonProperty -Object $argument -Name 'anforderungIds') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        $evidenceIds = @((Get-JsonProperty -Object $argument -Name 'belegRefIds') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        $jobAnchorIds = @((Get-JsonProperty -Object $argument -Name 'stellenFundstellen') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        $sourceIds = @((Get-JsonProperty -Object $argument -Name 'externeQuellenIds') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        $employerRelation = [string](Get-JsonProperty -Object $argument -Name 'arbeitgeberbezug')
+        $benefit = [string](Get-JsonProperty -Object $argument -Name 'nutzenargument')
+        $anchors = @((Get-JsonProperty -Object $argument -Name 'sichtbareAnker') | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        $recordValid = $true
+        if (-not (Test-TechnicalReferenceId -Value $argumentId) -or -not $argumentIdsSeen.Add($argumentId)) { Add-ErrorMessage "Anschreibenargument besitzt eine leere, ungültige oder doppelte ID: '$argumentId'."; $recordValid = $false }
+        if ($requirementIds.Count -eq 0 -or $evidenceIds.Count -eq 0) { Add-ErrorMessage "Anschreibenargument '$argumentId' benötigt Anforderungs- und Evidenz-IDs."; $recordValid = $false }
+        foreach ($requirementId in $requirementIds) {
+          if (-not $requirementById.ContainsKey($requirementId)) { Add-ErrorMessage "Anschreibenargument '$argumentId' verweist auf unbekannte Anforderung: $requirementId"; $recordValid = $false }
+          elseif ([string](Get-JsonProperty -Object $requirementById[$requirementId] -Name 'status') -in @('nicht_belegt','unklar')) { Add-ErrorMessage "Anschreibenargument '$argumentId' darf keine unbelegte Anforderung als Direktargument führen: $requirementId"; $recordValid = $false }
+        }
+        foreach ($evidenceId in $evidenceIds) {
+          if (-not $profileEvidenceById.ContainsKey($evidenceId)) { Add-ErrorMessage "Anschreibenargument '$argumentId' verweist auf unbekannte Profilevidenz: $evidenceId"; $recordValid = $false }
+          else {
+            $evidenceType = [string](Get-JsonProperty -Object $profileEvidenceById[$evidenceId] -Name 'belegart')
+            if ($evidenceType -in @('NICHT BEHAUPTEN','EINARBEITUNGSZIEL')) { Add-ErrorMessage "Anschreibenargument '$argumentId' darf Evidenzart '$evidenceType' nicht direkt verwenden."; $recordValid = $false }
+            $evidenceLinkedToRequirement = @($requirementIds | Where-Object { $req = $requirementById[$_]; [string]$evidenceId -in @((Get-JsonProperty -Object $req -Name 'belegRefIds')) }).Count -gt 0
+            $evidenceLinkedToHighlight = @($highlights | Where-Object { $highlightRequirementIds = @((Get-JsonProperty -Object $_ -Name 'anforderungIds') | ForEach-Object { [string]$_ }); $evidenceLinkedToRequirement -or ($_.PSObject.Properties['belegRefIds'] -and [string]$evidenceId -in @((Get-JsonProperty -Object $_ -Name 'belegRefIds')) -and @($highlightRequirementIds | Where-Object { $_ -in $requirementIds }).Count -gt 0) }).Count -gt 0
+            if (-not $evidenceLinkedToRequirement -and -not $evidenceLinkedToHighlight) { Add-ErrorMessage "Anschreibenargument '$argumentId' verwendet Evidenz '$evidenceId' ohne Bezug zu seiner Anforderung oder einem passenden Profilhighlight."; $recordValid = $false }
+          }
+        }
+        foreach ($jobAnchorId in $jobAnchorIds) { if (-not $sourceAnchorById.ContainsKey($jobAnchorId)) { Add-ErrorMessage "Anschreibenargument '$argumentId' verweist auf unbekannte Stellen-Fundstelle: $jobAnchorId"; $recordValid = $false } }
+        foreach ($sourceId in $sourceIds) { if (-not $externalById.ContainsKey($sourceId) -or [string](Get-JsonProperty -Object $externalById[$sourceId] -Name 'typ') -ne 'unternehmen') { Add-ErrorMessage "Anschreibenargument '$argumentId' verweist auf keine gültige Unternehmensquelle: $sourceId"; $recordValid = $false } }
+        if ($jobAnchorIds.Count -eq 0 -and $sourceIds.Count -eq 0) { Add-ErrorMessage "Anschreibenargument '$argumentId' benötigt Stellen- oder Unternehmensbezug."; $recordValid = $false }
+        if ($employerRelation.Trim().Length -lt 20 -or $benefit.Trim().Length -lt 20) { Add-ErrorMessage "Anschreibenargument '$argumentId' benötigt konkreten Arbeitgeberbezug und Nutzen."; $recordValid = $false }
+        if ($anchors.Count -eq 0) { Add-ErrorMessage "Anschreibenargument '$argumentId' benötigt sichtbare Textanker."; $recordValid = $false }
+        $missingAnchors = @($anchors | Where-Object { -not (Test-ContainsText -Haystack $letterText -Needle $_) })
+        if ($missingAnchors.Count -gt 0) { Add-ErrorMessage "Anschreibenargument '$argumentId' fehlt im Anschreiben: $($missingAnchors -join ', ')"; $recordValid = $false }
+        $argumentRecords += [ordered]@{ id=$argumentId; anforderungIds=@($requirementIds); belegRefIds=@($evidenceIds); stellenFundstellen=@($jobAnchorIds); externeQuellenIds=@($sourceIds); sichtbareAnker=@($anchors); fehlendeAnker=@($missingAnchors); valid=$recordValid }
+      }
+      $letterCoverage.argumente = @($argumentRecords)
+    }
+  } elseif ($matrixSchema -ge 5) {
+    $letterStatus = if ($null -eq $letterStrategy) { '' } else { [string](Get-JsonProperty -Object $letterStrategy -Name 'status') }
+    $argumentCount = if ($null -eq $letterStrategy) { 0 } else { @((Get-JsonProperty -Object $letterStrategy -Name 'argumente') | Where-Object { $null -ne $_ }).Count }
+    if ($letterStatus -ne 'nicht_erforderlich' -or $argumentCount -ne 0) { Add-ErrorMessage 'Anschreibenstrategie muss ohne ausgewähltes Anschreiben nicht_erforderlich und leer sein.' }
+  }
+  $letterCoverage.status = if ($errors.Count -eq $schema4ErrorStart) { 'ok' } else { 'fehler' }
+}
+
+# Vollständige Evidenzdisposition: jede Index-ID muss verwendet oder begründet ausgelassen werden.
+if ($matrixSchema -ge 5 -and $null -ne $evidenceIndex) {
+  $usedEvidence = [System.Collections.Generic.HashSet[string]]::new()
+  foreach ($requirement in @($requirements)) { foreach ($id in @((Get-JsonProperty -Object $requirement -Name 'belegRefIds'))) { if (-not [string]::IsNullOrWhiteSpace([string]$id)) { $null = $usedEvidence.Add([string]$id) } } }
+  foreach ($highlight in @($highlights)) { foreach ($id in @((Get-JsonProperty -Object $highlight -Name 'belegRefIds'))) { if (-not [string]::IsNullOrWhiteSpace([string]$id)) { $null = $usedEvidence.Add([string]$id) } } }
+  $letterStrategyForEvidence = Get-JsonProperty -Object $matrix -Name 'anschreibenStrategie'
+  foreach ($argument in @((Get-JsonProperty -Object $letterStrategyForEvidence -Name 'argumente'))) { foreach ($id in @((Get-JsonProperty -Object $argument -Name 'belegRefIds'))) { if (-not [string]::IsNullOrWhiteSpace([string]$id)) { $null = $usedEvidence.Add([string]$id) } } }
+  $strategyForDisposition = Get-JsonProperty -Object $matrix -Name 'recruiterStrategie'
+  $omissionItems = @((Get-JsonProperty -Object $strategyForDisposition -Name 'auslassungen') | Where-Object { $null -ne $_ })
+  $omittedEvidence = [System.Collections.Generic.HashSet[string]]::new()
+  foreach ($omission in $omissionItems) {
+    foreach ($idValue in @((Get-JsonProperty -Object $omission -Name 'belegRefIds'))) {
+      $id = [string]$idValue
+      if ([string]::IsNullOrWhiteSpace($id)) { continue }
+      if (-not $profileEvidenceById.ContainsKey($id)) { Add-ErrorMessage "Auslassung verweist auf unbekannte Profilevidenz: $id"; continue }
+      if (-not $omittedEvidence.Add($id)) { Add-ErrorMessage "Profilevidenz wird mehrfach als Auslassung geführt: $id" }
+    }
+  }
+  $usedRecords = @($usedEvidence | ForEach-Object { [string]$_ })
+  $omittedRecords = @($omittedEvidence | ForEach-Object { [string]$_ })
+  $conflicts = @($usedRecords | Where-Object { $_ -in $omittedRecords })
+  foreach ($id in $conflicts) { Add-ErrorMessage "Profilevidenz ist zugleich verwendet und ausgelassen: $id" }
+  $allIds = @($profileEvidenceById.Keys)
+  $unclassified = @($allIds | Where-Object { $_ -notin $usedRecords -and $_ -notin $omittedRecords })
+  foreach ($id in $unclassified) { Add-ErrorMessage "Profilevidenz bleibt ohne Verwendung oder begründete Auslassung: $id" }
+  $evidenceDisposition.used = @($usedRecords)
+  $evidenceDisposition.omitted = @($omittedRecords)
+  $evidenceDisposition.unclassified = @($unclassified)
+  $evidenceDisposition.conflicts = @($conflicts)
+  $evidenceDisposition.status = if ($unclassified.Count -eq 0 -and $conflicts.Count -eq 0) { 'ok' } else { 'fehler' }
+} elseif ($matrixSchema -ge 5) {
+  $evidenceDisposition.status = 'fehler'
+}
+
+# Konservative Sprachwarnungen, ohne automatische Textänderung.
+if ($expectedLetter) {
+  $findings = [System.Collections.Generic.List[object]]::new()
+  $floskelPatterns = @(
+    '(?i)hiermit bewerbe ich mich',
+    '(?i)mit großem interesse habe ich',
+    '(?i)ich bin davon überzeugt',
+    '(?i)über eine einladung zum persönlichen gespräch freue ich mich'
+  )
+  foreach ($pattern in $floskelPatterns) { foreach ($match in [regex]::Matches($letterText, $pattern)) { $findings.Add([ordered]@{ code='floskel'; dokument='anschreiben'; text=$match.Value; count=1 }) | Out-Null; Add-WarningMessage "Anschreiben enthält eine mögliche Floskel: $($match.Value)" } }
+  $sentences = @([regex]::Split($letterText, '(?<=[.!?])\s+') | ForEach-Object { $_.Trim() } | Where-Object { @(ConvertTo-ContractTokens $_).Count -ge 6 })
+  $sentenceGroups = @($sentences | Group-Object { Normalize-Text $_ } | Where-Object { $_.Count -gt 1 })
+  foreach ($group in $sentenceGroups) { $findings.Add([ordered]@{ code='wiederholter_satz'; dokument='anschreiben'; text=$group.Name; count=$group.Count }) | Out-Null; Add-WarningMessage "Anschreiben wiederholt einen Satz: $($group.Name)" }
+  $startGroups = @($sentences | Group-Object { ([string]((ConvertTo-ContractTokens $_) | Select-Object -First 1)) } | Where-Object { $_.Count -ge 3 -and -not [string]::IsNullOrWhiteSpace($_.Name) })
+  foreach ($group in $startGroups) { $findings.Add([ordered]@{ code='wiederholter_satzanfang'; dokument='anschreiben'; text=$group.Name; count=$group.Count }) | Out-Null; Add-WarningMessage "Anschreiben beginnt mehrere Sätze gleich: $($group.Name)" }
+  foreach ($sentence in $sentences) { if (@(ConvertTo-ContractTokens $sentence).Count -gt 35) { $findings.Add([ordered]@{ code='langer_satz'; dokument='anschreiben'; text=$sentence.Substring(0, [math]::Min(180, $sentence.Length)); count=1 }) | Out-Null; Add-WarningMessage 'Anschreiben enthält einen ungewöhnlich langen Satz.' } }
+  $letterTokens = @(ConvertTo-ContractTokens $letterText)
+  $letterNgrams = @{}
+  for ($i = 0; $i -le $letterTokens.Count - 8; $i++) { $ngram = $letterTokens[$i..($i + 7)] -join ' '; if (-not $letterNgrams.ContainsKey($ngram)) { $letterNgrams[$ngram] = 0 }; $letterNgrams[$ngram]++ }
+  foreach ($entry in $letterNgrams.GetEnumerator() | Where-Object { $_.Value -gt 1 }) { $findings.Add([ordered]@{ code='wiederholte_textfolge'; dokument='anschreiben'; text=$entry.Key; count=$entry.Value }) | Out-Null; Add-WarningMessage 'Anschreiben wiederholt eine längere Textfolge.' }
+  $otherDocuments = @([pscustomobject]@{ Name='lebenslauf'; Text=$cvText }, [pscustomobject]@{ Name='email_nachricht'; Text=$emailText })
+  foreach ($other in $otherDocuments) {
+    if ([string]::IsNullOrWhiteSpace($other.Text)) { continue }
+    $otherSentences = @([regex]::Split($other.Text, '(?<=[.!?])\s+') | ForEach-Object { $_.Trim() } | Where-Object { @(ConvertTo-ContractTokens $_).Count -ge 8 })
+    foreach ($sentence in $sentences) { $normalizedSentence = Normalize-Text $sentence; if ($otherSentences | Where-Object { (Normalize-Text $_) -eq $normalizedSentence }) { $findings.Add([ordered]@{ code='dokumentwiederholung'; dokument='anschreiben'; text=$sentence; count=1; vergleich=$other.Name }) | Out-Null; Add-WarningMessage "Anschreiben wiederholt einen längeren Satz aus $($other.Name)." } }
+    $otherTokens = @(ConvertTo-ContractTokens $other.Text)
+    $otherNgrams = [System.Collections.Generic.HashSet[string]]::new()
+    for ($i = 0; $i -le $otherTokens.Count - 8; $i++) { $null = $otherNgrams.Add(($otherTokens[$i..($i + 7)] -join ' ')) }
+    foreach ($entry in $letterNgrams.GetEnumerator() | Where-Object { $_.Key -in $otherNgrams }) { $findings.Add([ordered]@{ code='dokument_textwiederholung'; dokument='anschreiben'; text=$entry.Key; count=1; vergleich=$other.Name }) | Out-Null; Add-WarningMessage "Anschreiben wiederholt eine längere Textfolge aus $($other.Name)." }
+  }
+  $languageQuality.findings = @($findings)
+  $languageQuality.metrics = [ordered]@{ satzAnzahl=$sentences.Count; wortAnzahl=$letterTokens.Count; floskelAnzahl=@($findings | Where-Object { $_.code -eq 'floskel' }).Count; wiederholungsAnzahl=@($findings | Where-Object { $_.code -like '*wiederhol*' }).Count }
+  $languageQuality.status = if ($findings.Count -gt 0) { 'warnung' } else { 'ok' }
+}
+
 $fitScorePattern = '(?im)(?:Eignung|Passung|gewichtete\s+(?:Eignungsbewertung|Anforderungsmatrix))[^\r\n]{0,100}?(?<score>\d+(?:[\.,]\d+)?)\s*(?:%|Prozent)|(?<scoreBefore>\d+(?:[\.,]\d+)?)\s*(?:%|Prozent)[^\r\n]{0,70}?(?:Eignung|Passung)'
 foreach ($scoreDocumentName in @("Analyse.md", "Qualitaetscheck.md")) {
   $scoreDocumentPath = Join-Path -Path $documentFolder -ChildPath $scoreDocumentName
@@ -1157,7 +1374,7 @@ foreach ($pattern in $defensivePatterns) {
   }
 }
 
-Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode -DocumentMode $documentMode -DocumentScope $effectiveScope -Passfoto $passfotoReport -RecruiterCoverage $recruiterCoverage -EvidenceCoverage $evidenceCoverage
+Write-JsonReport -Path $BerichtPath -Periods $periods -RequiredPeriods $requiredPeriods -CompactSchoolPeriods $compactedSchoolPeriods -FitAssessment $fitAssessment -SchoolMode $schoolMode -ProfileLinksMode $profileLinksMode -DocumentMode $documentMode -DocumentScope $effectiveScope -Passfoto $passfotoReport -RecruiterCoverage $recruiterCoverage -EvidenceCoverage $evidenceCoverage -LetterCoverage $letterCoverage -ExternalSourceCoverage $externalSourceCoverage -EvidenceDisposition $evidenceDisposition -LanguageQuality $languageQuality
 
 Write-Host ""
 Write-Host "Zusammenfassung:"

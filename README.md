@@ -535,7 +535,7 @@ Pro Runde werden höchstens drei wesentliche, voneinander unabhängige Fragen ge
 
 **5 · Bewerbungsauftrag und Matrix**
 
-`Bewerbungsauftrag.json` Schema 5 friert Firma, Rolle, portable Root-relative Pfade, Logistik, den bestätigten Dokumentumfang und den normalisierten Dialogzustand für genau diese Bewerbung ein. Die vollständige `Anforderungsmatrix.json` dokumentiert Gewichtung, Beleg und Behandlung jeder relevanten Anforderung.
+`Bewerbungsauftrag.json` Schema 5 friert Firma, Rolle, portable Root-relative Pfade, Logistik, den bestätigten Dokumentumfang und den normalisierten Dialogzustand für genau diese Bewerbung ein. Neue Bewerbungen verwenden `Anforderungsmatrix.json` Schema 5: zusätzlich zu Gewichtung, Beleg und Behandlung enthält sie die maschinenlesbare Anschreibenstrategie, strukturierte externe Quellen und die Evidenzdisposition. Matrix-Schemata 1 bis 4 bleiben für bestehende Bewerbungen lesbar.
 
 **6 · Umfangsgerechter Kandidat**
 

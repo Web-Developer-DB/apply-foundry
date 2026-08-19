@@ -13,6 +13,8 @@ Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation gl
 5. Stellenart immer; Eintritt und Gehaltswunsch nach Bewerbungsauftrag und Stellenanzeige
 6. Abschluss mit Gesprächsbereitschaft
 
+Vor dem Entwurf wird `anschreibenStrategie` in `Anforderungsmatrix.json` fertiggestellt. Jedes der zwei bis vier Argumente (bei dokumentiert schmalem Profil genau eines) verbindet mindestens eine Anforderungs-ID, eine valide Evidenz-ID, einen Stellen- oder Unternehmensbezug, einen konkreten Arbeitgebernutzen und sichtbare Textanker. Nicht ausgewählte Anschreiben erhalten den Status `nicht_erforderlich` und keine Argumente.
+
 ## Verbindlicher Quellen-zu-Anschreiben-Abgleich
 
 Ist ein Lebenslauf ausgewählt, wird der individuelle Kandidat vor dem Anschreiben erstellt beziehungsweise der unverändert übernommene universelle Lebenslauf vollständig geprüft. Ist kein Lebenslauf ausgewählt, gleicht der Agent das Anschreiben unmittelbar gegen private Profildaten, normalisierte Dialogangaben, Anforderungsmatrix und Stellenbeschreibung ab. Erst danach schreibt er den ersten Anschreibenentwurf.
@@ -67,6 +69,7 @@ Pflichtregeln:
 - Wenn `Wunschgehalt verwenden` auf `nur wenn in der Stellenanzeige verlangt` steht, nenne das Gehalt nur bei ausdrücklicher Aufforderung in der Anzeige.
 - Wenn ein manueller Gehaltswunsch im Bewerbungsauftrag steht, verwende diese Angabe.
 - Wenn automatische Schätzung im Bewerbungsauftrag ausdrücklich aktiviert ist, ermittle eine plausible Gehaltsangabe oder Gehaltsspanne aus einer aktuellen, nachvollziehbaren Quelle sowie Zielrolle, Seniorität, einschlägiger Berufserfahrung, Region, Arbeitsmodell und Stellenart. Alter, Geschlecht und andere geschützte persönliche Merkmale dürfen die Schätzung nicht beeinflussen. Dokumentiere Quelle, Stand und Kurzbegründung in `Analyse.md`.
+- Jede verwendete Unternehmens- oder Gehaltsquelle wird in `externeQuellen` mit URL, Herausgeber, Abrufzeit, Aussage, Verwendungszweck und sichtbarem Anker dokumentiert. Externe Aussagen ohne Quellen-ID werden nicht verwendet.
 - Formuliere Gehalt sachlich, z. B. `Meine Gehaltsvorstellung liegt bei ... EUR brutto jährlich.` oder bei Teilzeit/Stundenlohn passend zum im Bewerbungsauftrag gewählten Gehaltsmodell.
 - Wenn die Datengrundlage für eine seriöse Gehaltsschätzung fehlt oder keine aktuelle Quelle geprüft werden kann, nicht raten. In `Offene_Fragen.md` dokumentieren und im Anschreiben neutral bleiben, sofern die Anzeige keinen Gehaltswunsch zwingend verlangt.
 - Sprich Lücken oder Grenzen nicht defensiv an, sondern fokussiere passende Stärken.

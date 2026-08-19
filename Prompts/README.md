@@ -2,7 +2,7 @@
 
 Dieser Ordner enthält die öffentlichen Regeln des Bewerbungsagenten.
 
-Startpunkt ist `00_AGENTEN_START_HIER.md`. `01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` ist die einzige zentrale Quelle für den interaktiven Umfang A–E, den sparsamen Profilabgleich, auftragsbezogene Angaben und ausdrücklich bestätigte Profilaktualisierungen. Anschließend folgen nur für die ausgewählten Bestandteile die spezialisierten Regeln für Matrix, Lebenslauf, Anschreiben, E-Mail, Rollenlogik, Wahrheit, Design, Qualitätsprüfung und Ablage. Der normalisierte Dialogzustand liegt im privaten Schema-4-`Bewerbungsauftrag.json`, sodass jeder Agent ohne Chatverlauf fortsetzen kann.
+Startpunkt ist `00_AGENTEN_START_HIER.md`. `01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md` ist die einzige zentrale Quelle für den interaktiven Umfang A–E, den sparsamen Profilabgleich, auftragsbezogene Angaben und ausdrücklich bestätigte Profilaktualisierungen. Anschließend folgen nur für die ausgewählten Bestandteile die spezialisierten Regeln für Matrix, Lebenslauf, Anschreiben, E-Mail, Rollenlogik, Wahrheit, Design, Qualitätsprüfung und Ablage. Der normalisierte Dialogzustand liegt im privaten Schema-5-`Bewerbungsauftrag.json`, sodass jeder Agent ohne Chatverlauf fortsetzen kann; Matrix-Schemata 1 bis 4 bleiben als Legacy lesbar.
 
 Private Bewerberdaten stehen nicht in diesem Ordner. Sie gehören lokal nach `Private/Daten/`.
 

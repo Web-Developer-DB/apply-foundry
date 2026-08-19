@@ -28,7 +28,7 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Bei einem zweiseitigen Lebenslauf muss jeder fachliche `<section>`-Block eine dokumentweit eindeutige `data-cv-section`-Kennung tragen und vollständig auf einer Seite liegen; jeder Seitencontainer benötigt einen mit `data-cv-page-header` markierten Kopf.
 - Eine Änderung an einer HTML-Datei nach dem Layoutcheck macht den bisherigen Screenshot- und PDF-Nachweis ungültig. Maßgeblich sind die SHA-256-Werte in den Prüfberichten.
 - Kandidatendateien einzeln und vollständig schreiben und danach unmittelbar validieren. Insbesondere JSON-Dateien nach jeder Änderung parsen; keine unübersichtliche Sammeländerung darf bei einem Teilfehler mehrere fertige Dokumente halb aktualisiert zurücklassen.
-- Neue `Anforderungsmatrix.json`-Dateien verwenden Schema 4. Vor der Layoutprüfung muss der Inhaltsprüfer die vollständige `recruiterStrategie`, sichtbare Anker, zulässige Transferbrücken, die Seite-1-Abdeckung sowie die hash- und zeilengebundene Beweiskette aus Stellenbeschreibung, Matrix und Evidenzindex bestätigen; Matrix-Schemata 1 bis 3 bleiben unverändert lesbar.
+- Neue `Anforderungsmatrix.json`-Dateien verwenden Schema 5. Vor der Layoutprüfung muss der Inhaltsprüfer die vollständige `recruiterStrategie`, `anschreibenStrategie`, externe Quellen, sichtbare Anker, zulässige Transferbrücken, die Seite-1-Abdeckung sowie die hash- und zeilengebundene Beweiskette aus Stellenbeschreibung, Matrix und Evidenzindex bestätigen; Matrix-Schemata 1 bis 4 bleiben unverändert lesbar.
 - In einer als verwaltete Sandbox bekannten Umgebung vor dem Browserlauf prüfen, ob eine lokale Browserfreigabe verfügbar ist. Eine vorhandene Freigabe direkt verwenden; andernfalls die Grenze offen melden und keinen erfolgreichen Lauf behaupten.
 - Tokenzahlen niemals schätzen oder aus Textlängen beziehungsweise Teilwerten ableiten. Exakte Zahlen sind nur zulässig, wenn die Agentenlaufzeit sie maschinenlesbar bereitstellt.
 - Ein Runtime-Fingerprint aus Betriebssystem, Architektur, PowerShell-Version und – bei Browserläufen – Browsername, Version und ausführbarer Datei bindet technische Nachweise an die Laufzeit. Nach einem Plattformwechsel Auftrag und Kandidaten erhalten, Layout-, PDF-, ATS- und Finalisierungsnachweise aber vollständig neu erzeugen.
@@ -77,7 +77,7 @@ Dieser Lauf:
 - validiert den bestätigten Dokumentumfang und den fortsetzbaren Dialogzustand; neue Aufträge verwenden Schema 5, Legacy-Aufträge der Schemata 1 bis 4 werden nicht automatisch umgeschrieben
 - sperrt ungeklärte zentrale Bewerbungslogistik
 - führt Stammdaten-, Inhalts- und statischen HTML-Check aus
-- schreibt im `Inhalts-Pruefbericht.json` für Matrix-Schema 4 die maschinenlesbare `recruiterCoverage` und `evidenceCoverage`; fehlende Prioritätsbelege, falsche Zieldokumente oder Seiten, unbelegte Direktbehauptungen, fehlende Quellenanker und unvollständige Strategien blockieren
+- schreibt im `Inhalts-Pruefbericht.json` für Matrix-Schema 5 die maschinenlesbare `recruiterCoverage`, `evidenceCoverage`, `anschreibenCoverage`, `externalSourceCoverage`, `evidenzDisposition` und `sprachqualitaet`; fehlende Prioritätsbelege, falsche Zieldokumente oder Seiten, unbelegte Direktbehauptungen, fehlende Quellenanker und unvollständige Strategien blockieren
 - erzeugt frische Layoutscreenshots samt Dichtehinweisen
 - misst bei Chromium zusätzlich DOM-Überlauf, Scrollhöhe und Elementgrenzen je isolierter A4-Seite; jeder sichtbare Überlauf blockiert die Vorbereitung
 - exportiert und validiert genau die laut Dokumentumfang ausgewählten HTML-Dokumente als PDFs
@@ -218,7 +218,7 @@ Visuelle Bewertung des Screenshots:
 - Ungewöhnlich freie Flächen wurden zuerst gegen fehlende relevante Profilhighlights, Anwendungskontexte und eigene Beiträge geprüft; Layoutanpassungen kaschieren keine inhaltliche Unterdeckung.
 - Der Screenshot enthält keine Browser-Kopfzeilen, Dateipfade, URLs oder Druckdialog-Reste.
 
-Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären A4-Ansicht. Dadurch wird keine Seite von einer festen Screenshot-Höhe abgeschnitten oder übersehen. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; ihre Warnung muss fachlich bewertet werden und rechtfertigt kein blindes Auffüllen oder Komprimieren. Bei ungewöhnlich geringer Dichte wird zuerst die Schema-4-Recruiter- und Evidenzabdeckung fachlich geprüft und erst danach das Layout verändert.
+Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären A4-Ansicht. Dadurch wird keine Seite von einer festen Screenshot-Höhe abgeschnitten oder übersehen. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; ihre Warnung muss fachlich bewertet werden und rechtfertigt kein blindes Auffüllen oder Komprimieren. Bei ungewöhnlich geringer Dichte wird zuerst die Schema-5-Recruiter-, Anschreiben- und Evidenzabdeckung fachlich geprüft und erst danach das Layout verändert.
 
 Die Vorlagen verwenden `Arial, "Liberation Sans", Helvetica, sans-serif`. Windows und Ubuntu müssen weder pixelidentische PNGs noch binär identische PDFs erzeugen. Verbindlich gleich sind Seitenzahl, A4-Geometrie, bestandene Dichteprüfung, Hashbindung und ATS-Prüfung.
 
