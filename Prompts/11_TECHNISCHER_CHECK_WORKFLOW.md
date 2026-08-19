@@ -50,7 +50,7 @@ Unter Ubuntu delegiert der dünne Bash-Launcher seine Argumente unverändert an 
 ./Tools/bewerbung.sh <subcommand> ...
 ```
 
-Die gemeinsamen Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht` und `tests`. Beide Einstiege verwenden dieselben GNU-Langoptionen. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und hat dafür keine Abhängigkeit auf `jq`, Python, Node oder externe SHA-Werkzeuge. Direkte Aufrufe der vorhandenen PowerShell-Fachskripte bleiben kompatibel unterstützt.
+Die gemeinsamen Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Beide Einstiege verwenden dieselben GNU-Langoptionen. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und hat dafür keine Abhängigkeit auf `jq`, Python, Node oder externe SHA-Werkzeuge. Direkte Aufrufe der vorhandenen PowerShell-Fachskripte bleiben kompatibel unterstützt.
 
 `bewerbung.ps1 checkpoint --arbeitsordner "..." --schritt NAME` schreibt einen kompakten, hashgebundenen Fortsetzungsnachweis in den privaten Arbeitsordner. Er ist nach jeder sinnvollen Workflow-Grenze aufzurufen, speichert keine Quellinhalte oder Rohchatdaten und ersetzt keine fachliche Prüfung. Der Statusbefehl verwendet ihn nur bei vollständig übereinstimmenden Arbeitsartefakten als Hinweis; bei Abweichungen bleiben Auftrag, Matrix, Kandidaten und Prüfberichte maßgeblich.
 
@@ -77,14 +77,15 @@ Dieser Lauf:
 - verlangt eine vollständige `Anforderungsmatrix.json`
 - validiert den bestätigten Dokumentumfang und den fortsetzbaren Dialogzustand; neue Aufträge verwenden Schema 5, Legacy-Aufträge der Schemata 1 bis 4 werden nicht automatisch umgeschrieben
 - sperrt ungeklärte zentrale Bewerbungslogistik
-- führt Stammdaten-, Inhalts- und statischen HTML-Check aus
+- führt Dialog und Stammdaten, danach statischen HTML-Check, Inhalt, DOM/Layout, PDF und ATS in dieser festen Abbruchreihenfolge aus
 - schreibt im `Inhalts-Pruefbericht.json` für Matrix-Schema 5 die maschinenlesbare `recruiterCoverage`, `evidenceCoverage`, `anschreibenCoverage`, `externalSourceCoverage`, `evidenzDisposition` und `sprachqualitaet`; fehlende Prioritätsbelege, falsche Zieldokumente oder Seiten, unbelegte Direktbehauptungen, fehlende Quellenanker und unvollständige Strategien blockieren
 - erzeugt frische Layoutscreenshots samt Dichtehinweisen
 - misst bei Chromium zusätzlich DOM-Überlauf, Scrollhöhe und Elementgrenzen je isolierter A4-Seite; jeder sichtbare Überlauf blockiert die Vorbereitung
 - exportiert und validiert genau die laut Dokumentumfang ausgewählten HTML-Dokumente als PDFs
 - prüft die PDF-Textschicht und Lesbarkeit für ATS
 - schreibt Hashnachweise für Quellen, sämtliche Kandidatendateien, PDFs und Seitenscreenshots; bei einem individuellen Lebenslauf mit vorhandenem Passfoto kommt exakt der optionale Quellnachweis `passfoto` hinzu
-- schreibt den Vorbereitungsbericht für individuelle Bewerbungen im Schema 6 beziehungsweise für den Universal-Lebenslauf im Schema 2 mit einer neuen, eindeutigen `approvalRequest.approvalId`; veröffentlichte Altstände bleiben lesbar, vorbereitete Altstände ohne dieses Schema werden neu vorbereitet
+- schreibt `Pruefstand.json` Schema 1 ausschließlich im privaten Arbeitsordner; erfolgreiche Stufen werden nur bei identischen Quellen, Parametern, Werkzeug- und Laufzeithashes wiederverwendet. `--neu-pruefen` umgeht den Prüfstand.
+- schreibt den Vorbereitungsbericht für individuelle Bewerbungen im Schema 7 beziehungsweise für den Universal-Lebenslauf im Schema 2 mit einer neuen, eindeutigen `approvalRequest.approvalId`; Schema-6-Vorbereitungen bleiben veröffentlichbar, liefern aber keine Cachetreffer
 - schreibt den Runtime-Fingerprint in Layout-, PDF-, ATS- und Finalisierungsbericht
 - aktualisiert den nicht blockierenden Diagnosebericht `Tokenverbrauch.json` im Arbeitsordner mindestens mit dem Verfügbarkeitsstatus und referenziert ihn optional im `Finalisierungsbericht.json`
 - veröffentlicht noch keine Datei

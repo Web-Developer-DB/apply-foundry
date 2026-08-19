@@ -49,7 +49,55 @@ function Test-FastTestName {
 
   # Fast is intentionally an explicit canary set. Full contract coverage stays in
   # the complete suite; this set must remain short enough for local and PR feedback.
-  return $Name -match '^(?:PowerShell-Dateien sind syntaktisch gültig|Native Prozesse begrenzen Ausgaben und beenden den Prozessbaum bei Timeout|Portabler PNG-Leser dekodiert Farbtypen und Filter und lehnt defekte Header ab|Passfoto-Modul entfernt optionale Blöcke und bindet gültige PNG-Bytes idempotent|Universeller Agenteneinstieg routet alle Betriebsmodi sicher|Agentenpfade besitzen plattformübergreifend die exakte Schreibweise|Kanonischer Prompt definiert Fähigkeiten und Fortsetzung aus Dateinachweisen|Promptaudit hält Routing, Autonomie und Qualitätsverträge widerspruchsfrei|Prompt-Regression-Konfiguration bindet vier Agenten und feste Modelle|Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben|Tokenbericht übernimmt Nichtverfügbarkeit ohne Schätzwerte oder sensible Felder|Tokenbericht übernimmt nur ausdrücklich bereitgestellte exakte Laufzeitwerte|README verweist nur auf vorhandene lokale Ziele und definierte Anker|README dokumentiert neutrale Agentenstarts und tatsächliche Grenzen|Phase-5-Vertragstests|Matrix- und Evidenzverträge.*|Migrations.*|Console-App-Roadmap.*|Schema-5-.*|Prompt-Regression-.*)$'
+  return $Name -match '^(?:PowerShell-Dateien sind syntaktisch gültig|Native Prozesse begrenzen Ausgaben und beenden den Prozessbaum bei Timeout|Portabler PNG-Leser dekodiert Farbtypen und Filter und lehnt defekte Header ab|Passfoto-Modul entfernt optionale Blöcke und bindet gültige PNG-Bytes idempotent|Universeller Agenteneinstieg routet alle Betriebsmodi sicher|Agentenpfade besitzen plattformübergreifend die exakte Schreibweise|Kanonischer Prompt definiert Fähigkeiten und Fortsetzung aus Dateinachweisen|Promptaudit hält Routing, Autonomie und Qualitätsverträge widerspruchsfrei|Prompt-Regression-Konfiguration bindet vier Agenten und feste Modelle|Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben|Tokenbericht übernimmt Nichtverfügbarkeit ohne Schätzwerte oder sensible Felder|Tokenbericht übernimmt nur ausdrücklich bereitgestellte exakte Laufzeitwerte|README verweist nur auf vorhandene lokale Ziele und definierte Anker|README dokumentiert neutrale Agentenstarts und tatsächliche Grenzen|Phase-[56]-Vertragstests|Matrix- und Evidenzverträge.*|Migrations.*|Console-App-Roadmap.*|Schema-5-.*|Prompt-Regression-.*)$'
+}
+
+function Get-TimingSummary {
+  param([Parameter(Mandatory)][AllowEmptyCollection()][array]$Results, [Parameter(Mandatory)][int]$TotalDurationMs)
+  $durations = @($Results | ForEach-Object { [int]$_.durationMs } | Sort-Object)
+  $sum = 0
+  foreach ($duration in $durations) { $sum += [int]$duration }
+  $percentile = {
+    param([double]$Percent)
+    if ($durations.Count -eq 0) { return 0 }
+    $index = [math]::Min($durations.Count - 1, [math]::Max(0, [math]::Ceiling($durations.Count * $Percent) - 1))
+    return [int]$durations[$index]
+  }
+  $byCategory = [ordered]@{}
+  foreach ($group in @($Results | Group-Object category | Sort-Object Name)) {
+    $groupDuration = 0
+    foreach ($entry in @($group.Group)) { $groupDuration += [int]$entry.durationMs }
+    $byCategory[$group.Name] = [ordered]@{ testCount = $group.Count; durationMs = $groupDuration }
+  }
+  return [ordered]@{
+    testDurationMs = $sum
+    setupAndCleanupDurationMs = [math]::Max(0, $TotalDurationMs - $sum)
+    medianTestDurationMs = & $percentile 0.5
+    p95TestDurationMs = & $percentile 0.95
+    categories = $byCategory
+    slowestTests = @($Results | Sort-Object -Property @{ Expression = { [int]$_.durationMs }; Descending = $true }, @{ Expression = { [string]$_.name }; Descending = $false } | Select-Object -First 10 | ForEach-Object { [ordered]@{ name = $_.name; category = $_.category; durationMs = $_.durationMs; status = $_.status } })
+  }
+}
+
+function Get-RuntimeWarnings {
+  param([Parameter(Mandatory)][object]$Runtime, [Parameter(Mandatory)][string]$Suite, [Parameter(Mandatory)][int]$DurationMs)
+  $baselinePath = Join-Path $PSScriptRoot 'Testlaufzeit-Baselines.json'
+  if (-not (Test-Path -LiteralPath $baselinePath -PathType Leaf)) { return @() }
+  try {
+    $baselineFile = Get-Content -LiteralPath $baselinePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ([int]$baselineFile.schemaVersion -ne 1) { return @() }
+    $match = @($baselineFile.baselines | Where-Object {
+      [string]$_.suite -eq $Suite -and [string]$_.runtime.os -eq [string]$Runtime.os -and [string]$_.runtime.architecture -eq [string]$Runtime.architecture -and [string]$_.runtime.powershell -eq [string]$Runtime.powershell
+    } | Select-Object -First 1)
+    if ($match.Count -ne 1) { return @() }
+    $baseline = [int]$match[0].durationMsMedian
+    $threshold = [int]$baselineFile.warningThresholdPercent
+    $minimum = [int]$baselineFile.warningMinimumMs
+    if ($baseline -gt 0 -and $DurationMs -ge ($baseline + $minimum) -and $DurationMs -gt [math]::Ceiling($baseline * (1 + ($threshold / 100.0)))) {
+      return @([ordered]@{ kind = 'suite_regression'; baselineDurationMs = $baseline; actualDurationMs = $DurationMs; thresholdPercent = $threshold; minimumDeltaMs = $minimum })
+    }
+  } catch { return @() }
+  return @()
 }
 
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/OrderPaths.psm1") -Force
@@ -2061,7 +2109,7 @@ Start-Sleep -Seconds 30
     )
     Assert-True -Condition ($prepare.ExitCode -eq 0) -Message "Browserfreie E-Mail-Vorbereitung schlug fehl: $($prepare.Output -join ' | ')"
     $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
-    Assert-True -Condition ($report.schemaVersion -eq 6 -and $report.personalReview -eq "textpruefung" -and $report.expectedScreenshots -eq 0 -and $null -ne $report.approvalRequest) -Message "E-Mail-only-Bericht fordert nicht die persönliche Textprüfung ohne Screenshots oder Freigabe-ID."
+    Assert-True -Condition ($report.schemaVersion -eq 7 -and $report.personalReview -eq "textpruefung" -and $report.expectedScreenshots -eq 0 -and $null -ne $report.approvalRequest) -Message "E-Mail-only-Bericht fordert nicht die persönliche Textprüfung ohne Screenshots oder Freigabe-ID."
     Assert-True -Condition (-not [string]::IsNullOrWhiteSpace([string]$report.runtime.os) -and $report.runtime.psEdition -eq "Core") -Message "Finalisierungsbericht enthält keinen gültigen Runtime-Fingerprint."
     Assert-True -Condition (@($report.artifacts.html).Count -eq 0 -and @($report.artifacts.pdf).Count -eq 0 -and @($report.artifacts.screenshots).Count -eq 0) -Message "E-Mail-only erzeugte HTML-, PDF- oder Screenshotartefakte."
     foreach ($reportPath in @($report.layoutReport, $report.pdfReport, $report.atsReport)) {
@@ -3661,6 +3709,42 @@ for (`$i = 0; `$i -lt 5; `$i++) {
     Assert-True -Condition ($manipulated.ExitCode -ne 0) -Message 'Manipulierte Artefakthashes wurden für die Veröffentlichung akzeptiert.'
   }
 
+  Invoke-Test -Name "Phase-6-Vertragstests" -Kategorie vollstaendig -Body {
+    $cacheModule = Import-Module (Join-Path $toolsRoot 'Common/FinalizationCache.psm1') -Force -PassThru
+    $contextModule = Import-Module (Join-Path $toolsRoot 'Common/ContextContract.psm1') -Force -PassThru
+    $root = Join-Path $testRoot 'phase6-contracts'
+    New-Item -Path $root -ItemType Directory | Out-Null
+    $input = Join-Path $root 'input.txt'
+    $output = Join-Path $root 'output.txt'
+    $statePath = Join-Path $root 'Pruefstand.json'
+    Set-Content -LiteralPath $input -Encoding UTF8 -Value 'input'
+    Set-Content -LiteralPath $output -Encoding UTF8 -Value 'output'
+    $fingerprint = & $cacheModule { param($root, $input) Get-FinalizationStageFingerprint -Stage statisch -Root $root -ImplementationFiles @($input) -InputFiles @($input) -Parameters @{ mode = 'test' } } $root $input
+    & $cacheModule { param($path, $root, $fingerprint, $output) Save-FinalizationStageResult -Path $path -Root $root -Stage statisch -Fingerprint $fingerprint -OutputFiles @($output) -DurationMs 1 } $statePath $root $fingerprint $output
+    $state = & $cacheModule { param($path) Read-FinalizationCheckState -Path $path } $statePath
+    $hit = & $cacheModule { param($state, $fingerprint, $root) Get-FinalizationCacheDecision -State $state -Stage statisch -Fingerprint $fingerprint -Root $root } $state $fingerprint $root
+    Assert-True -Condition ([bool]$hit.reusable -and $hit.reason -eq 'hit') -Message 'Prüfstand verwertet einen unveränderten Ausgabenachweis nicht wieder.'
+    Add-Content -LiteralPath $output -Encoding UTF8 -Value 'manipuliert'
+    $changed = & $cacheModule { param($state, $fingerprint, $root) Get-FinalizationCacheDecision -State $state -Stage statisch -Fingerprint $fingerprint -Root $root } $state $fingerprint $root
+    Assert-True -Condition (-not [bool]$changed.reusable -and $changed.reason -eq 'output_changed') -Message 'Prüfstand akzeptiert manipulierte Ausgaben.'
+    $ranges = @(& $contextModule { Merge-ContextRanges -Ranges @([pscustomobject]@{ zeileVon = 4; zeileBis = 6 }, [pscustomobject]@{ zeileVon = 8; zeileBis = 9 }) })
+    Assert-True -Condition ($ranges.Count -eq 1 -and $ranges[0].zeileVon -eq 2 -and $ranges[0].zeileBis -eq 11 -and (& $contextModule { Get-ContextLoadingMode }) -eq 'vollkontext') -Message 'Kontextvertrag vereinigt Bereiche oder schützt den deaktivierten Rollout nicht.'
+    $reportPaths = @()
+    foreach ($number in 1..3) {
+      $reportPath = Join-Path $root "timing-$number.json"
+      $timingReport = [ordered]@{ schemaVersion = 1; suite = 'schnell'; testNamePattern = $null; status = 'bestanden'; durationMs = (1000 + $number); runtime = [ordered]@{ os = 'synthetisch'; architecture = 'x64'; powershell = '7.6' }; timing = [ordered]@{ testDurationMs = 800; p95TestDurationMs = 500 } }
+      Set-Content -LiteralPath $reportPath -Encoding UTF8 -Value ($timingReport | ConvertTo-Json -Depth 8)
+      $reportPaths += $reportPath
+    }
+    $baselinePath = Join-Path $root 'baseline.json'
+    $baselineResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Aktualisiere-Testlaufzeitbaseline.ps1') -Arguments @('-BerichtPath', ($reportPaths -join ','), '-BaselinePath', $baselinePath)
+    Assert-True -Condition ($baselineResult.ExitCode -eq 0) -Message "Laufzeitbaseline konnte nicht aus drei bereinigten Berichten erzeugt werden: $($baselineResult.Output -join ' | ')"
+    $baseline = Get-Content -LiteralPath $baselinePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($baseline.schemaVersion -eq 1 -and $baseline.baselines.Count -eq 1 -and [string]($baseline | ConvertTo-Json -Depth 8) -notmatch [regex]::Escape($root)) -Message 'Laufzeitbaseline enthält nicht den erwarteten bereinigten Vertrag.'
+    $help = & $powerShellExe -NoProfile -File (Join-Path $toolsRoot 'bewerbung.ps1') finalisieren --help 2>&1
+    Assert-True -Condition (($help -join "`n") -match '--neu-pruefen') -Message 'Dispatcher stellt den erzwungenen Finalisierungsneulauf nicht bereit.'
+  }
+
   Invoke-Test -Name "Phase-5-Vertragstests" -Kategorie vollstaendig -Body {
     $phase5Script = Join-Path $PSScriptRoot 'Invoke-Phase5ContractTests.ps1'
     $phase5Output = & $powerShellExe -NoProfile -File $phase5Script -RepoRoot $repoRoot 2>&1
@@ -3825,7 +3909,7 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
         $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -eq 0) -Message "Browsergestützte Finalisierungsvorbereitung schlug fehl: $($result.Output -join ' | ')"
         $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
-        Assert-True -Condition ($report.schemaVersion -eq 6 -and $report.status -eq "bereit_zur_sichtpruefung" -and -not [string]::IsNullOrWhiteSpace([string]$report.approvalRequest.approvalId)) -Message "Finalisierungsbericht hat nicht das erwartete Freigabeschema oder den Vorbereitungsstatus."
+        Assert-True -Condition ($report.schemaVersion -eq 7 -and $report.status -eq "bereit_zur_sichtpruefung" -and -not [string]::IsNullOrWhiteSpace([string]$report.approvalRequest.approvalId) -and @($report.stageRuns).Count -eq 7) -Message "Finalisierungsbericht hat nicht das erwartete Freigabeschema, die Stufenfolge oder den Vorbereitungsstatus."
         Assert-True -Condition ($report.runtime.browser.executable -eq $script:browserSmokeInfo.Path -and -not [string]::IsNullOrWhiteSpace([string]$report.runtime.browser.version)) -Message "Finalisierungsbericht enthält nicht den ausgeführten Browser-Fingerprint."
         Assert-True -Condition (@($report.artifacts.html).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei HTML-Nachweise."
         Assert-True -Condition (@($report.artifacts.pdf).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei PDF-Nachweise."
@@ -3975,25 +4059,33 @@ if (-not [string]::IsNullOrWhiteSpace($BerichtPath)) {
   }
   $reportParent = Split-Path -Path $reportFullPath -Parent
   New-Item -Path $reportParent -ItemType Directory -Force | Out-Null
+  $endedAtUtc = [DateTime]::UtcNow
+  $totalDurationMs = [int](($endedAtUtc - $script:suiteStartedAtUtc).TotalMilliseconds)
+  $runtimeInfo = [ordered]@{
+    os = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
+    architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+    powershell = $PSVersionTable.PSVersion.ToString()
+  }
+  $timingSummary = Get-TimingSummary -Results @($testResults.ToArray()) -TotalDurationMs $totalDurationMs
+  $runtimeWarnings = @(Get-RuntimeWarnings -Runtime $runtimeInfo -Suite $Suite -DurationMs $totalDurationMs)
+  foreach ($warning in $runtimeWarnings) { Write-Host "[WARNUNG] Laufzeit liegt über der dokumentierten Referenz: $($warning.actualDurationMs) ms statt $($warning.baselineDurationMs) ms." -ForegroundColor Yellow }
   $report = [ordered]@{
     schemaVersion = 1
     suite = $Suite
     testNamePattern = $TestNamePattern
     browserRequested = [bool]$MitBrowser
     startedAtUtc = $script:suiteStartedAtUtc.ToString('o')
-    endedAtUtc = [DateTime]::UtcNow.ToString('o')
-    durationMs = [int](([DateTime]::UtcNow - $script:suiteStartedAtUtc).TotalMilliseconds)
-    runtime = [ordered]@{
-      os = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
-      architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
-      powershell = $PSVersionTable.PSVersion.ToString()
-    }
+    endedAtUtc = $endedAtUtc.ToString('o')
+    durationMs = $totalDurationMs
+    runtime = $runtimeInfo
     selectedTestCount = $script:selectedTestCount
     passedCount = $passed.Count
     failedCount = $failed.Count
     status = if ($failed.Count -eq 0) { 'bestanden' } else { 'fehlgeschlagen' }
     failures = @($failed.ToArray())
     tests = @($testResults.ToArray())
+    timing = $timingSummary
+    runtimeWarnings = $runtimeWarnings
   }
   $reportJson = $report | ConvertTo-Json -Depth 8
   Set-Content -LiteralPath $reportFullPath -Encoding UTF8 -Value $reportJson

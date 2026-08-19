@@ -207,7 +207,7 @@ function Test-FinalReportRuntimeCurrent {
   param([object]$Report)
 
   $schema = Get-JsonProperty -Object $Report -Name 'schemaVersion'
-  if (($schema -isnot [int] -and $schema -isnot [long]) -or [int]$schema -ne 6) { return $false }
+  if (($schema -isnot [int] -and $schema -isnot [long]) -or [int]$schema -notin @(6, 7)) { return $false }
   $runtime = Get-JsonProperty -Object $Report -Name 'runtime'
   if ($null -eq $runtime) { return $false }
   $runtimeSchema = Get-JsonProperty -Object $runtime -Name 'schemaVersion'

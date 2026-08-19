@@ -1274,7 +1274,7 @@ pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite prompt-pr
 pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite prompt-vollstaendig
 ```
 
-`schnell` ist die kurze Parser-/Vertrags- und Canary-Teilmenge, `vollstaendig` umfasst alle browserfreien Regressionen einschließlich der vier Rollen-Fixtures und `browser` ergänzt Chromium. Jeder Lauf kann mit `--bericht-path` einen bereinigten Schema-1-Bericht schreiben. Die Rollen-Fixtures liegen unter [`Tests/Fixtures/Rollen`](Tests/Fixtures/Rollen); echte `Private/`-Daten werden nie kopiert.
+`schnell` ist die kurze Parser-/Vertrags- und Canary-Teilmenge, `vollstaendig` umfasst alle browserfreien Regressionen einschließlich der vier Rollen-Fixtures und `browser` ergänzt Chromium. Jeder Lauf kann mit `--bericht-path` einen bereinigten Schema-1-Bericht mit Median, p95, Kategorien und den langsamsten Tests schreiben. Aus drei erfolgreichen ungefilterten Berichten derselben Plattform erzeugt `bewerbung.ps1 test-baseline --bericht-path "eins.json,zwei.json,drei.json"` eine öffentliche Laufzeitreferenz; Abweichungen über 25 Prozent und mindestens einer Sekunde bleiben zunächst Warnungen. Die Rollen-Fixtures liegen unter [`Tests/Fixtures/Rollen`](Tests/Fixtures/Rollen); echte `Private/`-Daten werden nie kopiert.
 
 Der gezielte Rollenlauf durch Anlage, Dialogprüfung, Inhaltsprüfung, Finalisierung, synthetische Freigabe und Veröffentlichung lautet:
 

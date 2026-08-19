@@ -26,6 +26,7 @@ $script:CommandOrder = @(
   "dialog-pruefen",
   "dialog-uebernehmen",
   "passfoto",
+  "kontext",
   "inhalt",
   "pruefen",
   "layout",
@@ -34,6 +35,7 @@ $script:CommandOrder = @(
   "finalisieren",
   "freigabe",
   "tokenbericht",
+  "test-baseline",
   "tests"
 )
 
@@ -213,6 +215,16 @@ $script:Commands = @{
       "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
     }
   }
+  "kontext" = @{
+    RelativePath = "Erzeuge-Kontextmanifest.ps1"
+    Summary = "Hashgebundenen Kontextplan fuer eine Schema-5-Bewerbung erzeugen"
+    Required = @("--arbeitsordner")
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--profil-path" = New-CliOption -Parameter "ProfilPath" -Placeholder "PFAD"
+      "--bericht-path" = New-CliOption -Parameter "BerichtPath" -Placeholder "PFAD"
+    }
+  }
   "inhalt" = @{
     RelativePath = "Pruefe-Bewerbungsinhalt.ps1"
     Summary = "Kandidateninhalte fachlich pruefen"
@@ -300,6 +312,7 @@ $script:Commands = @{
       "--visuell-geprueft" = New-CliOption -Parameter "VisuellGeprueft" -Kind switch
       "--visuelle-freigabe-notiz" = New-CliOption -Parameter "VisuelleFreigabeNotiz" -Placeholder "TEXT"
       "--ersetzen" = New-CliOption -Parameter "Ersetzen" -Kind switch
+      "--neu-pruefen" = New-CliOption -Parameter "NeuPruefen" -Kind switch
       "--timeout-seconds" = New-CliOption -Parameter "TimeoutSeconds" -Kind int -Min 1 -Max 600 -Placeholder "SEKUNDEN"
     }
   }
@@ -335,6 +348,15 @@ $script:Commands = @{
       "--cache-schreib-tokens" = New-CliOption -Parameter "CacheSchreibTokens" -Kind long -Min 0 -Max ([long]::MaxValue) -Placeholder "ANZAHL"
       "--reasoning-tokens" = New-CliOption -Parameter "ReasoningTokens" -Kind long -Min 0 -Max ([long]::MaxValue) -Placeholder "ANZAHL"
       "--gesamt-tokens" = New-CliOption -Parameter "GesamtTokens" -Kind long -Min 0 -Max ([long]::MaxValue) -Placeholder "ANZAHL"
+    }
+  }
+  "test-baseline" = @{
+    RelativePath = "Aktualisiere-Testlaufzeitbaseline.ps1"
+    Summary = "Aus drei erfolgreichen Testberichten eine Laufzeitbaseline bilden"
+    Required = @("--bericht-path")
+    Options = [ordered]@{
+      "--bericht-path" = New-CliOption -Parameter "BerichtPath" -Kind string -Placeholder "PFAD"
+      "--baseline-path" = New-CliOption -Parameter "BaselinePath" -Placeholder "PFAD"
     }
   }
   "tests" = @{

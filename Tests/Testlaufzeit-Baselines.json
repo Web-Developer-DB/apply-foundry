@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "kind": "testlaufzeit_baselines",
+  "warningThresholdPercent": 25,
+  "warningMinimumMs": 1000,
+  "baselines": []
+}

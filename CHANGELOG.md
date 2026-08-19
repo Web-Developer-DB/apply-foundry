@@ -8,6 +8,10 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
+- Phase-6-Effizienz: hashgebundener privater `Pruefstand.json` für die Finalisierungsstufen, `--neu-pruefen`, Finalisierungsbericht Schema 7 und feste Reihenfolge Dialog, Stammdaten, statisch, Inhalt, DOM/Layout, PDF und ATS.
+- `bewerbung.ps1 kontext` erzeugt einen privaten, quellenhashgebundenen `Kontextmanifest.json`-Entwurf. Der Rollout bleibt bis zu einer erfolgreichen realen Promptmatrix bewusst im Modus `vollkontext`.
+- Schema-1-Testberichte enthalten Laufzeitaggregate, Kategorien und langsame Tests. `bewerbung.ps1 test-baseline` erzeugt aus drei erfolgreichen ungefilterten Berichten eine öffentliche Baseline; Laufzeitabweichungen sind zunächst nicht blockierende Warnungen.
+
 - Phase-5-Architektur: wiederverwendbare Matrix- und Evidenzindex-Verträge, versionierte read-only Migration mit privaten Entwürfen, Hash-Recheck, Rollback und Schema-1-Migrationsbericht sowie `bewerbung.ps1 migrieren`. Matrix-Schemata 1 bis 4 und Evidenzindex-Schema 1 bleiben ohne automatische Umschreibung kompatibel.
 - `Console App.md` als kompakte, ausdrücklich nicht operative Roadmap wiederhergestellt; aktuelle Prompts, Werkzeuge und `AGENTS.md` bleiben die maßgeblichen Quellen.
 

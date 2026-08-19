@@ -23,6 +23,8 @@ param(
 
   [switch]$Ersetzen,
 
+  [switch]$NeuPruefen,
+
   [ValidateRange(1, 600)]
   [int]$TimeoutSeconds = 60
 )
@@ -41,6 +43,7 @@ Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/JsonContract.psm
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/MatrixContract.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/EvidenceIndexContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/FinalizationCache.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/JsonContract.psm1") -Force -Global
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force -Global
 $script:ChildToolTimeoutSeconds = [math]::Min(3600, [math]::Max(120, $TimeoutSeconds * 8))
@@ -279,6 +282,42 @@ function Invoke-ChildTool {
   if ($failure) {
     if ($ThrowOnFailure) { throw $failure }
     Stop-Finalization -Message $failure
+  }
+}
+
+function Invoke-FinalizationStage {
+  param(
+    [Parameter(Mandatory)][ValidateSet('dialog', 'stammdaten', 'statisch', 'inhalt', 'layout', 'pdf', 'ats')][string]$Stage,
+    [Parameter(Mandatory)][string[]]$InputFiles,
+    [string[]]$OutputFiles = @(),
+    [hashtable]$Parameters = @{},
+    [object]$Runtime = $null,
+    [Parameter(Mandatory)][scriptblock]$Action
+  )
+  # Each downstream cache key binds its concrete report and artifact inputs.  The
+  # preceding stage must still pass in this invocation, but unrelated report-only
+  # changes (for example the technical quality note) do not force a new browser run.
+  $dependencyKeys = @()
+  $fingerprint = Get-FinalizationStageFingerprint -Stage $Stage -Root $resolvedWork -ImplementationFiles $script:CacheImplementationFiles -InputFiles $InputFiles -Parameters $Parameters -Runtime $Runtime -DependencyKeys $dependencyKeys
+  $decision = Get-FinalizationCacheDecision -State $script:CheckState -Stage $Stage -Fingerprint $fingerprint -Root $resolvedWork -Force:$NeuPruefen
+  if ([bool]$decision.reusable) {
+    $run = [ordered]@{ id = $Stage; status = 'reused'; cacheKey = $fingerprint.cacheKey; cacheReason = $decision.reason; durationMs = 0 }
+    $script:StageRuns.Add($run) | Out-Null
+    return $run
+  }
+  $started = [DateTime]::UtcNow
+  try {
+    & $Action
+    $durationMs = [int](([DateTime]::UtcNow - $started).TotalMilliseconds)
+    Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage $Stage -Fingerprint $fingerprint -OutputFiles $OutputFiles -DurationMs $durationMs
+    $script:CheckState = Read-FinalizationCheckState -Path $script:CheckStatePath
+    $run = [ordered]@{ id = $Stage; status = 'executed'; cacheKey = $fingerprint.cacheKey; cacheReason = $decision.reason; durationMs = $durationMs }
+    $script:StageRuns.Add($run) | Out-Null
+    return $run
+  } catch {
+    $durationMs = [int](([DateTime]::UtcNow - $started).TotalMilliseconds)
+    Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage $Stage -Fingerprint $fingerprint -OutputFiles @() -DurationMs $durationMs -Status failed
+    throw
   }
 }
 
@@ -835,6 +874,7 @@ try {
   $tokenReportPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath "Tokenverbrauch.json") -Root $applicationsRootForWork -ForWrite -PathType Leaf
   $stammdatenReportPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath "Stammdaten-Pruefbericht.json") -Root $applicationsRootForWork -ForWrite -PathType Leaf
   $contentReportPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath "Inhalts-Pruefbericht.json") -Root $applicationsRootForWork -ForWrite -PathType Leaf
+  $checkStatePath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath "Pruefstand.json") -Root $applicationsRootForWork -ForWrite -PathType Leaf
   $qualityPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $candidateDir -ChildPath "Qualitaetscheck.md") -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
 } catch {
   Write-Host "[FEHLER] Unsicherer Workflowpfad: $($_.Exception.Message)" -ForegroundColor Red
@@ -901,25 +941,71 @@ $exportTool = Join-Path -Path $PSScriptRoot -ChildPath "Exportiere-PDF.ps1"
 $atsTool = Join-Path -Path $PSScriptRoot -ChildPath "Pruefe-ATS.ps1"
 $tokenReportTool = Join-Path -Path $PSScriptRoot -ChildPath "Aktualisiere-Tokenbericht.ps1"
 $dialogTool = Join-Path -Path $PSScriptRoot -ChildPath "Pruefe-Dialogstatus.ps1"
+$script:CheckStatePath = $checkStatePath
+$script:CheckState = Read-FinalizationCheckState -Path $checkStatePath
+$script:StageRuns = [System.Collections.Generic.List[object]]::new()
+$script:CacheImplementationFiles = @(
+  $PSCommandPath,
+  $dialogTool, $stammdatenTool, $staticTool, $contentTool, $layoutTool, $exportTool, $atsTool,
+  (Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'Common') -Filter '*.psm1' -File | Select-Object -ExpandProperty FullName)
+)
 
 if (-not $Veroeffentlichen) {
   Add-Info "Finalisierung wird vorbereitet: $resolvedWork"
-  Invoke-ChildTool -ScriptPath $dialogTool -Arguments @("-AuftragPath", $auftragPath, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-FuerDokumenterstellung")
+  $baseRuntime = Get-RuntimeFingerprint
+  Invoke-FinalizationStage -Stage dialog -InputFiles @($auftragPath, $StammdatenPath, $ProfilPath) -Parameters @{ fuerDokumenterstellung = 'true' } -Runtime $baseRuntime -Action {
+    Invoke-ChildTool -ScriptPath $dialogTool -Arguments @("-AuftragPath", $auftragPath, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-FuerDokumenterstellung")
+  } | Out-Null
   $stammdatenReportPath = Resolve-WorkflowContractPath -Candidate $stammdatenReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Invoke-ChildTool -ScriptPath $stammdatenTool -Arguments @("-StammdatenPath", $StammdatenPath, "-BewerbungsauftragPath", $auftragPath, "-UngeklaerteLogistikAlsFehler", "-BerichtPath", $stammdatenReportPath)
+  Invoke-FinalizationStage -Stage stammdaten -InputFiles @($auftragPath, $StammdatenPath) -OutputFiles @($stammdatenReportPath) -Parameters @{ ungeklAerteLogistikAlsFehler = 'true' } -Runtime $baseRuntime -Action {
+    Invoke-ChildTool -ScriptPath $stammdatenTool -Arguments @("-StammdatenPath", $StammdatenPath, "-BewerbungsauftragPath", $auftragPath, "-UngeklaerteLogistikAlsFehler", "-BerichtPath", $stammdatenReportPath)
+  } | Out-Null
+  Invoke-FinalizationStage -Stage statisch -InputFiles @($auftragPath, (Get-SafeFileSet -Folder $candidateDir -SecurityRoot $applicationsRootForWork | Select-Object -ExpandProperty FullName)) -Parameters @{} -Runtime $baseRuntime -Action {
+    Invoke-ChildTool -ScriptPath $staticTool -Arguments @("-Ordner", $candidateDir, "-AuftragPath", $auftragPath)
+  } | Out-Null
   $contentReportPath = Resolve-WorkflowContractPath -Candidate $contentReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath, "-BerichtPath", $contentReportPath)
+  $contentInputs = @($auftragPath, $StammdatenPath, $ProfilPath, $matrixPath) + @(Get-SafeFileSet -Folder $candidateDir -SecurityRoot $applicationsRootForWork | Select-Object -ExpandProperty FullName)
+  if (Test-Path -LiteralPath $evidenceIndexPath -PathType Leaf) { $contentInputs += $evidenceIndexPath }
+  Invoke-FinalizationStage -Stage inhalt -InputFiles $contentInputs -OutputFiles @($contentReportPath) -Parameters @{} -Runtime $baseRuntime -Action {
+    Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath, "-EvidenzindexPath", $evidenceIndexPath, "-BerichtPath", $contentReportPath)
+  } | Out-Null
   if ($expectedHtmlCount -gt 0) {
     $browserPathArguments = if ([string]::IsNullOrWhiteSpace($BrowserExecutablePath)) { @() } else { @("-BrowserExecutablePath", $BrowserExecutablePath) }
-    $pdfWorkDir = Resolve-WorkflowContractPath -Candidate $pdfWorkDir -Root $applicationsRootForWork -ForWrite -PathType Container
-    $pdfReportPath = Resolve-WorkflowContractPath -Candidate $pdfReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-    Invoke-ChildTool -ScriptPath $exportTool -Arguments @(@("-Ordner", $candidateDir, "-AuftragPath", $auftragPath, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $pdfWorkDir, "-BerichtPath", $pdfReportPath) + $browserPathArguments)
     $layoutDir = Resolve-WorkflowContractPath -Candidate $layoutDir -Root $applicationsRootForWork -ForWrite -PathType Container
     $layoutReportPath = Resolve-WorkflowContractPath -Candidate $layoutReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-    Invoke-ChildTool -ScriptPath $layoutTool -Arguments @(@("-Ordner", $candidateDir, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $layoutDir, "-BerichtPath", $layoutReportPath) + $browserPathArguments)
+    $browserInfo = Resolve-BrowserExecutable -RequestedBrowser $Browser -ExecutablePath $BrowserExecutablePath -RequireChromium
+    $browserRuntime = Get-RuntimeFingerprint -BrowserInfo $browserInfo
+    $htmlInputs = @(Get-SafeFileSet -Folder $candidateDir -SecurityRoot $applicationsRootForWork -Filter '*.html' | Select-Object -ExpandProperty FullName)
+    Invoke-FinalizationStage -Stage layout -InputFiles $htmlInputs -OutputFiles @($layoutReportPath) -Parameters @{ browser = $browserInfo.Name; browserVersion = $browserInfo.Version; timeoutSeconds = "$TimeoutSeconds" } -Runtime $browserRuntime -Action {
+      Invoke-ChildTool -ScriptPath $layoutTool -Arguments @(@("-Ordner", $candidateDir, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $layoutDir, "-BerichtPath", $layoutReportPath) + $browserPathArguments)
+    } | Out-Null
+    $layoutOutputs = @(Get-SafeFileSet -Folder $layoutDir -SecurityRoot $applicationsRootForWork -Filter '*.png' | Select-Object -ExpandProperty FullName)
+    if ($layoutOutputs.Count -gt 0) {
+      # Persist the complete screenshot set after the layout report exists.
+      $layoutEntry = @($script:CheckState.stages | Where-Object { [string]$_.id -eq 'layout' } | Select-Object -First 1)
+      if ($layoutEntry.Count -eq 1 -and @($layoutEntry[0].outputs).Count -lt 2) {
+        $fingerprint = Get-FinalizationStageFingerprint -Stage layout -Root $resolvedWork -ImplementationFiles $script:CacheImplementationFiles -InputFiles $htmlInputs -Parameters @{ browser = $browserInfo.Name; browserVersion = $browserInfo.Version; timeoutSeconds = "$TimeoutSeconds" } -Runtime $browserRuntime -DependencyKeys @()
+        Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage layout -Fingerprint $fingerprint -OutputFiles @($layoutReportPath + $layoutOutputs) -DurationMs 0
+        $script:CheckState = Read-FinalizationCheckState -Path $script:CheckStatePath
+      }
+    }
+    $pdfWorkDir = Resolve-WorkflowContractPath -Candidate $pdfWorkDir -Root $applicationsRootForWork -ForWrite -PathType Container
+    $pdfReportPath = Resolve-WorkflowContractPath -Candidate $pdfReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
+    Invoke-FinalizationStage -Stage pdf -InputFiles @($auftragPath + $htmlInputs + @($layoutReportPath) + $layoutOutputs) -OutputFiles @($pdfReportPath) -Parameters @{ browser = $browserInfo.Name; browserVersion = $browserInfo.Version; timeoutSeconds = "$TimeoutSeconds" } -Runtime $browserRuntime -Action {
+      Invoke-ChildTool -ScriptPath $exportTool -Arguments @(@("-Ordner", $candidateDir, "-AuftragPath", $auftragPath, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $pdfWorkDir, "-BerichtPath", $pdfReportPath) + $browserPathArguments)
+    } | Out-Null
+    $pdfOutputs = @(Get-SafeFileSet -Folder $candidateDir -SecurityRoot $applicationsRootForWork -Filter '*.pdf' | Select-Object -ExpandProperty FullName)
+    $pdfEntry = @($script:CheckState.stages | Where-Object { [string]$_.id -eq 'pdf' } | Select-Object -First 1)
+    if ($pdfEntry.Count -eq 1 -and @($pdfEntry[0].outputs).Count -lt 2) {
+      $fingerprint = Get-FinalizationStageFingerprint -Stage pdf -Root $resolvedWork -ImplementationFiles $script:CacheImplementationFiles -InputFiles @($auftragPath + $htmlInputs + @($layoutReportPath) + $layoutOutputs) -Parameters @{ browser = $browserInfo.Name; browserVersion = $browserInfo.Version; timeoutSeconds = "$TimeoutSeconds" } -Runtime $browserRuntime -DependencyKeys @()
+      Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage pdf -Fingerprint $fingerprint -OutputFiles @($pdfReportPath + $pdfOutputs) -DurationMs 0
+      $script:CheckState = Read-FinalizationCheckState -Path $script:CheckStatePath
+    }
     $atsReportPath = Resolve-WorkflowContractPath -Candidate $atsReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
     $pdfReportPath = Resolve-WorkflowContractPath -Candidate $pdfReportPath -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
-    Invoke-ChildTool -ScriptPath $atsTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-AuftragPath", $auftragPath, "-BerichtPath", $atsReportPath, "-PdfExportBerichtPath", $pdfReportPath)
+    Invoke-FinalizationStage -Stage ats -InputFiles @($auftragPath, $StammdatenPath, $pdfReportPath) + $pdfOutputs -OutputFiles @($atsReportPath) -Parameters @{} -Runtime $browserRuntime -Action {
+      Invoke-ChildTool -ScriptPath $atsTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-AuftragPath", $auftragPath, "-BerichtPath", $atsReportPath, "-PdfExportBerichtPath", $pdfReportPath)
+    } | Out-Null
   } else {
     Write-NotRequiredReport -Path $layoutReportPath -Kind "layoutcheck" -WorkflowRoot $applicationsRootForWork
     Write-NotRequiredReport -Path $pdfReportPath -Kind "pdf_export" -WorkflowRoot $applicationsRootForWork
@@ -929,10 +1015,6 @@ if (-not $Veroeffentlichen) {
   $layoutReportPath = Resolve-WorkflowContractPath -Candidate $layoutReportPath -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
   $layoutWarnings = @(Get-LayoutWarnings -Path $layoutReportPath)
   Update-TechnicalSection -QualityPath $qualityPath -WorkflowRoot $applicationsRootForWork -State "vorbereitet" -LayoutReportPath $layoutReportPath -PdfReportPath $pdfReportPath -AtsReportPath $atsReportPath -LayoutWarnings $layoutWarnings -VisualApprovalNote "" -HtmlDocumentCount $expectedHtmlCount
-  Invoke-ChildTool -ScriptPath $staticTool -Arguments @("-Ordner", $candidateDir, "-AuftragPath", $auftragPath)
-  $contentReportPath = Resolve-WorkflowContractPath -Candidate $contentReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath, "-BerichtPath", $contentReportPath)
-
   $artifacts = Get-ReportArtifacts -CandidateFolder $candidateDir -LayoutFolder $layoutDir -WorkflowRoot $applicationsRootForWork
   $expectedScreenshots = Get-ExpectedScreenshotCount -CandidateFolder $candidateDir -WorkflowRoot $applicationsRootForWork
   if ($artifacts.html.Count -ne $expectedHtmlCount -or $artifacts.pdf.Count -ne $expectedHtmlCount -or $artifacts.screenshots.Count -ne $expectedScreenshots) {
@@ -976,7 +1058,7 @@ if (-not $Veroeffentlichen) {
     $preparedSourceInputs.passfoto = Get-ArtifactRecord -File (Get-Item -LiteralPath $passfotoSource.Path)
   }
   $report = [ordered]@{
-    schemaVersion = 6
+    schemaVersion = 7
     status = "bereit_zur_sichtpruefung"
     preparedAtUtc = [datetime]::UtcNow.ToString("o")
     runtime = $layoutRuntime
@@ -994,6 +1076,8 @@ if (-not $Veroeffentlichen) {
     personalReview = if ($expectedScreenshots -gt 0) { "png_sichtpruefung" } else { "textpruefung" }
     layoutWarnings = $layoutWarnings
     tokenUsageReport = $tokenUsageReference
+    stageOrder = @(Get-FinalizationStageOrder)
+    stageRuns = @($script:StageRuns.ToArray())
     sourceInputs = $preparedSourceInputs
     artifacts = $artifacts
   }
@@ -1031,8 +1115,8 @@ try {
 $preparedReportJson = Get-Content -LiteralPath $finalReportPath -Raw -Encoding UTF8
 $report = $preparedReportJson | ConvertFrom-Json
 $reportSchemaValue = Get-JsonProperty -Object $report -Name "schemaVersion"
-if (($reportSchemaValue -isnot [int] -and $reportSchemaValue -isnot [long]) -or [int]$reportSchemaValue -ne 6) {
-  Stop-Finalization -Message "Finalisierungsbericht verwendet nicht das aktuelle Freigabeschema 6. Bereits vorbereitete Altstände müssen neu vorbereitet werden."
+if (($reportSchemaValue -isnot [int] -and $reportSchemaValue -isnot [long]) -or [int]$reportSchemaValue -notin @(6, 7)) {
+  Stop-Finalization -Message "Finalisierungsbericht verwendet kein unterstütztes Freigabeschema 6 oder 7."
 }
 $reportSchema = [int]$reportSchemaValue
 foreach ($requiredReportProperty in @("status", "runtime", "workFolder", "candidateFolder", "targetFolder", "documentScope", "personalReview", "expectedScreenshots", "layoutWarnings", "layoutReport", "layoutReportArtifact", "pdfReport", "pdfReportArtifact", "atsReport", "atsReportArtifact", "sourceInputs", "artifacts")) {
@@ -1228,11 +1312,6 @@ try {
   $qualityMayHaveChanged = $true
   Update-TechnicalSection -QualityPath $qualityPath -WorkflowRoot $applicationsRootForWork -State "bestaetigt" -LayoutReportPath $layoutReportPath -PdfReportPath $pdfReportPath -AtsReportPath $atsReportPath -LayoutWarnings $reportLayoutWarnings -VisualApprovalNote $normalizedVisualNote -HtmlDocumentCount $expectedHtmlCount
   Invoke-ChildTool -ScriptPath $staticTool -Arguments @("-Ordner", $candidateDir, "-AuftragPath", $auftragPath) -ThrowOnFailure
-  $contentReportPath = Resolve-WorkflowContractPath -Candidate $contentReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath, "-BerichtPath", $contentReportPath) -ThrowOnFailure
-  if ($reportSchema -ge 2 -and $expectedHtmlCount -gt 0) {
-    Invoke-ChildTool -ScriptPath $atsTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-AuftragPath", $auftragPath) -ThrowOnFailure
-  }
 
   $approvedArtifacts = Get-ReportArtifacts -CandidateFolder $candidateDir -LayoutFolder $layoutDir -WorkflowRoot $applicationsRootForWork
   if ($approvedArtifacts.html.Count -ne $expectedHtmlCount -or
@@ -1267,10 +1346,6 @@ try {
   }
   $manifestPath = New-PublicationManifest -Root $stageDir -SecurityRoot $applicationsRootForWork -Auftrag $auftrag -SourceInputs $sourceInputs
   Invoke-ChildTool -ScriptPath $staticTool -Arguments @("-Ordner", $stageDir, "-AuftragPath", $auftragPath) -ThrowOnFailure
-  Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $stageDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath) -ThrowOnFailure
-  if ($reportSchema -ge 2 -and $expectedHtmlCount -gt 0) {
-    Invoke-ChildTool -ScriptPath $atsTool -Arguments @("-Ordner", $stageDir, "-StammdatenPath", $StammdatenPath, "-AuftragPath", $auftragPath) -ThrowOnFailure
-  }
 
   $report.status = "veroeffentlicht"
   $report | Add-Member -NotePropertyName publishedAtUtc -NotePropertyValue ([datetime]::UtcNow.ToString("o")) -Force
