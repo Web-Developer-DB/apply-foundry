@@ -181,6 +181,11 @@ Test Arbeitgeber, 01/2020 - 12/2020
 
 ### Testweiterbildung
 Test Institut, 02/2021 - 03/2022
+
+## Projekte
+
+### Testprojekt
+Eigene Projektpraxis: Audit-Workflow mit nachvollziehbarem eigenem Beitrag
 "@
   return [pscustomobject]@{ Personal = $personal; Profile = $profileFilePath }
 }
@@ -299,6 +304,101 @@ function Convert-ToSchema2Fixture {
     $requirement | Add-Member -NotePropertyName gewichtung -NotePropertyValue "hoch" -Force
   }
   Set-Content -LiteralPath $Fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 8)
+  return $Fixture
+}
+
+function Convert-ToSchema3RecruiterFixture {
+  param([object]$Fixture)
+
+  $Fixture = Convert-ToSchema2Fixture -Fixture $Fixture
+  $matrix = Get-Content -LiteralPath $Fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+  $matrix.schemaVersion = 3
+  $matrix | Add-Member -NotePropertyName recruiterStrategie -NotePropertyValue ([ordered]@{
+    kernbotschaft = "Belegtes Audit-Profil mit konkreter Weiterbildung und nachvollziehbarer Praxis"
+    profilSubstanz = "ausreichend"
+    profilSubstanzBegruendung = "Zwei personenspezifische und sichtbare Belege sind vorhanden."
+    prioritaetsAnforderungen = @("muss-1")
+    profilHighlights = @(
+      [ordered]@{
+        id = "highlight-weiterbildung"
+        anforderungIds = @("muss-1")
+        belegart = "WEITERBILDUNG"
+        relevanz = "hoch"
+        zielDokument = "lebenslauf"
+        platzierung = "seite_1"
+        sichtbareAnker = @("Test Person", "Audit-Rolle")
+      },
+      [ordered]@{
+        id = "highlight-praxis"
+        anforderungIds = @("muss-1")
+        belegart = "PROJEKTPRAXIS"
+        relevanz = "mittel"
+        zielDokument = "lebenslauf"
+        platzierung = "seite_1"
+        sichtbareAnker = @("Vollzeit", "nach Vereinbarung")
+      }
+    )
+    transferbruecken = @()
+    auslassungen = @()
+  }) -Force
+  Set-Content -LiteralPath $Fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 10)
+  return $Fixture
+}
+
+function Convert-ToSchema4EvidenceFixture {
+  param([object]$Fixture)
+
+  $Fixture = Convert-ToSchema3RecruiterFixture -Fixture $Fixture
+  $jobPath = Join-Path $Fixture.Folder 'Stellenbeschreibung.md'
+  $jobText = @"
+## Ihr Profil
+- Sie müssen Audit-Rolle beherrschen
+
+## Ihre Aufgaben
+- Konkrete Audit-Aufgabe umsetzen
+"@
+  Set-Content -LiteralPath $jobPath -Encoding UTF8 -Value $jobText
+
+  $profileLines = @((Get-Content -LiteralPath $Fixture.Profile -Encoding UTF8))
+  $trainingLine = 1 + [array]::IndexOf([string[]]$profileLines, 'Test Institut, 02/2021 - 03/2022')
+  $projectLine = 1 + [array]::IndexOf([string[]]$profileLines, 'Eigene Projektpraxis: Audit-Workflow mit nachvollziehbarem eigenem Beitrag')
+  if ($trainingLine -lt 1 -or $projectLine -lt 1) { throw 'Schema-4-Testfixture konnte die Profilbelege nicht finden.' }
+
+  $indexPath = Join-Path $Fixture.Work 'Evidenzindex.json'
+  $index = [ordered]@{
+    schemaVersion = 1
+    profilSha256 = (Get-FileHash -LiteralPath $Fixture.Profile -Algorithm SHA256).Hash
+    belege = @(
+      [ordered]@{ id='profil-weiterbildung'; quelle='profil'; zeileVon=$trainingLine; zeileBis=$trainingLine; text=$profileLines[$trainingLine - 1]; belegart='WEITERBILDUNG' },
+      [ordered]@{ id='profil-projekt'; quelle='profil'; zeileVon=$projectLine; zeileBis=$projectLine; text=$profileLines[$projectLine - 1]; belegart='PROJEKTPRAXIS' }
+    )
+  }
+  Set-Content -LiteralPath $indexPath -Encoding UTF8 -Value ($index | ConvertTo-Json -Depth 8)
+
+  $matrix = Get-Content -LiteralPath $Fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+  $matrix.schemaVersion = 4
+  $matrix.requirements[0] | Add-Member -NotePropertyName stellenFundstellen -NotePropertyValue @('stelle-profil', 'stelle-aufgabe') -Force
+  $matrix.requirements[0] | Add-Member -NotePropertyName belegRefIds -NotePropertyValue @('profil-weiterbildung') -Force
+  $matrix.recruiterStrategie.profilHighlights[0] | Add-Member -NotePropertyName belegRefIds -NotePropertyValue @('profil-weiterbildung') -Force
+  $matrix.recruiterStrategie.profilHighlights[1].belegart = 'PROJEKTPRAXIS'
+  $matrix.recruiterStrategie.profilHighlights[1] | Add-Member -NotePropertyName belegRefIds -NotePropertyValue @('profil-projekt') -Force
+  $matrix | Add-Member -NotePropertyName stellenanzeigeAbdeckung -NotePropertyValue ([ordered]@{
+    sourceSha256 = (Get-FileHash -LiteralPath $jobPath -Algorithm SHA256).Hash
+    fundstellen = @(
+      [ordered]@{ id='stelle-profil'; zeileVon=2; zeileBis=2; text='- Sie müssen Audit-Rolle beherrschen'; klassifikation='anforderung'; anforderungIds=@('muss-1') },
+      [ordered]@{ id='stelle-aufgabe'; zeileVon=5; zeileBis=5; text='- Konkrete Audit-Aufgabe umsetzen'; klassifikation='aufgabe'; anforderungIds=@('muss-1') }
+    )
+  }) -Force
+  Set-Content -LiteralPath $Fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 12)
+  $auftrag = Get-Content -LiteralPath $Fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+  $auftrag | Add-Member -NotePropertyName dialog -NotePropertyValue ([ordered]@{
+    angaben = @([ordered]@{ id='dialog-verfuegbarkeit'; normalisierteAngabe='Verfügbar ab sofort'; wahrheitsstatus='bestaetigt' })
+  }) -Force
+  Set-Content -LiteralPath $Fixture.Auftrag -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 10)
+  $index | Add-Member -NotePropertyName auftragSha256 -NotePropertyValue ((Get-FileHash -LiteralPath $Fixture.Auftrag -Algorithm SHA256).Hash) -Force
+  $index.belege = @($index.belege) + [ordered]@{ id='dialog-verfuegbarkeit'; quelle='auftrag_angabe'; angabeId='dialog-verfuegbarkeit'; text='Verfügbar ab sofort'; belegart='ÜBERTRAGBAR' }
+  Set-Content -LiteralPath $indexPath -Encoding UTF8 -Value ($index | ConvertTo-Json -Depth 8)
+  $Fixture | Add-Member -NotePropertyName Evidenzindex -NotePropertyValue $indexPath -Force
   return $Fixture
 }
 
@@ -1109,7 +1209,9 @@ Start-Sleep -Seconds 30
     $scopePrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md") -Raw -Encoding UTF8
     $matrixPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md") -Raw -Encoding UTF8
     $resumePrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/03_LEBENSLAUF_REGELN.md") -Raw -Encoding UTF8
+    $letterPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/04_ANSCHREIBEN_REGELN.md") -Raw -Encoding UTF8
     $rolePrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/06_ROLLENLOGIK.md") -Raw -Encoding UTF8
+    $truthPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/07_WAHRHEIT_UND_GRENZEN.md") -Raw -Encoding UTF8
     $qualityPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/09_QUALITAETSCHECK.md") -Raw -Encoding UTF8
     $canonicalPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/00_AGENTEN_START_HIER.md") -Raw -Encoding UTF8
     $emailPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/05_EMAIL_NACHRICHT_REGELN.md") -Raw -Encoding UTF8
@@ -1135,6 +1237,15 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($designPrompt -match 'data:image/png;base64' -and $designPrompt -match 'konkreten Bewerbungsdesign' -and $qualityPrompt -match 'Gesichtsausschnitt') -Message "Design- oder Sichtprüfungsvertrag für das optionale Passfoto fehlt."
     Assert-True -Condition ($technicalPrompt -match 'bewerbung\.ps1 passfoto' -and $technicalPrompt -match 'Bildbytes werden nie ausgegeben') -Message "Technischer Passfoto-Einbettungsvertrag fehlt."
     Assert-True -Condition ($cvTemplate -match '<!-- passfoto:start -->' -and $cvTemplate -match '\{\{PASSFOTO_BLOCK\}\}' -and $cvTemplate -match 'bewerbungsfoto-rahmen') -Message "Lebenslaufreferenz enthält keinen vollständig optionalen Passfoto-Block."
+    Assert-True -Condition ($canonicalPrompt -match 'Stellenanforderungen.+stärkste Profilbelege.+Transferbrücken.+Inhaltsentwurf.+Layout') -Message "Kanonischer Workflow erzwingt die belegorientierte Erstellungsreihenfolge nicht."
+    Assert-True -Condition ($matrixPrompt -match 'Schema 4' -and $matrixPrompt -match 'recruiterStrategie' -and $matrixPrompt -match 'profilHighlights' -and $matrixPrompt -match 'sichtbareAnker' -and $matrixPrompt -match 'Evidenzindex') -Message "Matrixprompt definiert den Schema-4-Recruiter- und Evidenzvertrag nicht vollständig."
+    Assert-True -Condition ($resumePrompt -match 'Zweck.+Aufgabe.+Problem' -and $resumePrompt -match 'eigene Beitrag.+Tätigkeit.+Ergebnis' -and $resumePrompt -match 'ungewöhnlich leer') -Message "Lebenslaufprompt schützt Projektbelege und inhaltliche Flächennutzung nicht."
+    Assert-True -Condition ($letterPrompt -match 'Lebenslauf und Anschreiben ergänzen sich' -and $letterPrompt -match 'zwei bis vier') -Message "Anschreibenprompt verbindet die stärksten Belege nicht mit dem Arbeitgebernutzen."
+    Assert-True -Condition ($truthPrompt -match 'Salesforce' -and $truthPrompt -match 'API-.+Prozess-.+Lernpraxis' -and $truthPrompt -match 'Unzulässig.+Salesforce-Erfahrung') -Message "Wahrheitsprompt definiert keine ehrliche Salesforce-Transferbrücke."
+    Assert-True -Condition ($qualityPrompt -match 'recruiterCoverage' -and $technicalPrompt -match 'recruiterCoverage') -Message "Qualitäts- oder Technikprompt fordert keine maschinenlesbare Recruiter-Abdeckung."
+    foreach ($promptText in @($canonicalPrompt, $matrixPrompt, $resumePrompt, $letterPrompt, $rolePrompt, $qualityPrompt)) {
+      Assert-True -Condition ($promptText -notmatch '(?i)(?:höchstens|maximal|nur)\s+(?:ein(?:e)?\s+bis\s+)?zwei\s+Projekte|ein\s+bis\s+zwei\s+Projekte') -Message "Ein Prompt führt erneut eine pauschale Obergrenze von ein bis zwei Projekten ein."
+    }
   }
 
   Invoke-Test -Name "Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben" -Body {
@@ -1416,6 +1527,25 @@ Start-Sleep -Seconds 30
     $fixture = New-DialogContractFixture -Root (Join-Path $testRoot "dialog-permanent") -DialogStatus "speicherentscheidung_offen" -Rueckfragen @($storageQuestion) -Angaben @($fact)
     $personalHash = (Get-FileHash -LiteralPath $fixture.Personal -Algorithm SHA256).Hash
     $beforeProfileHash = (Get-FileHash -LiteralPath $fixture.Profile -Algorithm SHA256).Hash
+    $beforeProfileBytes = [System.IO.File]::ReadAllBytes($fixture.Profile)
+    $beforeOrderBytes = [System.IO.File]::ReadAllBytes($fixture.Auftrag)
+    $recoveryDir = Join-Path $fixture.Work '.dialogtransaktion-recovery'
+    New-Item -Path $recoveryDir -ItemType Directory | Out-Null
+    [System.IO.File]::WriteAllBytes((Join-Path $recoveryDir 'profile.before.bin'), $beforeProfileBytes)
+    [System.IO.File]::WriteAllBytes((Join-Path $recoveryDir 'order.before.bin'), $beforeOrderBytes)
+    $interruptedProfileBytes = [System.Text.UTF8Encoding]::new($false).GetBytes(((Get-Content -LiteralPath $fixture.Profile -Raw -Encoding UTF8) + "`nUnterbrochene Transaktion"))
+    [System.IO.File]::WriteAllBytes($fixture.Profile, $interruptedProfileBytes)
+    $recoveryJournal = [ordered]@{
+      schemaVersion = 1
+      profileFileName = Split-Path -Path $fixture.Profile -Leaf
+      orderFileName = Split-Path -Path $fixture.Auftrag -Leaf
+      profileBeforeSha256 = (Get-FileHash -LiteralPath (Join-Path $recoveryDir 'profile.before.bin') -Algorithm SHA256).Hash
+      profileAfterSha256 = ([System.BitConverter]::ToString(([System.Security.Cryptography.SHA256]::HashData($interruptedProfileBytes))).Replace('-', ''))
+      orderBeforeSha256 = (Get-FileHash -LiteralPath (Join-Path $recoveryDir 'order.before.bin') -Algorithm SHA256).Hash
+      orderAfterSha256 = (Get-FileHash -LiteralPath $fixture.Auftrag -Algorithm SHA256).Hash
+      createdAtUtc = [datetime]::UtcNow.ToString('o')
+    }
+    Set-Content -LiteralPath (Join-Path $recoveryDir 'journal.json') -Encoding UTF8 -Value ($recoveryJournal | ConvertTo-Json -Depth 6)
     $arguments = @(
       "-AuftragPath", $fixture.Auftrag,
       "-AngabeId", "typescript-angabe",
@@ -1433,6 +1563,7 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ((Get-FileHash -LiteralPath $fixture.Personal -Algorithm SHA256).Hash -eq $personalHash) -Message "Nicht zuständige persönliche Stammdaten wurden verändert."
     $profileText = Get-Content -LiteralPath $fixture.Profile -Raw -Encoding UTF8
     Assert-True -Condition (@([regex]::Matches($profileText, [regex]::Escape($formulation))).Count -eq 1) -Message "Bestätigte Formulierung fehlt oder wurde dupliziert."
+    Assert-True -Condition ($profileText -notmatch 'Unterbrochene Transaktion' -and -not (Test-Path -LiteralPath $recoveryDir)) -Message 'Unterbrochene Profiltransaktion wurde nicht vor der neuen Übernahme sicher wiederhergestellt.'
     $auftrag = Get-Content -LiteralPath $fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
     $stored = @($auftrag.dialog.angaben)[0]
     Assert-True -Condition ($stored.speicherentscheidung -eq "dauerhaft" -and $stored.profilaktualisierung.status -eq "aktualisiert") -Message "Dauerhafte Zustimmung wurde nicht mit Erfolgsstatus protokolliert."
@@ -1926,6 +2057,17 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($auftrag.bewerbungslogistik.stellenart -eq "Vollzeit" -and $auftrag.bewerbungslogistik.arbeitsmodell -eq "hybrid") -Message "Logistik-Snapshot ist unvollständig."
     Assert-True -Condition ($auftrag.bewerbungsentscheidung -eq "noch_festzulegen") -Message "Initiale Bewerbungsentscheidung ist nicht offen markiert."
     Assert-True -Condition ($auftrag.quellnachweise.stammdatenSha256BeiAnlage -eq (Get-FileHash -LiteralPath $data.Personal -Algorithm SHA256).Hash) -Message "Stammdaten-Quellhash fehlt oder stimmt nicht."
+    $matrixDraftPath = Join-Path (Split-Path -Path $auftragPath -Parent) "Anforderungsmatrix--ENTWURF.json"
+    $matrixDraft = Get-Content -LiteralPath $matrixDraftPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($matrixDraft.schemaVersion -eq 4) -Message "Neue Bewerbung erhält keinen Matrixentwurf nach Schema 4."
+    Assert-True -Condition ($null -ne $matrixDraft.recruiterStrategie -and $matrixDraft.recruiterStrategie.profilSubstanz -eq "noch_zu_pruefen") -Message "Matrixentwurf enthält keine offene Recruiter-Strategie."
+    foreach ($strategyField in @("kernbotschaft", "prioritaetsAnforderungen", "profilHighlights", "transferbruecken", "auslassungen")) {
+      Assert-True -Condition ($matrixDraft.recruiterStrategie.PSObject.Properties.Name -contains $strategyField) -Message "Matrixentwurf enthält das Recruiter-Feld '$strategyField' nicht."
+    }
+    Assert-True -Condition ($null -ne $matrixDraft.stellenanzeigeAbdeckung) -Message 'Matrixentwurf enthält keine Schema-4-Stellenanzeigenabdeckung.'
+    $evidenceDraftPath = Join-Path (Split-Path -Path $auftragPath -Parent) 'Evidenzindex--ENTWURF.json'
+    $evidenceDraft = Get-Content -LiteralPath $evidenceDraftPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($evidenceDraft.schemaVersion -eq 1 -and $null -ne $evidenceDraft.belege) -Message 'Ordnerhelfer erzeugt keinen Evidenzindex-Entwurf.'
     $checkpoint = Get-Content -LiteralPath (Join-Path (Split-Path -Path $auftragPath -Parent) "Workflow-Checkpoint.json") -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ($checkpoint.lastCompletedStep -eq "auftrag_angelegt" -and $checkpoint.artifacts.Count -gt 0) -Message "Ordnerhelfer erzeugte keinen gebundenen Initial-Checkpoint."
   }
@@ -2293,7 +2435,7 @@ Start-Sleep -Seconds 30
     )
     Assert-True -Condition ($content.ExitCode -eq 0) -Message "Bytegleich eingebettetes Passfoto wurde abgelehnt: $($content.Output -join ' | ')"
     $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    Assert-True -Condition ($report.schemaVersion -eq 4 -and $report.passfoto.status -eq 'eingebettet' -and $report.passfoto.sourceSha256 -eq $report.passfoto.embeddedSha256) -Message "Inhaltsbericht weist die Passfoto-Bindung nicht korrekt aus."
+    Assert-True -Condition ($report.schemaVersion -eq 5 -and $report.passfoto.status -eq 'eingebettet' -and $report.passfoto.sourceSha256 -eq $report.passfoto.embeddedSha256) -Message "Inhaltsbericht weist die Passfoto-Bindung nicht korrekt aus."
 
     $validHtml = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
     $photoTag = [regex]::Match($validHtml, '(?is)<img\b[^>]*class="bewerbungsfoto"[^>]*>').Value
@@ -2335,6 +2477,127 @@ Start-Sleep -Seconds 30
     $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ($report.fitAssessment.classification -eq "stark" -and $report.fitAssessment.scorePercent -eq 100) -Message "Gewichtete Eignungsbewertung ist unerwartet."
     Assert-True -Condition ($report.profileLinksMode -eq "rollenrelevant") -Message "Profillink-Modus fehlt im Bericht."
+  }
+
+  Invoke-Test -Name "Schema-3-Inhaltsprüfung bestätigt vollständige Recruiter-Abdeckung" -Body {
+    $fixture = Convert-ToSchema3RecruiterFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "schema3-recruiter-valid"))
+    $reportPath = Join-Path $fixture.Work "Inhalt-Schema3.json"
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix, "-BerichtPath", $reportPath)
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Vollständige Schema-3-Recruiter-Abdeckung wurde abgelehnt: $($result.Output -join ' | ')"
+    $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($report.schemaVersion -eq 5 -and $report.recruiterCoverage.status -eq "ok") -Message "Inhaltsbericht weist die gültige Recruiter-Abdeckung nicht maschinenlesbar aus."
+    Assert-True -Condition ($report.recruiterCoverage.highlights.Count -eq 2 -and $report.recruiterCoverage.firstPageRequirementIds -contains "muss-1") -Message "Highlights oder Seite-1-Abdeckung fehlen im Recruiter-Bericht."
+  }
+
+  Invoke-Test -Name "Schema-4-Inhaltsprüfung bindet Stellenanforderungen und Profilbelege an Quellen" -Body {
+    $fixture = Convert-ToSchema4EvidenceFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot 'schema4-evidence-valid'))
+    $reportPath = Join-Path $fixture.Work 'Inhalt-Schema4.json'
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $fixture.Folder, '-StammdatenPath', $fixture.Personal, '-ProfilPath', $fixture.Profile, '-AuftragPath', $fixture.Auftrag, '-AnforderungsmatrixPath', $fixture.Matrix, '-EvidenzindexPath', $fixture.Evidenzindex, '-BerichtPath', $reportPath)
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Vollständige Schema-4-Beweiskette wurde abgelehnt: $($result.Output -join ' | ')"
+    $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($report.evidenceCoverage.status -eq 'ok' -and $report.evidenceCoverage.explicitJobSignalLines.Count -ge 2 -and $report.evidenceCoverage.profileEvidence.Count -eq 3 -and @($report.evidenceCoverage.profileEvidence | Where-Object { $_.quelle -eq 'auftrag_angabe' -and $_.valid }).Count -eq 1) -Message 'Schema-4-Bericht weist die Quellenbeweiskette nicht vollständig aus.'
+  }
+
+  Invoke-Test -Name "Schema-4-Inhaltsprüfung verwirft fehlende Stellenabdeckung und unbelegte Direktbehauptungen" -Body {
+    $missingSource = Convert-ToSchema4EvidenceFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot 'schema4-missing-source'))
+    $matrix = Get-Content -LiteralPath $missingSource.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrix.stellenanzeigeAbdeckung.fundstellen = @($matrix.stellenanzeigeAbdeckung.fundstellen[0])
+    Set-Content -LiteralPath $missingSource.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 12)
+    $missingResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $missingSource.Folder, '-StammdatenPath', $missingSource.Personal, '-ProfilPath', $missingSource.Profile, '-AuftragPath', $missingSource.Auftrag, '-AnforderungsmatrixPath', $missingSource.Matrix, '-EvidenzindexPath', $missingSource.Evidenzindex)
+    Assert-True -Condition ($missingResult.ExitCode -ne 0) -Message 'Nicht abgedeckte explizite Stellenaufgabe wurde akzeptiert.'
+
+    $fabricated = Convert-ToSchema4EvidenceFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot 'schema4-fabricated-evidence'))
+    $fabricatedMatrix = Get-Content -LiteralPath $fabricated.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $fabricatedMatrix.requirements[0].belegRefIds = @('nicht-vorhanden')
+    Set-Content -LiteralPath $fabricated.Matrix -Encoding UTF8 -Value ($fabricatedMatrix | ConvertTo-Json -Depth 12)
+    $fabricatedResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $fabricated.Folder, '-StammdatenPath', $fabricated.Personal, '-ProfilPath', $fabricated.Profile, '-AuftragPath', $fabricated.Auftrag, '-AnforderungsmatrixPath', $fabricated.Matrix, '-EvidenzindexPath', $fabricated.Evidenzindex)
+    Assert-True -Condition ($fabricatedResult.ExitCode -ne 0) -Message 'Unbekannte Profilevidenz wurde als Direktbeleg akzeptiert.'
+  }
+
+  Invoke-Test -Name "Schema-3-Inhaltsprüfung erkennt fehlende oder erst später sichtbare Anker" -Body {
+    $missingFixture = Convert-ToSchema3RecruiterFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "schema3-missing-anchor"))
+    $missingMatrix = Get-Content -LiteralPath $missingFixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $missingMatrix.recruiterStrategie.profilHighlights[0].sichtbareAnker = @("nicht sichtbarer Beleg")
+    Set-Content -LiteralPath $missingFixture.Matrix -Encoding UTF8 -Value ($missingMatrix | ConvertTo-Json -Depth 10)
+    $missingResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $missingFixture.Folder, "-StammdatenPath", $missingFixture.Personal, "-ProfilPath", $missingFixture.Profile, "-AuftragPath", $missingFixture.Auftrag, "-AnforderungsmatrixPath", $missingFixture.Matrix)
+    Assert-True -Condition ($missingResult.ExitCode -ne 0) -Message "Fehlender sichtbarer Recruiter-Anker wurde akzeptiert."
+
+    $pageFixture = Convert-ToSchema3RecruiterFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "schema3-wrong-page"))
+    $pageMatrix = Get-Content -LiteralPath $pageFixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $pageMatrix.recruiterStrategie.profilHighlights[0].sichtbareAnker = @("nur zweite Seite")
+    Set-Content -LiteralPath $pageFixture.Matrix -Encoding UTF8 -Value ($pageMatrix | ConvertTo-Json -Depth 10)
+    $pageCvPath = Join-Path $pageFixture.Folder "Lebenslauf - TEST.PERSON.html"
+    $pageCv = (Get-Content -LiteralPath $pageCvPath -Raw -Encoding UTF8).Replace("</main></body>", "</main><main class=`"page`"><p>nur zweite Seite</p></main></body>")
+    Set-Content -LiteralPath $pageCvPath -Encoding UTF8 -Value $pageCv
+    $pageOrder = Get-Content -LiteralPath $pageFixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+    $pageOrder.seitenstrategie = "zwei_seiten"
+    Set-Content -LiteralPath $pageFixture.Auftrag -Encoding UTF8 -Value ($pageOrder | ConvertTo-Json -Depth 8)
+    $pageResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $pageFixture.Folder, "-StammdatenPath", $pageFixture.Personal, "-ProfilPath", $pageFixture.Profile, "-AuftragPath", $pageFixture.Auftrag, "-AnforderungsmatrixPath", $pageFixture.Matrix)
+    Assert-True -Condition ($pageResult.ExitCode -ne 0) -Message "Erst auf Seite 2 sichtbarer Seite-1-Anker wurde akzeptiert."
+  }
+
+  Invoke-Test -Name "Schema-3-Inhaltsprüfung erlaubt ehrliche Salesforce-Transferbrücke und verwirft erfundene Direktpraxis" -Body {
+    $fixture = Convert-ToSchema3RecruiterFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "schema3-salesforce-transfer"))
+    $matrix = Get-Content -LiteralPath $fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrix.requirements = @($matrix.requirements) + [pscustomobject][ordered]@{
+      id = "kann-salesforce"
+      anforderung = "Salesforce"
+      typ = "kann"
+      kategorie = "fachlich"
+      gewichtung = "hoch"
+      status = "nicht_belegt"
+      belegart = "EINARBEITUNGSZIEL"
+      beleg = "Keine direkte Salesforce-Praxis; belegte API-, Prozess- und Lernpraxis"
+      behandlung = "Ehrliche Transferbrücke im Lebenslauf"
+    }
+    $matrix.recruiterStrategie.prioritaetsAnforderungen = @($matrix.recruiterStrategie.prioritaetsAnforderungen) + "kann-salesforce"
+    $matrix.recruiterStrategie.transferbruecken = @([pscustomobject][ordered]@{
+      anforderungId = "kann-salesforce"
+      zieltechnologie = "Salesforce"
+      basisHighlightIds = @("highlight-weiterbildung", "highlight-praxis")
+      formulierungsebene = "EINARBEITUNGSZIEL"
+      zielDokument = "lebenslauf"
+      platzierung = "seite_1"
+      sichtbareAnker = @("Salesforce gezielt einarbeiten")
+    })
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 10)
+    $cvPath = Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.html"
+    $cv = (Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8).Replace("</main>", "<p>Auf Basis belegter API-, Prozess- und Lernpraxis kann ich mich in Salesforce gezielt einarbeiten.</p></main>")
+    Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+    $validResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($validResult.ExitCode -eq 0) -Message "Ehrliche Salesforce-Transferbrücke wurde abgelehnt: $($validResult.Output -join ' | ')"
+
+    $matrix.recruiterStrategie.profilHighlights = @($matrix.recruiterStrategie.profilHighlights) + [pscustomobject][ordered]@{
+      id = "highlight-erfundene-salesforce-praxis"
+      anforderungIds = @("kann-salesforce")
+      belegart = "BERUFLICH BELEGT"
+      relevanz = "hoch"
+      zielDokument = "lebenslauf"
+      platzierung = "seite_1"
+      sichtbareAnker = @("Salesforce gezielt einarbeiten")
+    }
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 10)
+    $fabricatedResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($fabricatedResult.ExitCode -ne 0) -Message "Erfundene direkte Salesforce-Praxis wurde als Profilhighlight akzeptiert."
+  }
+
+  Invoke-Test -Name "Schema-3-Inhaltsprüfung verwirft unnötig dünnes Profil und erlaubt dokumentiert schmales Profil" -Body {
+    $fixture = Convert-ToSchema3RecruiterFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "schema3-profile-substance"))
+    $matrix = Get-Content -LiteralPath $fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrix.recruiterStrategie.profilHighlights = @($matrix.recruiterStrategie.profilHighlights[0])
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 10)
+    $thinResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($thinResult.ExitCode -ne 0) -Message "Inhaltlich dünnes Profil wurde trotz deklarierter ausreichender Substanz akzeptiert."
+
+    $matrix.recruiterStrategie.profilSubstanz = "schmal"
+    $matrix.recruiterStrategie.profilSubstanzBegruendung = "Das synthetische Testprofil enthält nur einen relevanten und belegbaren Nachweis."
+    $matrix.recruiterStrategie.auslassungen = @([pscustomobject][ordered]@{
+      thema = "Weitere Projekterfahrung"
+      begruendung = "Im synthetischen Testprofil ist keine weitere belegbare Projekterfahrung vorhanden."
+    })
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 10)
+    $narrowResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($narrowResult.ExitCode -eq 0) -Message "Dokumentiert schmales Profil wurde künstlich aufgebläht verlangt: $($narrowResult.Output -join ' | ')"
   }
 
   Invoke-Test -Name "Anschreiben-Modus verlangt Zielrolle nicht im unveränderten Universal-Lebenslauf" -Body {
@@ -3077,6 +3340,16 @@ Text vor dem Doctype
         Assert-True -Condition (@($layoutData.results).Count -eq 2) -Message "Layoutbericht enthält nicht genau zwei Dokumentnachweise."
         Assert-True -Condition (-not [string]::IsNullOrWhiteSpace($layoutData.results[0].htmlSha256)) -Message "Layoutbericht enthält keinen HTML-Hash."
         Assert-True -Condition ($layoutData.captureMode -eq "eine_png_pro_a4_seite") -Message "Layoutbericht weist den Seitencapture-Modus nicht aus."
+      }
+
+      Invoke-Test -Name "Layoutcheck blockiert DOM-Überlauf trotz fester A4-Seite" -Body {
+        $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot 'layout-dom-overflow')
+        $cvPath = Join-Path $folder 'Lebenslauf - TEST.PERSON.html'
+        $cv = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
+        $cv = $cv.Replace('</main>', '<div style="position:absolute; top:300mm; left:0">Unsichtbar abgeschnittener Pflichtinhalt</div></main>')
+        Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Layoutcheck-Bewerbung.ps1') -Arguments @('-Ordner', $folder, '-Browser', 'auto', '-BrowserExecutablePath', $script:browserSmokeInfo.Path, '-TimeoutSeconds', '60')
+        Assert-True -Condition ($result.ExitCode -ne 0 -and ($result.Output -join "`n") -match 'DOM-Geometrie') -Message "DOM-Überlauf wurde nicht blockiert: $($result.Output -join ' | ')"
       }
 
       Invoke-Test -Name "Layoutcheck erfasst jede explizite A4-Seite einzeln" -Body {

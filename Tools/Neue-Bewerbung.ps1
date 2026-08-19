@@ -603,6 +603,7 @@ $emailEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Email-Nachricht--$fi
 $qualitaetscheckEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Qualitaetscheck--ENTWURF.md"
 $offeneFragenEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Offene_Fragen--ENTWURF.md"
 $anforderungsmatrixEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Anforderungsmatrix--ENTWURF.json"
+$evidenzindexEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Evidenzindex--ENTWURF.json"
 $auftragFile = Join-Path -Path $arbeitsDir -ChildPath "Bewerbungsauftrag.json"
 $druckHinweisFile = Join-Path -Path $kandidatDir -ChildPath "Druck-Hinweis.md"
 $universalCandidateFile = if ([string]::IsNullOrWhiteSpace($applicantFileName)) { "" } else { Join-Path -Path $kandidatDir -ChildPath "Lebenslauf - $applicantFileName.html" }
@@ -753,7 +754,7 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
 if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
   Set-Content -LiteralPath $anforderungsmatrixEntwurfFile -Encoding UTF8 -Value @"
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "requirements": [
     {
       "id": "muss-1",
@@ -764,6 +765,8 @@ if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
       "status": "unklar",
       "belegart": "",
       "beleg": "",
+      "stellenFundstellen": [],
+      "belegRefIds": [],
       "behandlung": "vor Erstellung der Kandidatendateien klären"
     }
   ],
@@ -775,7 +778,21 @@ if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
     "profilHighlights": [],
     "transferbruecken": [],
     "auslassungen": []
+  },
+  "stellenanzeigeAbdeckung": {
+    "sourceSha256": "aus Stellenbeschreibung.md übernehmen",
+    "fundstellen": []
   }
+}
+"@
+}
+
+if (-not (Test-Path -LiteralPath $evidenzindexEntwurfFile)) {
+  Set-Content -LiteralPath $evidenzindexEntwurfFile -Encoding UTF8 -Value @"
+{
+  "schemaVersion": 1,
+  "profilSha256": "aus Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md übernehmen",
+  "belege": []
 }
 "@
 }
@@ -865,6 +882,7 @@ if (-not (Test-Path -LiteralPath $arbeitsnotizenFile)) {
 - Finaler Bewerbungsordner: $zielDir
 - Entwurfs-/Arbeitsdateien: $arbeitsDir
 - Kandidatendateien vor Freigabe: $kandidatDir
+- Vor der Dokumenterstellung: Anforderungsmatrix.json und Evidenzindex.json aus den jeweiligen Entwürfen fachlich vervollständigen.
 
 Dieser Ordner ist nur für temporäre Entwürfe und Arbeitsnotizen gedacht.
 Versandfertig benannte Kandidatendateien gehören zunächst in den Kandidatenordner.

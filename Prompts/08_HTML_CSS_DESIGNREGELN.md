@@ -77,6 +77,7 @@ Wichtig:
 - `overflow: hidden` darf niemals verwendet werden, um zu lange Inhalte unsichtbar zu machen.
 - Wenn Inhalt nicht vollständig in diese feste A4-Seite passt, muss zuerst fachlich gekürzt oder bewusst auf zwei Seiten gewechselt werden.
 - Keine fixen Höhen für normale Textabschnitte, Listen oder Spalten, wenn dadurch Inhalt abgeschnitten werden könnte.
+- Der verbindliche Layoutcheck misst zusätzlich browserseitig `scrollHeight`, Elementgrenzen und sichtbare Überläufe. Ein Textanker im HTML genügt nicht, wenn sein Element außerhalb der A4-Seite liegt oder abgeschnitten wird.
 
 Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
 

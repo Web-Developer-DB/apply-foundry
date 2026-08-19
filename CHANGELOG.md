@@ -8,6 +8,11 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
+- Matrix-Schema 4 mit hash- und zeilengebundener `stellenanzeigeAbdeckung`, verbindlichen Stellen-Fundstellen sowie einem privaten `Evidenzindex.json` für quellgebundene Profilbelege. Matrix-Schemata 1 bis 3 bleiben lesbar.
+- Browserseitige DOM-Geometrieprüfung für jede isolierte A4-Seite. Scrollüberlauf und sichtbare Elemente außerhalb der festen Seite blockieren die technische Vorbereitung.
+- Private Dialogtransaktion mit Mutex, geflushten temporären Dateien, Sicherungen und automatischer Wiederherstellung eines unterbrochenen Profil-/Auftragscommits.
+- Matrix-Schema 3 mit verbindlicher `recruiterStrategie` für priorisierte Anforderungen, belegte Profilhighlights, wahre Transferbrücken, begründete Auslassungen und sichtbare Dokumentanker.
+- Maschinenlesbare `recruiterCoverage` im Schema-5-Inhaltsprüfbericht einschließlich Zieldokument-, Seite-1-, Highlight-, Transfer- und Substanzprüfung.
 - Optionales, ausschließlich privates `Private/Daten/Passfoto.png` für individuelle Lebensläufe sowie das idempotente Subcommand `bewerbung.ps1 passfoto`, das einen markierten HTML-Block ohne Ausgabe der Bilddaten befüllt oder entfernt.
 - Gemeinsame PNG-Header-, Base64- und Bytegleichheitsprüfung für Passfoto-Einbettung, Inhaltsbericht, Finalisierungsnachweis, Manifest und dateibasierte Statusrekonstruktion.
 - Gemeinsamer Dispatcher `Tools/bewerbung.ps1` einschließlich `universal-neu`, `universal-status` und `universal-finalisieren`; GNU-Langoptionen gelten auf Windows und Linux gleich.
@@ -19,6 +24,10 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Geändert
 
+- Neue Bewerbungen erzeugen Schema-4-Entwürfe für Anforderungsmatrix und Evidenzindex. Erfüllte oder teilweise erfüllte Anforderungen sowie sichtbare Profilhighlights benötigen nun validierte Evidenz-IDs; `NICHT BEHAUPTEN` und `EINARBEITUNGSZIEL` können keine Direktbelege sein.
+- Der Bewerbungsworkflow arbeitet verbindlich in der Reihenfolge Stellenanforderungen, stärkste Profilbelege, wahre Transferbrücken, Inhaltsentwurf und erst danach Layout. Pauschale Obergrenzen für Projekte, Kompetenzgruppen und relevante Inhaltsblöcke wurden durch Recruiter-Relevanz und Belegsubstanz ersetzt.
+- Lebenslauf und Anschreiben werden als ergänzende Belegträger geprüft: wichtige Technologien benötigen Anwendungskontext, Projekte und Stationen benennen Aufgabe, eingesetzte Kenntnisse und eigenen Beitrag, und ungewöhnliche Leerfläche löst zuerst eine Inhaltsprüfung aus.
+- Neue Bewerbungen erhalten Matrix-Schema 3; vorhandene Matrix-Schemata 1 und 2 bleiben ohne automatische Migration kompatibel.
 - Individuelle Lebensläufe binden ein vorhandenes Passfoto vollständig als private PNG-Datenressource ein und passen dessen Darstellung an das konkrete Design an. Fehlt die Datei, entstehen weder Rückfrage noch Fotoplatz; universelle Lebensläufe bleiben stets unverändert.
 - Zweiseitige Lebensläufe markieren Seitenköpfe und fachliche Abschnitte semantisch; ein Abschnitt darf nicht technisch über zwei Seiten geteilt werden. Der universelle Softwareentwicklungs-Lebenslauf bindet zusätzlich seine exakte recruiterfreundliche Abschnittsfolge.
 - Technische Vorbereitung und Veröffentlichung führen `passfoto` nur bei tatsächlicher Verwendung als optionalen fünften Quellnachweis. Hinzufügen, Ändern oder Löschen der Datei entwertet bestehende technische und persönliche Sichtnachweise.
@@ -46,8 +55,11 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Tests und Verifikation
 
+- Schema-4-Regressionsfälle prüfen Quellenbindung von Stellenanforderungen und Profilbelegen, fehlende explizite Stellenabdeckung, erfundene Evidenzreferenzen sowie die Wiederherstellung einer simulierten unterbrochenen Dialogtransaktion. Ein Browserfall prüft zusätzlich, dass DOM-Überlauf trotz fester A4-Geometrie abgewiesen wird.
+- Die vollständige lokale PowerShell-/Chromium-Regression bestand nach der Phase-1-Änderung mit 96 synthetischen Fällen und 0 Fehlern.
+- Schema-3-Regressionsfälle prüfen vollständige Recruiter-Abdeckung, fehlende beziehungsweise falsch platzierte Anker, ehrliche Salesforce-Transferbrücken, erfundene Direktpraxis sowie den Unterschied zwischen unnötig dünnem und dokumentiert schmalem Profil. Promptaudits verhindern erneut eingeführte pauschale Projektobergrenzen.
 - Synthetische Passfoto-Fälle decken fehlende, gültige, beschädigte, abweichende und doppelte Einbettungen, idempotente Verarbeitung, Universal-Snapshot-Schutz, optionale Manifestbindung und die Entwertung nach Quellenänderungen ab.
-- Die vollständige browserfreie PowerShell-Suite bestand lokal unter Windows mit 80 von 80 synthetischen Fällen. Die fokussierten realen Chromium-Regressionsfälle für Runtime-Auflösung sowie Universal-Vorbereitung, Aktivierung und Arbeitsordnerbereinigung bestanden mit 2 von 2 Fällen.
+- Die vollständige browserfreie PowerShell-Suite bestand lokal unter Windows mit 84 von 84 synthetischen Fällen. Die fokussierten realen Chromium-Regressionsfälle für Runtime-Auflösung sowie Universal-Vorbereitung, Aktivierung und Arbeitsordnerbereinigung bestanden mit 2 von 2 Fällen.
 - Bash-Syntax sowie Dispatcher-/Kompatibilitätstests bestanden unter Git Bash. Die Ubuntu-24.04-WSL-Tests für Parser, OS-Abweisung, Herkunft, Dry-run und Idempotenz bestanden ohne Paketinstallation.
 - Ein vollständiger PowerShell-/Browserlauf unter Ubuntu wurde lokal noch nicht ausgeführt. Die feste CI-Matrix und die getrennten Browser-Smokes sind eingerichtet; Ubuntu bleibt bis zu den dokumentierten Nachweisen Alpha.
 

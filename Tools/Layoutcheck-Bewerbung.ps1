@@ -218,6 +218,38 @@ function New-PageCaptureHtml {
   }
 </style>
 "@
+  $geometryScript = @"
+<script id="layoutcheck-geometry-audit">
+(() => {
+  const page = document.querySelector('body > main.page');
+  const result = { available: true, pageOverflowX: false, pageOverflowY: false, outsideElements: [], pageClientWidth: 0, pageClientHeight: 0, pageScrollWidth: 0, pageScrollHeight: 0 };
+  if (!page) {
+    result.available = false;
+    result.error = 'isolierter page-Container fehlt';
+  } else {
+    const pageRect = page.getBoundingClientRect();
+    result.pageClientWidth = page.clientWidth;
+    result.pageClientHeight = page.clientHeight;
+    result.pageScrollWidth = page.scrollWidth;
+    result.pageScrollHeight = page.scrollHeight;
+    result.pageOverflowX = page.scrollWidth > page.clientWidth + 1;
+    result.pageOverflowY = page.scrollHeight > page.clientHeight + 1;
+    for (const element of Array.from(page.querySelectorAll('*'))) {
+      if (['SCRIPT', 'STYLE', 'META', 'LINK'].includes(element.tagName)) continue;
+      const style = window.getComputedStyle(element);
+      if (style.display === 'none' || style.visibility === 'hidden') continue;
+      const rect = element.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) continue;
+      if (rect.left < pageRect.left - 1 || rect.top < pageRect.top - 1 || rect.right > pageRect.right + 1 || rect.bottom > pageRect.bottom + 1) {
+        result.outsideElements.push({ tag: element.tagName.toLowerCase(), left: Math.round(rect.left - pageRect.left), top: Math.round(rect.top - pageRect.top), right: Math.round(rect.right - pageRect.left), bottom: Math.round(rect.bottom - pageRect.top) });
+        if (result.outsideElements.length >= 12) break;
+      }
+    }
+  }
+  document.documentElement.setAttribute('data-layoutcheck-geometry-b64', btoa(JSON.stringify(result)));
+})();
+</script>
+"@
 
   if ($html -notmatch '(?is)</head\s*>') {
     throw "HTML enthält kein schließendes head-Element: $($HtmlFile.Name)"
@@ -231,7 +263,7 @@ function New-PageCaptureHtml {
     $captureHtml,
     [System.Text.RegularExpressions.MatchEvaluator]{
       param($match)
-      return $match.Groups['open'].Value + "`r`n" + $selectedPage + "`r`n" + $match.Groups['close'].Value
+      return $match.Groups['open'].Value + "`r`n" + $selectedPage + "`r`n" + $geometryScript + "`r`n" + $match.Groups['close'].Value
     },
     1
   )
@@ -480,6 +512,65 @@ function Invoke-BrowserScreenshot {
   return $result
 }
 
+function Invoke-BrowserGeometryAudit {
+  param(
+    [pscustomobject]$BrowserInfo,
+    [System.IO.FileInfo]$CaptureHtmlFile,
+    [string]$BrowserTempRoot,
+    [string]$RunId,
+    [int]$Width,
+    [int]$Height,
+    [int]$TimeoutSeconds
+  )
+
+  $result = [pscustomobject]@{ Available = $false; ErrorMessage = $null; Geometry = $null }
+  if ($BrowserInfo.Engine -ne 'chromium') {
+    $result.ErrorMessage = "Browser $($BrowserInfo.Name) unterstützt keine verbindliche DOM-Geometrieprüfung."
+    return $result
+  }
+  $auditRoot = Resolve-SafePath -Candidate (Join-Path -Path $BrowserTempRoot -ChildPath ('G-' + $RunId)) -Root $BrowserTempRoot -ForWrite -PathType Container
+  $profilePath = Join-Path -Path $auditRoot -ChildPath 'profile'
+  $browserHtmlPath = Join-Path -Path $auditRoot -ChildPath 'capture.html'
+  try {
+    New-Item -Path $auditRoot -ItemType Directory | Out-Null
+    New-Item -Path $profilePath -ItemType Directory | Out-Null
+    Copy-Item -LiteralPath $CaptureHtmlFile.FullName -Destination $browserHtmlPath
+    $uri = [System.Uri]::new($browserHtmlPath).AbsoluteUri
+    $arguments = @(
+      '--headless=new', '--disable-gpu', '--disable-gpu-sandbox', '--no-sandbox', '--disable-dev-shm-usage',
+      '--no-first-run', '--disable-background-networking', '--disable-extensions', '--hide-scrollbars',
+      "--user-data-dir=$profilePath", "--window-size=$Width,$Height", '--dump-dom', $uri
+    )
+    $process = Invoke-NativeProcess -FilePath $BrowserInfo.Path -ArgumentList $arguments -TimeoutSeconds $TimeoutSeconds -MaxStdoutChars 262144 -MaxStderrChars 8192
+    if ($process.TimedOut) { $result.ErrorMessage = "DOM-Geometrieprüfung überschritt das Zeitlimit von $TimeoutSeconds Sekunden."; return $result }
+    if ($process.ExitCode -ne 0) {
+      $stderr = $process.StandardError.Trim()
+      $result.ErrorMessage = "DOM-Geometrieprüfung endete mit Exitcode $($process.ExitCode)." + $(if ($stderr) { " stderr: $stderr" } else { '' })
+      return $result
+    }
+    if ($process.StdoutTruncated) { $result.ErrorMessage = 'DOM-Geometrieprüfung erzeugte zu viel Ausgabe.'; return $result }
+    $match = [regex]::Match($process.StandardOutput, 'data-layoutcheck-geometry-b64="(?<payload>[A-Za-z0-9+/=]+)"')
+    if (-not $match.Success) { $result.ErrorMessage = 'DOM-Geometrieprüfung lieferte keinen auswertbaren Messwert.'; return $result }
+    try {
+      $json = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($match.Groups['payload'].Value))
+      $geometry = $json | ConvertFrom-Json
+    } catch {
+      $result.ErrorMessage = "DOM-Geometrieprüfung lieferte ungültige Messdaten: $($_.Exception.Message)"
+      return $result
+    }
+    if ($geometry.available -ne $true) { $result.ErrorMessage = "DOM-Geometrieprüfung konnte die A4-Seite nicht messen: $($geometry.error)"; return $result }
+    $result.Available = $true
+    $result.Geometry = $geometry
+  } catch {
+    $result.ErrorMessage = $_.Exception.Message
+  } finally {
+    if (-not (Remove-TemporaryDirectoryWithRetry -Path $auditRoot -Root $BrowserTempRoot)) {
+      Add-Warn "Temporärer DOM-Prüfordner konnte nicht vollständig bereinigt werden: $auditRoot"
+    }
+  }
+  return $result
+}
+
 if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
   Add-Fail "Ordner existiert nicht oder ist kein Verzeichnis: $Ordner"
   exit 1
@@ -638,7 +729,19 @@ foreach ($candidate in $browserCandidates) {
       try {
         New-PageCaptureHtml -HtmlFile $document.HtmlFile -HtmlText $document.HtmlText -PageNumber $pageNumber -TargetPath $capturePath
         $captureFile = Get-Item -LiteralPath $capturePath
-        $result = Invoke-BrowserScreenshot -BrowserInfo $candidate -SourceHtmlFile $document.HtmlFile -CaptureHtmlFile $captureFile -OutputBaseName $document.HtmlFile.BaseName -PageNumber $pageNumber -PageCount $document.PageCount -TargetDir $layoutDir -BrowserTempRoot $browserTempRoot -RunId $runId -Width $Width -Height $Height -TimeoutSeconds $TimeoutSeconds -Pdf:$Pdf
+        $geometryAudit = Invoke-BrowserGeometryAudit -BrowserInfo $candidate -CaptureHtmlFile $captureFile -BrowserTempRoot $browserTempRoot -RunId $runId -Width $Width -Height $Height -TimeoutSeconds $TimeoutSeconds
+        $geometryFailure = $null
+        if (-not $geometryAudit.Available) {
+          $geometryFailure = $geometryAudit.ErrorMessage
+        } elseif ($geometryAudit.Geometry.pageOverflowX -eq $true -or $geometryAudit.Geometry.pageOverflowY -eq $true -or @($geometryAudit.Geometry.outsideElements).Count -gt 0) {
+          $geometryFailure = "DOM-Geometrie meldet Überlauf (horizontal=$($geometryAudit.Geometry.pageOverflowX), vertikal=$($geometryAudit.Geometry.pageOverflowY), Elemente außerhalb=$(@($geometryAudit.Geometry.outsideElements).Count))."
+        }
+        if ($geometryFailure) {
+          $result = [pscustomobject]@{ Browser=$candidate.Name; File=$document.HtmlFile.Name; PageNumber=$pageNumber; PageCount=$document.PageCount; ExitCode=$null; TimedOut=$false; ErrorMessage=$geometryFailure; Screenshot=$null; ScreenshotOk=$false; Pdf=$null; PdfOk=$false; Geometry=$geometryAudit.Geometry }
+        } else {
+          $result = Invoke-BrowserScreenshot -BrowserInfo $candidate -SourceHtmlFile $document.HtmlFile -CaptureHtmlFile $captureFile -OutputBaseName $document.HtmlFile.BaseName -PageNumber $pageNumber -PageCount $document.PageCount -TargetDir $layoutDir -BrowserTempRoot $browserTempRoot -RunId $runId -Width $Width -Height $Height -TimeoutSeconds $TimeoutSeconds -Pdf:$Pdf
+          $result | Add-Member -NotePropertyName Geometry -NotePropertyValue $geometryAudit.Geometry
+        }
       } finally {
         if (Test-Path -LiteralPath $capturePath -PathType Leaf) {
           Remove-Item -LiteralPath $capturePath -Force -ErrorAction SilentlyContinue
@@ -690,6 +793,15 @@ foreach ($candidate in $browserCandidates) {
           bottomWhitespaceMm = $density.bottomWhitespaceMm
           scanBottomReserveMm = $density.scanBottomReserveMm
           densityWarning = $density.warning
+          domGeometry = [ordered]@{
+            pageOverflowX = $result.Geometry.pageOverflowX
+            pageOverflowY = $result.Geometry.pageOverflowY
+            outsideElements = @($result.Geometry.outsideElements)
+            pageClientWidth = $result.Geometry.pageClientWidth
+            pageClientHeight = $result.Geometry.pageClientHeight
+            pageScrollWidth = $result.Geometry.pageScrollWidth
+            pageScrollHeight = $result.Geometry.pageScrollHeight
+          }
         }
       } else {
         $candidateOk = $false
