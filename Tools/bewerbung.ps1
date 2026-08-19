@@ -331,6 +331,9 @@ $script:Commands = @{
     Required = @()
     Options = [ordered]@{
       "--mit-browser" = New-CliOption -Parameter "MitBrowser" -Kind switch
+      "--suite" = New-CliOption -Parameter "Suite" -Kind enum -Allowed @("schnell", "vollstaendig", "browser", "prompt-pr", "prompt-vollstaendig") -Placeholder "NAME"
+      "--bericht-path" = New-CliOption -Parameter "BerichtPath" -Placeholder "PFAD"
+      "--test-name-pattern" = New-CliOption -Parameter "TestNamePattern" -Placeholder "REGEX"
     }
   }
 }

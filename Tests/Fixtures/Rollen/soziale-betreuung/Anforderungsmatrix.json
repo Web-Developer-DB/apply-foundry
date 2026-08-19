@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 5,
+  "requirements": [{ "id": "muss-kommunikation", "anforderung": "Kommunikation", "typ": "muss", "status": "teilweise", "belegRefIds": ["profil-betreuung"], "stellenFundstellen": ["stelle-betreuung"] }],
+  "externeQuellen": [],
+  "anschreibenStrategie": { "status": "final", "argumente": [{ "id": "argument-betreuung", "anforderungIds": ["muss-kommunikation"], "belegRefIds": ["profil-betreuung"], "stellenFundstellen": ["stelle-betreuung"], "externeQuellenIds": [], "arbeitgeberbezug": "Fiktiv Sozialwerk e.V. erhält eine ehrliche Kommunikationsbrücke.", "nutzenargument": "Verlässliche Dokumentation unterstützt die betreute Person und das Team.", "sichtbareAnker": ["Fiktiv Sozialwerk e.V.", "Soziale Betreuung"] }] },
+  "recruiterStrategie": { "profilSubstanz": "schmal", "transferbruecken": [{ "thema": "Kommunikation", "belegRefIds": ["profil-betreuung"], "sichtbareAnker": ["private Praxis"] }], "auslassungen": [] }
+}

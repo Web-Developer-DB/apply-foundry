@@ -1,6 +1,7 @@
-name: Browser smoke (staged)
+name: Browser smoke
 
 on:
+  pull_request:
   workflow_dispatch:
   schedule:
     - cron: "23 4 * * 2"
@@ -9,20 +10,45 @@ permissions:
   contents: read
 
 concurrency:
-  group: browser-smoke-${{ github.ref }}
+  group: browser-smoke-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  browser-smoke:
-    name: Browser smoke (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-2025, ubuntu-24.04]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+  browser-smoke-windows:
+    name: Windows browser smoke (required)
+    runs-on: windows-2025
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - name: Synthetische Browser-Regressionssuite
+      - name: Windows-Browser-Smoke
         shell: pwsh
-        run: ./Tests/Run-RegressionTests.ps1 -MitBrowser
+        run: ./Tests/Run-RegressionTests.ps1 -Suite browser -BerichtPath Tests/Artifacts/browser-windows.json
+      - name: Bereinigte Browserartefakte hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-windows
+          path: Tests/Artifacts
+          if-no-files-found: ignore
+          retention-days: 7
+
+  browser-smoke-ubuntu:
+    name: Ubuntu browser smoke (staged)
+    # Ubuntu is intentionally not a pull-request gate until the repository
+    # contains three consecutive parity runs in Tests/Stabilitaetsnachweise.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ubuntu-Browser-Smoke
+        shell: pwsh
+        run: ./Tests/Run-RegressionTests.ps1 -Suite browser -BerichtPath Tests/Artifacts/browser-ubuntu.json
+      - name: Bereinigte Browserartefakte hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-ubuntu
+          path: Tests/Artifacts
+          if-no-files-found: ignore
+          retention-days: 7

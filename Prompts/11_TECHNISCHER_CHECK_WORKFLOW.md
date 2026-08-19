@@ -297,9 +297,13 @@ Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versand
 
 ## CI und gestufter Plattform-Rollout
 
-Die browserfreie PowerShell-Suite läuft mit `fail-fast: false` unverändert auf `windows-2025` und `ubuntu-24.04`; OS-bedingte Skips gehören nicht in diesen Kern. Ubuntu führt zusätzlich `bash -n`, ShellCheck sowie Dispatcher- und Kompatibilitätstests aus. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
+Die browserfreie PowerShell-Suite läuft mit `fail-fast: false` unverändert auf `windows-2025` und `ubuntu-24.04`; sie ist in `schnell` (Parser-, Schema-, Modul- und Vertrags-Canary) sowie `vollstaendig` (alle browserfreien Regressionen einschließlich der vier Rollen-Fixtures) geteilt. Ubuntu führt zusätzlich `bash -n`, ShellCheck sowie Dispatcher- und Kompatibilitätstests aus. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
 
-Browser-Smokes laufen zunächst getrennt, manuell und zeitgesteuert auf beiden Betriebssystemen. Sie prüfen Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und fehlende Restprozesse. Erst nach drei aufeinanderfolgenden grünen Browserläufen je Betriebssystem dürfen die Jobs verpflichtende Pull-Request-Checks werden und Ubuntu darf von Alpha auf stabil wechseln. Bis dieser Nachweis tatsächlich vorliegt, keinen stabilen Linux-Support behaupten.
+Der Windows-Browser-Smoke läuft bei jedem Pull Request sowie zeitgesteuert/manuell unter einem stabilen Checknamen. Ubuntu läuft zunächst nur zeitgesteuert/manuell. Beide Jobs prüfen Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und fehlende Restprozesse. Erst nach drei aufeinanderfolgenden grünen Ubuntu-Paritätsläufen, einem dokumentierten Promotion-PR und einem administrativen Ruleset-Eintrag darf Ubuntu als stabil und PR-verbindlich bezeichnet werden. Ohne Adminzugriff bleibt der Eintrag vorbereitet.
+
+`browser-stability-evidence.yml` darf aus der GitHub-Actions-API nur einen read-only Nachweisentwurf erzeugen. Der Entwurf gilt nicht als Promotion; ein eigener PR muss die drei aufeinanderfolgenden Läufe und alle Kriterien übernehmen.
+
+Echte Prompt-Regressionen verwenden `Tests/PromptRegression/models.json` und `scenarios.json`. Codex und OpenCode bilden die PR-Canary mit identischer OpenAI-Modell-ID; Claude Code und Gemini CLI laufen in der vollständigen wöchentlichen/manuellen Matrix. Der isolierte Runner leert globale Profile, lädt `AGENTS.md` über die jeweilige Umgebung, prüft erlaubte Dateimutationen und meldet fehlende Secrets oder unerwartete Modellweiterleitungen als Fehler. Reports speichern keine Zugangsdaten oder privaten Inhalte.
 
 ## Keine stillen Erfolge
 

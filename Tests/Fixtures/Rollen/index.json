@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    { "id": "softwareentwicklung", "rolle": "Frontend-Entwickler", "firma": "Fiktiv Software GmbH", "umfang": "A", "eignung": "stark", "anschreiben": true, "erwarteteDateien": ["Stammdaten", "Profil", "Stellenbeschreibung", "Anforderungsmatrix", "Evidenzindex", "Kandidaten", "Ergebnisse"] },
+    { "id": "sachbearbeitung", "rolle": "Kaufmännische Sachbearbeitung", "firma": "Beispiel Verwaltung AG", "umfang": "C", "eignung": "stark", "anschreiben": false, "erwarteteDateien": ["Stammdaten", "Profil", "Stellenbeschreibung", "Anforderungsmatrix", "Evidenzindex", "Kandidaten", "Ergebnisse"] },
+    { "id": "it-support-quereinstieg", "rolle": "IT-Support Mitarbeiter", "firma": "Muster Service KG", "umfang": "B", "eignung": "vertretbar_mit_risiken", "anschreiben": true, "erwarteteDateien": ["Stammdaten", "Profil", "Stellenbeschreibung", "Anforderungsmatrix", "Evidenzindex", "Kandidaten", "Ergebnisse"] },
+    { "id": "soziale-betreuung", "rolle": "Mitarbeiter Soziale Betreuung", "firma": "Fiktiv Sozialwerk e.V.", "umfang": "D", "eignung": "stretch", "anschreiben": true, "erwarteteDateien": ["Stammdaten", "Profil", "Stellenbeschreibung", "Anforderungsmatrix", "Evidenzindex", "Kandidaten", "Ergebnisse"] }
+  ]
+}

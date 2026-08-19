@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 5,
+  "requirements": [{ "id": "muss-fehleranalyse", "anforderung": "Fehleranalyse", "typ": "muss", "status": "teilweise", "belegRefIds": ["profil-transfer"], "stellenFundstellen": ["stelle-support"] }],
+  "externeQuellen": [],
+  "anschreibenStrategie": { "status": "final", "argumente": [{ "id": "argument-transfer", "anforderungIds": ["muss-fehleranalyse"], "belegRefIds": ["profil-transfer"], "stellenFundstellen": ["stelle-support"], "externeQuellenIds": [], "arbeitgeberbezug": "Muster Service KG erhält eine ehrliche Support-Transferbrücke.", "nutzenargument": "Dokumentierte Analyse unterstützt einen sicheren Einstieg in Supportfälle.", "sichtbareAnker": ["Muster Service KG", "IT-Support Mitarbeiter"] }] },
+  "recruiterStrategie": { "profilSubstanz": "ausreichend", "transferbruecken": [{ "thema": "Fehleranalyse", "belegRefIds": ["profil-transfer"], "sichtbareAnker": ["Home-Lab"] }], "auslassungen": [] }
+}

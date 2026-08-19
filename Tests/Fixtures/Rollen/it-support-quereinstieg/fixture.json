@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "it-support-quereinstieg",
+  "rolle": "IT-Support Mitarbeiter",
+  "firma": "Muster Service KG",
+  "umfang": "B",
+  "profilSubstanz": "ausreichend",
+  "erwarteteAnforderungen": ["Fehleranalyse", "Dokumentation", "Kundenkommunikation"],
+  "erwarteteBelege": ["ÜBERTRAGBAR", "PROJEKTPRAXIS", "EINARBEITUNGSZIEL"]
+}

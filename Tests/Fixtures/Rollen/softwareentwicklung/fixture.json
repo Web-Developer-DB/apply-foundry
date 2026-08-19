@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "softwareentwicklung",
+  "rolle": "Frontend-Entwickler",
+  "firma": "Fiktiv Software GmbH",
+  "umfang": "A",
+  "profilSubstanz": "ausreichend",
+  "erwarteteAnforderungen": ["React", "Git", "technische Dokumentation"],
+  "erwarteteBelege": ["PROJEKTPRAXIS", "WEITERBILDUNG"]
+}

@@ -13,6 +13,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  powershell-fast:
+    name: PowerShell schnell (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Schnelle synthetische Suite
+        shell: pwsh
+        run: ./Tests/Run-RegressionTests.ps1 -Suite schnell -BerichtPath Tests/Artifacts/test-fast-${{ matrix.os }}.json
+      - name: Schnellen Testbericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-fast-${{ matrix.os }}
+          path: Tests/Artifacts
+          if-no-files-found: ignore
+          retention-days: 7
+
   powershell-core:
     name: PowerShell core (${{ matrix.os }})
     strategy:
@@ -25,7 +47,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: PowerShell-Regressionssuite
         shell: pwsh
-        run: ./Tests/Run-RegressionTests.ps1
+        run: ./Tests/Run-RegressionTests.ps1 -Suite vollstaendig -BerichtPath Tests/Artifacts/test-full-${{ matrix.os }}.json
+      - name: Vollständigen Testbericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-full-${{ matrix.os }}
+          path: Tests/Artifacts
+          if-no-files-found: ignore
+          retention-days: 7
 
   bash-adapters:
     name: Bash adapters (Ubuntu 24.04)

@@ -898,8 +898,8 @@ Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgesch
 
 | Komponente | Status | Verwendung |
 | --- | --- | --- |
-| Windows + PowerShell 7.6 | 🟢 primär unterstützt | am umfassendsten geprüfter Projektablauf |
-| Ubuntu 24.04 x86_64 + PowerShell 7.6 | 🟠 Alpha | gleiche Kernlogik und feste CI-Matrix; stabil erst nach drei grünen Browserläufen |
+| Windows + PowerShell 7.6 | 🟢 primär unterstützt | am umfassendsten geprüfter Projektablauf; Windows-Browser-Smoke ist als PR-Check konfiguriert |
+| Ubuntu 24.04 x86_64 + PowerShell 7.6 | 🟠 Alpha | gleiche Kernlogik; Browser-Smoke zunächst nur zeitgesteuert/manuell, stabil erst nach drei Paritätsläufen |
 | PowerShell-Werkzeuge unter `Tools/` | 🟢 kanonischer Kern | Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Freigabeprüfungen |
 | Chrome, Edge oder Chromium | 🔵 für HTML-Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung für ausgewählte HTML-Dokumente; nicht für E-Mail-only |
 | Firefox | 🟡 Diagnose | ausschließlich Layoutdiagnose; unzulässig für PDF und Finalisierung |
@@ -970,8 +970,8 @@ Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Absc
 
 - Der stabil bezeichnete Workflow ist derzeit Windows mit PowerShell 7.6; Ubuntu 24.04 nutzt dieselbe Kernimplementierung, bleibt aber bis zum belegten Browser-Rollout im Alpha-Status.
 - Automatischer PDF-Export unterstützt Chrome, Edge und Chromium, nicht Firefox.
-- Browser-Smokes laufen zunächst nur manuell und zeitgesteuert und sind nicht verpflichtend. Erst nach drei aufeinanderfolgenden grünen Läufen je Betriebssystem werden sie Pull-Request-Gates und Ubuntu darf als stabil bezeichnet werden.
-- OpenCode, Claude Code und andere Adapter stellen den Projekteinstieg bereit; ein vollständiger Bewerbungsdurchlauf wurde nicht mit jeder Umgebung und jedem Modell wiederholt.
+- Der Windows-Browser-Smoke läuft auf Pull Requests und ist als verpflichtender Ruleset-Check vorbereitet; Ubuntu bleibt bis zu drei dokumentierten Paritätsläufen außerhalb des Pull-Request-Gates.
+- OpenCode, Codex, Claude Code und Gemini CLI sind über die maschinenlesbare Modellmatrix vorbereitet; echte Läufe benötigen die jeweils dokumentierten Secrets und exakten CLI-Versionen.
 - Lokale Modelle benötigen genügend Kontext und zuverlässige Werkzeugaufrufe. Uneindeutige Auswahl- oder Speicherantworten müssen fehlergeschlossen bleiben; fehlende Bildfähigkeit darf nicht als bestandene PNG-Prüfung ausgegeben werden.
 - Der Dialogvertrag und seine fiktiven Fixtures sind dokumentiert. Für den Nachweis von Version 1.8.0 wurde kein neuer realer Ollama-Modelllauf für die A–E-Auswahl oder Profilzustimmung ausgeführt.
 - Nicht jede Agentenoberfläche stellt maschinenlesbare Tokenwerte bereit oder kann Lebenslauf und Gesamtsitzung getrennt messen. In diesem Fall bleibt der Bericht ausdrücklich `unavailable`; das Projekt schätzt keine Werte.
@@ -1250,13 +1250,31 @@ Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `str
 Die browserfreie Regressionstestsuite prüft unter anderem Agenteneinstieg, Adapter, Pfad- und Fortsetzungsverträge, Fremdanweisungen, README-Verweise, Tokenbericht, Schema-5-Portabilität, Legacy-Lesen, Dialogstatus, Profilhash, Artefaktbindungen, Staging, Veröffentlichung und Fehlerszenarien:
 
 ```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 tests
+pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite schnell
+pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite vollstaendig
 ```
 
 Mit lokaler Browsermatrix:
 
 ```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite browser
+# Kompatibilitätsalias:
 pwsh -NoProfile -File Tools/bewerbung.ps1 tests --mit-browser
+```
+
+Die Prompt-Regressionen werden isoliert und fail-closed ausgeführt:
+
+```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite prompt-pr
+pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite prompt-vollstaendig
+```
+
+`schnell` ist die kurze Parser-/Vertrags- und Canary-Teilmenge, `vollstaendig` umfasst alle browserfreien Regressionen einschließlich der vier Rollen-Fixtures und `browser` ergänzt Chromium. Jeder Lauf kann mit `--bericht-path` einen bereinigten Schema-1-Bericht schreiben. Die Rollen-Fixtures liegen unter [`Tests/Fixtures/Rollen`](Tests/Fixtures/Rollen); echte `Private/`-Daten werden nie kopiert.
+
+Der gezielte Rollenlauf durch Anlage, Dialogprüfung, Inhaltsprüfung, Finalisierung, synthetische Freigabe und Veröffentlichung lautet:
+
+```powershell
+pwsh -NoProfile -File Tests/Fixtures/Rollen/Invoke-RoleFixtures.ps1
 ```
 
 Bash separat:
@@ -1265,11 +1283,15 @@ Bash separat:
 bash Tests/Bash/test-bewerbung-cli.sh
 ```
 
-Die feste CI-Matrix in [`.github/workflows/tests.yml`](.github/workflows/tests.yml) führt dieselbe vollständige browserfreie PowerShell-Suite mit `fail-fast: false` auf `windows-2025` und `ubuntu-24.04` aus. Ubuntu prüft zusätzlich Bash-Syntax, ShellCheck, Dispatcher und Kompatibilitätswrapper. [`.github/workflows/browser-smoke.yml`](.github/workflows/browser-smoke.yml) läuft zunächst nur manuell und zeitgesteuert mit synthetischen Daten auf beiden Systemen und ist bewusst noch kein verpflichtender Pull-Request-Check.
+Die feste CI-Matrix in [`.github/workflows/tests.yml`](.github/workflows/tests.yml) trennt schnelle und vollständige browserfreie PowerShell-Suiten mit `fail-fast: false` auf `windows-2025` und `ubuntu-24.04`. Ubuntu prüft zusätzlich Bash-Syntax, ShellCheck, Dispatcher und Kompatibilitätswrapper. [`.github/workflows/browser-smoke.yml`](.github/workflows/browser-smoke.yml) führt den Windows-Smoke bei jedem Pull Request sowie zeitgesteuert/manuell aus; der Windows-Job ist als stabiler Checkname für das Ruleset vorgesehen. Ubuntu bleibt bis zum Nachweis in [`Tests/Stabilitaetsnachweise/browser-smoke.json`](Tests/Stabilitaetsnachweise/browser-smoke.json) auf zeitgesteuerte und manuelle Läufe begrenzt.
+
+Die PR-Canary [`prompt-regression-pr.yml`](.github/workflows/prompt-regression-pr.yml) vergleicht Codex und OpenCode mit derselben Modell-ID `gpt-5.6-terra`; die vollständige Matrix [`prompt-regression-full.yml`](.github/workflows/prompt-regression-full.yml) läuft wöchentlich und manuell mit Claude Code und Gemini CLI. Fehlende Secrets schlagen geschlossen fehl.
+
+Der read-only Workflow [`browser-stability-evidence.yml`](.github/workflows/browser-stability-evidence.yml) erstellt aus der Actions-API nur einen Nachweisentwurf. Erst ein separater Promotion-PR darf drei vollständige Läufe in den Stabilitätsnachweis übernehmen und Ubuntu für Pull Requests beziehungsweise Rulesets hochstufen.
 
 Die dokumentierten Frischsitzungs-, CLI- und Modelltests stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md). Die neun Dialogfälle mit Eingabe, erwartetem Datei-/Dialogzustand und getrenntem Automatisierungsstatus stehen in [`Tests/Interaktiver-Bewerbungsdialog.md`](Tests/Interaktiver-Bewerbungsdialog.md). Beide Kataloge verwenden ausschließlich öffentliche Regeln beziehungsweise temporäre fiktive Fixtures und nennen nicht ausgeführte Umgebungen ausdrücklich. Die deterministischen Dialogverträge sind kein Beleg für natürliches Sprachverständnis eines konkreten Modells; ein neuer realer Ollama-Dialogtest wurde für Version 1.8.0 nicht ausgeführt.
 
-Ubuntu wird erst nach drei aufeinanderfolgenden grünen Browserläufen je Zielsystem als stabil bezeichnet. Testzahlen und konkrete Umgebungsnachweise werden nicht aus veralteten Läufen abgeleitet; der aktuelle Stand ist in CI und in der Kompatibilitätsübersicht nachvollziehbar.
+Ubuntu wird erst nach drei aufeinanderfolgenden grünen Browserläufen auf Ubuntu als stabil bezeichnet. Testzahlen und konkrete Umgebungsnachweise werden nicht aus veralteten Läufen abgeleitet; der aktuelle Stand ist in CI und in der Kompatibilitätsübersicht nachvollziehbar.
 
 <details>
 <summary><strong>HTML-, PDF- und Browser-Verträge</strong></summary>

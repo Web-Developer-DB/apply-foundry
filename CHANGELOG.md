@@ -8,6 +8,11 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
+- Phase-4-Testsystem: vier synthetische Rollen-Fixtures für Softwareentwicklung, kaufmännische Sachbearbeitung, IT-Support-Quereinstieg und soziale Betreuung mit Umfang A bis D, Schema-5-Erwartungen und isoliertem Fixture-Runner.
+- Explizite Testkategorien `schnell`, `vollstaendig` und `browser` sowie Prompt-Suiten `prompt-pr` und `prompt-vollstaendig`; jeder Lauf kann einen bereinigten Schema-1-Bericht mit Kategorie, Dauer, Ergebnis und Fehlerklasse schreiben.
+- Maschinenlesbare Agenten-/Modellmatrix mit fest gepinnten Codex-, OpenCode-, Claude-Code- und Gemini-CLI-Versionen; Codex und OpenCode verwenden in der PR-Canary dasselbe OpenAI-Modell. Echte Prompt-Regressionsläufe isolieren Git-Repository, Benutzerprofile und Credentials und prüfen Dateimutationen deterministisch.
+- Getrennte Windows-/Ubuntu-Browserjobs, Windows-Smoke bei Pull Requests, gestufter Ubuntu-Job sowie Schema-1-Stabilitätsnachweis und Validator für die drei erforderlichen Paritätsläufe.
+
 - Phase-3-Bewerbungsqualität: Matrix-Schema 5 mit maschinenlesbarer Anschreibenstrategie, Arbeitgebernutzen- und Evidenz-IDs, strukturiertem Quellenregister, vollständiger Evidenzdisposition sowie konservativem Sprach-, Floskel- und Wiederholungswarnsystem. Der Inhaltsprüfbericht verwendet dafür Schema 6; Matrix-Schemata 1 bis 4 bleiben kompatibel.
 
 - Phase-2-Zuverlässigkeitsverträge: gemeinsame atomare UTF-8-/JSON-Schreibfunktionen mit begrenzten Dateisperr-Wiederholungen, pfadgebundene Checkpoint-Aktualisierung und gemeinsame JSON-, Umfangs-, Slug- und Unicode-Textverträge.
@@ -30,6 +35,8 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 - Read-only-Preflight `Tools/Pruefe-Umgebung.ps1` und eine feste browserfreie CI-Matrix auf `windows-2025` und `ubuntu-24.04`; Browser-Smokes laufen zunächst getrennt, manuell und zeitgesteuert.
 
 ### Geändert
+
+- `bewerbung.ps1 tests --suite ...` ist die gemeinsame Schnittstelle; `-MitBrowser` bleibt als Browseralias lesbar. README, technischer Workflow und Agenten-Kompatibilitätsübersicht dokumentieren die schnelle/vollständige Teilung, die OpenCode-Canary und den Alpha-Status von Ubuntu bis zur Promotion.
 
 - Die Veröffentlichung akzeptiert ausschließlich einen aktuellen `Sichtfreigabe.json`-Nachweis, der Freigabe-ID, vorbereiteten Finalisierungsbericht und den unveränderten Artefaktsatz bindet. Das bisherige `--visuell-geprueft` bleibt nur als Kompatibilitätsargument lesbar und erteilt keine Berechtigung; vorbereitete Altstände müssen neu vorbereitet werden.
 - Finalisierungsberichte verwenden für individuelle Bewerbungen Schema 6 und für den Universal-Lebenslauf Schema 2. ATS-Berichte verwenden Schema 2 und dokumentieren Token-/N-Gramm-Abdeckung, fehlende Tokens und Artefakt-Hashes.
@@ -65,6 +72,8 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 - Der atomare Austausch einer Universal-Aktivfassung stellt bei einem Verifikationsfehler die vorherige Fassung wieder her und kann nach einer isoliert fehlgeschlagenen Arbeitsordnerbereinigung idempotent fortgesetzt werden.
 
 ### Tests und Verifikation
+
+- Die neue lokale schnelle Suite wurde mit 21 von 21 synthetischen Fällen bestanden; die vollständige browserfreie Suite mit 96 von 96 Fällen und die Windows-Browser-Suite mit 106 von 106 Fällen. Der gezielte Schema-5-Rollenfixture-Lauf bestand mit allen vier Rollen und vollständiger Evidenz-/Quellen-Coverage. Echte Prompt-CI-Läufe benötigen die jeweilige Runner-/Secret-Ausstattung und wurden in dieser Umgebung nicht behauptet.
 
 - Die browserfreie Regression bestand nach Phase 2 mit 90 von 90 synthetischen Fällen. Die gezielten browserabhängigen Smoke-, Layout-, Universal-, Finalisierungs- und PDF-Fälle bestanden mit 9 von 9; die nach der Artefaktbindungs-Nachschärfung erneut ausgeführten Universal- und individuellen Finalisierungsfälle bestanden mit 4 von 4.
 - Schema-4-Regressionsfälle prüfen Quellenbindung von Stellenanforderungen und Profilbelegen, fehlende explizite Stellenabdeckung, erfundene Evidenzreferenzen sowie die Wiederherstellung einer simulierten unterbrochenen Dialogtransaktion. Ein Browserfall prüft zusätzlich, dass DOM-Überlauf trotz fester A4-Geometrie abgewiesen wird.

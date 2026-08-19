@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 5,
+  "requirements": [{ "id": "muss-organisation", "anforderung": "Organisation", "typ": "muss", "status": "erfuellt", "belegRefIds": ["profil-organisation"], "stellenFundstellen": ["stelle-organisation"] }],
+  "externeQuellen": [],
+  "anschreibenStrategie": { "status": "nicht_erforderlich", "argumente": [] },
+  "recruiterStrategie": { "profilSubstanz": "ausreichend", "auslassungen": [] }
+}
