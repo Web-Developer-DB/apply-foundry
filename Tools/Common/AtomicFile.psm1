@@ -51,6 +51,18 @@ function Write-AtomicText {
     [IO.File]::WriteAllText($temporary, $Content, $encoding)
     for ($attempt = 1; $attempt -le $RetryCount; $attempt++) {
       try {
+        # Unix permits rename(2) over an open destination even when that file was
+        # opened with FileShare.None. Probe the destination explicitly so the
+        # public locking contract behaves the same on Windows and Linux.
+        if ([IO.File]::Exists($full)) {
+          $destinationProbe = [IO.FileStream]::new(
+            $full,
+            [IO.FileMode]::Open,
+            [IO.FileAccess]::ReadWrite,
+            [IO.FileShare]::None
+          )
+          $destinationProbe.Dispose()
+        }
         [IO.File]::Move($temporary, $full, $true)
         return
       } catch {

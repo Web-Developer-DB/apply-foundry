@@ -3747,8 +3747,14 @@ for (`$i = 0; `$i -lt 5; `$i++) {
   }
 }
 "@
+    $workerStartParameters = @{
+      FilePath = $powerShellExe
+      ArgumentList = @('-NoLogo','-NoProfile','-NonInteractive','-File',$worker)
+      PassThru = $true
+    }
+    if ($IsWindows) { $workerStartParameters.WindowStyle = 'Hidden' }
     $processes = @()
-    for ($i = 0; $i -lt 4; $i++) { $processes += Start-Process -FilePath $powerShellExe -ArgumentList @('-NoLogo','-NoProfile','-NonInteractive','-File',$worker) -PassThru -WindowStyle Hidden }
+    for ($i = 0; $i -lt 4; $i++) { $processes += Start-Process @workerStartParameters }
     foreach ($process in $processes) { $process.WaitForExit(); Assert-True -Condition ($process.ExitCode -eq 0) -Message 'Paralleler Atomik-Worker schlug fehl.' }
     $state = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ([int]$state.count -eq 20) -Message "Parallele Updates gingen verloren; erwartet 20, gefunden $($state.count)."

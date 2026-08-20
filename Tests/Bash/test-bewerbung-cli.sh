@@ -112,8 +112,11 @@ diagnose_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root
   --browser-executable-path '-browser pfad/mit leerzeichen' \
   --als-json \
   --browser-erforderlich)"
+expected_browser_path_json="$(pwsh -NoLogo -NoProfile -NonInteractive -Command '[IO.Path]::GetFullPath("-browser pfad/mit leerzeichen") | ConvertTo-Json -Compress')"
+expected_browser_path_json="${expected_browser_path_json//$'\r'/}"
+expected_browser_fragment="\"executable\":$expected_browser_path_json"
 [[ "$diagnose_output" == *'"browser":"chromium"'* ]] || fail "Browserwert wurde nicht kanonisch normalisiert."
-[[ "$diagnose_output" == *'"executable":"-browser pfad/mit leerzeichen"'* ]] || fail "Browserpfad wurde veraendert."
+[[ "$diagnose_output" == *"$expected_browser_fragment"* ]] || fail "Browserpfad wurde nicht gegen das Aufrufverzeichnis normalisiert."
 [[ "$diagnose_output" == *'"json":true'* && "$diagnose_output" == *'"required":true'* ]] || fail "Diagnose-Schalter wurden nicht korrekt gebunden."
 
 help_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" --help)"

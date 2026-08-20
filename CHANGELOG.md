@@ -74,6 +74,7 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Behoben
 
+- Ubuntu-Regressionsläufe respektieren exklusive Dateisperren nun auch beim atomaren Ersetzen und starten parallele PowerShell-Worker ohne das ausschließlich unter Windows verfügbare `-WindowStyle`; der Bash-Dispatcher-Test erwartet die verbindliche absolute Pfadnormalisierung.
 - Mehrseitige Layouts werden vor dem eigentlichen Export gegen zusätzliche Druckseiten abgesichert; CSS-Vorschauabstände über `.page + .page` können eine Fußzeile nicht mehr unbemerkt auf eine Restseite verschieben. Direkte Layout- und PDF-Diagnosen erkennen kanonische Kandidatenordner ohne verschachtelte `_Arbeitsdateien`-Ausgaben.
 - Finalisierungsstufen erfassen Unterwerkzeugfehler kontrolliert im privaten Prüfstand, statt den Zustand durch einen vorzeitigen Prozessabbruch unvollständig zu lassen.
 - Relative Auftragspfade werden bei direkter statischer Prüfung und beim PDF-Export gegen das tatsächliche Aufrufverzeichnis aufgelöst und nicht mehr doppelt unter `Private/Bewerbungen` angehängt.
