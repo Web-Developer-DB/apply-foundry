@@ -47,10 +47,11 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Geändert
 
+- `README.md`, `Prompts/README.md` und `Vorlagen/README.md` dokumentieren den aktuellen unveröffentlichten Stand einschließlich Druckvorprüfung, Berichtsschemata, Finalisierungsstatus und aufrufortunabhängiger Pfadnormalisierung.
 - `bewerbung.ps1 tests --suite ...` ist die gemeinsame Schnittstelle; `-MitBrowser` bleibt als Browseralias lesbar. README, technischer Workflow und Agenten-Kompatibilitätsübersicht dokumentieren die schnelle/vollständige Teilung, die OpenCode-Canary und den Alpha-Status von Ubuntu bis zur Promotion.
 
 - Die Veröffentlichung akzeptiert ausschließlich einen aktuellen `Sichtfreigabe.json`-Nachweis, der Freigabe-ID, vorbereiteten Finalisierungsbericht und den unveränderten Artefaktsatz bindet. Das bisherige `--visuell-geprueft` bleibt nur als Kompatibilitätsargument lesbar und erteilt keine Berechtigung; vorbereitete Altstände müssen neu vorbereitet werden.
-- Finalisierungsberichte verwenden für individuelle Bewerbungen Schema 6 und für den Universal-Lebenslauf Schema 2. ATS-Berichte verwenden Schema 2 und dokumentieren Token-/N-Gramm-Abdeckung, fehlende Tokens und Artefakt-Hashes.
+- Finalisierungsberichte verwenden für individuelle Bewerbungen Schema 7 und für den Universal-Lebenslauf Schema 2. ATS-Berichte verwenden Schema 2 und dokumentieren Token-/N-Gramm-Abdeckung, fehlende Tokens und Artefakt-Hashes.
 - Berichte und Zustandsdateien werden über die gemeinsamen atomaren Schreib- und Sperrverträge aktualisiert; ein fehlgeschlagener oder unterbrochener Austausch lässt die vorherige vollständige Datei bestehen.
 
 - Neue Bewerbungen erzeugen Schema-4-Entwürfe für Anforderungsmatrix und Evidenzindex. Erfüllte oder teilweise erfüllte Anforderungen sowie sichtbare Profilhighlights benötigen nun validierte Evidenz-IDs; `NICHT BEHAUPTEN` und `EINARBEITUNGSZIEL` können keine Direktbelege sein.
