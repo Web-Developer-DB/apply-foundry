@@ -12,6 +12,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$script:InvocationDirectory = (Get-Location).Path
 
 $script:CommandOrder = @(
   "diagnose",
@@ -49,7 +50,7 @@ function Stop-Cli {
 function New-CliOption {
   param(
     [Parameter(Mandatory = $true)][string]$Parameter,
-    [ValidateSet("string", "switch", "enum", "int", "long", "datetime", "documents")]
+    [ValidateSet("string", "path", "path_list", "switch", "enum", "int", "long", "datetime", "documents")]
     [string]$Kind = "string",
     [string[]]$Allowed = @(),
     [Nullable[long]]$Min,
@@ -57,6 +58,10 @@ function New-CliOption {
     [string]$Placeholder = "WERT"
   )
 
+  # Every option shown as a filesystem path is resolved once by the dispatcher
+  # against the caller's original working directory.  Individual tools retain
+  # their own validation for direct invocation.
+  if ($Kind -eq 'string' -and $Placeholder -eq 'PFAD') { $Kind = 'path' }
   return @{
     Parameter = $Parameter
     Kind = $Kind
@@ -355,7 +360,7 @@ $script:Commands = @{
     Summary = "Aus drei erfolgreichen Testberichten eine Laufzeitbaseline bilden"
     Required = @("--bericht-path")
     Options = [ordered]@{
-      "--bericht-path" = New-CliOption -Parameter "BerichtPath" -Kind string -Placeholder "PFAD"
+      "--bericht-path" = New-CliOption -Parameter "BerichtPath" -Kind path_list -Placeholder "PFAD[,PFAD,PFAD]"
       "--baseline-path" = New-CliOption -Parameter "BaselinePath" -Placeholder "PFAD"
     }
   }
@@ -424,6 +429,27 @@ function ConvertTo-CliValue {
   switch ($Option.Kind) {
     "string" {
       return $RawValue
+    }
+    "path" {
+      if ([System.IO.Path]::IsPathFullyQualified($RawValue)) {
+        return [System.IO.Path]::GetFullPath($RawValue)
+      }
+      return [System.IO.Path]::GetFullPath((Join-Path -Path $script:InvocationDirectory -ChildPath $RawValue))
+    }
+    "path_list" {
+      $paths = [System.Collections.Generic.List[string]]::new()
+      foreach ($part in $RawValue.Split(',', [System.StringSplitOptions]::None)) {
+        $value = $part.Trim()
+        if ([string]::IsNullOrWhiteSpace($value)) {
+          Stop-Cli "Leerer Pfad in $OptionName ist nicht zulaessig."
+        }
+        if ([System.IO.Path]::IsPathFullyQualified($value)) {
+          $paths.Add([System.IO.Path]::GetFullPath($value))
+        } else {
+          $paths.Add([System.IO.Path]::GetFullPath((Join-Path -Path $script:InvocationDirectory -ChildPath $value)))
+        }
+      }
+      return ($paths -join ',')
     }
     "enum" {
       foreach ($allowedValue in $Option.Allowed) {

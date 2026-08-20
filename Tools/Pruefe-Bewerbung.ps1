@@ -549,6 +549,13 @@ if (-not (Test-Path -LiteralPath $Ordner -PathType Container)) {
   exit 1
 }
 
+$callerWorkingDirectory = (Get-Location).Path
+if (-not [System.IO.Path]::IsPathFullyQualified($Ordner)) {
+  $Ordner = [System.IO.Path]::GetFullPath((Join-Path -Path $callerWorkingDirectory -ChildPath $Ordner))
+}
+if (-not [string]::IsNullOrWhiteSpace($AuftragPath) -and -not [System.IO.Path]::IsPathFullyQualified($AuftragPath)) {
+  $AuftragPath = [System.IO.Path]::GetFullPath((Join-Path -Path $callerWorkingDirectory -ChildPath $AuftragPath))
+}
 $script:ApplicationsRoot = Get-ApplicationsRootFromPath -Path $Ordner -Container
 if ([string]::IsNullOrWhiteSpace($script:ApplicationsRoot)) {
   Write-Host "[FEHLER] Ordner muss unter <Projektwurzel>/Private/Bewerbungen liegen: $Ordner" -ForegroundColor Red

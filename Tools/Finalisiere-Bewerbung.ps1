@@ -257,8 +257,10 @@ function Invoke-ChildTool {
   param([string]$ScriptPath, [string[]]$Arguments, [switch]$ThrowOnFailure)
 
   if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
-    if ($ThrowOnFailure) { throw "Werkzeug fehlt: $ScriptPath" }
-    Stop-Finalization -Message "Werkzeug fehlt: $ScriptPath"
+    $missing = [System.IO.FileNotFoundException]::new("Werkzeug fehlt: $([System.IO.Path]::GetFileName($ScriptPath))")
+    $missing.Data['tool'] = [System.IO.Path]::GetFileName($ScriptPath)
+    $missing.Data['errorCode'] = 'tool_missing'
+    throw $missing
   }
   $powerShellExe = (Get-Process -Id $PID).Path
   $nativeArguments = @("-NoLogo", "-NoProfile", "-NonInteractive", "-File", $ScriptPath) + @($Arguments)
@@ -280,8 +282,31 @@ function Invoke-ChildTool {
     $null
   }
   if ($failure) {
-    if ($ThrowOnFailure) { throw $failure }
-    Stop-Finalization -Message $failure
+    $exception = [System.InvalidOperationException]::new($failure)
+    $exception.Data['tool'] = [System.IO.Path]::GetFileName($ScriptPath)
+    $exception.Data['exitCode'] = if ($null -eq $result.ExitCode) { $null } else { [int]$result.ExitCode }
+    $exception.Data['errorCode'] = if ($result.TimedOut) { 'timeout' } elseif ($result.StdoutTruncated -or $result.StderrTruncated) { 'output_truncated' } else { 'tool_failed' }
+    throw $exception
+  }
+}
+
+function New-FinalizationFailureMetadata {
+  param(
+    [Parameter(Mandatory)][string]$Stage,
+    [Parameter(Mandatory)][System.Management.Automation.ErrorRecord]$ErrorRecord
+  )
+
+  $message = [string]$ErrorRecord.Exception.Message
+  # Reports are private, but they still avoid embedding complete machine paths or
+  # child-tool output.  The detailed console output remains available locally.
+  $message = [regex]::Replace($message, '(?i)(?:[a-z]:)?[\\/][^\r\n]+', '<Pfad>')
+  if ($message.Length -gt 500) { $message = $message.Substring(0, 500) }
+  return [ordered]@{
+    stage = $Stage
+    tool = if ($null -ne $ErrorRecord.Exception.Data['tool']) { [string]$ErrorRecord.Exception.Data['tool'] } else { $null }
+    exitCode = if ($null -ne $ErrorRecord.Exception.Data['exitCode']) { [int]$ErrorRecord.Exception.Data['exitCode'] } else { $null }
+    errorCode = if ($null -ne $ErrorRecord.Exception.Data['errorCode']) { [string]$ErrorRecord.Exception.Data['errorCode'] } else { 'unexpected_error' }
+    message = $message
   }
 }
 
@@ -306,6 +331,8 @@ function Invoke-FinalizationStage {
     return $run
   }
   $started = [DateTime]::UtcNow
+  Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage $Stage -Fingerprint $fingerprint -OutputFiles @() -DurationMs 0 -Status running
+  $script:CheckState = Read-FinalizationCheckState -Path $script:CheckStatePath
   try {
     & $Action
     $durationMs = [int](([DateTime]::UtcNow - $started).TotalMilliseconds)
@@ -316,8 +343,11 @@ function Invoke-FinalizationStage {
     return $run
   } catch {
     $durationMs = [int](([DateTime]::UtcNow - $started).TotalMilliseconds)
-    Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage $Stage -Fingerprint $fingerprint -OutputFiles @() -DurationMs $durationMs -Status failed
-    throw
+    $failure = New-FinalizationFailureMetadata -Stage $Stage -ErrorRecord $_
+    Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage $Stage -Fingerprint $fingerprint -OutputFiles @() -DurationMs $durationMs -Status failed -Failure $failure
+    $script:CheckState = Read-FinalizationCheckState -Path $script:CheckStatePath
+    $script:StageRuns.Add([ordered]@{ id = $Stage; status = 'failed'; cacheKey = $fingerprint.cacheKey; cacheReason = $decision.reason; durationMs = $durationMs; failure = $failure }) | Out-Null
+    throw "Finalisierungsschritt '$Stage' fehlgeschlagen: $($failure.message)"
   }
 }
 
@@ -716,12 +746,16 @@ function Test-TechnicalReportContracts {
     $false
   }
   $layoutResults = @((Get-JsonProperty -Object $layout -Name "results"))
-  if (-not (Test-IntegerValue -Value $layoutSchema -Minimum 1) -or [int]$layoutSchema -ne 2 -or
+  $layoutPrintPreflight = Get-JsonProperty -Object $layout -Name "printPreflight"
+  $layoutPreflightDocuments = @((Get-JsonProperty -Object $layoutPrintPreflight -Name "documents"))
+  if (-not (Test-IntegerValue -Value $layoutSchema -Minimum 1) -or [int]$layoutSchema -ne 3 -or
       -not (Test-IntegerValue -Value $layoutScreenshotCount -Minimum 1) -or [int]$layoutScreenshotCount -ne $ScreenshotRecords.Count -or
       -not (Test-IntegerValue -Value $layoutWidth -Minimum 320) -or
       -not (Test-IntegerValue -Value $layoutHeight -Minimum 320) -or
       -not $layoutRatioValid -or
       $layoutResults.Count -ne $ScreenshotRecords.Count -or
+      [string](Get-JsonProperty -Object $layoutPrintPreflight -Name "mode") -cne "vollstaendiges_original_html" -or
+      $layoutPreflightDocuments.Count -ne $ExpectedHtmlCount -or
       [string]::IsNullOrWhiteSpace([string](Get-JsonProperty -Object $layout -Name "browser")) -or
       -not (Test-PathEqual -Left ([string](Get-JsonProperty -Object $layout -Name "sourceFolder")) -Right $CandidateFolder)) {
     Stop-Finalization -Message "Layoutbericht ist unvollständig oder gehört nicht zum vorbereiteten Kandidatenbestand."
@@ -762,6 +796,26 @@ function Test-TechnicalReportContracts {
   }
   if ($layoutHtmlNames.Count -ne $HtmlRecords.Count) {
     Stop-Finalization -Message "Layoutbericht deckt nicht jedes ausgewählte HTML-Dokument ab."
+  }
+  foreach ($htmlRecord in $HtmlRecords) {
+    $htmlName = [string](Get-JsonProperty -Object $htmlRecord -Name 'name')
+    $preflightMatches = @($layoutPreflightDocuments | Where-Object { [string](Get-JsonProperty -Object $_ -Name 'htmlFile') -ceq $htmlName })
+    if ($preflightMatches.Count -ne 1) {
+      Stop-Finalization -Message "Layoutbericht enthält keinen eindeutigen Druckvorprüfungsnachweis für: $htmlName"
+    }
+    $preflight = $preflightMatches[0]
+    $expectedPages = Get-JsonProperty -Object $preflight -Name 'expectedPageCount'
+    $actualPages = Get-JsonProperty -Object $preflight -Name 'actualPageCount'
+    if ([string](Get-JsonProperty -Object $preflight -Name 'htmlSha256') -ine [string](Get-JsonProperty -Object $htmlRecord -Name 'sha256') -or
+        -not (Test-IntegerValue -Value $expectedPages -Minimum 1) -or
+        -not (Test-IntegerValue -Value $actualPages -Minimum 1) -or
+        [int]$expectedPages -ne [int]$actualPages -or
+        -not (Test-IntegerValue -Value (Get-JsonProperty -Object $preflight -Name 'pdfBytes') -Minimum 1) -or
+        [string]::IsNullOrWhiteSpace([string](Get-JsonProperty -Object $preflight -Name 'mediaBox')) -or
+        (Get-JsonProperty -Object $preflight -Name 'a4') -isnot [bool] -or -not [bool](Get-JsonProperty -Object $preflight -Name 'a4') -or
+        [string](Get-JsonProperty -Object $preflight -Name 'status') -cne 'bestanden') {
+      Stop-Finalization -Message "Druckvorprüfung im Layoutbericht ist unvollständig oder nicht bestanden: $htmlName"
+    }
   }
 
   $pdfSchema = Get-JsonProperty -Object $pdf -Name "schemaVersion"
@@ -1003,7 +1057,7 @@ if (-not $Veroeffentlichen) {
     }
     $atsReportPath = Resolve-WorkflowContractPath -Candidate $atsReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
     $pdfReportPath = Resolve-WorkflowContractPath -Candidate $pdfReportPath -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
-    Invoke-FinalizationStage -Stage ats -InputFiles @($auftragPath, $StammdatenPath, $pdfReportPath) + $pdfOutputs -OutputFiles @($atsReportPath) -Parameters @{} -Runtime $browserRuntime -Action {
+    Invoke-FinalizationStage -Stage ats -InputFiles (@($auftragPath, $StammdatenPath, $pdfReportPath) + @($pdfOutputs)) -OutputFiles @($atsReportPath) -Parameters @{} -Runtime $browserRuntime -Action {
       Invoke-ChildTool -ScriptPath $atsTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-AuftragPath", $auftragPath, "-BerichtPath", $atsReportPath, "-PdfExportBerichtPath", $pdfReportPath)
     } | Out-Null
   } else {

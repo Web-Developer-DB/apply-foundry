@@ -309,7 +309,7 @@ Nach dem Erstellen aller Kandidatendateien wird zuerst die Finalisierung vorbere
 pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --browser auto
 ```
 
-Der Vorbereitungslauf führt Stammdatenprüfung, Inhaltsprüfung, statischen A4-Check, Seitenscreenshot-Layoutcheck, PDF-Export und ATS-Textprüfung aus. Er schreibt maschinenlesbare Berichte mit SHA-256-Bezug zu den geprüften Quellen und Kandidatendateien sowie einem Runtime-Fingerprint aus OS, Architektur, PowerShell und Browser, veröffentlicht aber noch keine Datei. Bei einem individuellen Lebenslauf bindet er `Passfoto.png` nur dann als zusätzliche Quelle, wenn die Datei tatsächlich existiert und bytegleich eingebettet ist. Hinzufügen, Ändern oder Löschen des Fotos entwertet die technische Vorbereitung. Nach einem Betriebssystemwechsel bleiben Auftrag und Kandidaten erhalten, die technische Vorbereitung muss jedoch erneut laufen.
+Der Vorbereitungslauf führt Stammdatenprüfung, Inhaltsprüfung, statischen A4-Check, Seitenscreenshot-Layoutcheck mit vollständiger Druckvorprüfung, PDF-Export und ATS-Textprüfung aus. Die Druckvorprüfung verlangt pro Original-HTML exakt so viele A4-PDF-Seiten wie explizite `.page`-Container, bevor die spätere Exportstufe startet. Er schreibt maschinenlesbare Berichte mit SHA-256-Bezug zu den geprüften Quellen und Kandidatendateien sowie einem Runtime-Fingerprint aus OS, Architektur, PowerShell und Browser, veröffentlicht aber noch keine Datei. Bei einem individuellen Lebenslauf bindet er `Passfoto.png` nur dann als zusätzliche Quelle, wenn die Datei tatsächlich existiert und bytegleich eingebettet ist. Hinzufügen, Ändern oder Löschen des Fotos entwertet die technische Vorbereitung. Nach einem Betriebssystemwechsel bleiben Auftrag und Kandidaten erhalten, die technische Vorbereitung muss jedoch erneut laufen.
 
 In einer bekannten Sandbox wird vor diesem Lauf geprüft, ob eine lokale Browserfreigabe verfügbar ist. Ist sie vorhanden, wird sie direkt verwendet; fehlt sie, bleibt der Browserlauf offen und darf nicht als bestanden gelten.
 
@@ -327,7 +327,8 @@ Bewertung:
 - Formale CV-Stationen bleiben sichtbar.
 - Schrift, Abstände und freie Flächen wirken professionell.
 - Bei ungewöhnlich viel freier Fläche zuerst prüfen, ob relevante Profilbelege, Anwendungskontexte oder eigene Beiträge fehlen. Erst nach dieser Inhaltsprüfung Abstände oder Typografie anpassen; fehlende Substanz niemals durch dekoratives Aufblähen kaschieren.
-- Automatische Dichtewarnungen werden fachlich geprüft und nicht blind ignoriert.
+- Automatische Dichtewarnungen werden fachlich geprüft und nicht blind ignoriert; erst Belegsubstanz und Seitenstrategie, dann moderate Layoutanpassungen.
+- Sprachqualitätswarnungen werden als redaktionelle Warnungen von blockierenden Wahrheits- und Fachfehlern getrennt behandelt.
 
 Nach bestätigter Sichtprüfung wird atomar veröffentlicht. Wenn automatische Layoutwarnungen vorliegen, muss deren Sichtbewertung zusätzlich mit `--visuelle-freigabe-notiz "..."` nachvollziehbar festgehalten werden:
 

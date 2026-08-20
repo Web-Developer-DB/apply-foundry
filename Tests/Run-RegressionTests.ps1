@@ -327,7 +327,7 @@ function New-ValidContentFixture {
   $matrixPath = Join-Path $work "Anforderungsmatrix.json"
   $target = Join-Path -Path $Root -ChildPath "Private/Bewerbungen/Audit-Firma/2026-07-14--Audit-Rolle"
   $auftrag = [ordered]@{
-    schemaVersion = 2
+    schemaVersion = 3
     firma = "Audit Firma"
     firmaSlug = "Audit-Firma"
     rolle = "Audit-Rolle"
@@ -615,7 +615,7 @@ function New-StagedFinalizationFixture {
   })
   $layoutReportPath = Join-Path $layoutDir "Layoutcheck-Bericht.json"
   Set-Content -LiteralPath $layoutReportPath -Encoding UTF8 -Value (([ordered]@{
-    schemaVersion = 2
+    schemaVersion = 3
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     runtime = $browserRuntime
     browser = "chrome"
@@ -624,6 +624,33 @@ function New-StagedFinalizationFixture {
     pageWidth = 320
     pageHeight = 453
     expectedScreenshots = 2
+    printPreflight = [ordered]@{
+      mode = 'vollstaendiges_original_html'
+      documents = @(
+        [ordered]@{
+          htmlFile = [System.IO.Path]::GetFileName($letterHtmlPath)
+          htmlSha256 = (Get-FileHash -LiteralPath $letterHtmlPath -Algorithm SHA256).Hash
+          expectedPageCount = 1
+          actualPageCount = 1
+          pdfBytes = 6001
+          mediaBox = '595.28 x 841.89 pt'
+          a4 = $true
+          status = 'bestanden'
+          cssDiagnostics = @()
+        },
+        [ordered]@{
+          htmlFile = [System.IO.Path]::GetFileName($cvHtmlPath)
+          htmlSha256 = (Get-FileHash -LiteralPath $cvHtmlPath -Algorithm SHA256).Hash
+          expectedPageCount = 1
+          actualPageCount = 1
+          pdfBytes = 6001
+          mediaBox = '595.28 x 841.89 pt'
+          a4 = $true
+          status = 'bestanden'
+          cssDiagnostics = @()
+        }
+      )
+    }
     results = @(
       [ordered]@{
         htmlFile = [System.IO.Path]::GetFileName($letterHtmlPath)
@@ -1541,6 +1568,30 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($staleResult.ExitCode -ne 0) -Message "Zusätzliche oder falsch benannte PDF im flachen Kandidatenordner wurde akzeptiert."
   }
 
+  Invoke-Test -Name "Dispatcher normalisiert Einzelpfade und Pfadlisten aus fremdem Arbeitsverzeichnis" -Body {
+    $fixtureRoot = Join-Path $testRoot 'dispatcher-relative-paths'
+    $fixture = New-ValidContentFixture -Root $fixtureRoot
+    $relativeFolder = [IO.Path]::GetRelativePath($fixtureRoot, $fixture.Folder)
+    $relativeOrder = [IO.Path]::GetRelativePath($fixtureRoot, $fixture.Auftrag)
+    Push-Location $fixtureRoot
+    try {
+      $checkOutput = & $powerShellExe -NoProfile -File (Join-Path $toolsRoot 'bewerbung.ps1') pruefen --ordner $relativeFolder --auftrag-path $relativeOrder 2>&1
+      $checkCode = $LASTEXITCODE
+      $reportPaths = @()
+      foreach ($number in 1..3) {
+        $reportPath = Join-Path $fixtureRoot "laufzeit-$number.json"
+        Set-Content -LiteralPath $reportPath -Encoding UTF8 -Value (([ordered]@{ schemaVersion = 1; suite = 'schnell'; testNamePattern = $null; status = 'bestanden'; durationMs = (1000 + $number); runtime = [ordered]@{ os = 'synthetisch'; architecture = 'x64'; powershell = '7.6' }; timing = [ordered]@{ testDurationMs = 800; p95TestDurationMs = 500 } }) | ConvertTo-Json -Depth 8)
+        $reportPaths += [IO.Path]::GetFileName($reportPath)
+      }
+      $baselineOutput = & $powerShellExe -NoProfile -File (Join-Path $toolsRoot 'bewerbung.ps1') test-baseline --bericht-path ($reportPaths -join ',') --baseline-path 'baseline.json' 2>&1
+      $baselineCode = $LASTEXITCODE
+    } finally {
+      Pop-Location
+    }
+    Assert-True -Condition ($checkCode -eq 0) -Message "Dispatcher löste relative Einzelpfade nicht gegen das Aufrufverzeichnis auf: $($checkOutput -join ' | ')"
+    Assert-True -Condition ($baselineCode -eq 0 -and (Test-Path -LiteralPath (Join-Path $fixtureRoot 'baseline.json') -PathType Leaf)) -Message "Dispatcher löste die kommagetrennte relative Berichtsliste nicht korrekt auf: $($baselineOutput -join ' | ')"
+  }
+
   Invoke-Test -Name "Zweiseitige Lebensläufe halten fachliche Abschnitte atomar" -Body {
     $fixture = New-ValidContentFixture -Root (Join-Path $testRoot "semantic-pages")
     $cvPath = Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.html"
@@ -1969,7 +2020,7 @@ Start-Sleep -Seconds 30
     $statusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
     Assert-True -Condition ($statusResult.ExitCode -eq 0) -Message "Statusrekonstruktion schlug fehl: $($statusResult.Output -join ' | ')"
     $status = ($statusResult.Output -join "`n") | ConvertFrom-Json
-    Assert-True -Condition ($status.schemaVersion -eq 1 -and $status.phase -eq "profilabgleich") -Message "Statuswerkzeug erkannte die Dialogphase nicht."
+    Assert-True -Condition ($status.schemaVersion -eq 2 -and $status.phase -eq "profilabgleich" -and $null -eq $status.technicalAttempt) -Message "Statuswerkzeug erkannte die Dialogphase oder das neue technische Zustandsfeld nicht."
     Assert-True -Condition (@($status.requiredPrompts) -contains "Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md") -Message "Statuswerkzeug nennt das zuständige Dialogmodul nicht."
     Assert-True -Condition ($status.workFolder -eq $fixture.Work) -Message "Statuswerkzeug meldet einen anderen Arbeitsordner."
     Assert-True -Condition ((Get-FileHash -LiteralPath $fixture.Auftrag -Algorithm SHA256).Hash -eq $beforeOrderHash) -Message "Statusrekonstruktion veränderte den Auftrag."
@@ -2002,6 +2053,27 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($second.ExitCode -eq 0) -Message "Aktualisierung des veralteten Workflow-Checkpoints schlug fehl."
     $updatedCheckpoint = Get-Content -LiteralPath $checkpointPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition (@($updatedCheckpoint.history).Count -eq 2 -and @($updatedCheckpoint.history)[1].sequence -eq 2) -Message "Workflow-Checkpoint führt keine begrenzte, konsistente Schritt-Historie."
+  }
+
+  Invoke-Test -Name "Status zeigt fehlgeschlagene PDF-Stufe und veraltete Kandidatenbindung" -Body {
+    $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot 'status-failed-pdf')
+    $auftrag = Get-Content -LiteralPath $fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+    $auftrag | Add-Member -NotePropertyName dokumentumfang -NotePropertyValue ([ordered]@{ auswahl = 'A'; kennung = 'komplette_bewerbung'; lebenslauf = 'individuell'; anschreiben = $true; emailNachricht = $true; bestaetigt = $true }) -Force
+    $auftrag | Add-Member -NotePropertyName dialog -NotePropertyValue ([ordered]@{ status = 'abgeschlossen'; rueckfragen = @(); angaben = @() }) -Force
+    Set-Content -LiteralPath $fixture.Auftrag -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 12)
+    $cacheModule = Import-Module (Join-Path $toolsRoot 'Common/FinalizationCache.psm1') -Force -PassThru
+    $sourcePath = Join-Path $fixture.Candidate 'Lebenslauf - TEST.PERSON.html'
+    $statePath = Join-Path $fixture.Work 'Pruefstand.json'
+    $fingerprint = & $cacheModule { param($root, $sourcePath) Get-FinalizationStageFingerprint -Stage pdf -Root $root -InputFiles @($sourcePath) -Parameters @{ browser = 'synthetisch' } } $fixture.Work $sourcePath
+    $failure = [ordered]@{ stage = 'pdf'; tool = 'Exportiere-PDF.ps1'; exitCode = 1; errorCode = 'tool_failed'; message = 'Synthetischer PDF-Fehler' }
+    & $cacheModule { param($path, $root, $fingerprint, $failure) Save-FinalizationStageResult -Path $path -Root $root -Stage pdf -Fingerprint $fingerprint -OutputFiles @() -DurationMs 1 -Status failed -Failure $failure } $statePath $fixture.Work $fingerprint $failure
+    $statusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Ermittle-Bewerbungsstatus.ps1') -Arguments @('-Arbeitsordner', $fixture.Work, '-AlsJson')
+    $status = ($statusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition ($statusResult.ExitCode -eq 0 -and $status.schemaVersion -eq 2 -and $status.phase -eq 'technische_vorbereitung' -and $status.technicalAttempt.stage -eq 'pdf' -and $status.technicalAttempt.status -eq 'failed' -and $status.technicalAttempt.current) -Message 'Status zeigt einen aktuellen fehlgeschlagenen PDF-Schritt nicht korrekt.'
+    Add-Content -LiteralPath $sourcePath -Encoding UTF8 -Value '<!-- Kandidat geändert -->'
+    $staleResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Ermittle-Bewerbungsstatus.ps1') -Arguments @('-Arbeitsordner', $fixture.Work, '-AlsJson')
+    $stale = ($staleResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition ($staleResult.ExitCode -eq 0 -and -not [bool]$stale.technicalAttempt.current -and $stale.technicalAttempt.staleReason -eq 'eingabe_geaendert') -Message 'Status kennzeichnet einen hashabweichenden Kandidaten nicht als veraltet.'
   }
 
   Invoke-Test -Name "Dialogfall 9: Unklarer Kleinmodellzustand bleibt nach einer Wiederholung fail-closed" -Body {
@@ -3727,6 +3799,15 @@ for (`$i = 0; `$i -lt 5; `$i++) {
     Add-Content -LiteralPath $output -Encoding UTF8 -Value 'manipuliert'
     $changed = & $cacheModule { param($state, $fingerprint, $root) Get-FinalizationCacheDecision -State $state -Stage statisch -Fingerprint $fingerprint -Root $root } $state $fingerprint $root
     Assert-True -Condition (-not [bool]$changed.reusable -and $changed.reason -eq 'output_changed') -Message 'Prüfstand akzeptiert manipulierte Ausgaben.'
+    & $cacheModule { param($path, $root, $fingerprint) Save-FinalizationStageResult -Path $path -Root $root -Stage pdf -Fingerprint $fingerprint -OutputFiles @() -DurationMs 0 -Status running } $statePath $root $fingerprint
+    $runningState = & $cacheModule { param($path) Read-FinalizationCheckState -Path $path } $statePath
+    $runningDecision = & $cacheModule { param($state, $fingerprint, $root) Get-FinalizationCacheDecision -State $state -Stage pdf -Fingerprint $fingerprint -Root $root } $runningState $fingerprint $root
+    Assert-True -Condition ($runningState.schemaVersion -eq 2 -and [string]$runningState.stages[-1].status -eq 'running' -and -not [bool]$runningDecision.reusable -and $runningDecision.reason -eq 'interrupted') -Message 'Laufende Finalisierungsstufe wird nicht fail-closed behandelt.'
+    $failure = [ordered]@{ stage = 'pdf'; tool = 'Exportiere-PDF.ps1'; exitCode = 1; errorCode = 'tool_failed'; message = 'Synthetischer PDF-Fehler' }
+    & $cacheModule { param($path, $root, $fingerprint, $failure) Save-FinalizationStageResult -Path $path -Root $root -Stage pdf -Fingerprint $fingerprint -OutputFiles @() -DurationMs 1 -Status failed -Failure $failure } $statePath $root $fingerprint $failure
+    $failedState = & $cacheModule { param($path) Read-FinalizationCheckState -Path $path } $statePath
+    $failedDecision = & $cacheModule { param($state, $fingerprint, $root) Get-FinalizationCacheDecision -State $state -Stage pdf -Fingerprint $fingerprint -Root $root } $failedState $fingerprint $root
+    Assert-True -Condition ([string]$failedState.stages[-1].status -eq 'failed' -and [string]$failedState.stages[-1].failure.tool -eq 'Exportiere-PDF.ps1' -and -not [bool]$failedDecision.reusable -and $failedDecision.reason -eq 'previous_failed') -Message 'Fehlgeschlagene Finalisierungsstufe wird nicht nachvollziehbar gespeichert oder wiederverwendet.'
     $ranges = @(& $contextModule { Merge-ContextRanges -Ranges @([pscustomobject]@{ zeileVon = 4; zeileBis = 6 }, [pscustomobject]@{ zeileVon = 8; zeileBis = 9 }) })
     Assert-True -Condition ($ranges.Count -eq 1 -and $ranges[0].zeileVon -eq 2 -and $ranges[0].zeileBis -eq 11 -and (& $contextModule { Get-ContextLoadingMode }) -eq 'vollkontext') -Message 'Kontextvertrag vereinigt Bereiche oder schützt den deaktivierten Rollout nicht.'
     $reportPaths = @()
@@ -3785,7 +3866,7 @@ for (`$i = 0; `$i -lt 5; `$i++) {
         $layoutReport = Join-Path $layoutDir "Layoutcheck-Bericht.json"
         Assert-True -Condition (Test-Path -LiteralPath $layoutReport -PathType Leaf) -Message "Layoutcheck schrieb keinen JSON-Bericht."
         $layoutData = Get-Content -LiteralPath $layoutReport -Raw -Encoding UTF8 | ConvertFrom-Json
-        Assert-True -Condition (@($layoutData.results).Count -eq 2) -Message "Layoutbericht enthält nicht genau zwei Dokumentnachweise."
+        Assert-True -Condition ($layoutData.schemaVersion -eq 3 -and @($layoutData.results).Count -eq 2 -and @($layoutData.printPreflight.documents).Count -eq 2 -and @($layoutData.printPreflight.documents | Where-Object { $_.status -eq 'bestanden' }).Count -eq 2) -Message "Layoutbericht enthält keinen vollständigen Druckvorprüfungsnachweis."
         Assert-True -Condition (-not [string]::IsNullOrWhiteSpace($layoutData.results[0].htmlSha256)) -Message "Layoutbericht enthält keinen HTML-Hash."
         Assert-True -Condition ($layoutData.captureMode -eq "eine_png_pro_a4_seite") -Message "Layoutbericht weist den Seitencapture-Modus nicht aus."
       }
@@ -3813,6 +3894,7 @@ for (`$i = 0; `$i -lt 5; `$i++) {
 </body>
 "@
         $cv = [regex]::Replace($cv, '(?is)<body>.*?</body>', $twoPages)
+        $cv = $cv.Replace('</style>', ".preface { display: none; }`n</style>")
         Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
         $companyDir = Split-Path -Path $folder -Parent
         $roleDir = Split-Path -Path $folder -Leaf
@@ -3836,7 +3918,49 @@ for (`$i = 0; `$i -lt 5; `$i++) {
         Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $layoutDir $relativeReportPath))) -Message "Relativer Berichtspfad wurde fälschlich unter dem Layoutordner verschachtelt."
         Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path (Split-Path $companyDir -Parent) '.browser-tmp'))) -Message "Leerer Browser-Temporärroot blieb nach erfolgreichem Layoutcheck zurück."
         $layoutData = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        Assert-True -Condition (@($layoutData.results).Count -eq 3 -and $layoutData.expectedScreenshots -eq 3) -Message "Layoutbericht bildet nicht alle A4-Seiten ab."
+        Assert-True -Condition ($layoutData.schemaVersion -eq 3 -and @($layoutData.results).Count -eq 3 -and $layoutData.expectedScreenshots -eq 3 -and @($layoutData.printPreflight.documents).Count -eq 2) -Message "Layoutbericht bildet nicht alle A4-Seiten und vollständigen Druckvorprüfungen ab."
+      }
+
+      Invoke-Test -Name "Layoutdruckvorprüfung blockiert globale Seitenlücke und akzeptiert screen-only Abstand" -Kategorie browser -Body {
+        $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot 'layout-print-preflight')
+        $candidate = $fixture.Candidate
+        $layoutDir = Join-Path $fixture.Work 'Layoutcheck'
+        Remove-Item -LiteralPath $layoutDir -Recurse -Force
+        $cvPath = Join-Path $candidate 'Lebenslauf - TEST.PERSON.html'
+        $cv = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
+        $css = @"
+    .page { position: relative; padding: 14mm; break-after: page; }
+    .page:last-child { break-after: auto; }
+    .page + .page { margin-top: 8mm; }
+    .page-footer { position: absolute; left: 14mm; right: 14mm; bottom: 7mm; border-top: 1px solid #ccc; text-align: right; }
+    @media print { .page { margin: 0; } }
+"@
+        $body = @"
+<body>
+  <main class="page"><header data-cv-page-header><h1>Test Person</h1></header><section data-cv-section="projekte"><p>Projektpraxis</p></section><footer class="page-footer">Seite 1 von 2</footer></main>
+  <main class="page"><header data-cv-page-header><h1>Test Person</h1></header><section data-cv-section="berufserfahrung"><p>01/2020 - 12/2020</p></section><section data-cv-section="weiterbildung"><p>02/2021 - 03/2022</p></section><footer class="page-footer">Seite 2 von 2</footer></main>
+</body>
+"@
+        $cv = $cv.Replace('</style>', "$css</style>")
+        $cv = [regex]::Replace($cv, '(?is)<body>.*?</body>', $body)
+        Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+        $negative = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Layoutcheck-Bewerbung.ps1') -Arguments @('-Ordner', $candidate, '-Browser', 'auto', '-BrowserExecutablePath', $script:browserSmokeInfo.Path, '-TimeoutSeconds', '60')
+        Assert-True -Condition ($negative.ExitCode -ne 0 -and ($negative.Output -join "`n") -match 'Druckvorprüfung.+PDF-Seitenzahl') -Message "Globale Seitenlücke wurde nicht vor dem PDF-Export blockiert: $($negative.Output -join ' | ')"
+        Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $layoutDir 'Layoutcheck-Bericht.json') -PathType Leaf)) -Message 'Fehlgeschlagene Druckvorprüfung hinterließ einen Erfolgsbericht.'
+
+        $fixed = (Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8).Replace('.page + .page { margin-top: 8mm; }', '@media screen { .page + .page { margin-top: 8mm; } }')
+        Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $fixed
+        $positive = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Layoutcheck-Bewerbung.ps1') -Arguments @('-Ordner', $candidate, '-Browser', 'auto', '-BrowserExecutablePath', $script:browserSmokeInfo.Path, '-TimeoutSeconds', '60')
+        Assert-True -Condition ($positive.ExitCode -eq 0) -Message "Screen-only Seitenabstand wurde zu Unrecht abgelehnt: $($positive.Output -join ' | ')"
+        $layout = Get-Content -LiteralPath (Join-Path $layoutDir 'Layoutcheck-Bericht.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $cvPreflight = @($layout.printPreflight.documents | Where-Object { $_.htmlFile -eq 'Lebenslauf - TEST.PERSON.html' })
+        Assert-True -Condition ($layout.schemaVersion -eq 3 -and $cvPreflight.Count -eq 1 -and $cvPreflight[0].expectedPageCount -eq 2 -and $cvPreflight[0].actualPageCount -eq 2 -and $cvPreflight[0].a4) -Message 'Druckvorprüfung dokumentiert den korrigierten Zweiseiter nicht vollständig.'
+
+        $auftrag = Get-Content -LiteralPath $fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+        $auftrag.seitenstrategie = 'zwei_seiten'
+        Set-Content -LiteralPath $fixture.Auftrag -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 12)
+        $pdf = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Exportiere-PDF.ps1') -Arguments @('-Ordner', $candidate, '-AuftragPath', $fixture.Auftrag, '-Browser', 'auto', '-BrowserExecutablePath', $script:browserSmokeInfo.Path, '-TimeoutSeconds', '60')
+        Assert-True -Condition ($pdf.ExitCode -eq 0 -and (Test-Path -LiteralPath (Join-Path $fixture.Work 'PDF-Export/PDF-Export-Bericht.json') -PathType Leaf) -and -not (Test-Path -LiteralPath (Join-Path $fixture.Work '_Arbeitsdateien/Kandidat/PDF-Export'))) -Message "PDF-Export erkennt den kanonischen Kandidatenordner ohne expliziten Ausgabeordner nicht: $($pdf.Output -join ' | ')"
       }
 
       Invoke-Test -Name "Universal-Freigabe veröffentlicht nur das Aktivpaket und entfernt den Arbeitsordner" -Kategorie browser -Body {
@@ -3950,7 +4074,7 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
         }
         $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -ne 0) -Message "PDF mit zusätzlichen Druckseiten wurde fälschlich akzeptiert."
-        Assert-True -Condition (($result.Output -join "`n") -match "PDF-Seitenzahl stimmt nicht mit dem HTML überein") -Message "Export scheiterte nicht aus dem erwarteten Seitenzahl-Grund: $($result.Output -join ' | ')"
+        Assert-True -Condition (($result.Output -join "`n") -match "PDF-Seitenzahl stimmt") -Message "Export scheiterte nicht aus dem erwarteten Seitenzahl-Grund: $($result.Output -join ' | ')"
         Assert-True -Condition (@(Get-ChildItem -LiteralPath $folder -Filter "*.pdf" -File).Count -eq 0) -Message "Fehlgeschlagener Export hinterließ finale PDFs."
       }
 

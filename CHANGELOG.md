@@ -8,6 +8,10 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
+- Gemeinsame Chromium-Druckvorprüfung für Layoutcheck und PDF-Export: jedes vollständige Original-HTML wird auf A4, PDF-Struktur und die exakte Übereinstimmung von expliziten `.page`-Containern und Druckseiten geprüft. `Layoutcheck-Bericht.json` verwendet dafür Schema 3.
+- `Pruefstand.json` Schema 2 hält laufende, bestandene und fehlgeschlagene Finalisierungsstufen mit bereinigten Fehlerdaten fest. Die Statusausgabe zeigt den letzten technischen Versuch und erkennt hashabweichende Eingaben als veraltet.
+- Der CLI-Dispatcher normalisiert einzelne Pfade und kommagetrennte Pfadlisten gegen das ursprüngliche Aufrufverzeichnis, bevor er ein Fachwerkzeug startet.
+
 - Phase-6-Effizienz: hashgebundener privater `Pruefstand.json` für die Finalisierungsstufen, `--neu-pruefen`, Finalisierungsbericht Schema 7 und feste Reihenfolge Dialog, Stammdaten, statisch, Inhalt, DOM/Layout, PDF und ATS.
 - `bewerbung.ps1 kontext` erzeugt einen privaten, quellenhashgebundenen `Kontextmanifest.json`-Entwurf. Der Rollout bleibt bis zu einer erfolgreichen realen Promptmatrix bewusst im Modus `vollkontext`.
 - Schema-1-Testberichte enthalten Laufzeitaggregate, Kategorien und langsame Tests. `bewerbung.ps1 test-baseline` erzeugt aus drei erfolgreichen ungefilterten Berichten eine öffentliche Baseline; Laufzeitabweichungen sind zunächst nicht blockierende Warnungen.
@@ -68,6 +72,10 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 - Der dependency-freie PNG-Leser verarbeitet die erwarteten nicht-interlaced 8-Bit-Grau-, RGB- und RGBA-Screenshots mit Filtern 0 bis 4. Windows-/Ubuntu-Parität wird über Seitenzahl, A4-Geometrie, Dichte-, Hash- und ATS-Prüfung statt binär identischer Ausgaben bewertet.
 
 ### Behoben
+
+- Mehrseitige Layouts werden vor dem eigentlichen Export gegen zusätzliche Druckseiten abgesichert; CSS-Vorschauabstände über `.page + .page` können eine Fußzeile nicht mehr unbemerkt auf eine Restseite verschieben. Direkte Layout- und PDF-Diagnosen erkennen kanonische Kandidatenordner ohne verschachtelte `_Arbeitsdateien`-Ausgaben.
+- Finalisierungsstufen erfassen Unterwerkzeugfehler kontrolliert im privaten Prüfstand, statt den Zustand durch einen vorzeitigen Prozessabbruch unvollständig zu lassen.
+- Relative Auftragspfade werden bei direkter statischer Prüfung und beim PDF-Export gegen das tatsächliche Aufrufverzeichnis aufgelöst und nicht mehr doppelt unter `Private/Bewerbungen` angehängt.
 
 - Verwaiste README- und Workflowverweise auf gelöschte Archiv- beziehungsweise Bash-Testdateien wurden entfernt; die frühere Bash-Fachsuite ist durch Dispatcher-, Kompatibilitäts- und Setup-Tests ersetzt.
 - Die ShellCheck-Ausnahme für die beabsichtigt literale PowerShell-Versionsabfrage steht vor dem vollständigen `if`-Block und verursacht keine Parserfehler mehr.

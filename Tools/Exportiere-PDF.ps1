@@ -33,6 +33,7 @@ $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/PdfPrintValidation.psm1") -Force
 $script:ToolTimeoutSeconds = [math]::Min(3600, [math]::Max(120, $TimeoutSeconds * 8))
 
 function Add-Info {
@@ -333,57 +334,17 @@ function Export-HtmlToPdf {
     [int]$TimeoutSeconds
   )
 
-  $browserRunRoot = Resolve-SafePath -Candidate (Join-Path -Path $BrowserTempRoot -ChildPath ("P-" + [guid]::NewGuid().ToString("N"))) -Root $BrowserTempRoot -ForWrite -PathType Container
-  $profileDir = Join-Path -Path $browserRunRoot -ChildPath "profile"
-  $browserPdfPath = Join-Path -Path $browserRunRoot -ChildPath "output.pdf"
-  try {
-    if (Test-Path -LiteralPath $TemporaryPdfPath) {
-      Remove-Item -LiteralPath $TemporaryPdfPath -Force
-    }
-    New-Item -Path $browserRunRoot -ItemType Directory | Out-Null
-    New-Item -Path $ProfileDir -ItemType Directory -Force | Out-Null
-
-    $uri = [System.Uri]::new($HtmlFile.FullName).AbsoluteUri
-    $arguments = @(
-      "--headless=new",
-      "--disable-gpu",
-      "--disable-gpu-sandbox",
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--no-first-run",
-      "--disable-background-networking",
-      "--disable-extensions",
-      "--user-data-dir=$ProfileDir",
-      "--print-to-pdf=$browserPdfPath",
-      "--print-to-pdf-no-header",
-      "--no-pdf-header-footer",
-      $uri
-    )
-
-    $runStartedUtc = [datetime]::UtcNow
-    $process = Invoke-NativeProcess -FilePath $BrowserInfo.Path -ArgumentList $arguments -TimeoutSeconds $TimeoutSeconds -MaxStdoutChars 4096 -MaxStderrChars 8192
-    if ($process.TimedOut) {
-      return "Browser $($BrowserInfo.Name) überschritt das Zeitlimit von $TimeoutSeconds Sekunden für $($HtmlFile.Name)."
-    }
-    if ($process.ExitCode -ne 0) {
-      $stderr = $process.StandardError.Trim()
-      $suffix = if ([string]::IsNullOrWhiteSpace($stderr)) { "" } else { " stderr: $stderr" }
-      return "Browser $($BrowserInfo.Name) beendete mit Exitcode $($process.ExitCode) für $($HtmlFile.Name).$suffix"
-    }
-
-    $expectedPageCount = Get-HtmlPageCount -Path $HtmlFile.FullName
-    if ($expectedPageCount -eq 0) {
-      return "HTML enthält keine expliziten A4-Seitencontainer: $($HtmlFile.Name)"
-    }
-    $pdfError = Test-PdfFile -Path $browserPdfPath -MinBytes $MinPdfBytes -ExpectedPageCount $expectedPageCount -RunStartedUtc $runStartedUtc
-    if ($pdfError) { return $pdfError }
-    Copy-Item -LiteralPath $browserPdfPath -Destination $TemporaryPdfPath
-    return Test-PdfFile -Path $TemporaryPdfPath -MinBytes $MinPdfBytes -ExpectedPageCount $expectedPageCount -RunStartedUtc $runStartedUtc
-  } catch {
-    return $_.Exception.Message
-  } finally {
-    Remove-PdfRunDirectory -Path $browserRunRoot -WorkDirectory $BrowserTempRoot
+  $preflight = Invoke-HtmlPrintPreflight `
+    -BrowserInfo $BrowserInfo `
+    -HtmlFile $HtmlFile `
+    -BrowserTempRoot $BrowserTempRoot `
+    -MinPdfBytes $MinPdfBytes `
+    -TimeoutSeconds $TimeoutSeconds `
+    -CopyValidatedPdfTo $TemporaryPdfPath
+  if (-not $preflight.succeeded) {
+    return [string]$preflight.error
   }
+  return $null
 }
 
 function Publish-PdfSet {
@@ -513,6 +474,10 @@ try {
   Add-Fail $_.Exception.Message
   exit 2
 }
+$callerWorkingDirectory = (Get-Location).Path
+if (-not [string]::IsNullOrWhiteSpace($AuftragPath) -and -not [System.IO.Path]::IsPathFullyQualified($AuftragPath)) {
+  $AuftragPath = [System.IO.Path]::GetFullPath((Join-Path -Path $callerWorkingDirectory -ChildPath $AuftragPath))
+}
 $checkerPath = Join-Path -Path $PSScriptRoot -ChildPath "Pruefe-Bewerbung.ps1"
 $layoutcheckPath = Join-Path -Path $PSScriptRoot -ChildPath "Layoutcheck-Bewerbung.ps1"
 
@@ -557,18 +522,17 @@ if ($htmlFiles.Count -lt 1 -or $htmlFiles.Count -gt 2) {
   exit 1
 }
 
-$roleDir = Split-Path -Path $resolvedFolder -Leaf
-$companyDir = Split-Path -Path $resolvedFolder -Parent
-$companyName = Split-Path -Path $companyDir -Leaf
-if ($companyName -eq "_Arbeitsdateien") {
-  Add-Fail "Der angegebene Ordner scheint ein Arbeitsordner zu sein. Bitte finalen Bewerbungsordner angeben."
-  exit 1
-}
-
 $workDir = if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
-  $defaultWorkDir = Join-Path -Path $companyDir -ChildPath "_Arbeitsdateien"
-  $defaultWorkDir = Join-Path -Path $defaultWorkDir -ChildPath $roleDir
-  Join-Path -Path $defaultWorkDir -ChildPath "PDF-Export"
+  $candidateParent = Split-Path -Path $resolvedFolder -Parent
+  $candidateWorkRoot = Split-Path -Path $candidateParent -Parent
+  if ([string]::Equals((Split-Path -Path $resolvedFolder -Leaf), 'Kandidat', (Get-PathStringComparison)) -and
+      [string]::Equals((Split-Path -Path $candidateWorkRoot -Leaf), '_Arbeitsdateien', (Get-PathStringComparison))) {
+    Join-Path -Path $candidateParent -ChildPath 'PDF-Export'
+  } else {
+    $roleDir = Split-Path -Path $resolvedFolder -Leaf
+    $companyDir = Split-Path -Path $resolvedFolder -Parent
+    Join-Path -Path (Join-Path -Path (Join-Path -Path $companyDir -ChildPath '_Arbeitsdateien') -ChildPath $roleDir) -ChildPath 'PDF-Export'
+  }
 } else {
   [System.IO.Path]::GetFullPath($OutputRoot)
 }

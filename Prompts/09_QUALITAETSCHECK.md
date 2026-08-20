@@ -86,7 +86,8 @@ Die Finalisierung verwaltet den Abschnitt `## Technischer Prüfbericht (automati
 ## Persönliches Freigabe-Gate
 
 - Jeder im aktuellen Lauf erzeugte Seitenscreenshot muss tatsächlich geöffnet und visuell auf Beschnitt, Überlappung, Lesbarkeit, Seitenverteilung, Footer, problematische Leerflächen und bei vorhandenem Passfoto zusätzlich auf Schärfe, Proportionen sowie Gesichtsausschnitt geprüft werden.
-- Automatische Dichte- oder Layoutwarnungen benötigen eine konkrete Sichtbewertung und gegebenenfalls `-VisuelleFreigabeNotiz`.
+- Automatische Dichte- oder Layoutwarnungen benötigen eine konkrete Sichtbewertung und gegebenenfalls `-VisuelleFreigabeNotiz`; sie sind keine Aufforderung, die Warnungszahl durch künstliches Auffüllen auf null zu bringen.
+- Sprachqualitätswarnungen aus dem Inhaltsbericht sind von blockierenden Fach- und Wahrheitsfehlern getrennt zu behandeln. Sie brauchen eine redaktionelle Entscheidung, aber nicht zwingend eine fehlerfreie Nullwarnungsbilanz.
 - Ohne HTML muss jede ausgewählte Textdatei persönlich vollständig geprüft werden.
 - Jede nachträgliche Quellen- oder Kandidatenänderung entwertet Vorbereitung und Sichtbestätigung.
 - Veröffentlicht wird erst nach einer neuen eindeutigen persönlichen Bestätigung.

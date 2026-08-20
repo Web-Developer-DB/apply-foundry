@@ -39,6 +39,7 @@ $ErrorActionPreference = "Stop"
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/PngTools.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/PdfPrintValidation.psm1") -Force
 
 $a4Ratio = 210.0 / 297.0
 if ([math]::Abs(($Width / [double]$Height) - $a4Ratio) -gt 0.01) {
@@ -325,11 +326,26 @@ function Get-LayoutDensity {
     -BottomReserveMm $BottomReserveMm
 }
 
+function Get-AdjacentPagePrintDiagnostics {
+  param([Parameter(Mandatory)][string]$HtmlText)
+
+  $diagnostics = [System.Collections.Generic.List[string]]::new()
+  $selectorMatches = [regex]::Matches($HtmlText, '(?is)\.page\s*\+\s*\.page\s*\{(?<rules>[^}]*)\}')
+  foreach ($match in $selectorMatches) {
+    $rules = [string]$match.Groups['rules'].Value
+    if ($rules -match '(?i)margin(?:-top)?\s*:\s*(?!0(?:[a-z%]+)?\s*(?:;|$))[^;}]+' -or $rules -match '(?i)padding-top\s*:\s*(?!0(?:[a-z%]+)?\s*(?:;|$))[^;}]+') {
+      $diagnostics.Add('Seitenabstand über `.page + .page` gefunden. Vertikale Vorschauabstände müssen in `@media screen` stehen oder im Druckmodus mit demselben Selektor explizit auf 0 zurückgesetzt werden.')
+    }
+  }
+  return @($diagnostics | Select-Object -Unique)
+}
+
 function Write-LayoutReport {
   param(
     [string]$Path,
     [pscustomobject]$BrowserInfo,
     [array]$Results,
+    [array]$DocumentPreflights,
     [int]$ExpectedWidth,
     [int]$ExpectedHeight
   )
@@ -340,7 +356,7 @@ function Write-LayoutReport {
     New-Item -Path $parent -ItemType Directory -Force | Out-Null
   }
   $report = [ordered]@{
-    schemaVersion = 2
+    schemaVersion = 3
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     runtime = Get-RuntimeFingerprint -BrowserInfo $BrowserInfo
     browser = $BrowserInfo.Name
@@ -349,6 +365,10 @@ function Write-LayoutReport {
     pageWidth = $ExpectedWidth
     pageHeight = $ExpectedHeight
     expectedScreenshots = @($Results).Count
+    printPreflight = [ordered]@{
+      mode = "vollstaendiges_original_html"
+      documents = @($DocumentPreflights)
+    }
     results = $Results
   }
   Write-AtomicJson -Path $fullPath -Value $report -Depth 8
@@ -605,16 +625,19 @@ try {
 if ($OutputRoot) {
   $layoutDir = [System.IO.Path]::GetFullPath($OutputRoot)
 } else {
-  $roleDir = Split-Path -Path $resolvedFolder -Leaf
-  $companyDir = Split-Path -Path $resolvedFolder -Parent
-  $companyName = Split-Path -Path $companyDir -Leaf
-  if ($companyName -eq "_Arbeitsdateien") {
-    Add-Fail "Der angegebene Ordner scheint bereits ein Arbeitsordner zu sein. Bitte den finalen Bewerbungsordner angeben."
-    exit 1
+  $candidateParent = Split-Path -Path $resolvedFolder -Parent
+  $candidateWorkRoot = Split-Path -Path $candidateParent -Parent
+  if ([string]::Equals((Split-Path -Path $resolvedFolder -Leaf), 'Kandidat', (Get-PathStringComparison)) -and
+      [string]::Equals((Split-Path -Path $candidateWorkRoot -Leaf), '_Arbeitsdateien', (Get-PathStringComparison))) {
+    # Kanonischer Kandidatenordner: .../_Arbeitsdateien/<Auftrag>/Kandidat.
+    $layoutDir = Join-Path -Path $candidateParent -ChildPath 'Layoutcheck'
+  } else {
+    # Historischer Diagnoseaufruf mit finalem Rollenordner.
+    $roleDir = Split-Path -Path $resolvedFolder -Leaf
+    $companyDir = Split-Path -Path $resolvedFolder -Parent
+    $layoutDir = Join-Path -Path (Join-Path -Path $companyDir -ChildPath '_Arbeitsdateien') -ChildPath $roleDir
+    $layoutDir = Join-Path -Path $layoutDir -ChildPath 'Layoutcheck'
   }
-  $layoutDir = Join-Path -Path $companyDir -ChildPath "_Arbeitsdateien"
-  $layoutDir = Join-Path -Path $layoutDir -ChildPath $roleDir
-  $layoutDir = Join-Path -Path $layoutDir -ChildPath "Layoutcheck"
 }
 
 Add-Info "Finaler Bewerbungsordner: $resolvedFolder"
@@ -681,6 +704,7 @@ foreach ($html in $htmlFiles) {
     PageMatches = $pageMatches
     PageCount = $pageMatches.Count
     SafeBase = $safeBase
+    PrintCssDiagnostics = @(Get-AdjacentPagePrintDiagnostics -HtmlText $htmlText)
   }
 }
 
@@ -715,7 +739,22 @@ foreach ($candidate in $browserCandidates) {
   Add-Info "Teste Browser: $($candidate.Name) ($($candidate.Path))"
   $candidateOk = $true
   $candidateResults = @()
+  $candidateDocumentPreflights = @()
   foreach ($document in $documents) {
+    foreach ($diagnostic in @($document.PrintCssDiagnostics)) {
+      Add-Warn "$($document.HtmlFile.Name): $diagnostic"
+    }
+    $snapshotError = Get-HtmlSnapshotError -HtmlFile $document.HtmlFile -ExpectedSha256 $document.HtmlSha256
+    if ($snapshotError) {
+      $candidateOk = $false
+      $browserErrors.Add("$($candidate.Name): $snapshotError") | Out-Null
+      break
+    }
+    $printPreflight = Invoke-HtmlPrintPreflight -BrowserInfo $candidate -HtmlFile $document.HtmlFile -BrowserTempRoot $browserTempRoot -TimeoutSeconds $TimeoutSeconds
+    if (-not $printPreflight.succeeded) {
+      $candidateOk = $false
+      $browserErrors.Add("$($candidate.Name): Druckvorprüfung fehlgeschlagen für $($document.HtmlFile.Name): $($printPreflight.error)") | Out-Null
+    }
     for ($pageIndex = 0; $pageIndex -lt $document.PageCount; $pageIndex++) {
       $snapshotError = Get-HtmlSnapshotError -HtmlFile $document.HtmlFile -ExpectedSha256 $document.HtmlSha256
       if ($snapshotError) {
@@ -818,6 +857,19 @@ foreach ($candidate in $browserCandidates) {
         Add-Ok "$($result.Browser): frische Seiten-PDF erzeugt für $($result.File), Seite $pageNumber"
       }
     }
+    if ($printPreflight.succeeded -and $candidateOk) {
+      $candidateDocumentPreflights += [ordered]@{
+        htmlFile = $document.HtmlFile.Name
+        htmlSha256 = $document.HtmlSha256
+        expectedPageCount = $printPreflight.expectedPageCount
+        actualPageCount = $printPreflight.actualPageCount
+        pdfBytes = $printPreflight.pdfBytes
+        mediaBox = $printPreflight.mediaBox
+        a4 = $printPreflight.a4
+        status = 'bestanden'
+        cssDiagnostics = @($document.PrintCssDiagnostics)
+      }
+    }
     if (-not $candidateOk) { break }
   }
 
@@ -832,7 +884,7 @@ foreach ($candidate in $browserCandidates) {
     }
   }
   if ($candidateOk) {
-    Write-LayoutReport -Path $BerichtPath -BrowserInfo $candidate -Results $candidateResults -ExpectedWidth $Width -ExpectedHeight $Height
+    Write-LayoutReport -Path $BerichtPath -BrowserInfo $candidate -Results $candidateResults -DocumentPreflights $candidateDocumentPreflights -ExpectedWidth $Width -ExpectedHeight $Height
     if ((Test-Path -LiteralPath $browserTempRoot -PathType Container) -and @(Get-ChildItem -LiteralPath $browserTempRoot -Force).Count -eq 0) {
       Remove-Item -LiteralPath $browserTempRoot -Force -ErrorAction SilentlyContinue
     }

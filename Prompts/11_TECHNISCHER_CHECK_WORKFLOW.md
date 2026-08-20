@@ -81,10 +81,11 @@ Dieser Lauf:
 - schreibt im `Inhalts-Pruefbericht.json` für Matrix-Schema 5 die maschinenlesbare `recruiterCoverage`, `evidenceCoverage`, `anschreibenCoverage`, `externalSourceCoverage`, `evidenzDisposition` und `sprachqualitaet`; fehlende Prioritätsbelege, falsche Zieldokumente oder Seiten, unbelegte Direktbehauptungen, fehlende Quellenanker und unvollständige Strategien blockieren
 - erzeugt frische Layoutscreenshots samt Dichtehinweisen
 - misst bei Chromium zusätzlich DOM-Überlauf, Scrollhöhe und Elementgrenzen je isolierter A4-Seite; jeder sichtbare Überlauf blockiert die Vorbereitung
+- rendert zusätzlich jedes vollständige Original-HTML in eine temporäre A4-PDF und blockiert, wenn ihre Seitenzahl nicht exakt den expliziten `.page`-Containern entspricht; damit werden Wechselwirkungen zwischen Seiten wie druckwirksame Vorschauabstände erkannt
 - exportiert und validiert genau die laut Dokumentumfang ausgewählten HTML-Dokumente als PDFs
 - prüft die PDF-Textschicht und Lesbarkeit für ATS
 - schreibt Hashnachweise für Quellen, sämtliche Kandidatendateien, PDFs und Seitenscreenshots; bei einem individuellen Lebenslauf mit vorhandenem Passfoto kommt exakt der optionale Quellnachweis `passfoto` hinzu
-- schreibt `Pruefstand.json` Schema 1 ausschließlich im privaten Arbeitsordner; erfolgreiche Stufen werden nur bei identischen Quellen, Parametern, Werkzeug- und Laufzeithashes wiederverwendet. `--neu-pruefen` umgeht den Prüfstand.
+- schreibt `Pruefstand.json` Schema 2 ausschließlich im privaten Arbeitsordner. Jede Stufe wird vor ihrem Start als `running`, danach als `passed` oder bei einem kontrollierten Werkzeugfehler als `failed` gespeichert. Erfolgreiche Stufen werden nur bei identischen Quellen, Parametern, Werkzeug- und Laufzeithashes wiederverwendet; fehlgeschlagene oder unterbrochene Stufen nie. `--neu-pruefen` umgeht den Prüfstand.
 - schreibt den Vorbereitungsbericht für individuelle Bewerbungen im Schema 7 beziehungsweise für den Universal-Lebenslauf im Schema 2 mit einer neuen, eindeutigen `approvalRequest.approvalId`; Schema-6-Vorbereitungen bleiben veröffentlichbar, liefern aber keine Cachetreffer
 - schreibt den Runtime-Fingerprint in Layout-, PDF-, ATS- und Finalisierungsbericht
 - aktualisiert den nicht blockierenden Diagnosebericht `Tokenverbrauch.json` im Arbeitsordner mindestens mit dem Verfügbarkeitsstatus und referenziert ihn optional im `Finalisierungsbericht.json`
@@ -220,7 +221,7 @@ Visuelle Bewertung des Screenshots:
 - Ungewöhnlich freie Flächen wurden zuerst gegen fehlende relevante Profilhighlights, Anwendungskontexte und eigene Beiträge geprüft; Layoutanpassungen kaschieren keine inhaltliche Unterdeckung.
 - Der Screenshot enthält keine Browser-Kopfzeilen, Dateipfade, URLs oder Druckdialog-Reste.
 
-Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären A4-Ansicht. Dadurch wird keine Seite von einer festen Screenshot-Höhe abgeschnitten oder übersehen. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; ihre Warnung muss fachlich bewertet werden und rechtfertigt kein blindes Auffüllen oder Komprimieren. Bei ungewöhnlich geringer Dichte wird zuerst die Schema-5-Recruiter-, Anschreiben- und Evidenzabdeckung fachlich geprüft und erst danach das Layout verändert.
+Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären A4-Ansicht und ergänzt dies durch eine vollständige Druckvorprüfung des unveränderten HTML. Dadurch wird keine Seite von einer festen Screenshot-Höhe abgeschnitten oder übersehen, und gleichzeitig können global wirksame CSS-Regeln zwischen Seiten keine zusätzliche Druckseite unbemerkt erzeugen. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; ihre Warnung muss fachlich bewertet werden und rechtfertigt kein blindes Auffüllen oder Komprimieren. Bei ungewöhnlich geringer Dichte wird zuerst die Schema-5-Recruiter-, Anschreiben- und Evidenzabdeckung fachlich geprüft, dann die Seitenstrategie und erst danach das Layout verändert.
 
 Die Vorlagen verwenden `Arial, "Liberation Sans", Helvetica, sans-serif`. Windows und Ubuntu müssen weder pixelidentische PNGs noch binär identische PDFs erzeugen. Verbindlich gleich sind Seitenzahl, A4-Geometrie, bestandene Dichteprüfung, Hashbindung und ATS-Prüfung.
 

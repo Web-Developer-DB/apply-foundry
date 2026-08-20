@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path $PSScriptRoot 'AtomicFile.psm1') -Force
 
-$script:CacheSchemaVersion = 1
+$script:CacheSchemaVersion = 2
 $script:StageOrder = @('dialog', 'stammdaten', 'statisch', 'inhalt', 'layout', 'pdf', 'ats')
 
 function Get-CacheRelativePath {
@@ -86,7 +86,10 @@ function Get-FinalizationCacheDecision {
   $entry = @($State.stages | Where-Object { [string]$_.id -eq $Stage } | Select-Object -First 1)
   if ($entry.Count -eq 0) { return [ordered]@{ reusable = $false; reason = 'missing'; entry = $null } }
   $entry = $entry[0]
-  if ([string]$entry.status -ne 'passed') { return [ordered]@{ reusable = $false; reason = 'input_changed'; entry = $entry } }
+  if ([string]$entry.status -ne 'passed') {
+    $reason = if ([string]$entry.status -eq 'failed') { 'previous_failed' } elseif ([string]$entry.status -eq 'running') { 'interrupted' } else { 'input_changed' }
+    return [ordered]@{ reusable = $false; reason = $reason; entry = $entry }
+  }
   if ([string]$entry.cacheKey -ne [string]$Fingerprint.cacheKey) {
     $old = $entry.fingerprint
     $new = $Fingerprint.fingerprint
@@ -97,7 +100,7 @@ function Get-FinalizationCacheDecision {
       else { 'input_changed' }
     return [ordered]@{ reusable = $false; reason = $reason; entry = $entry }
   }
-  foreach ($output in @($entry.outputs)) {
+  foreach ($output in @($entry.outputs | Where-Object { $null -ne $_ })) {
     $relative = [string]$output.path
     if ([string]::IsNullOrWhiteSpace($relative) -or $relative.StartsWith('<extern>/')) { return [ordered]@{ reusable = $false; reason = 'output_missing'; entry = $entry } }
     $path = Join-Path $Root ($relative -replace '/', [IO.Path]::DirectorySeparatorChar)
@@ -116,7 +119,8 @@ function Save-FinalizationStageResult {
     [Parameter(Mandatory)][object]$Fingerprint,
     [string[]]$OutputFiles = @(),
     [Parameter(Mandatory)][int]$DurationMs,
-    [ValidateSet('passed', 'failed')][string]$Status = 'passed'
+    [ValidateSet('running', 'passed', 'failed')][string]$Status = 'passed',
+    [object]$Failure = $null
   )
   $stageIndex = [array]::IndexOf($script:StageOrder, $Stage)
   Invoke-AtomicFileUpdate -Path $Path -Depth 20 -Update {
@@ -129,14 +133,25 @@ function Save-FinalizationStageResult {
         $index -ge 0 -and $index -lt $stageIndex
       })
     }
+    $previousEntries = @()
+    if ($null -ne $current -and $null -ne $current.stages) {
+      $previousEntries = @($current.stages | Where-Object { [string]$_.id -eq $Stage } | Select-Object -First 1)
+    }
+    $startedAtUtc = if ($Status -ne 'running' -and $previousEntries.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace([string]$previousEntries[0].startedAtUtc)) {
+      [string]$previousEntries[0].startedAtUtc
+    } else {
+      [DateTime]::UtcNow.ToString('o')
+    }
     $entry = [ordered]@{
       id = $Stage
       status = $Status
       cacheKey = [string]$Fingerprint.cacheKey
       fingerprint = $Fingerprint.fingerprint
-      outputs = @($OutputFiles | Sort-Object -Unique | ForEach-Object { Get-CacheFileRecord -Path $_ -Root $Root } | Where-Object { $null -ne $_ })
+      outputs = if ($Status -eq 'passed') { @($OutputFiles | Sort-Object -Unique | ForEach-Object { Get-CacheFileRecord -Path $_ -Root $Root } | Where-Object { $null -ne $_ }) } else { @() }
       durationMs = $DurationMs
-      completedAtUtc = [DateTime]::UtcNow.ToString('o')
+      startedAtUtc = $startedAtUtc
+      completedAtUtc = if ($Status -eq 'running') { $null } else { [DateTime]::UtcNow.ToString('o') }
+      failure = if ($Status -eq 'failed' -and $null -ne $Failure) { $Failure } else { $null }
     }
     return [ordered]@{ schemaVersion = $script:CacheSchemaVersion; kind = 'finalisierungs_pruefstand'; stages = @($kept + $entry) }
   }
