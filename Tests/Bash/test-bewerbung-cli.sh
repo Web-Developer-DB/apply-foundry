@@ -89,7 +89,8 @@ printf '%s\n' \
   '#requires -PSEdition Core' \
   '[CmdletBinding()]' \
   'param([string]$Arbeitsordner)' \
-  'if ($Arbeitsordner -eq "validierungsfehler") { exit 2 }' \
+  'if (-not [IO.Path]::IsPathFullyQualified($Arbeitsordner)) { exit 9 }' \
+  'if ([IO.Path]::GetFileName($Arbeitsordner) -eq "validierungsfehler") { exit 2 }' \
   'exit 7' \
   > "$dispatch_root/Tools/Ermittle-Bewerbungsstatus.ps1"
 
