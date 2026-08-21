@@ -23,6 +23,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/TextContract.psm1") -Force -DisableNameChecking
 
 $errors = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
@@ -414,7 +416,8 @@ foreach ($html in $htmlFiles) {
     $pdfText = Get-ExtractedPdfText -Path $pdf[0].FullName
     $sourceLength = Get-ComparableLength -Text $sourceText
     $pdfLength = Get-ComparableLength -Text $pdfText
-    $coverage = if ($sourceLength -gt 0) { [math]::Round(([math]::Min($sourceLength, $pdfLength) / $sourceLength) * 100.0, 1) } else { 0.0 }
+    $similarity = Get-ContractTextSimilarity -SourceText $sourceText -ExtractedText $pdfText
+    $coverage = [double]$similarity.tokenCoveragePercent
     $requiredValues = New-Object System.Collections.Generic.List[string]
     $requiredValues.Add($fullName) | Out-Null
     if ($html.Name -notlike "Lebenslauf -*" -or $cvKind -ne "universal_unveraendert") {
@@ -429,6 +432,11 @@ foreach ($html in $htmlFiles) {
     $missing = @($requiredValues | Where-Object { -not (Normalize-Text -Text $pdfText).Contains((Normalize-Text -Text $_)) })
     if ($coverage -lt $MinTextabdeckungProzent) {
       Add-ErrorMessage "$($pdf[0].Name): Textabdeckung ist zu gering ($coverage % statt mindestens $MinTextabdeckungProzent %)."
+    }
+    if (-not [bool]$similarity.passed) {
+      Add-ErrorMessage "$($pdf[0].Name): Token-/N-Gramm-Abgleich unterschreitet die ausgewogenen Schwellen (Token $($similarity.tokenCoveragePercent) %, Bigramm $($similarity.orderedBigramCoveragePercent) %, Trigramm $($similarity.orderedTrigramCoveragePercent) %)."
+    } elseif ($similarity.tokenCoveragePercent -lt 99.5 -or $similarity.orderedBigramCoveragePercent -lt 98.0 -or $similarity.orderedTrigramCoveragePercent -lt 95.0) {
+      Add-WarningMessage "$($pdf[0].Name): geringe, tolerierte Extraktionsabweichung im Token-/N-Gramm-Abgleich."
     }
     if ($missing.Count -gt 0) {
       Add-ErrorMessage "$($pdf[0].Name): Pflichttext fehlt in der PDF-Textschicht: $($missing -join ', ')"
@@ -456,7 +464,16 @@ foreach ($html in $htmlFiles) {
       pdfSha256 = (Get-FileHash -LiteralPath $pdf[0].FullName -Algorithm SHA256).Hash
       sourceComparableCharacters = $sourceLength
       extractedComparableCharacters = $pdfLength
+      sourceTokenCount = $similarity.sourceTokenCount
+      extractedTokenCount = $similarity.extractedTokenCount
       textCoveragePercent = $coverage
+      tokenCoveragePercent = $similarity.tokenCoveragePercent
+      orderedBigramCoveragePercent = $similarity.orderedBigramCoveragePercent
+      orderedTrigramCoveragePercent = $similarity.orderedTrigramCoveragePercent
+      tokenThresholds = $similarity.thresholds
+      shortDocument = ($similarity.sourceTokenCount -lt 25)
+      tokenComparisonPassed = $similarity.passed
+      missingTokens = @($similarity.missingTokens)
       missingRequiredText = $missing
       readingOrderPlausible = $readingOrderPlausible
       extractionEngine = "interner_tounicode_parser"
@@ -517,7 +534,7 @@ if (-not [string]::IsNullOrWhiteSpace($BerichtPath)) {
     exit 1
   }
   $report = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     runtime = $runtimeFingerprint
     folder = $resolvedFolder
@@ -533,7 +550,7 @@ if (-not [string]::IsNullOrWhiteSpace($BerichtPath)) {
     Write-Host "[FEHLER] ATS-Berichtspfad wurde vor dem Schreiben unsicher: $($_.Exception.Message)" -ForegroundColor Red
     exit 2
   }
-  Set-Content -LiteralPath $fullReportPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 8)
+  Write-AtomicJson -Path $fullReportPath -Value $report -Depth 10
 }
 
 Write-Host ""

@@ -1,0 +1,42 @@
+name: Prompt regression canary
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prompt-regression-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  canary:
+    name: Prompt canary (${{ matrix.agent }})
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [codex-openai, opencode-openai]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exakte Prompt-CLI-Versionen installieren
+        run: npm install --global @openai/codex@0.148.0-alpha.15 opencode-ai@1.18.18
+      - name: Fehlendes Secret fail-closed melden
+        if: env.OPENAI_API_KEY == ''
+        run: echo "OPENAI_API_KEY fehlt; Prompt-Canary wird absichtlich abgelehnt." && exit 1
+      - name: Codex/OpenCode Canary
+        shell: pwsh
+        run: ./Tests/Invoke-PromptRegression.ps1 -Matrix pr -AgentId '${{ matrix.agent }}' -BerichtPath 'Tests/Artifacts/prompt-${{ matrix.agent }}.json'
+      - name: Bereinigten Promptbericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prompt-canary-${{ matrix.agent }}
+          path: Tests/Artifacts
+          if-no-files-found: ignore
+          retention-days: 7

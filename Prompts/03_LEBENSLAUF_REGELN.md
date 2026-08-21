@@ -33,7 +33,7 @@ Der Standard ist ein ruhiger, tabellarisch wirkender deutscher Lebenslauf. Moder
 Empfohlene Grundstruktur:
 
 1. Kompakter Kopfbereich mit Name, Zielrolle, Kontakt und passender Stellenart
-2. Kurzprofil mit maximal 3 bis 4 präzisen Zeilen oder 2 bis 3 starken Kurzpunkten
+2. Kompaktes Kurzprofil, typischerweise 3 bis 4 präzise Zeilen oder 2 bis 3 starke Kurzpunkte; bei belegbedingtem Mehrwert darf es moderat abweichen
 3. Rollenrelevante Kompetenzen als klar gruppierte Zeilen
 4. Beruflicher Werdegang / Berufserfahrung, bevorzugt tabellarisch und chronologisch rückwärts
 5. Praktische Zusatzpraxis, Projekte oder Home-Lab nur mit klarer Rollenrelevanz
@@ -49,11 +49,11 @@ Pflichtlogik für formale Stationen:
 - Wenn entsprechende Daten in `Private/Daten/` vorhanden sind, müssen sie im Lebenslauf berücksichtigt werden.
 - Formale Stationen mit Zeitraum sind im deutschen Lebenslauf grundsätzlich nicht frei kürzbar. Wenn sie in Datei `02` vorhanden sind, müssen Zeitraum, Stationstyp, Name/Institution/Arbeitgeber und Rollen- oder Bildungsbezeichnung sichtbar bleiben.
 - Diese Nicht-Kürzungsregel gilt uneingeschränkt für berufliche Stationen, Ausbildung, Umschulung, Studium, Weiterbildung und Zertifikate mit Zeitraum. Für Schulbildung gilt die unten definierte, ausdrücklich zu dokumentierende Kompaktoption.
-- Bei Platzmangel dürfen zuerst Beschreibungen, Bulletpoints, Projektlisten, Tool-Details, Zusatzpraxis, Kurzprofil und Kompetenzlisten gekürzt werden. Formale Zeiträume und Stationsnamen dürfen nicht entfernt werden, nur um eine Seite zu halten.
+- Bei Platzmangel werden zuerst Wiederholungen, fachfremde Details und beleglose Allgemeinplätze gekürzt. Rollenrelevante Anwendungskontexte und eigene Beiträge bleiben erhalten; formale Zeiträume und Stationsnamen dürfen nicht entfernt werden, nur um eine Seite zu halten.
 - Wenn die vollständige formale Chronologie nicht sauber und lesbar auf eine DIN-A4-Seite passt, muss bewusst ein zweiseitiger Lebenslauf mit zwei expliziten A4-Seitencontainern erstellt werden.
 - Wenn wichtige formale Daten fehlen, werden sie nicht erfunden, sondern in `Offene_Fragen.md` dokumentiert.
 - Nicht-klassische Erfahrung, private Praxis, Quereinstieg oder Projektarbeit wird ehrlich als solche eingeordnet.
-- Projekte und Zusatzpraxis stehen hinter den formalen Stationen oder werden kompakt in passende Abschnitte integriert.
+- Projekte und Zusatzpraxis ersetzen keine formalen Stationen. Wenn sie zu den stärksten Belegen der Zielrolle gehören, dürfen sie auf Seite 1 früh platziert oder in passende Stationen integriert werden; die formale Chronologie bleibt vollständig und klar auffindbar.
 - Zeiträume müssen für Recruiter nachvollziehbar sein. Auffällige Lücken oder aktuelle Phasen werden nicht erfunden, sondern mit vorhandenen Daten sauber eingeordnet oder in `Offene_Fragen.md` dokumentiert.
 - Bei Quereinstieg darf der Lebenslauf nicht den Eindruck erwecken, dass private IT-Praxis, Weiterbildung oder Grundlagen berufliche Administratorerfahrung seien. Abschnittstitel und Formulierungen müssen klar unterscheiden zwischen `übertragbarer technischer Erfahrung`, `IT-Grundlagen`, `privater Praxis / Home-Lab` und `Einarbeitungsfeldern`.
 - Wenn eine Kompetenz aus mehreren Belegarten stammt, muss die vorsichtigere Belegart die Formulierung steuern. Beispiel: `Linux` aus Home-Lab wird als `private Linux-Praxis` oder `Linux-Grundlagen aus Home-Lab` formuliert, nicht als berufliche Linux-Administration.
@@ -136,12 +136,24 @@ Bei `lebenslauf = universal_unveraendert` steuert dieses Profil ausschließlich 
 - Arbeitsmodell, Region, Pendeldistanz oder Eintrittstermin nur aufnehmen, wenn sie für die Bewerbung nützlich sind oder die Anzeige dazu klare Anforderungen enthält.
 - Formuliere kurz, konkret und ohne übertriebene Selbstdarstellung.
 - Priorisiere Muss-Anforderungen der Stelle.
+- Verlangte und belegte Technologien erscheinen früh, aber immer zusammen mit einem nachweisbaren Anwendungskontext. Eine bloße Nennung in einer Tool-Liste genügt nicht als Profilbeleg.
+- Nimm angrenzende Kenntnisse auf, wenn ihr Nutzen für Aufgaben, Prozesse oder Einarbeitung der Zielrolle konkret erkennbar ist.
 - Nenne private, ehrenamtliche, schulische, akademische oder inoffizielle Praxis korrekt als solche, nicht als berufliche Verantwortung.
 - Trenne vorhandene Erfahrung, Grundlagen und Entwicklungsfelder sprachlich eindeutig.
 - Bei Quereinstiegsprofilen müssen Zielrolle und Einstiegssituation früh sichtbar sein, z. B. durch Formulierungen wie `Bewerbung als ... (Quereinstieg)`, `IT-Grundlagen aus Weiterbildung und Home-Lab` oder `gezielte Einarbeitung in ...`.
 - Verwende `NICHT BEHAUPTEN`-Abschnitte aus Datei `02` als harte Sperrliste. Diese Inhalte dürfen höchstens als Einarbeitungsziel erwähnt werden, wenn Datei `02` oder die Stellenanzeige dies erlaubt.
 - Erfinde keine Arbeitgeber, Zeiträume, Zertifikate, Tools, Systeme, Branchen oder Verantwortlichkeiten.
 - Lasse irrelevante Inhalte weg, auch wenn sie grundsätzlich vorhanden sind.
+
+## Aussagekräftige Stationen und Projekte
+
+Jede für die Zielrolle priorisierte Station oder jedes priorisierte Projekt beantwortet so konkret wie die Datenlage erlaubt:
+
+- Welcher Zweck, welche Aufgabe oder welches Problem lag vor?
+- Welche relevanten Technologien, Methoden oder Fachkenntnisse wurden tatsächlich eingesetzt?
+- Was war der eigene Beitrag, die ausgeführte Tätigkeit oder das nachvollziehbare Ergebnis?
+
+Kurze Formulierungen sind erwünscht, bloße Tool-Aufzählungen, generische Tätigkeitswörter und austauschbare Eigenschaftssammlungen jedoch nicht. Der Lebenslauf soll Belege scanbar machen, nicht nur Keywords wiederholen. Die Detailtiefe richtet sich nach Recruiter-Relevanz und vorhandener Substanz; es gibt keine pauschale Obergrenze für Projekte, Kompetenzgruppen oder relevante Inhaltsblöcke.
 
 ## Zusatzkenntnisse
 
@@ -223,29 +235,31 @@ Grundregel:
 3. Wenn es weiterhin nicht sauber passt, bewusst auf zwei A4-Seiten wechseln.
 4. Niemals relevante Inhalte abschneiden, verstecken oder unlesbar klein quetschen.
 
-Richtwerte für eine A4-Seite:
+Relevanzbasierte Richtwerte für eine A4-Seite:
 
-- Kurzprofil: maximal 3 bis 4 Zeilen
-- Kompetenz- oder Profilbasis: maximal 3 Gruppen; bei Quereinstieg keine Überschrift wählen, die berufliche Spezialistenpraxis suggeriert
+- Kurzprofil: kompakt und ohne Wiederholung der folgenden Belege
+- Kompetenz- oder Profilbasis: so viele klar gebündelte Gruppen wie für die priorisierten Anforderungen nötig; bei Quereinstieg keine Überschrift wählen, die berufliche Spezialistenpraxis suggeriert
 - Skill-/Kompetenz-Tags: nur ausnahmsweise und sparsam; bevorzugt gruppierte Kompetenzzeilen
-- Arbeitsweise: maximal 3 bis 4 Bulletpoints oder in andere Abschnitte integrieren
+- Arbeitsweise: bevorzugt durch konkrete Stationen und Beiträge belegen oder kompakt integrieren
 - Berufserfahrung: kompakt, aber mit allen vorhandenen formalen Stationen, Zeiträumen, Arbeitgebern und Rollenbezeichnungen
 - Ausbildung, Studium und berufliche Bildung: kurz, aber vollständig als formale Chronologie mit Zeitraum und Stationsbezeichnung; Schulbildung entsprechend dem festgelegten Modus
 - Weiterbildung/Zertifikate: rollenrelevante Beschreibungen priorisieren; vorhandene formale Weiterbildungsstationen mit Zeitraum und Bezeichnung nicht aus Platzgründen entfernen
-- Praxis/Projekte/Zusatzkenntnisse: nur 1 bis 2 wirklich relevante Blöcke
+- Praxis/Projekte/Zusatzkenntnisse: alle für kritische oder hoch gewichtete Anforderungen nötigen Belege sowie weitere klar nützliche Highlights; ähnliche schwächere Inhalte zusammenfassen
 
 Kürzungsreihenfolge bei Platzproblemen:
 
 1. fachfremde Zusatzkenntnisse entfernen
-2. nicht rollennahe Projekte entfernen oder auf eine Zeile reduzieren
+2. nicht rollennahe Projekte entfernen oder auf eine Zeile reduzieren; priorisierte Belege nicht allein wegen einer Einseitenpräferenz streichen
 3. lange Skill-Listen auf wichtigste Anforderungen reduzieren
 4. Arbeitsweise kürzen oder in Profil/Berufserfahrung integrieren
 5. Wiederholungen zwischen Kurzprofil, Skills und Erfahrung entfernen
-6. Bulletpoints straffen
+6. Bulletpoints straffen, ohne Aufgabe, relevante Technologie oder eigenen Beitrag eines priorisierten Belegs zu verlieren
 7. Kurzprofil verdichten
 8. Beschreibungen formaler Stationen weiter verdichten, ohne Zeitraum, Arbeitgeber/Institution, Stationstyp oder Rollen-/Bildungsbezeichnung zu entfernen
 9. Layout minimal verdichten, solange Lesbarkeit und Druckqualität professionell bleiben
 10. Wenn die vollständige formale Chronologie weiterhin nicht passt, bewusst auf zwei A4-Seiten wechseln
+
+Wirkt eine A4-Seite ungewöhnlich leer, prüfe vor jeder typografischen oder gestalterischen Vergrößerung die `recruiterStrategie`: Fehlen relevante Profilhighlights, Anwendungskontexte, eigene Beiträge, angrenzende nützliche Kenntnisse oder eine zulässige Transferbrücke? Ergänze vorhandene belegte Substanz zuerst. Ist das Profil nachweislich schmal, akzeptiere professionelle freie Fläche und dokumentiere die begründeten Auslassungen, statt Inhalte zu erfinden oder sprachlich aufzublähen.
 
 Nicht gekürzt oder verdrängt werden dürfen:
 

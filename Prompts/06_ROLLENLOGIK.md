@@ -19,10 +19,12 @@ Der Agent ist neutral. Er darf keine Branche, keine konkrete Fachrolle, keine Ve
 9. Private Profildaten auf echte Belege prüfen.
 10. Bewerbungslogistik aus dem Snapshot in `Bewerbungsauftrag.json` prüfen und mit der Anzeige abgleichen.
 11. Belegarten aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` auswerten, falls vorhanden.
-12. Profilstrategie festlegen.
-13. Beweislogik festlegen: Welche Stationen, Weiterbildungen, Projekte oder Praxisbelege tragen die Zielrolle wirklich?
-14. Risiken, Lücken oder fehlende formale Anforderungen erkennen.
-15. Irrelevante Inhalte bewusst reduzieren.
+12. Kritische und hoch gewichtete Stellenanforderungen nach Recruiter-Relevanz ordnen.
+13. Die stärksten belegten Stationen, Weiterbildungen, Projekte und Kenntnisse zuordnen.
+14. Für fehlende Direktkenntnisse nur bei belastbarer verwandter Grundlage eine wahre Transferbrücke festlegen.
+15. Erst daraus Profilstrategie und Inhaltsentwurf ableiten; Layoutentscheidungen folgen zuletzt.
+16. Risiken, Lücken oder fehlende formale Anforderungen erkennen.
+17. Irrelevante Inhalte bewusst reduzieren und jede wesentliche Auslassung konkret begründen.
 
 ## Bewerbungsprofil
 
@@ -62,6 +64,8 @@ Für jede Information aus den privaten Daten gilt:
 
 Zusatzkenntnisse dürfen nicht automatisch übernommen werden. Sie brauchen einen Nutzen für die konkrete Zielrolle.
 
+Verlangte und belegte Technologien werden früh priorisiert und mit ihrem tatsächlichen Anwendungskontext verbunden. Angrenzende Kenntnisse werden zusätzlich berücksichtigt, wenn sie Aufgabenverständnis, Prozessnähe, Transferfähigkeit oder realistische Einarbeitung erkennbar stärken. Keyword-Nähe allein ist kein Nutzen.
+
 Die gewichtete Anforderungsmatrix macht aus dieser Priorisierung eine prüfbare Entscheidungshilfe. Ein hoher Score erlaubt keine Übertreibung; ein niedriger Score löscht keine echten Transferstärken. Die Einstufung `stark`, `vertretbar_mit_risiken` oder `stretch` wird in `Analyse.md` festgehalten. Bei einem ausdrücklichen Bewerbungsauftrag bleibt die Entscheidung `bewerben`; auch `stretch` ist nur eine Risikoeinordnung und kein Modellveto. `nicht_bewerben` wird ausschließlich nach einem ausdrücklichen Nutzerabbruch gesetzt.
 
 ## Belegarten-Gewichtung
@@ -78,6 +82,8 @@ Wenn Datei `02` Belegarten enthält, gilt:
 - `NICHT BEHAUPTEN`: nicht als Erfahrung, Verantwortung, sichere Kompetenz oder Rollenpraxis verwenden.
 
 Bei Konflikten gilt die vorsichtigere Belegart. Beispiel: Eine Technologie, die sowohl in einer Wunschrolle als auch unter `EINARBEITUNGSZIEL` steht, darf nicht als vorhandene Erfahrung erscheinen.
+
+Eine Transferbrücke besteht immer aus drei prüfbaren Teilen: der verlangten, nicht direkt belegten Zieltechnologie; mindestens einer belegten verwandten Grundlage aus einem Profilhighlight; und einer realistischen Formulierung als `ÜBERTRAGBAR`, `GRUNDLAGEN / VERSTÄNDNIS` oder `EINARBEITUNGSZIEL`. Ohne belastbare Grundlage wird keine Brücke konstruiert.
 
 ## Bewerbungslogistik und Gehalt
 
@@ -142,6 +148,6 @@ Diese Beispiele sind keine festen Branchenvorgaben. Die privaten Daten und die S
 
 ## Dokumentation
 
-Die gewählte Strategie wird in `Analyse.md` und am Ende von `Qualitaetscheck.md` kurz festgehalten.
+Die gewählte Strategie wird in `Analyse.md` und am Ende von `Qualitaetscheck.md` kurz festgehalten. Bei einem Anschreiben wird die maschinenlesbare `anschreibenStrategie` mit Anforderungs-, Evidenz- und Stellenfundstellen-IDs ergänzt; Arbeitgeberbezug und Nutzenargumente müssen aus den belegten Passungen konkret abgeleitet werden.
 
 Unsichere Punkte werden in `Offene_Fragen.md` dokumentiert.

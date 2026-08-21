@@ -23,6 +23,8 @@ param(
 
   [switch]$Ersetzen,
 
+  [switch]$NeuPruefen,
+
   [ValidateRange(1, 600)]
   [int]$TimeoutSeconds = 60
 )
@@ -35,6 +37,15 @@ Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Passfoto.psm1") 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/PngTools.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/WorkflowCheckpoint.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/ApprovalContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/DocumentScope.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/JsonContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/MatrixContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/EvidenceIndexContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/FinalizationCache.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/JsonContract.psm1") -Force -Global
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force -Global
 $script:ChildToolTimeoutSeconds = [math]::Min(3600, [math]::Max(120, $TimeoutSeconds * 8))
 
 trap {
@@ -212,50 +223,12 @@ function Test-JsonPropertyExists {
 function Test-DocumentScopeMatches {
   param([object]$Actual, [object]$Expected)
   if ($null -eq $Actual -or $null -eq $Expected) { return $false }
-  return (
-    [string](Get-JsonProperty -Object $Actual -Name "lebenslauf") -eq [string]$Expected.lebenslauf -and
-    (Get-JsonProperty -Object $Actual -Name "anschreiben") -is [bool] -and
-    (Get-JsonProperty -Object $Actual -Name "emailNachricht") -is [bool] -and
-    [bool](Get-JsonProperty -Object $Actual -Name "anschreiben") -eq [bool]$Expected.anschreiben -and
-    [bool](Get-JsonProperty -Object $Actual -Name "emailNachricht") -eq [bool]$Expected.emailNachricht
-  )
+  return Test-ContractDocumentScope -Actual $Actual -Expected $Expected
 }
 
 function Get-DocumentScope {
   param([object]$Auftrag)
-
-  $scope = [ordered]@{
-    lebenslauf = "individuell"
-    anschreiben = $true
-    emailNachricht = $true
-  }
-  $schemaValue = Get-JsonProperty -Object $Auftrag -Name "schemaVersion"
-  if ($schemaValue -isnot [int] -and $schemaValue -isnot [long]) {
-    throw "Bewerbungsauftrag enthält keine ganzzahlige schemaVersion."
-  }
-  $schema = [int]$schemaValue
-  $configured = Get-JsonProperty -Object $Auftrag -Name "dokumentumfang"
-  if ($schema -ge 4 -and $schema -le 5) {
-    if ($null -eq $configured) { throw "Bewerbungsauftrag mit schemaVersion $schema enthält keinen dokumentumfang." }
-    $cvKind = [string](Get-JsonProperty -Object $configured -Name "lebenslauf")
-    $letterValue = Get-JsonProperty -Object $configured -Name "anschreiben"
-    $emailValue = Get-JsonProperty -Object $configured -Name "emailNachricht"
-    if ($cvKind -notin @("individuell", "universal_unveraendert", "nicht_enthalten") -or
-        $letterValue -isnot [bool] -or $emailValue -isnot [bool]) {
-      throw "Bewerbungsauftrag enthält einen ungültigen oder nicht typisierten dokumentumfang."
-    }
-    if ($cvKind -eq "nicht_enthalten" -and -not [bool]$letterValue -and -not [bool]$emailValue) {
-      throw "Bewerbungsauftrag wählt kein Dokument aus."
-    }
-    $scope.lebenslauf = $cvKind
-    $scope.anschreiben = [bool]$letterValue
-    $scope.emailNachricht = [bool]$emailValue
-  } elseif ($schema -lt 1 -or $schema -gt 5) {
-    throw "Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 5."
-  } elseif ([string](Get-JsonProperty -Object $Auftrag -Name "dokumentmodus") -eq "anschreiben_mit_universalem_lebenslauf") {
-    $scope.lebenslauf = "universal_unveraendert"
-  }
-  return $scope
+  return Get-ContractDocumentScope -Auftrag $Auftrag
 }
 
 function Write-NotRequiredReport {
@@ -277,15 +250,17 @@ function Write-NotRequiredReport {
     reason = "Der gewählte Dokumentumfang enthält kein HTML-/PDF-Dokument."
     results = @()
   }
-  Set-Content -LiteralPath $Path -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 5)
+  Write-AtomicJson -Path $Path -Value $report -Depth 5
 }
 
 function Invoke-ChildTool {
   param([string]$ScriptPath, [string[]]$Arguments, [switch]$ThrowOnFailure)
 
   if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
-    if ($ThrowOnFailure) { throw "Werkzeug fehlt: $ScriptPath" }
-    Stop-Finalization -Message "Werkzeug fehlt: $ScriptPath"
+    $missing = [System.IO.FileNotFoundException]::new("Werkzeug fehlt: $([System.IO.Path]::GetFileName($ScriptPath))")
+    $missing.Data['tool'] = [System.IO.Path]::GetFileName($ScriptPath)
+    $missing.Data['errorCode'] = 'tool_missing'
+    throw $missing
   }
   $powerShellExe = (Get-Process -Id $PID).Path
   $nativeArguments = @("-NoLogo", "-NoProfile", "-NonInteractive", "-File", $ScriptPath) + @($Arguments)
@@ -307,8 +282,72 @@ function Invoke-ChildTool {
     $null
   }
   if ($failure) {
-    if ($ThrowOnFailure) { throw $failure }
-    Stop-Finalization -Message $failure
+    $exception = [System.InvalidOperationException]::new($failure)
+    $exception.Data['tool'] = [System.IO.Path]::GetFileName($ScriptPath)
+    $exception.Data['exitCode'] = if ($null -eq $result.ExitCode) { $null } else { [int]$result.ExitCode }
+    $exception.Data['errorCode'] = if ($result.TimedOut) { 'timeout' } elseif ($result.StdoutTruncated -or $result.StderrTruncated) { 'output_truncated' } else { 'tool_failed' }
+    throw $exception
+  }
+}
+
+function New-FinalizationFailureMetadata {
+  param(
+    [Parameter(Mandatory)][string]$Stage,
+    [Parameter(Mandatory)][System.Management.Automation.ErrorRecord]$ErrorRecord
+  )
+
+  $message = [string]$ErrorRecord.Exception.Message
+  # Reports are private, but they still avoid embedding complete machine paths or
+  # child-tool output.  The detailed console output remains available locally.
+  $message = [regex]::Replace($message, '(?i)(?:[a-z]:)?[\\/][^\r\n]+', '<Pfad>')
+  if ($message.Length -gt 500) { $message = $message.Substring(0, 500) }
+  return [ordered]@{
+    stage = $Stage
+    tool = if ($null -ne $ErrorRecord.Exception.Data['tool']) { [string]$ErrorRecord.Exception.Data['tool'] } else { $null }
+    exitCode = if ($null -ne $ErrorRecord.Exception.Data['exitCode']) { [int]$ErrorRecord.Exception.Data['exitCode'] } else { $null }
+    errorCode = if ($null -ne $ErrorRecord.Exception.Data['errorCode']) { [string]$ErrorRecord.Exception.Data['errorCode'] } else { 'unexpected_error' }
+    message = $message
+  }
+}
+
+function Invoke-FinalizationStage {
+  param(
+    [Parameter(Mandatory)][ValidateSet('dialog', 'stammdaten', 'statisch', 'inhalt', 'layout', 'pdf', 'ats')][string]$Stage,
+    [Parameter(Mandatory)][string[]]$InputFiles,
+    [string[]]$OutputFiles = @(),
+    [hashtable]$Parameters = @{},
+    [object]$Runtime = $null,
+    [Parameter(Mandatory)][scriptblock]$Action
+  )
+  # Each downstream cache key binds its concrete report and artifact inputs.  The
+  # preceding stage must still pass in this invocation, but unrelated report-only
+  # changes (for example the technical quality note) do not force a new browser run.
+  $dependencyKeys = @()
+  $fingerprint = Get-FinalizationStageFingerprint -Stage $Stage -Root $resolvedWork -ImplementationFiles $script:CacheImplementationFiles -InputFiles $InputFiles -Parameters $Parameters -Runtime $Runtime -DependencyKeys $dependencyKeys
+  $decision = Get-FinalizationCacheDecision -State $script:CheckState -Stage $Stage -Fingerprint $fingerprint -Root $resolvedWork -Force:$NeuPruefen
+  if ([bool]$decision.reusable) {
+    $run = [ordered]@{ id = $Stage; status = 'reused'; cacheKey = $fingerprint.cacheKey; cacheReason = $decision.reason; durationMs = 0 }
+    $script:StageRuns.Add($run) | Out-Null
+    return $run
+  }
+  $started = [DateTime]::UtcNow
+  Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage $Stage -Fingerprint $fingerprint -OutputFiles @() -DurationMs 0 -Status running
+  $script:CheckState = Read-FinalizationCheckState -Path $script:CheckStatePath
+  try {
+    & $Action
+    $durationMs = [int](([DateTime]::UtcNow - $started).TotalMilliseconds)
+    Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage $Stage -Fingerprint $fingerprint -OutputFiles $OutputFiles -DurationMs $durationMs
+    $script:CheckState = Read-FinalizationCheckState -Path $script:CheckStatePath
+    $run = [ordered]@{ id = $Stage; status = 'executed'; cacheKey = $fingerprint.cacheKey; cacheReason = $decision.reason; durationMs = $durationMs }
+    $script:StageRuns.Add($run) | Out-Null
+    return $run
+  } catch {
+    $durationMs = [int](([DateTime]::UtcNow - $started).TotalMilliseconds)
+    $failure = New-FinalizationFailureMetadata -Stage $Stage -ErrorRecord $_
+    Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage $Stage -Fingerprint $fingerprint -OutputFiles @() -DurationMs $durationMs -Status failed -Failure $failure
+    $script:CheckState = Read-FinalizationCheckState -Path $script:CheckStatePath
+    $script:StageRuns.Add([ordered]@{ id = $Stage; status = 'failed'; cacheKey = $fingerprint.cacheKey; cacheReason = $decision.reason; durationMs = $durationMs; failure = $failure }) | Out-Null
+    throw "Finalisierungsschritt '$Stage' fehlgeschlagen: $($failure.message)"
   }
 }
 
@@ -418,7 +457,7 @@ $reviewLine
     $updated = $text.TrimEnd() + "`r`n`r`n" + $section.TrimEnd() + "`r`n"
   }
   $QualityPath = Resolve-WorkflowContractPath -Candidate $QualityPath -Root $WorkflowRoot -MustExist -ForWrite -PathType Leaf
-  Set-Content -LiteralPath $QualityPath -Encoding UTF8 -Value $updated
+  Write-AtomicText -Path $QualityPath -Content $updated
 }
 
 function Get-ArtifactRecord {
@@ -515,7 +554,7 @@ function New-PublicationManifest {
     }
   }
   $manifestPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $Root -ChildPath "Manifest.json") -Root $SecurityRoot -ForWrite -PathType Leaf
-  Set-Content -LiteralPath $manifestPath -Encoding UTF8 -Value ($manifest | ConvertTo-Json -Depth 8)
+  Write-AtomicJson -Path $manifestPath -Value $manifest -Depth 8
   return $manifestPath
 }
 
@@ -707,12 +746,16 @@ function Test-TechnicalReportContracts {
     $false
   }
   $layoutResults = @((Get-JsonProperty -Object $layout -Name "results"))
-  if (-not (Test-IntegerValue -Value $layoutSchema -Minimum 1) -or [int]$layoutSchema -ne 2 -or
+  $layoutPrintPreflight = Get-JsonProperty -Object $layout -Name "printPreflight"
+  $layoutPreflightDocuments = @((Get-JsonProperty -Object $layoutPrintPreflight -Name "documents"))
+  if (-not (Test-IntegerValue -Value $layoutSchema -Minimum 1) -or [int]$layoutSchema -ne 3 -or
       -not (Test-IntegerValue -Value $layoutScreenshotCount -Minimum 1) -or [int]$layoutScreenshotCount -ne $ScreenshotRecords.Count -or
       -not (Test-IntegerValue -Value $layoutWidth -Minimum 320) -or
       -not (Test-IntegerValue -Value $layoutHeight -Minimum 320) -or
       -not $layoutRatioValid -or
       $layoutResults.Count -ne $ScreenshotRecords.Count -or
+      [string](Get-JsonProperty -Object $layoutPrintPreflight -Name "mode") -cne "vollstaendiges_original_html" -or
+      $layoutPreflightDocuments.Count -ne $ExpectedHtmlCount -or
       [string]::IsNullOrWhiteSpace([string](Get-JsonProperty -Object $layout -Name "browser")) -or
       -not (Test-PathEqual -Left ([string](Get-JsonProperty -Object $layout -Name "sourceFolder")) -Right $CandidateFolder)) {
     Stop-Finalization -Message "Layoutbericht ist unvollständig oder gehört nicht zum vorbereiteten Kandidatenbestand."
@@ -754,6 +797,26 @@ function Test-TechnicalReportContracts {
   if ($layoutHtmlNames.Count -ne $HtmlRecords.Count) {
     Stop-Finalization -Message "Layoutbericht deckt nicht jedes ausgewählte HTML-Dokument ab."
   }
+  foreach ($htmlRecord in $HtmlRecords) {
+    $htmlName = [string](Get-JsonProperty -Object $htmlRecord -Name 'name')
+    $preflightMatches = @($layoutPreflightDocuments | Where-Object { [string](Get-JsonProperty -Object $_ -Name 'htmlFile') -ceq $htmlName })
+    if ($preflightMatches.Count -ne 1) {
+      Stop-Finalization -Message "Layoutbericht enthält keinen eindeutigen Druckvorprüfungsnachweis für: $htmlName"
+    }
+    $preflight = $preflightMatches[0]
+    $expectedPages = Get-JsonProperty -Object $preflight -Name 'expectedPageCount'
+    $actualPages = Get-JsonProperty -Object $preflight -Name 'actualPageCount'
+    if ([string](Get-JsonProperty -Object $preflight -Name 'htmlSha256') -ine [string](Get-JsonProperty -Object $htmlRecord -Name 'sha256') -or
+        -not (Test-IntegerValue -Value $expectedPages -Minimum 1) -or
+        -not (Test-IntegerValue -Value $actualPages -Minimum 1) -or
+        [int]$expectedPages -ne [int]$actualPages -or
+        -not (Test-IntegerValue -Value (Get-JsonProperty -Object $preflight -Name 'pdfBytes') -Minimum 1) -or
+        [string]::IsNullOrWhiteSpace([string](Get-JsonProperty -Object $preflight -Name 'mediaBox')) -or
+        (Get-JsonProperty -Object $preflight -Name 'a4') -isnot [bool] -or -not [bool](Get-JsonProperty -Object $preflight -Name 'a4') -or
+        [string](Get-JsonProperty -Object $preflight -Name 'status') -cne 'bestanden') {
+      Stop-Finalization -Message "Druckvorprüfung im Layoutbericht ist unvollständig oder nicht bestanden: $htmlName"
+    }
+  }
 
   $pdfSchema = Get-JsonProperty -Object $pdf -Name "schemaVersion"
   $pdfResults = @((Get-JsonProperty -Object $pdf -Name "results"))
@@ -786,7 +849,7 @@ function Test-TechnicalReportContracts {
 
   $atsSchema = Get-JsonProperty -Object $ats -Name "schemaVersion"
   $atsResults = @((Get-JsonProperty -Object $ats -Name "results"))
-  if (-not (Test-IntegerValue -Value $atsSchema -Minimum 1) -or [int]$atsSchema -ne 1 -or
+  if (-not (Test-IntegerValue -Value $atsSchema -Minimum 1) -or [int]$atsSchema -ne 2 -or
       [string](Get-JsonProperty -Object $ats -Name "status") -notin @("ok", "warnung") -or
       @(Get-JsonProperty -Object $ats -Name "errors").Count -ne 0 -or
       $atsResults.Count -ne $ExpectedHtmlCount -or
@@ -803,12 +866,20 @@ function Test-TechnicalReportContracts {
     $pdfName = [System.IO.Path]::ChangeExtension($htmlName, ".pdf")
     $pdfRecord = Get-SingleArtifactRecord -Records $PdfRecords -Name $pdfName -Context "ATS-Prüfbericht"
     $coverage = Get-JsonProperty -Object $result -Name "textCoveragePercent"
+    $tokenCoverage = Get-JsonProperty -Object $result -Name "tokenCoveragePercent"
+    $bigramCoverage = Get-JsonProperty -Object $result -Name "orderedBigramCoveragePercent"
+    $trigramCoverage = Get-JsonProperty -Object $result -Name "orderedTrigramCoveragePercent"
+    $tokenPassed = Get-JsonProperty -Object $result -Name "tokenComparisonPassed"
     if ([string](Get-JsonProperty -Object $result -Name "htmlSha256") -ine [string](Get-JsonProperty -Object $htmlRecord -Name "sha256") -or
         [string](Get-JsonProperty -Object $result -Name "pdfFile") -cne $pdfName -or
         [string](Get-JsonProperty -Object $result -Name "pdfSha256") -ine [string](Get-JsonProperty -Object $pdfRecord -Name "sha256") -or
         @(Get-JsonProperty -Object $result -Name "missingRequiredText").Count -ne 0 -or
         ($coverage -isnot [int] -and $coverage -isnot [long] -and $coverage -isnot [double] -and $coverage -isnot [decimal]) -or
         [double]$coverage -lt 70 -or
+        ($tokenCoverage -isnot [double] -and $tokenCoverage -isnot [int] -and $tokenCoverage -isnot [long] -and $tokenCoverage -isnot [decimal]) -or
+        ($bigramCoverage -isnot [double] -and $bigramCoverage -isnot [int] -and $bigramCoverage -isnot [long] -and $bigramCoverage -isnot [decimal]) -or
+        ($trigramCoverage -isnot [double] -and $trigramCoverage -isnot [int] -and $trigramCoverage -isnot [long] -and $trigramCoverage -isnot [decimal]) -or
+        $tokenPassed -isnot [bool] -or -not [bool]$tokenPassed -or
         -not (Test-IntegerValue -Value (Get-JsonProperty -Object $result -Name "extractedComparableCharacters") -Minimum 1) -or
         [string](Get-JsonProperty -Object $result -Name "extractionEngine") -cne "interner_tounicode_parser") {
       Stop-Finalization -Message "ATS-Prüfbericht ist nicht vollständig an HTML und PDF gebunden: $pdfName"
@@ -857,6 +928,7 @@ try {
   $tokenReportPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath "Tokenverbrauch.json") -Root $applicationsRootForWork -ForWrite -PathType Leaf
   $stammdatenReportPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath "Stammdaten-Pruefbericht.json") -Root $applicationsRootForWork -ForWrite -PathType Leaf
   $contentReportPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath "Inhalts-Pruefbericht.json") -Root $applicationsRootForWork -ForWrite -PathType Leaf
+  $checkStatePath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath "Pruefstand.json") -Root $applicationsRootForWork -ForWrite -PathType Leaf
   $qualityPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $candidateDir -ChildPath "Qualitaetscheck.md") -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
 } catch {
   Write-Host "[FEHLER] Unsicherer Workflowpfad: $($_.Exception.Message)" -ForegroundColor Red
@@ -874,6 +946,10 @@ if (-not (Test-Path -LiteralPath $candidateDir -PathType Container)) {
 
 $auftrag = Get-Content -LiteralPath $auftragPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $documentScope = Get-DocumentScope -Auftrag $auftrag
+$matrixForFinalization = Get-Content -LiteralPath $matrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$matrixContractInfoForFinalization = Get-MatrixContractInfo -Matrix $matrixForFinalization
+$matrixSchemaForFinalization = [int]$matrixContractInfoForFinalization.schemaVersion
+$evidenceIndexPath = Resolve-WorkflowContractPath -Candidate (Join-Path -Path $resolvedWork -ChildPath 'Evidenzindex.json') -Root $applicationsRootForWork -ForWrite -PathType Leaf
 $expectedCv = [string]$documentScope.lebenslauf -ne "nicht_enthalten"
 $expectedLetter = [bool]$documentScope.anschreiben
 $expectedEmail = [bool]$documentScope.emailNachricht
@@ -919,25 +995,71 @@ $exportTool = Join-Path -Path $PSScriptRoot -ChildPath "Exportiere-PDF.ps1"
 $atsTool = Join-Path -Path $PSScriptRoot -ChildPath "Pruefe-ATS.ps1"
 $tokenReportTool = Join-Path -Path $PSScriptRoot -ChildPath "Aktualisiere-Tokenbericht.ps1"
 $dialogTool = Join-Path -Path $PSScriptRoot -ChildPath "Pruefe-Dialogstatus.ps1"
+$script:CheckStatePath = $checkStatePath
+$script:CheckState = Read-FinalizationCheckState -Path $checkStatePath
+$script:StageRuns = [System.Collections.Generic.List[object]]::new()
+$script:CacheImplementationFiles = @(
+  $PSCommandPath,
+  $dialogTool, $stammdatenTool, $staticTool, $contentTool, $layoutTool, $exportTool, $atsTool,
+  (Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'Common') -Filter '*.psm1' -File | Select-Object -ExpandProperty FullName)
+)
 
 if (-not $Veroeffentlichen) {
   Add-Info "Finalisierung wird vorbereitet: $resolvedWork"
-  Invoke-ChildTool -ScriptPath $dialogTool -Arguments @("-AuftragPath", $auftragPath, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-FuerDokumenterstellung")
+  $baseRuntime = Get-RuntimeFingerprint
+  Invoke-FinalizationStage -Stage dialog -InputFiles @($auftragPath, $StammdatenPath, $ProfilPath) -Parameters @{ fuerDokumenterstellung = 'true' } -Runtime $baseRuntime -Action {
+    Invoke-ChildTool -ScriptPath $dialogTool -Arguments @("-AuftragPath", $auftragPath, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-FuerDokumenterstellung")
+  } | Out-Null
   $stammdatenReportPath = Resolve-WorkflowContractPath -Candidate $stammdatenReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Invoke-ChildTool -ScriptPath $stammdatenTool -Arguments @("-StammdatenPath", $StammdatenPath, "-BewerbungsauftragPath", $auftragPath, "-UngeklaerteLogistikAlsFehler", "-BerichtPath", $stammdatenReportPath)
+  Invoke-FinalizationStage -Stage stammdaten -InputFiles @($auftragPath, $StammdatenPath) -OutputFiles @($stammdatenReportPath) -Parameters @{ ungeklAerteLogistikAlsFehler = 'true' } -Runtime $baseRuntime -Action {
+    Invoke-ChildTool -ScriptPath $stammdatenTool -Arguments @("-StammdatenPath", $StammdatenPath, "-BewerbungsauftragPath", $auftragPath, "-UngeklaerteLogistikAlsFehler", "-BerichtPath", $stammdatenReportPath)
+  } | Out-Null
+  Invoke-FinalizationStage -Stage statisch -InputFiles @($auftragPath, (Get-SafeFileSet -Folder $candidateDir -SecurityRoot $applicationsRootForWork | Select-Object -ExpandProperty FullName)) -Parameters @{} -Runtime $baseRuntime -Action {
+    Invoke-ChildTool -ScriptPath $staticTool -Arguments @("-Ordner", $candidateDir, "-AuftragPath", $auftragPath)
+  } | Out-Null
   $contentReportPath = Resolve-WorkflowContractPath -Candidate $contentReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath, "-BerichtPath", $contentReportPath)
+  $contentInputs = @($auftragPath, $StammdatenPath, $ProfilPath, $matrixPath) + @(Get-SafeFileSet -Folder $candidateDir -SecurityRoot $applicationsRootForWork | Select-Object -ExpandProperty FullName)
+  if (Test-Path -LiteralPath $evidenceIndexPath -PathType Leaf) { $contentInputs += $evidenceIndexPath }
+  Invoke-FinalizationStage -Stage inhalt -InputFiles $contentInputs -OutputFiles @($contentReportPath) -Parameters @{} -Runtime $baseRuntime -Action {
+    Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath, "-EvidenzindexPath", $evidenceIndexPath, "-BerichtPath", $contentReportPath)
+  } | Out-Null
   if ($expectedHtmlCount -gt 0) {
     $browserPathArguments = if ([string]::IsNullOrWhiteSpace($BrowserExecutablePath)) { @() } else { @("-BrowserExecutablePath", $BrowserExecutablePath) }
-    $pdfWorkDir = Resolve-WorkflowContractPath -Candidate $pdfWorkDir -Root $applicationsRootForWork -ForWrite -PathType Container
-    $pdfReportPath = Resolve-WorkflowContractPath -Candidate $pdfReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-    Invoke-ChildTool -ScriptPath $exportTool -Arguments @(@("-Ordner", $candidateDir, "-AuftragPath", $auftragPath, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $pdfWorkDir, "-BerichtPath", $pdfReportPath) + $browserPathArguments)
     $layoutDir = Resolve-WorkflowContractPath -Candidate $layoutDir -Root $applicationsRootForWork -ForWrite -PathType Container
     $layoutReportPath = Resolve-WorkflowContractPath -Candidate $layoutReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-    Invoke-ChildTool -ScriptPath $layoutTool -Arguments @(@("-Ordner", $candidateDir, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $layoutDir, "-BerichtPath", $layoutReportPath) + $browserPathArguments)
+    $browserInfo = Resolve-BrowserExecutable -RequestedBrowser $Browser -ExecutablePath $BrowserExecutablePath -RequireChromium
+    $browserRuntime = Get-RuntimeFingerprint -BrowserInfo $browserInfo
+    $htmlInputs = @(Get-SafeFileSet -Folder $candidateDir -SecurityRoot $applicationsRootForWork -Filter '*.html' | Select-Object -ExpandProperty FullName)
+    Invoke-FinalizationStage -Stage layout -InputFiles $htmlInputs -OutputFiles @($layoutReportPath) -Parameters @{ browser = $browserInfo.Name; browserVersion = $browserInfo.Version; timeoutSeconds = "$TimeoutSeconds" } -Runtime $browserRuntime -Action {
+      Invoke-ChildTool -ScriptPath $layoutTool -Arguments @(@("-Ordner", $candidateDir, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $layoutDir, "-BerichtPath", $layoutReportPath) + $browserPathArguments)
+    } | Out-Null
+    $layoutOutputs = @(Get-SafeFileSet -Folder $layoutDir -SecurityRoot $applicationsRootForWork -Filter '*.png' | Select-Object -ExpandProperty FullName)
+    if ($layoutOutputs.Count -gt 0) {
+      # Persist the complete screenshot set after the layout report exists.
+      $layoutEntry = @($script:CheckState.stages | Where-Object { [string]$_.id -eq 'layout' } | Select-Object -First 1)
+      if ($layoutEntry.Count -eq 1 -and @($layoutEntry[0].outputs).Count -lt 2) {
+        $fingerprint = Get-FinalizationStageFingerprint -Stage layout -Root $resolvedWork -ImplementationFiles $script:CacheImplementationFiles -InputFiles $htmlInputs -Parameters @{ browser = $browserInfo.Name; browserVersion = $browserInfo.Version; timeoutSeconds = "$TimeoutSeconds" } -Runtime $browserRuntime -DependencyKeys @()
+        Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage layout -Fingerprint $fingerprint -OutputFiles @($layoutReportPath + $layoutOutputs) -DurationMs 0
+        $script:CheckState = Read-FinalizationCheckState -Path $script:CheckStatePath
+      }
+    }
+    $pdfWorkDir = Resolve-WorkflowContractPath -Candidate $pdfWorkDir -Root $applicationsRootForWork -ForWrite -PathType Container
+    $pdfReportPath = Resolve-WorkflowContractPath -Candidate $pdfReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
+    Invoke-FinalizationStage -Stage pdf -InputFiles @($auftragPath + $htmlInputs + @($layoutReportPath) + $layoutOutputs) -OutputFiles @($pdfReportPath) -Parameters @{ browser = $browserInfo.Name; browserVersion = $browserInfo.Version; timeoutSeconds = "$TimeoutSeconds" } -Runtime $browserRuntime -Action {
+      Invoke-ChildTool -ScriptPath $exportTool -Arguments @(@("-Ordner", $candidateDir, "-AuftragPath", $auftragPath, "-Browser", $Browser, "-TimeoutSeconds", "$TimeoutSeconds", "-OutputRoot", $pdfWorkDir, "-BerichtPath", $pdfReportPath) + $browserPathArguments)
+    } | Out-Null
+    $pdfOutputs = @(Get-SafeFileSet -Folder $candidateDir -SecurityRoot $applicationsRootForWork -Filter '*.pdf' | Select-Object -ExpandProperty FullName)
+    $pdfEntry = @($script:CheckState.stages | Where-Object { [string]$_.id -eq 'pdf' } | Select-Object -First 1)
+    if ($pdfEntry.Count -eq 1 -and @($pdfEntry[0].outputs).Count -lt 2) {
+      $fingerprint = Get-FinalizationStageFingerprint -Stage pdf -Root $resolvedWork -ImplementationFiles $script:CacheImplementationFiles -InputFiles @($auftragPath + $htmlInputs + @($layoutReportPath) + $layoutOutputs) -Parameters @{ browser = $browserInfo.Name; browserVersion = $browserInfo.Version; timeoutSeconds = "$TimeoutSeconds" } -Runtime $browserRuntime -DependencyKeys @()
+      Save-FinalizationStageResult -Path $script:CheckStatePath -Root $resolvedWork -Stage pdf -Fingerprint $fingerprint -OutputFiles @($pdfReportPath + $pdfOutputs) -DurationMs 0
+      $script:CheckState = Read-FinalizationCheckState -Path $script:CheckStatePath
+    }
     $atsReportPath = Resolve-WorkflowContractPath -Candidate $atsReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
     $pdfReportPath = Resolve-WorkflowContractPath -Candidate $pdfReportPath -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
-    Invoke-ChildTool -ScriptPath $atsTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-AuftragPath", $auftragPath, "-BerichtPath", $atsReportPath, "-PdfExportBerichtPath", $pdfReportPath)
+    Invoke-FinalizationStage -Stage ats -InputFiles (@($auftragPath, $StammdatenPath, $pdfReportPath) + @($pdfOutputs)) -OutputFiles @($atsReportPath) -Parameters @{} -Runtime $browserRuntime -Action {
+      Invoke-ChildTool -ScriptPath $atsTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-AuftragPath", $auftragPath, "-BerichtPath", $atsReportPath, "-PdfExportBerichtPath", $pdfReportPath)
+    } | Out-Null
   } else {
     Write-NotRequiredReport -Path $layoutReportPath -Kind "layoutcheck" -WorkflowRoot $applicationsRootForWork
     Write-NotRequiredReport -Path $pdfReportPath -Kind "pdf_export" -WorkflowRoot $applicationsRootForWork
@@ -947,10 +1069,6 @@ if (-not $Veroeffentlichen) {
   $layoutReportPath = Resolve-WorkflowContractPath -Candidate $layoutReportPath -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
   $layoutWarnings = @(Get-LayoutWarnings -Path $layoutReportPath)
   Update-TechnicalSection -QualityPath $qualityPath -WorkflowRoot $applicationsRootForWork -State "vorbereitet" -LayoutReportPath $layoutReportPath -PdfReportPath $pdfReportPath -AtsReportPath $atsReportPath -LayoutWarnings $layoutWarnings -VisualApprovalNote "" -HtmlDocumentCount $expectedHtmlCount
-  Invoke-ChildTool -ScriptPath $staticTool -Arguments @("-Ordner", $candidateDir, "-AuftragPath", $auftragPath)
-  $contentReportPath = Resolve-WorkflowContractPath -Candidate $contentReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath, "-BerichtPath", $contentReportPath)
-
   $artifacts = Get-ReportArtifacts -CandidateFolder $candidateDir -LayoutFolder $layoutDir -WorkflowRoot $applicationsRootForWork
   $expectedScreenshots = Get-ExpectedScreenshotCount -CandidateFolder $candidateDir -WorkflowRoot $applicationsRootForWork
   if ($artifacts.html.Count -ne $expectedHtmlCount -or $artifacts.pdf.Count -ne $expectedHtmlCount -or $artifacts.screenshots.Count -ne $expectedScreenshots) {
@@ -976,11 +1094,25 @@ if (-not $Veroeffentlichen) {
     bewerbungsauftrag = Get-ArtifactRecord -File (Get-Item -LiteralPath $auftragPath) -Root $applicationsRootForWork
     anforderungsmatrix = Get-ArtifactRecord -File (Get-Item -LiteralPath $matrixPath) -Root $applicationsRootForWork
   }
+  if ($matrixContractInfoForFinalization.requiresAnschreibenStrategie) {
+    if (-not (Test-Path -LiteralPath $evidenceIndexPath -PathType Leaf)) {
+      Stop-Finalization -Message "Schema-5-Bewerbung benötigt Evidenzindex.json als gebundene Quelle."
+    }
+    try {
+      $evidenceIndexForFinalization = Get-Content -LiteralPath $evidenceIndexPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      if ((Get-EvidenceIndexSchemaVersion -Index $evidenceIndexForFinalization) -ne 1) {
+        Stop-Finalization -Message "Evidenzindex verwendet nicht die aktuelle Schema-1-Struktur."
+      }
+    } catch {
+      Stop-Finalization -Message "Evidenzindex kann vor der Hashbindung nicht vertragsgemäß gelesen werden: $($_.Exception.Message)"
+    }
+    $preparedSourceInputs.evidenzindex = Get-ArtifactRecord -File (Get-Item -LiteralPath $evidenceIndexPath) -Root $applicationsRootForWork
+  }
   if ($null -ne $passfotoSource -and $passfotoSource.Exists) {
     $preparedSourceInputs.passfoto = Get-ArtifactRecord -File (Get-Item -LiteralPath $passfotoSource.Path)
   }
   $report = [ordered]@{
-    schemaVersion = 5
+    schemaVersion = 7
     status = "bereit_zur_sichtpruefung"
     preparedAtUtc = [datetime]::UtcNow.ToString("o")
     runtime = $layoutRuntime
@@ -998,11 +1130,21 @@ if (-not $Veroeffentlichen) {
     personalReview = if ($expectedScreenshots -gt 0) { "png_sichtpruefung" } else { "textpruefung" }
     layoutWarnings = $layoutWarnings
     tokenUsageReport = $tokenUsageReference
+    stageOrder = @(Get-FinalizationStageOrder)
+    stageRuns = @($script:StageRuns.ToArray())
     sourceInputs = $preparedSourceInputs
     artifacts = $artifacts
   }
+  $approvalRecords = @(Get-ContractApprovalRecords -Report $report)
+  $report.approvalRequest = [ordered]@{
+    approvalId = New-ContractApprovalId
+    reviewKind = $report.personalReview
+    artifactSetSha256 = Get-ContractArtifactSetHash -Records $approvalRecords
+    artifactCount = $approvalRecords.Count
+    createdAtUtc = [datetime]::UtcNow.ToString("o")
+  }
   $finalReportPath = Resolve-WorkflowContractPath -Candidate $finalReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Set-Content -LiteralPath $finalReportPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 10)
+  Write-AtomicJson -Path $finalReportPath -Value $report -Depth 10
   Update-WorkflowCheckpointNonBlocking -WorkFolder $resolvedWork -Step 'technische_vorbereitung_abgeschlossen'
   Add-Ok "Technische Vorbereitung erfolgreich."
   Write-Host ""
@@ -1012,17 +1154,13 @@ if (-not $Veroeffentlichen) {
     Write-Host "Der Umfang enthält kein HTML-Dokument. Prüfe die ausgewählten Textdateien im Kandidatenordner persönlich: $candidateDir"
   }
   if ($layoutWarnings.Count -gt 0) {
-    Write-Host "Layoutwarnungen müssen visuell bewertet und bei der Veröffentlichung mit -VisuelleFreigabeNotiz begründet werden."
+    Write-Host "Layoutwarnungen müssen visuell bewertet und in der Chat-bestätigten Freigabe mit einer konkreten Notiz begründet werden."
   }
-  Write-Host "Nach bestätigter Sichtprüfung veröffentlichen mit:"
-  $noteExample = if ($layoutWarnings.Count -gt 0) { ' -VisuelleFreigabeNotiz "Warnungen je Seite geprüft; kein Beschnitt und keine Überlappung."' } else { "" }
-  Write-Host ".\Tools\Finalisiere-Bewerbung.ps1 -Arbeitsordner `"$resolvedWork`" -Veroeffentlichen -VisuellGeprueft$noteExample"
+  Write-Host "Nach bestätigter Sichtprüfung die Freigabe-ID im Chat bestätigen und anschließend speichern:"
+  Write-Host ".\Tools\bewerbung.ps1 freigabe --arbeitsordner `"$resolvedWork`" --freigabe-id $($report.approvalRequest.approvalId) --bestaetigt"
   exit 0
 }
 
-if (-not $VisuellGeprueft) {
-  Stop-Finalization -Message "Veröffentlichung erfordert den Schalter -VisuellGeprueft nach tatsächlicher Sichtprüfung."
-}
 try {
   $finalReportPath = Resolve-WorkflowContractPath -Candidate $finalReportPath -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
 } catch {
@@ -1031,14 +1169,45 @@ try {
 $preparedReportJson = Get-Content -LiteralPath $finalReportPath -Raw -Encoding UTF8
 $report = $preparedReportJson | ConvertFrom-Json
 $reportSchemaValue = Get-JsonProperty -Object $report -Name "schemaVersion"
-if (($reportSchemaValue -isnot [int] -and $reportSchemaValue -isnot [long]) -or [int]$reportSchemaValue -ne 5) {
-  Stop-Finalization -Message "Finalisierungsbericht verwendet kein unterstütztes Schema 5. Erneute Vorbereitung erforderlich."
+if (($reportSchemaValue -isnot [int] -and $reportSchemaValue -isnot [long]) -or [int]$reportSchemaValue -notin @(6, 7)) {
+  Stop-Finalization -Message "Finalisierungsbericht verwendet kein unterstütztes Freigabeschema 6 oder 7."
 }
 $reportSchema = [int]$reportSchemaValue
 foreach ($requiredReportProperty in @("status", "runtime", "workFolder", "candidateFolder", "targetFolder", "documentScope", "personalReview", "expectedScreenshots", "layoutWarnings", "layoutReport", "layoutReportArtifact", "pdfReport", "pdfReportArtifact", "atsReport", "atsReportArtifact", "sourceInputs", "artifacts")) {
   if (-not (Test-JsonPropertyExists -Object $report -Name $requiredReportProperty)) {
     Stop-Finalization -Message "Finalisierungsbericht ist unvollständig; Pflichtfeld fehlt: $requiredReportProperty. Erneute Vorbereitung erforderlich."
   }
+}
+$approvalPath = Resolve-WorkflowContractPath -Candidate (Join-Path $resolvedWork "Sichtfreigabe.json") -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
+try {
+  $approval = Read-ContractJson -Path $approvalPath
+  if ([int](Get-ContractJsonProperty $approval 'schemaVersion') -ne 1 -or [string](Get-ContractJsonProperty $approval 'kind') -cne 'sichtfreigabe' -or
+      (Get-ContractJsonProperty $approval 'humanConfirmation') -isnot [bool] -or -not [bool](Get-ContractJsonProperty $approval 'humanConfirmation')) {
+    throw 'Sichtfreigabe besitzt kein gültiges bestätigtes Schema.'
+  }
+  $request = Get-ContractJsonProperty $report 'approvalRequest'
+  if ($null -eq $request -or [string](Get-ContractJsonProperty $approval 'approvalId') -cne [string](Get-ContractJsonProperty $request 'approvalId') -or
+      [string](Get-ContractJsonProperty $approval 'artifactSetSha256') -cne [string](Get-ContractJsonProperty $request 'artifactSetSha256')) {
+    throw 'Sichtfreigabe ist nicht an die aktuelle Freigabe-ID oder den aktuellen Artefaktsatz gebunden.'
+  }
+  $approvalReport = Get-ContractJsonProperty $approval 'preparedReport'
+  if ([string](Get-ContractJsonProperty $approvalReport 'sha256') -ine (Get-FileHash -LiteralPath $finalReportPath -Algorithm SHA256).Hash) { throw 'Sichtfreigabe gehört nicht zum aktuellen Finalisierungsbericht.' }
+  $approvalRecords = @(Get-ContractApprovalRecords -Report $report)
+  Test-ContractArtifactRecordsCurrent -Records $approvalRecords -Root $resolvedWork
+  if ((Get-ContractArtifactSetHash -Records $approvalRecords) -cne [string](Get-ContractJsonProperty $approval 'artifactSetSha256')) { throw 'Artefaktsatz wurde seit der Sichtfreigabe verändert.' }
+  $boundApprovalRecords = @(Get-ContractJsonProperty $approval 'artifacts')
+  if ($boundApprovalRecords.Count -ne $approvalRecords.Count) { throw 'Sichtfreigabe enthält nicht genau den vorbereiteten Artefaktsatz.' }
+  Test-ContractArtifactRecordsCurrent -Records $boundApprovalRecords -Root $resolvedWork
+  $boundRecordsForHash = @($boundApprovalRecords | ForEach-Object {
+    $boundPath = [string](Get-ContractJsonProperty $_ 'path')
+    $absoluteBoundPath = if ([IO.Path]::IsPathRooted($boundPath)) { [IO.Path]::GetFullPath($boundPath) } else { [IO.Path]::GetFullPath((Join-Path $resolvedWork $boundPath)) }
+    $normalized = [ordered]@{ path = $absoluteBoundPath; bytes = Get-ContractJsonProperty $_ 'bytes'; sha256 = Get-ContractJsonProperty $_ 'sha256' }
+    $normalized
+  })
+  if ((Get-ContractArtifactSetHash -Records $boundRecordsForHash) -cne [string](Get-ContractJsonProperty $approval 'artifactSetSha256')) { throw 'Sichtfreigabe-Artefakthashes stimmen nicht mit dem gebundenen Satz überein.' }
+  $normalizedVisualNote = [regex]::Replace(([string](Get-ContractJsonProperty $approval 'note')).Trim(), '\s+', ' ')
+} catch {
+  Stop-Finalization -Message "Sichtfreigabe fehlt, ist veraltet oder nicht an den aktuellen Artefaktsatz gebunden: $($_.Exception.Message)"
 }
 Assert-CurrentRuntimeFingerprint -Fingerprint (Get-JsonProperty -Object $report -Name "runtime") -Context "Finalisierungsbericht" -RequireBrowser:($expectedHtmlCount -gt 0)
 if ([string](Get-JsonProperty -Object $report -Name "status") -ne "bereit_zur_sichtpruefung") {
@@ -1091,13 +1260,8 @@ $currentLayoutWarnings = @(Get-LayoutWarnings -Path $layoutReportPath)
 if ([string]::Join([char]0x1F, [string[]]$reportLayoutWarnings) -cne [string]::Join([char]0x1F, [string[]]$currentLayoutWarnings)) {
   Stop-Finalization -Message "Layoutwarnungen stimmen nicht mehr mit dem vorbereiteten Layoutbericht überein. Erneute Vorbereitung erforderlich."
 }
-if ($reportLayoutWarnings.Count -gt 0 -and [string]::IsNullOrWhiteSpace($VisuelleFreigabeNotiz)) {
-  Stop-Finalization -Message "Automatische Layoutwarnungen liegen vor. Die Sichtprüfung muss mit -VisuelleFreigabeNotiz nachvollziehbar begründet werden."
-}
-$normalizedVisualNote = if ([string]::IsNullOrWhiteSpace($VisuelleFreigabeNotiz)) {
-  ""
-} else {
-  ([regex]::Replace($VisuelleFreigabeNotiz.Trim(), '\s+', ' '))
+if ($reportLayoutWarnings.Count -gt 0 -and [string]::IsNullOrWhiteSpace($normalizedVisualNote)) {
+  Stop-Finalization -Message "Automatische Layoutwarnungen liegen vor. Die Chat-bestätigte Sichtfreigabe muss eine konkrete Notiz enthalten."
 }
 
 $artifactGroups = Get-JsonProperty -Object $report -Name "artifacts"
@@ -1141,6 +1305,9 @@ $expectedSourcePaths = [ordered]@{
   bewerbungsauftrag = [System.IO.Path]::GetFullPath($auftragPath)
   anforderungsmatrix = [System.IO.Path]::GetFullPath($matrixPath)
 }
+if ($matrixSchemaForFinalization -ge 5) {
+  $expectedSourcePaths.evidenzindex = [System.IO.Path]::GetFullPath($evidenceIndexPath)
+}
 if ($null -ne $passfotoSource -and $passfotoSource.Exists) {
   $expectedSourcePaths.passfoto = [System.IO.Path]::GetFullPath([string]$passfotoSource.Path)
 }
@@ -1156,7 +1323,7 @@ foreach ($sourceName in $expectedSourcePaths.Keys) {
   if (-not (Test-PathEqual -Left $preparedSourcePath -Right $expectedSourcePaths[$sourceName])) {
     Stop-Finalization -Message "Beim Veröffentlichungslauf wurde eine andere Quelldatei übergeben: $sourceName"
   }
-  $sourceRoot = if ($sourceName -in @("bewerbungsauftrag", "anforderungsmatrix")) { $applicationsRootForWork } else { $privateRoot }
+  $sourceRoot = if ($sourceName -in @("bewerbungsauftrag", "anforderungsmatrix", "evidenzindex")) { $applicationsRootForWork } else { $privateRoot }
   Test-ArtifactSetUnchanged -Records @($sourceRecord) -Root $sourceRoot
 }
 
@@ -1199,11 +1366,6 @@ try {
   $qualityMayHaveChanged = $true
   Update-TechnicalSection -QualityPath $qualityPath -WorkflowRoot $applicationsRootForWork -State "bestaetigt" -LayoutReportPath $layoutReportPath -PdfReportPath $pdfReportPath -AtsReportPath $atsReportPath -LayoutWarnings $reportLayoutWarnings -VisualApprovalNote $normalizedVisualNote -HtmlDocumentCount $expectedHtmlCount
   Invoke-ChildTool -ScriptPath $staticTool -Arguments @("-Ordner", $candidateDir, "-AuftragPath", $auftragPath) -ThrowOnFailure
-  $contentReportPath = Resolve-WorkflowContractPath -Candidate $contentReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath, "-BerichtPath", $contentReportPath) -ThrowOnFailure
-  if ($reportSchema -ge 2 -and $expectedHtmlCount -gt 0) {
-    Invoke-ChildTool -ScriptPath $atsTool -Arguments @("-Ordner", $candidateDir, "-StammdatenPath", $StammdatenPath, "-AuftragPath", $auftragPath) -ThrowOnFailure
-  }
 
   $approvedArtifacts = Get-ReportArtifacts -CandidateFolder $candidateDir -LayoutFolder $layoutDir -WorkflowRoot $applicationsRootForWork
   if ($approvedArtifacts.html.Count -ne $expectedHtmlCount -or
@@ -1238,10 +1400,6 @@ try {
   }
   $manifestPath = New-PublicationManifest -Root $stageDir -SecurityRoot $applicationsRootForWork -Auftrag $auftrag -SourceInputs $sourceInputs
   Invoke-ChildTool -ScriptPath $staticTool -Arguments @("-Ordner", $stageDir, "-AuftragPath", $auftragPath) -ThrowOnFailure
-  Invoke-ChildTool -ScriptPath $contentTool -Arguments @("-Ordner", $stageDir, "-StammdatenPath", $StammdatenPath, "-ProfilPath", $ProfilPath, "-AuftragPath", $auftragPath, "-AnforderungsmatrixPath", $matrixPath) -ThrowOnFailure
-  if ($reportSchema -ge 2 -and $expectedHtmlCount -gt 0) {
-    Invoke-ChildTool -ScriptPath $atsTool -Arguments @("-Ordner", $stageDir, "-StammdatenPath", $StammdatenPath, "-AuftragPath", $auftragPath) -ThrowOnFailure
-  }
 
   $report.status = "veroeffentlicht"
   $report | Add-Member -NotePropertyName publishedAtUtc -NotePropertyValue ([datetime]::UtcNow.ToString("o")) -Force
@@ -1253,7 +1411,7 @@ try {
   }) -Force
   $report | Add-Member -NotePropertyName visualApprovalNote -NotePropertyValue $normalizedVisualNote -Force
   $reportTempPath = Resolve-WorkflowContractPath -Candidate $reportTempPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-  Set-Content -LiteralPath $reportTempPath -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 10)
+  Write-AtomicJson -Path $reportTempPath -Value $report -Depth 10
   $reportTempPath = Resolve-WorkflowContractPath -Candidate $reportTempPath -Root $applicationsRootForWork -MustExist -ForWrite -PathType Leaf
   $preparedPublishedReport = Get-Content -LiteralPath $reportTempPath -Raw -Encoding UTF8 | ConvertFrom-Json
   if ([string](Get-JsonProperty -Object $preparedPublishedReport -Name "status") -ne "veroeffentlicht") {
@@ -1335,7 +1493,7 @@ try {
   } elseif (-not (Test-Path -LiteralPath $finalReportPath -PathType Leaf)) {
     try {
       $finalReportPath = Resolve-WorkflowContractPath -Candidate $finalReportPath -Root $applicationsRootForWork -ForWrite -PathType Leaf
-      Set-Content -LiteralPath $finalReportPath -Encoding UTF8 -Value $preparedReportJson
+      Write-AtomicText -Path $finalReportPath -Content $preparedReportJson
     } catch { $rollbackErrors.Add("Finalisierungsbericht: $($_.Exception.Message)") | Out-Null }
   }
   if (Test-Path -LiteralPath $reportTempPath -PathType Leaf) {

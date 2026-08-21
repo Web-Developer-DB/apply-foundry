@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "soziale-betreuung",
+  "rolle": "Mitarbeiter Soziale Betreuung",
+  "firma": "Fiktiv Sozialwerk e.V.",
+  "umfang": "D",
+  "profilSubstanz": "schmal",
+  "erwarteteAnforderungen": ["Kommunikation", "Verlässlichkeit", "Dokumentation"],
+  "erwarteteBelege": ["ÜBERTRAGBAR", "PRIVATE PRAXIS / HOME-LAB"]
+}

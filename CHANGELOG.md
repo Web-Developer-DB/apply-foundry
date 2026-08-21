@@ -8,6 +8,34 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
+- Gemeinsame Chromium-Druckvorprüfung für Layoutcheck und PDF-Export: jedes vollständige Original-HTML wird auf A4, PDF-Struktur und die exakte Übereinstimmung von expliziten `.page`-Containern und Druckseiten geprüft. `Layoutcheck-Bericht.json` verwendet dafür Schema 3.
+- `Pruefstand.json` Schema 2 hält laufende, bestandene und fehlgeschlagene Finalisierungsstufen mit bereinigten Fehlerdaten fest. Die Statusausgabe zeigt den letzten technischen Versuch und erkennt hashabweichende Eingaben als veraltet.
+- Der CLI-Dispatcher normalisiert einzelne Pfade und kommagetrennte Pfadlisten gegen das ursprüngliche Aufrufverzeichnis, bevor er ein Fachwerkzeug startet.
+
+- Phase-6-Effizienz: hashgebundener privater `Pruefstand.json` für die Finalisierungsstufen, `--neu-pruefen`, Finalisierungsbericht Schema 7 und feste Reihenfolge Dialog, Stammdaten, statisch, Inhalt, DOM/Layout, PDF und ATS.
+- `bewerbung.ps1 kontext` erzeugt einen privaten, quellenhashgebundenen `Kontextmanifest.json`-Entwurf. Der Rollout bleibt bis zu einer erfolgreichen realen Promptmatrix bewusst im Modus `vollkontext`.
+- Schema-1-Testberichte enthalten Laufzeitaggregate, Kategorien und langsame Tests. `bewerbung.ps1 test-baseline` erzeugt aus drei erfolgreichen ungefilterten Berichten eine öffentliche Baseline; Laufzeitabweichungen sind zunächst nicht blockierende Warnungen.
+
+- Phase-5-Architektur: wiederverwendbare Matrix- und Evidenzindex-Verträge, versionierte read-only Migration mit privaten Entwürfen, Hash-Recheck, Rollback und Schema-1-Migrationsbericht sowie `bewerbung.ps1 migrieren`. Matrix-Schemata 1 bis 4 und Evidenzindex-Schema 1 bleiben ohne automatische Umschreibung kompatibel.
+- `Console App.md` als kompakte, ausdrücklich nicht operative Roadmap wiederhergestellt; aktuelle Prompts, Werkzeuge und `AGENTS.md` bleiben die maßgeblichen Quellen.
+
+- Phase-4-Testsystem: vier synthetische Rollen-Fixtures für Softwareentwicklung, kaufmännische Sachbearbeitung, IT-Support-Quereinstieg und soziale Betreuung mit Umfang A bis D, Schema-5-Erwartungen und isoliertem Fixture-Runner.
+- Explizite Testkategorien `schnell`, `vollstaendig` und `browser` sowie Prompt-Suiten `prompt-pr` und `prompt-vollstaendig`; jeder Lauf kann einen bereinigten Schema-1-Bericht mit Kategorie, Dauer, Ergebnis und Fehlerklasse schreiben.
+- Maschinenlesbare Agenten-/Modellmatrix mit fest gepinnten Codex-, OpenCode-, Claude-Code- und Gemini-CLI-Versionen; Codex und OpenCode verwenden in der PR-Canary dasselbe OpenAI-Modell. Echte Prompt-Regressionsläufe isolieren Git-Repository, Benutzerprofile und Credentials und prüfen Dateimutationen deterministisch.
+- Getrennte Windows-/Ubuntu-Browserjobs, Windows-Smoke bei Pull Requests, gestufter Ubuntu-Job sowie Schema-1-Stabilitätsnachweis und Validator für die drei erforderlichen Paritätsläufe.
+
+- Phase-3-Bewerbungsqualität: Matrix-Schema 5 mit maschinenlesbarer Anschreibenstrategie, Arbeitgebernutzen- und Evidenz-IDs, strukturiertem Quellenregister, vollständiger Evidenzdisposition sowie konservativem Sprach-, Floskel- und Wiederholungswarnsystem. Der Inhaltsprüfbericht verwendet dafür Schema 6; Matrix-Schemata 1 bis 4 bleiben kompatibel.
+
+- Phase-2-Zuverlässigkeitsverträge: gemeinsame atomare UTF-8-/JSON-Schreibfunktionen mit begrenzten Dateisperr-Wiederholungen, pfadgebundene Checkpoint-Aktualisierung und gemeinsame JSON-, Umfangs-, Slug- und Unicode-Textverträge.
+- Hashgebundene Sichtfreigaben mit neuer `freigabe`-CLI, eindeutiger Freigabe-ID, Artefaktsatzbindung und aktuellen Nachweis-Hashes für individuelle und universelle Finalisierungen.
+- ATS-Schema 2 mit Unicode-normalisiertem Token-Multiset sowie geordneten Bigramm-/Trigramm-Metriken, stabiler Tokenisierung technischer Begriffe und vollständiger Artefaktbindung.
+- Regressionstests für Freigabe-Manipulationen, atomare Unterbrechungen, Dateisperren, parallele Zustandsupdates und Token-/N-Gramm-Abgleich.
+
+- Matrix-Schema 4 mit hash- und zeilengebundener `stellenanzeigeAbdeckung`, verbindlichen Stellen-Fundstellen sowie einem privaten `Evidenzindex.json` für quellgebundene Profilbelege. Matrix-Schemata 1 bis 3 bleiben lesbar.
+- Browserseitige DOM-Geometrieprüfung für jede isolierte A4-Seite. Scrollüberlauf und sichtbare Elemente außerhalb der festen Seite blockieren die technische Vorbereitung.
+- Private Dialogtransaktion mit Mutex, geflushten temporären Dateien, Sicherungen und automatischer Wiederherstellung eines unterbrochenen Profil-/Auftragscommits.
+- Matrix-Schema 3 mit verbindlicher `recruiterStrategie` für priorisierte Anforderungen, belegte Profilhighlights, wahre Transferbrücken, begründete Auslassungen und sichtbare Dokumentanker.
+- Maschinenlesbare `recruiterCoverage` im Schema-5-Inhaltsprüfbericht einschließlich Zieldokument-, Seite-1-, Highlight-, Transfer- und Substanzprüfung.
 - Optionales, ausschließlich privates `Private/Daten/Passfoto.png` für individuelle Lebensläufe sowie das idempotente Subcommand `bewerbung.ps1 passfoto`, das einen markierten HTML-Block ohne Ausgabe der Bilddaten befüllt oder entfernt.
 - Gemeinsame PNG-Header-, Base64- und Bytegleichheitsprüfung für Passfoto-Einbettung, Inhaltsbericht, Finalisierungsnachweis, Manifest und dateibasierte Statusrekonstruktion.
 - Gemeinsamer Dispatcher `Tools/bewerbung.ps1` einschließlich `universal-neu`, `universal-status` und `universal-finalisieren`; GNU-Langoptionen gelten auf Windows und Linux gleich.
@@ -19,6 +47,17 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Geändert
 
+- `README.md`, `Prompts/README.md` und `Vorlagen/README.md` dokumentieren den aktuellen unveröffentlichten Stand einschließlich Druckvorprüfung, Berichtsschemata, Finalisierungsstatus und aufrufortunabhängiger Pfadnormalisierung.
+- `bewerbung.ps1 tests --suite ...` ist die gemeinsame Schnittstelle; `-MitBrowser` bleibt als Browseralias lesbar. README, technischer Workflow und Agenten-Kompatibilitätsübersicht dokumentieren die schnelle/vollständige Teilung, die OpenCode-Canary und den Alpha-Status von Ubuntu bis zur Promotion.
+
+- Die Veröffentlichung akzeptiert ausschließlich einen aktuellen `Sichtfreigabe.json`-Nachweis, der Freigabe-ID, vorbereiteten Finalisierungsbericht und den unveränderten Artefaktsatz bindet. Das bisherige `--visuell-geprueft` bleibt nur als Kompatibilitätsargument lesbar und erteilt keine Berechtigung; vorbereitete Altstände müssen neu vorbereitet werden.
+- Finalisierungsberichte verwenden für individuelle Bewerbungen Schema 7 und für den Universal-Lebenslauf Schema 2. ATS-Berichte verwenden Schema 2 und dokumentieren Token-/N-Gramm-Abdeckung, fehlende Tokens und Artefakt-Hashes.
+- Berichte und Zustandsdateien werden über die gemeinsamen atomaren Schreib- und Sperrverträge aktualisiert; ein fehlgeschlagener oder unterbrochener Austausch lässt die vorherige vollständige Datei bestehen.
+
+- Neue Bewerbungen erzeugen Schema-4-Entwürfe für Anforderungsmatrix und Evidenzindex. Erfüllte oder teilweise erfüllte Anforderungen sowie sichtbare Profilhighlights benötigen nun validierte Evidenz-IDs; `NICHT BEHAUPTEN` und `EINARBEITUNGSZIEL` können keine Direktbelege sein.
+- Der Bewerbungsworkflow arbeitet verbindlich in der Reihenfolge Stellenanforderungen, stärkste Profilbelege, wahre Transferbrücken, Inhaltsentwurf und erst danach Layout. Pauschale Obergrenzen für Projekte, Kompetenzgruppen und relevante Inhaltsblöcke wurden durch Recruiter-Relevanz und Belegsubstanz ersetzt.
+- Lebenslauf und Anschreiben werden als ergänzende Belegträger geprüft: wichtige Technologien benötigen Anwendungskontext, Projekte und Stationen benennen Aufgabe, eingesetzte Kenntnisse und eigenen Beitrag, und ungewöhnliche Leerfläche löst zuerst eine Inhaltsprüfung aus.
+- Neue Bewerbungen erhalten Matrix-Schema 3; vorhandene Matrix-Schemata 1 und 2 bleiben ohne automatische Migration kompatibel.
 - Individuelle Lebensläufe binden ein vorhandenes Passfoto vollständig als private PNG-Datenressource ein und passen dessen Darstellung an das konkrete Design an. Fehlt die Datei, entstehen weder Rückfrage noch Fotoplatz; universelle Lebensläufe bleiben stets unverändert.
 - Zweiseitige Lebensläufe markieren Seitenköpfe und fachliche Abschnitte semantisch; ein Abschnitt darf nicht technisch über zwei Seiten geteilt werden. Der universelle Softwareentwicklungs-Lebenslauf bindet zusätzlich seine exakte recruiterfreundliche Abschnittsfolge.
 - Technische Vorbereitung und Veröffentlichung führen `passfoto` nur bei tatsächlicher Verwendung als optionalen fünften Quellnachweis. Hinzufügen, Ändern oder Löschen der Datei entwertet bestehende technische und persönliche Sichtnachweise.
@@ -35,6 +74,11 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Behoben
 
+- Ubuntu-Regressionsläufe respektieren exklusive Dateisperren nun auch beim atomaren Ersetzen und starten parallele PowerShell-Worker ohne das ausschließlich unter Windows verfügbare `-WindowStyle`; der Bash-Dispatcher-Test erwartet die verbindliche absolute Pfadnormalisierung.
+- Mehrseitige Layouts werden vor dem eigentlichen Export gegen zusätzliche Druckseiten abgesichert; CSS-Vorschauabstände über `.page + .page` können eine Fußzeile nicht mehr unbemerkt auf eine Restseite verschieben. Direkte Layout- und PDF-Diagnosen erkennen kanonische Kandidatenordner ohne verschachtelte `_Arbeitsdateien`-Ausgaben.
+- Finalisierungsstufen erfassen Unterwerkzeugfehler kontrolliert im privaten Prüfstand, statt den Zustand durch einen vorzeitigen Prozessabbruch unvollständig zu lassen.
+- Relative Auftragspfade werden bei direkter statischer Prüfung und beim PDF-Export gegen das tatsächliche Aufrufverzeichnis aufgelöst und nicht mehr doppelt unter `Private/Bewerbungen` angehängt.
+
 - Verwaiste README- und Workflowverweise auf gelöschte Archiv- beziehungsweise Bash-Testdateien wurden entfernt; die frühere Bash-Fachsuite ist durch Dispatcher-, Kompatibilitäts- und Setup-Tests ersetzt.
 - Die ShellCheck-Ausnahme für die beabsichtigt literale PowerShell-Versionsabfrage steht vor dem vollständigen `if`-Block und verursacht keine Parserfehler mehr.
 - Vertrags-, Bericht-, Artefakt-, Publish- und Rollbackpfade werden unmittelbar vor Lesen oder Schreiben erneut symlinksicher geprüft; Verzeichnis- und interne Link-Aliasse können keine regulären Dateien oder fremden Bewerbungsziele mehr maskieren.
@@ -46,8 +90,14 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Tests und Verifikation
 
+- Die neue lokale schnelle Suite wurde mit 21 von 21 synthetischen Fällen bestanden; die vollständige browserfreie Suite mit 96 von 96 Fällen und die Windows-Browser-Suite mit 106 von 106 Fällen. Der gezielte Schema-5-Rollenfixture-Lauf bestand mit allen vier Rollen und vollständiger Evidenz-/Quellen-Coverage. Echte Prompt-CI-Läufe benötigen die jeweilige Runner-/Secret-Ausstattung und wurden in dieser Umgebung nicht behauptet.
+
+- Die browserfreie Regression bestand nach Phase 2 mit 90 von 90 synthetischen Fällen. Die gezielten browserabhängigen Smoke-, Layout-, Universal-, Finalisierungs- und PDF-Fälle bestanden mit 9 von 9; die nach der Artefaktbindungs-Nachschärfung erneut ausgeführten Universal- und individuellen Finalisierungsfälle bestanden mit 4 von 4.
+- Schema-4-Regressionsfälle prüfen Quellenbindung von Stellenanforderungen und Profilbelegen, fehlende explizite Stellenabdeckung, erfundene Evidenzreferenzen sowie die Wiederherstellung einer simulierten unterbrochenen Dialogtransaktion. Ein Browserfall prüft zusätzlich, dass DOM-Überlauf trotz fester A4-Geometrie abgewiesen wird.
+- Die vollständige lokale PowerShell-/Chromium-Regression bestand nach der Phase-1-Änderung mit 96 synthetischen Fällen und 0 Fehlern.
+- Schema-3-Regressionsfälle prüfen vollständige Recruiter-Abdeckung, fehlende beziehungsweise falsch platzierte Anker, ehrliche Salesforce-Transferbrücken, erfundene Direktpraxis sowie den Unterschied zwischen unnötig dünnem und dokumentiert schmalem Profil. Promptaudits verhindern erneut eingeführte pauschale Projektobergrenzen.
 - Synthetische Passfoto-Fälle decken fehlende, gültige, beschädigte, abweichende und doppelte Einbettungen, idempotente Verarbeitung, Universal-Snapshot-Schutz, optionale Manifestbindung und die Entwertung nach Quellenänderungen ab.
-- Die vollständige browserfreie PowerShell-Suite bestand lokal unter Windows mit 80 von 80 synthetischen Fällen. Die fokussierten realen Chromium-Regressionsfälle für Runtime-Auflösung sowie Universal-Vorbereitung, Aktivierung und Arbeitsordnerbereinigung bestanden mit 2 von 2 Fällen.
+- Die vollständige browserfreie PowerShell-Suite bestand lokal unter Windows mit 84 von 84 synthetischen Fällen. Die fokussierten realen Chromium-Regressionsfälle für Runtime-Auflösung sowie Universal-Vorbereitung, Aktivierung und Arbeitsordnerbereinigung bestanden mit 2 von 2 Fällen.
 - Bash-Syntax sowie Dispatcher-/Kompatibilitätstests bestanden unter Git Bash. Die Ubuntu-24.04-WSL-Tests für Parser, OS-Abweisung, Herkunft, Dry-run und Idempotenz bestanden ohne Paketinstallation.
 - Ein vollständiger PowerShell-/Browserlauf unter Ubuntu wurde lokal noch nicht ausgeführt. Die feste CI-Matrix und die getrennten Browser-Smokes sind eingerichtet; Ubuntu bleibt bis zu den dokumentierten Nachweisen Alpha.
 

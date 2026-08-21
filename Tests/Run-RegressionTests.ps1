@@ -4,24 +4,110 @@
 [CmdletBinding()]
 param(
   [switch]$MitBrowser,
-  [string]$TestNamePattern
+  [string]$TestNamePattern,
+  [ValidateSet('schnell', 'vollstaendig', 'browser', 'prompt-pr', 'prompt-vollstaendig')]
+  [string]$Suite = 'vollstaendig',
+  [string]$BerichtPath
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Path $PSScriptRoot -Parent
+
+if ($Suite -in @('prompt-pr', 'prompt-vollstaendig')) {
+  if ($MitBrowser) {
+    [Console]::Error.WriteLine("-MitBrowser ist mit einer Prompt-Suite nicht zulaessig.")
+    exit 2
+  }
+  $promptScript = Join-Path $PSScriptRoot 'Invoke-PromptRegression.ps1'
+  $promptMatrix = if ($Suite -eq 'prompt-pr') { 'pr' } else { 'vollstaendig' }
+  & $promptScript -Matrix $promptMatrix -BerichtPath $BerichtPath -TestNamePattern $TestNamePattern
+  exit ([int]$LASTEXITCODE)
+}
+
+if ($MitBrowser -and $Suite -eq 'schnell') {
+  [Console]::Error.WriteLine('-MitBrowser ist mit der schnellen Suite widersprüchlich; verwende -Suite browser.')
+  exit 2
+}
+
 $toolsRoot = Join-Path -Path $repoRoot -ChildPath "Tools"
 $powerShellExe = (Get-Process -Id $PID).Path
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bewerbungs-agent-tests-" + [guid]::NewGuid().ToString("N"))
 $passed = New-Object System.Collections.Generic.List[string]
 $failed = New-Object System.Collections.Generic.List[string]
+$testResults = New-Object System.Collections.Generic.List[object]
 $script:selectedTestCount = 0
+$script:suiteStartedAtUtc = [DateTime]::UtcNow
+
+if ($Suite -eq 'browser') {
+  $MitBrowser = $true
+}
+
+function Test-FastTestName {
+  param([Parameter(Mandatory)][string]$Name)
+
+  # Fast is intentionally an explicit canary set. Full contract coverage stays in
+  # the complete suite; this set must remain short enough for local and PR feedback.
+  return $Name -match '^(?:PowerShell-Dateien sind syntaktisch gültig|Native Prozesse begrenzen Ausgaben und beenden den Prozessbaum bei Timeout|Portabler PNG-Leser dekodiert Farbtypen und Filter und lehnt defekte Header ab|Passfoto-Modul entfernt optionale Blöcke und bindet gültige PNG-Bytes idempotent|Universeller Agenteneinstieg routet alle Betriebsmodi sicher|Agentenpfade besitzen plattformübergreifend die exakte Schreibweise|Kanonischer Prompt definiert Fähigkeiten und Fortsetzung aus Dateinachweisen|Promptaudit hält Routing, Autonomie und Qualitätsverträge widerspruchsfrei|Prompt-Regression-Konfiguration bindet vier Agenten und feste Modelle|Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben|Tokenbericht übernimmt Nichtverfügbarkeit ohne Schätzwerte oder sensible Felder|Tokenbericht übernimmt nur ausdrücklich bereitgestellte exakte Laufzeitwerte|README verweist nur auf vorhandene lokale Ziele und definierte Anker|README dokumentiert neutrale Agentenstarts und tatsächliche Grenzen|Phase-[56]-Vertragstests|Matrix- und Evidenzverträge.*|Migrations.*|Console-App-Roadmap.*|Schema-5-.*|Prompt-Regression-.*)$'
+}
+
+function Get-TimingSummary {
+  param([Parameter(Mandatory)][AllowEmptyCollection()][array]$Results, [Parameter(Mandatory)][int]$TotalDurationMs)
+  $durations = @($Results | ForEach-Object { [int]$_.durationMs } | Sort-Object)
+  $sum = 0
+  foreach ($duration in $durations) { $sum += [int]$duration }
+  $percentile = {
+    param([double]$Percent)
+    if ($durations.Count -eq 0) { return 0 }
+    $index = [math]::Min($durations.Count - 1, [math]::Max(0, [math]::Ceiling($durations.Count * $Percent) - 1))
+    return [int]$durations[$index]
+  }
+  $byCategory = [ordered]@{}
+  foreach ($group in @($Results | Group-Object category | Sort-Object Name)) {
+    $groupDuration = 0
+    foreach ($entry in @($group.Group)) { $groupDuration += [int]$entry.durationMs }
+    $byCategory[$group.Name] = [ordered]@{ testCount = $group.Count; durationMs = $groupDuration }
+  }
+  return [ordered]@{
+    testDurationMs = $sum
+    setupAndCleanupDurationMs = [math]::Max(0, $TotalDurationMs - $sum)
+    medianTestDurationMs = & $percentile 0.5
+    p95TestDurationMs = & $percentile 0.95
+    categories = $byCategory
+    slowestTests = @($Results | Sort-Object -Property @{ Expression = { [int]$_.durationMs }; Descending = $true }, @{ Expression = { [string]$_.name }; Descending = $false } | Select-Object -First 10 | ForEach-Object { [ordered]@{ name = $_.name; category = $_.category; durationMs = $_.durationMs; status = $_.status } })
+  }
+}
+
+function Get-RuntimeWarnings {
+  param([Parameter(Mandatory)][object]$Runtime, [Parameter(Mandatory)][string]$Suite, [Parameter(Mandatory)][int]$DurationMs)
+  $baselinePath = Join-Path $PSScriptRoot 'Testlaufzeit-Baselines.json'
+  if (-not (Test-Path -LiteralPath $baselinePath -PathType Leaf)) { return @() }
+  try {
+    $baselineFile = Get-Content -LiteralPath $baselinePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ([int]$baselineFile.schemaVersion -ne 1) { return @() }
+    $match = @($baselineFile.baselines | Where-Object {
+      [string]$_.suite -eq $Suite -and [string]$_.runtime.os -eq [string]$Runtime.os -and [string]$_.runtime.architecture -eq [string]$Runtime.architecture -and [string]$_.runtime.powershell -eq [string]$Runtime.powershell
+    } | Select-Object -First 1)
+    if ($match.Count -ne 1) { return @() }
+    $baseline = [int]$match[0].durationMsMedian
+    $threshold = [int]$baselineFile.warningThresholdPercent
+    $minimum = [int]$baselineFile.warningMinimumMs
+    if ($baseline -gt 0 -and $DurationMs -ge ($baseline + $minimum) -and $DurationMs -gt [math]::Ceiling($baseline * (1 + ($threshold / 100.0)))) {
+      return @([ordered]@{ kind = 'suite_regression'; baselineDurationMs = $baseline; actualDurationMs = $DurationMs; thresholdPercent = $threshold; minimumDeltaMs = $minimum })
+    }
+  } catch { return @() }
+  return @()
+}
 
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/OrderPaths.psm1") -Force
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/Passfoto.psm1") -Force
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/PngTools.psm1") -Force
+Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/AtomicFile.psm1") -Force
+Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/ApprovalContract.psm1") -Force
+Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/MatrixContract.psm1") -Force
+Import-Module (Join-Path -Path $toolsRoot -ChildPath "Common/EvidenceIndexContract.psm1") -Force
 
 function Invoke-ChildScript {
   param(
@@ -59,6 +145,14 @@ function Assert-True {
   }
 }
 
+function Invoke-TestCommonModuleFunction {
+  param([Parameter(Mandatory)][string]$ModuleFile, [Parameter(Mandatory)][string]$FunctionName, [hashtable]$Parameters = @{})
+  $moduleArgs = @{ Force = $true; PassThru = $true }
+  if ($ModuleFile -like '*TextContract.psm1') { $moduleArgs.DisableNameChecking = $true }
+  $module = Import-Module (Join-Path $toolsRoot $ModuleFile) @moduleArgs
+  return & $module { param($name, $arguments) & $name @arguments } $FunctionName $Parameters
+}
+
 function Test-ExactRelativePath {
   param([string]$Root, [string]$RelativePath)
 
@@ -76,18 +170,32 @@ function Test-ExactRelativePath {
 function Invoke-Test {
   param(
     [string]$Name,
-    [scriptblock]$Body
+    [scriptblock]$Body,
+    [ValidateSet('schnell', 'vollstaendig', 'browser')]
+    [string]$Kategorie = 'vollstaendig'
   )
 
+  if ($Suite -eq 'schnell' -and -not (Test-FastTestName -Name $Name)) { return }
+  if ($Suite -eq 'vollstaendig' -and $Kategorie -eq 'browser') { return }
+  if ($Suite -ne 'browser' -and $Kategorie -eq 'browser') { return }
   if (-not [string]::IsNullOrWhiteSpace($TestNamePattern) -and $Name -notmatch $TestNamePattern) { return }
   $script:selectedTestCount++
+  $startedAtUtc = [DateTime]::UtcNow
 
   try {
+    Import-Module (Join-Path $toolsRoot 'Common/AtomicFile.psm1') -Force -Global
+    Import-Module (Join-Path $toolsRoot 'Common/TextContract.psm1') -Force -Global -DisableNameChecking
+    Import-Module (Join-Path $toolsRoot 'Common/ApprovalContract.psm1') -Force -Global
     & $Body
+    $endedAtUtc = [DateTime]::UtcNow
     $passed.Add($Name) | Out-Null
+    $testResults.Add([ordered]@{ name = $Name; category = $Kategorie; status = 'passed'; errorClass = $null; startedAtUtc = $startedAtUtc.ToString('o'); endedAtUtc = $endedAtUtc.ToString('o'); durationMs = [int]($endedAtUtc - $startedAtUtc).TotalMilliseconds }) | Out-Null
     Write-Host "[OK] $Name" -ForegroundColor Green
   } catch {
+    $endedAtUtc = [DateTime]::UtcNow
     $failed.Add("${Name}: $($_.Exception.Message)") | Out-Null
+    $errorClass = if ($_.Exception.Message -match '(?i)browser|chrom|png|pdf|layout') { 'browser_or_artifact' } elseif ($_.Exception.Message -match '(?i)timeout|prozess') { 'infrastructure_timeout' } elseif ($_.Exception.Message -match '(?i)parser|syntax') { 'parser' } else { 'assertion_or_contract' }
+    $testResults.Add([ordered]@{ name = $Name; category = $Kategorie; status = 'failed'; errorClass = $errorClass; error = $_.Exception.Message; startedAtUtc = $startedAtUtc.ToString('o'); endedAtUtc = $endedAtUtc.ToString('o'); durationMs = [int]($endedAtUtc - $startedAtUtc).TotalMilliseconds }) | Out-Null
     Write-Host "[FEHLER] ${Name}: $($_.Exception.Message)" -ForegroundColor Red
   }
 }
@@ -181,6 +289,11 @@ Test Arbeitgeber, 01/2020 - 12/2020
 
 ### Testweiterbildung
 Test Institut, 02/2021 - 03/2022
+
+## Projekte
+
+### Testprojekt
+Eigene Projektpraxis: Audit-Workflow mit nachvollziehbarem eigenem Beitrag
 "@
   return [pscustomobject]@{ Personal = $personal; Profile = $profileFilePath }
 }
@@ -214,7 +327,7 @@ function New-ValidContentFixture {
   $matrixPath = Join-Path $work "Anforderungsmatrix.json"
   $target = Join-Path -Path $Root -ChildPath "Private/Bewerbungen/Audit-Firma/2026-07-14--Audit-Rolle"
   $auftrag = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 3
     firma = "Audit Firma"
     firmaSlug = "Audit-Firma"
     rolle = "Audit-Rolle"
@@ -302,6 +415,101 @@ function Convert-ToSchema2Fixture {
   return $Fixture
 }
 
+function Convert-ToSchema3RecruiterFixture {
+  param([object]$Fixture)
+
+  $Fixture = Convert-ToSchema2Fixture -Fixture $Fixture
+  $matrix = Get-Content -LiteralPath $Fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+  $matrix.schemaVersion = 3
+  $matrix | Add-Member -NotePropertyName recruiterStrategie -NotePropertyValue ([ordered]@{
+    kernbotschaft = "Belegtes Audit-Profil mit konkreter Weiterbildung und nachvollziehbarer Praxis"
+    profilSubstanz = "ausreichend"
+    profilSubstanzBegruendung = "Zwei personenspezifische und sichtbare Belege sind vorhanden."
+    prioritaetsAnforderungen = @("muss-1")
+    profilHighlights = @(
+      [ordered]@{
+        id = "highlight-weiterbildung"
+        anforderungIds = @("muss-1")
+        belegart = "WEITERBILDUNG"
+        relevanz = "hoch"
+        zielDokument = "lebenslauf"
+        platzierung = "seite_1"
+        sichtbareAnker = @("Test Person", "Audit-Rolle")
+      },
+      [ordered]@{
+        id = "highlight-praxis"
+        anforderungIds = @("muss-1")
+        belegart = "PROJEKTPRAXIS"
+        relevanz = "mittel"
+        zielDokument = "lebenslauf"
+        platzierung = "seite_1"
+        sichtbareAnker = @("Vollzeit", "nach Vereinbarung")
+      }
+    )
+    transferbruecken = @()
+    auslassungen = @()
+  }) -Force
+  Set-Content -LiteralPath $Fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 10)
+  return $Fixture
+}
+
+function Convert-ToSchema4EvidenceFixture {
+  param([object]$Fixture)
+
+  $Fixture = Convert-ToSchema3RecruiterFixture -Fixture $Fixture
+  $jobPath = Join-Path $Fixture.Folder 'Stellenbeschreibung.md'
+  $jobText = @"
+## Ihr Profil
+- Sie müssen Audit-Rolle beherrschen
+
+## Ihre Aufgaben
+- Konkrete Audit-Aufgabe umsetzen
+"@
+  Set-Content -LiteralPath $jobPath -Encoding UTF8 -Value $jobText
+
+  $profileLines = @((Get-Content -LiteralPath $Fixture.Profile -Encoding UTF8))
+  $trainingLine = 1 + [array]::IndexOf([string[]]$profileLines, 'Test Institut, 02/2021 - 03/2022')
+  $projectLine = 1 + [array]::IndexOf([string[]]$profileLines, 'Eigene Projektpraxis: Audit-Workflow mit nachvollziehbarem eigenem Beitrag')
+  if ($trainingLine -lt 1 -or $projectLine -lt 1) { throw 'Schema-4-Testfixture konnte die Profilbelege nicht finden.' }
+
+  $indexPath = Join-Path $Fixture.Work 'Evidenzindex.json'
+  $index = [ordered]@{
+    schemaVersion = 1
+    profilSha256 = (Get-FileHash -LiteralPath $Fixture.Profile -Algorithm SHA256).Hash
+    belege = @(
+      [ordered]@{ id='profil-weiterbildung'; quelle='profil'; zeileVon=$trainingLine; zeileBis=$trainingLine; text=$profileLines[$trainingLine - 1]; belegart='WEITERBILDUNG' },
+      [ordered]@{ id='profil-projekt'; quelle='profil'; zeileVon=$projectLine; zeileBis=$projectLine; text=$profileLines[$projectLine - 1]; belegart='PROJEKTPRAXIS' }
+    )
+  }
+  Set-Content -LiteralPath $indexPath -Encoding UTF8 -Value ($index | ConvertTo-Json -Depth 8)
+
+  $matrix = Get-Content -LiteralPath $Fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+  $matrix.schemaVersion = 4
+  $matrix.requirements[0] | Add-Member -NotePropertyName stellenFundstellen -NotePropertyValue @('stelle-profil', 'stelle-aufgabe') -Force
+  $matrix.requirements[0] | Add-Member -NotePropertyName belegRefIds -NotePropertyValue @('profil-weiterbildung') -Force
+  $matrix.recruiterStrategie.profilHighlights[0] | Add-Member -NotePropertyName belegRefIds -NotePropertyValue @('profil-weiterbildung') -Force
+  $matrix.recruiterStrategie.profilHighlights[1].belegart = 'PROJEKTPRAXIS'
+  $matrix.recruiterStrategie.profilHighlights[1] | Add-Member -NotePropertyName belegRefIds -NotePropertyValue @('profil-projekt') -Force
+  $matrix | Add-Member -NotePropertyName stellenanzeigeAbdeckung -NotePropertyValue ([ordered]@{
+    sourceSha256 = (Get-FileHash -LiteralPath $jobPath -Algorithm SHA256).Hash
+    fundstellen = @(
+      [ordered]@{ id='stelle-profil'; zeileVon=2; zeileBis=2; text='- Sie müssen Audit-Rolle beherrschen'; klassifikation='anforderung'; anforderungIds=@('muss-1') },
+      [ordered]@{ id='stelle-aufgabe'; zeileVon=5; zeileBis=5; text='- Konkrete Audit-Aufgabe umsetzen'; klassifikation='aufgabe'; anforderungIds=@('muss-1') }
+    )
+  }) -Force
+  Set-Content -LiteralPath $Fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 12)
+  $auftrag = Get-Content -LiteralPath $Fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+  $auftrag | Add-Member -NotePropertyName dialog -NotePropertyValue ([ordered]@{
+    angaben = @([ordered]@{ id='dialog-verfuegbarkeit'; normalisierteAngabe='Verfügbar ab sofort'; wahrheitsstatus='bestaetigt' })
+  }) -Force
+  Set-Content -LiteralPath $Fixture.Auftrag -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 10)
+  $index | Add-Member -NotePropertyName auftragSha256 -NotePropertyValue ((Get-FileHash -LiteralPath $Fixture.Auftrag -Algorithm SHA256).Hash) -Force
+  $index.belege = @($index.belege) + [ordered]@{ id='dialog-verfuegbarkeit'; quelle='auftrag_angabe'; angabeId='dialog-verfuegbarkeit'; text='Verfügbar ab sofort'; belegart='ÜBERTRAGBAR' }
+  Set-Content -LiteralPath $indexPath -Encoding UTF8 -Value ($index | ConvertTo-Json -Depth 8)
+  $Fixture | Add-Member -NotePropertyName Evidenzindex -NotePropertyValue $indexPath -Force
+  return $Fixture
+}
+
 function New-TestPdfWithText {
   param(
     [Parameter(Mandatory = $true)]
@@ -361,7 +569,11 @@ end
 function New-StagedFinalizationFixture {
   param([string]$Root, [switch]$WithPassfoto)
 
+  Import-Module (Join-Path $toolsRoot 'Common/AtomicFile.psm1') -Force -Global
+  Import-Module (Join-Path $toolsRoot 'Common/ApprovalContract.psm1') -Force -Global
+
   $fixture = New-ValidContentFixture -Root $Root
+  $fixture = Convert-ToSchema2Fixture -Fixture $fixture
   Set-Content -LiteralPath (Join-Path $fixture.Work 'Arbeitsnotizen.md') -Encoding UTF8 -Value "Fiktiver rekonstruierbarer Testauftrag."
   $candidate = Join-Path -Path $fixture.Work -ChildPath "Kandidat"
   New-Item -Path $candidate -ItemType Directory -Force | Out-Null
@@ -403,7 +615,7 @@ function New-StagedFinalizationFixture {
   })
   $layoutReportPath = Join-Path $layoutDir "Layoutcheck-Bericht.json"
   Set-Content -LiteralPath $layoutReportPath -Encoding UTF8 -Value (([ordered]@{
-    schemaVersion = 2
+    schemaVersion = 3
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     runtime = $browserRuntime
     browser = "chrome"
@@ -412,6 +624,33 @@ function New-StagedFinalizationFixture {
     pageWidth = 320
     pageHeight = 453
     expectedScreenshots = 2
+    printPreflight = [ordered]@{
+      mode = 'vollstaendiges_original_html'
+      documents = @(
+        [ordered]@{
+          htmlFile = [System.IO.Path]::GetFileName($letterHtmlPath)
+          htmlSha256 = (Get-FileHash -LiteralPath $letterHtmlPath -Algorithm SHA256).Hash
+          expectedPageCount = 1
+          actualPageCount = 1
+          pdfBytes = 6001
+          mediaBox = '595.28 x 841.89 pt'
+          a4 = $true
+          status = 'bestanden'
+          cssDiagnostics = @()
+        },
+        [ordered]@{
+          htmlFile = [System.IO.Path]::GetFileName($cvHtmlPath)
+          htmlSha256 = (Get-FileHash -LiteralPath $cvHtmlPath -Algorithm SHA256).Hash
+          expectedPageCount = 1
+          actualPageCount = 1
+          pdfBytes = 6001
+          mediaBox = '595.28 x 841.89 pt'
+          a4 = $true
+          status = 'bestanden'
+          cssDiagnostics = @()
+        }
+      )
+    }
     results = @(
       [ordered]@{
         htmlFile = [System.IO.Path]::GetFileName($letterHtmlPath)
@@ -474,7 +713,7 @@ function New-StagedFinalizationFixture {
   }) | ConvertTo-Json -Depth 8)
   $atsReportPath = Join-Path $fixture.Work "ATS-Pruefbericht.json"
   Set-Content -LiteralPath $atsReportPath -Encoding UTF8 -Value (([ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     checkedAtUtc = [datetime]::UtcNow.ToString("o")
     runtime = $browserRuntime
     folder = $candidate
@@ -491,6 +730,12 @@ function New-StagedFinalizationFixture {
         sourceComparableCharacters = 50
         extractedComparableCharacters = 50
         textCoveragePercent = 100
+        tokenCoveragePercent = 100
+        orderedBigramCoveragePercent = 100
+        orderedTrigramCoveragePercent = 100
+        tokenThresholds = [ordered]@{ token = 98; bigram = 95; trigram = 90 }
+        tokenComparisonPassed = $true
+        missingTokens = @()
         missingRequiredText = @()
         readingOrderPlausible = $true
         extractionEngine = "interner_tounicode_parser"
@@ -503,6 +748,12 @@ function New-StagedFinalizationFixture {
         sourceComparableCharacters = 75
         extractedComparableCharacters = 75
         textCoveragePercent = 100
+        tokenCoveragePercent = 100
+        orderedBigramCoveragePercent = 100
+        orderedTrigramCoveragePercent = 100
+        tokenThresholds = [ordered]@{ token = 98; bigram = 95; trigram = 90 }
+        tokenComparisonPassed = $true
+        missingTokens = @()
         missingRequiredText = @()
         readingOrderPlausible = $true
         extractionEngine = "interner_tounicode_parser"
@@ -533,7 +784,7 @@ function New-StagedFinalizationFixture {
     $sourceInputs.passfoto = & $record (Get-Item -LiteralPath $passfotoPath)
   }
   $report = [ordered]@{
-    schemaVersion = 5
+    schemaVersion = 6
     status = "bereit_zur_sichtpruefung"
     preparedAtUtc = [datetime]::UtcNow.ToString("o")
     runtime = $browserRuntime
@@ -563,7 +814,26 @@ function New-StagedFinalizationFixture {
     }
   }
   $finalReport = Join-Path $fixture.Work "Finalisierungsbericht.json"
-  Set-Content -LiteralPath $finalReport -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 10)
+  $approvalRecords = @(Get-ContractApprovalRecords -Report $report)
+  $report.approvalRequest = [ordered]@{
+    approvalId = 'FR-TEST00000000'
+    reviewKind = $report.personalReview
+    artifactSetSha256 = Invoke-TestCommonModuleFunction -ModuleFile 'Common/ApprovalContract.psm1' -FunctionName 'Get-ContractArtifactSetHash' -Parameters @{ Records = $approvalRecords }
+    artifactCount = $approvalRecords.Count
+    createdAtUtc = [datetime]::UtcNow.ToString('o')
+  }
+  Invoke-TestCommonModuleFunction -ModuleFile 'Common/AtomicFile.psm1' -FunctionName 'Write-AtomicJson' -Parameters @{ Path = $finalReport; Value = $report; Depth = 10 }
+  $approvalRecordsRelative = @($approvalRecords | ForEach-Object {
+    $record = [ordered]@{ path = [IO.Path]::GetRelativePath($fixture.Work, [string]$_.path).Replace('\','/'); name = $_.name; bytes = $_.bytes; sha256 = $_.sha256 }
+    $record
+  })
+  Invoke-TestCommonModuleFunction -ModuleFile 'Common/AtomicFile.psm1' -FunctionName 'Write-AtomicJson' -Parameters @{ Path = (Join-Path $fixture.Work 'Sichtfreigabe.json'); Value = ([ordered]@{
+    schemaVersion = 1; kind = 'sichtfreigabe'; approvalId = $report.approvalRequest.approvalId
+    confirmedAtUtc = [datetime]::UtcNow.ToString('o'); humanConfirmation = $true
+    preparedReport = [ordered]@{ path = 'Finalisierungsbericht.json'; sha256 = (Get-FileHash -LiteralPath $finalReport -Algorithm SHA256).Hash }
+    artifactSetSha256 = $report.approvalRequest.artifactSetSha256; artifacts = $approvalRecordsRelative
+    reviewKind = $report.personalReview; note = 'Synthetische Testfreigabe; beide Seiten geprüft.'
+  }); Depth = 10 }
 
   $fixture | Add-Member -NotePropertyName Candidate -NotePropertyValue $candidate
   $fixture | Add-Member -NotePropertyName FinalReport -NotePropertyValue $finalReport
@@ -851,6 +1121,9 @@ $script:defaultOrderProfile = Join-Path $testRoot "default-order-profile.md"
 Set-Content -LiteralPath $script:defaultOrderPersonal -Encoding UTF8 -Value "- Dateiname-Name: TEST.PERSON"
 Set-Content -LiteralPath $script:defaultOrderProfile -Encoding UTF8 -Value "# Fiktives Testprofil"
 try {
+    Import-Module (Join-Path $toolsRoot 'Common/AtomicFile.psm1') -Force -Global
+    Import-Module (Join-Path $toolsRoot 'Common/TextContract.psm1') -Force -Global -DisableNameChecking
+    Import-Module (Join-Path $toolsRoot 'Common/ApprovalContract.psm1') -Force -Global
   Invoke-Test -Name "PowerShell-Dateien sind syntaktisch gültig" -Body {
     foreach ($file in Get-ChildItem -LiteralPath $toolsRoot -Recurse -File | Where-Object { $_.Extension -in @(".ps1", ".psm1") }) {
       $tokens = $null
@@ -1085,6 +1358,14 @@ Start-Sleep -Seconds 30
       "Tools/Finalisiere-UniversalLebenslauf.ps1",
       "Tools/Integriere-Passfoto.ps1",
       "Tools/Common/Passfoto.psm1"
+      "Tests/Fixtures/Rollen/index.json"
+      "Tests/Fixtures/Rollen/Invoke-RoleFixtures.ps1"
+      "Tests/PromptRegression/models.json"
+      "Tests/PromptRegression/scenarios.json"
+      "Tests/Invoke-PromptRegression.ps1"
+      "Tests/Validate-BrowserStabilityEvidence.ps1"
+      "Tests/Collect-BrowserStabilityEvidence.ps1"
+      "Tests/Stabilitaetsnachweise/browser-smoke.json"
     )) {
       Assert-True -Condition (Test-ExactRelativePath -Root $repoRoot -RelativePath $relativePath) -Message "Pfad fehlt oder Groß-/Kleinschreibung stimmt nicht: $relativePath"
     }
@@ -1109,7 +1390,9 @@ Start-Sleep -Seconds 30
     $scopePrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md") -Raw -Encoding UTF8
     $matrixPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md") -Raw -Encoding UTF8
     $resumePrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/03_LEBENSLAUF_REGELN.md") -Raw -Encoding UTF8
+    $letterPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/04_ANSCHREIBEN_REGELN.md") -Raw -Encoding UTF8
     $rolePrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/06_ROLLENLOGIK.md") -Raw -Encoding UTF8
+    $truthPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/07_WAHRHEIT_UND_GRENZEN.md") -Raw -Encoding UTF8
     $qualityPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/09_QUALITAETSCHECK.md") -Raw -Encoding UTF8
     $canonicalPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/00_AGENTEN_START_HIER.md") -Raw -Encoding UTF8
     $emailPrompt = Get-Content -LiteralPath (Join-Path $repoRoot "Prompts/05_EMAIL_NACHRICHT_REGELN.md") -Raw -Encoding UTF8
@@ -1135,6 +1418,45 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($designPrompt -match 'data:image/png;base64' -and $designPrompt -match 'konkreten Bewerbungsdesign' -and $qualityPrompt -match 'Gesichtsausschnitt') -Message "Design- oder Sichtprüfungsvertrag für das optionale Passfoto fehlt."
     Assert-True -Condition ($technicalPrompt -match 'bewerbung\.ps1 passfoto' -and $technicalPrompt -match 'Bildbytes werden nie ausgegeben') -Message "Technischer Passfoto-Einbettungsvertrag fehlt."
     Assert-True -Condition ($cvTemplate -match '<!-- passfoto:start -->' -and $cvTemplate -match '\{\{PASSFOTO_BLOCK\}\}' -and $cvTemplate -match 'bewerbungsfoto-rahmen') -Message "Lebenslaufreferenz enthält keinen vollständig optionalen Passfoto-Block."
+    Assert-True -Condition ($canonicalPrompt -match 'Stellenanforderungen.+stärkste Profilbelege.+Transferbrücken.+Inhaltsentwurf.+Layout') -Message "Kanonischer Workflow erzwingt die belegorientierte Erstellungsreihenfolge nicht."
+    Assert-True -Condition ($matrixPrompt -match 'Schema 5' -and $matrixPrompt -match 'recruiterStrategie' -and $matrixPrompt -match 'profilHighlights' -and $matrixPrompt -match 'sichtbareAnker' -and $matrixPrompt -match 'Evidenzindex' -and $matrixPrompt -match 'anschreibenStrategie') -Message "Matrixprompt definiert den Schema-5-Recruiter-, Anschreiben- und Evidenzvertrag nicht vollständig."
+    Assert-True -Condition ($resumePrompt -match 'Zweck.+Aufgabe.+Problem' -and $resumePrompt -match 'eigene Beitrag.+Tätigkeit.+Ergebnis' -and $resumePrompt -match 'ungewöhnlich leer') -Message "Lebenslaufprompt schützt Projektbelege und inhaltliche Flächennutzung nicht."
+    Assert-True -Condition ($letterPrompt -match 'Lebenslauf und Anschreiben ergänzen sich' -and $letterPrompt -match 'zwei bis vier') -Message "Anschreibenprompt verbindet die stärksten Belege nicht mit dem Arbeitgebernutzen."
+    Assert-True -Condition ($truthPrompt -match 'Salesforce' -and $truthPrompt -match 'API-.+Prozess-.+Lernpraxis' -and $truthPrompt -match 'Unzulässig.+Salesforce-Erfahrung') -Message "Wahrheitsprompt definiert keine ehrliche Salesforce-Transferbrücke."
+    Assert-True -Condition ($qualityPrompt -match 'recruiterCoverage' -and $technicalPrompt -match 'recruiterCoverage') -Message "Qualitäts- oder Technikprompt fordert keine maschinenlesbare Recruiter-Abdeckung."
+    foreach ($promptText in @($canonicalPrompt, $matrixPrompt, $resumePrompt, $letterPrompt, $rolePrompt, $qualityPrompt)) {
+      Assert-True -Condition ($promptText -notmatch '(?i)(?:höchstens|maximal|nur)\s+(?:ein(?:e)?\s+bis\s+)?zwei\s+Projekte|ein\s+bis\s+zwei\s+Projekte') -Message "Ein Prompt führt erneut eine pauschale Obergrenze von ein bis zwei Projekten ein."
+    }
+  }
+
+  Invoke-Test -Name "Prompt-Regression-Konfiguration bindet vier Agenten und feste Modelle" -Body {
+    $modelCatalog = Get-Content -LiteralPath (Join-Path $repoRoot 'Tests/PromptRegression/models.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $scenarioCatalog = Get-Content -LiteralPath (Join-Path $repoRoot 'Tests/PromptRegression/scenarios.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $models = @($modelCatalog.models)
+    Assert-True -Condition ($modelCatalog.schemaVersion -eq 1 -and $models.Count -eq 4) -Message 'Die Prompt-Modellmatrix enthält nicht genau vier Agentenumgebungen.'
+    $expected = @{
+      'codex-openai' = @('codex', 'openai', 'gpt-5.6-terra', '0.148.0-alpha.15')
+      'opencode-openai' = @('opencode', 'openai', 'openai/gpt-5.6-terra', '1.18.18')
+      'claude-anthropic' = @('claude', 'anthropic', 'claude-sonnet-4-6', '2.1.235')
+      'gemini-google' = @('gemini', 'google', 'gemini-3.7-flash', '0.55.1')
+    }
+    foreach ($model in $models) {
+      Assert-True -Condition $expected.ContainsKey([string]$model.id) -Message "Unbekanntes Prompt-Modell: $($model.id)"
+      $spec = $expected[[string]$model.id]
+      Assert-True -Condition ([string]$model.command -eq $spec[0] -and -not [string]::IsNullOrWhiteSpace([string]$model.cliPackage) -and [string]$model.provider -eq $spec[1] -and [string]$model.model -eq $spec[2] -and [string]$model.cliVersion -eq $spec[3] -and -not [string]::IsNullOrWhiteSpace([string]$model.credentialVariable)) -Message "Prompt-Modell $($model.id) ist nicht exakt gepinnt."
+      Assert-True -Condition (@($model.arguments).Count -gt 0) -Message "Prompt-Modell $($model.id) besitzt keine CLI-Argumente."
+    }
+    $openCodeConfig = Get-Content -LiteralPath (Join-Path $repoRoot 'opencode.json') -Raw -Encoding UTF8
+    $openCodeObject = $openCodeConfig | ConvertFrom-Json
+    Assert-True -Condition ($openCodeObject.share -eq 'disabled' -and $openCodeConfig -notmatch 'gpt-5\.6-terra|OPENAI_API_KEY') -Message 'Root-opencode.json ist nicht provider- und modellneutral oder enthält ein Geheimnis.'
+    Assert-True -Condition (@($scenarioCatalog.scenarios | Where-Object { $_.tier -eq 'pr' }).Count -ge 3 -and @($scenarioCatalog.scenarios | Where-Object { $_.fixture -eq 'it-support-quereinstieg' }).Count -ge 1) -Message 'Prompt-Szenariomatrix deckt Canary- und Transferfall nicht ab.'
+    $stabilityPath = Join-Path $repoRoot 'Tests/Stabilitaetsnachweise/browser-smoke.json'
+    $stability = Get-Content -LiteralPath $stabilityPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($stability.schemaVersion -eq 1 -and $stability.requiredConsecutiveRuns -eq 3 -and [string]$stability.status -in @('vorbereitet', 'entwurf', 'stabil')) -Message 'Ubuntu-Stabilitätsnachweis besitzt keinen gültigen Rolloutstatus.'
+    $stabilityArguments = @('-Path', $stabilityPath)
+    if ([string]$stability.status -eq 'stabil') { $stabilityArguments += '-RequireStable' }
+    $stabilityCheck = Invoke-ChildScript -ScriptPath (Join-Path $repoRoot 'Tests/Validate-BrowserStabilityEvidence.ps1') -Arguments $stabilityArguments
+    Assert-True -Condition ($stabilityCheck.ExitCode -eq 0) -Message "Stabilitätsnachweis ist nicht prüfbar: $($stabilityCheck.Output -join ' | ')"
   }
 
   Invoke-Test -Name "Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben" -Body {
@@ -1244,6 +1566,30 @@ Start-Sleep -Seconds 30
     Set-Content -LiteralPath $stalePdf -Encoding ASCII -Value "%PDF-1.4 stale-test"
     $staleResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbung.ps1") -Arguments @("-Ordner", $folder)
     Assert-True -Condition ($staleResult.ExitCode -ne 0) -Message "Zusätzliche oder falsch benannte PDF im flachen Kandidatenordner wurde akzeptiert."
+  }
+
+  Invoke-Test -Name "Dispatcher normalisiert Einzelpfade und Pfadlisten aus fremdem Arbeitsverzeichnis" -Body {
+    $fixtureRoot = Join-Path $testRoot 'dispatcher-relative-paths'
+    $fixture = New-ValidContentFixture -Root $fixtureRoot
+    $relativeFolder = [IO.Path]::GetRelativePath($fixtureRoot, $fixture.Folder)
+    $relativeOrder = [IO.Path]::GetRelativePath($fixtureRoot, $fixture.Auftrag)
+    Push-Location $fixtureRoot
+    try {
+      $checkOutput = & $powerShellExe -NoProfile -File (Join-Path $toolsRoot 'bewerbung.ps1') pruefen --ordner $relativeFolder --auftrag-path $relativeOrder 2>&1
+      $checkCode = $LASTEXITCODE
+      $reportPaths = @()
+      foreach ($number in 1..3) {
+        $reportPath = Join-Path $fixtureRoot "laufzeit-$number.json"
+        Set-Content -LiteralPath $reportPath -Encoding UTF8 -Value (([ordered]@{ schemaVersion = 1; suite = 'schnell'; testNamePattern = $null; status = 'bestanden'; durationMs = (1000 + $number); runtime = [ordered]@{ os = 'synthetisch'; architecture = 'x64'; powershell = '7.6' }; timing = [ordered]@{ testDurationMs = 800; p95TestDurationMs = 500 } }) | ConvertTo-Json -Depth 8)
+        $reportPaths += [IO.Path]::GetFileName($reportPath)
+      }
+      $baselineOutput = & $powerShellExe -NoProfile -File (Join-Path $toolsRoot 'bewerbung.ps1') test-baseline --bericht-path ($reportPaths -join ',') --baseline-path 'baseline.json' 2>&1
+      $baselineCode = $LASTEXITCODE
+    } finally {
+      Pop-Location
+    }
+    Assert-True -Condition ($checkCode -eq 0) -Message "Dispatcher löste relative Einzelpfade nicht gegen das Aufrufverzeichnis auf: $($checkOutput -join ' | ')"
+    Assert-True -Condition ($baselineCode -eq 0 -and (Test-Path -LiteralPath (Join-Path $fixtureRoot 'baseline.json') -PathType Leaf)) -Message "Dispatcher löste die kommagetrennte relative Berichtsliste nicht korrekt auf: $($baselineOutput -join ' | ')"
   }
 
   Invoke-Test -Name "Zweiseitige Lebensläufe halten fachliche Abschnitte atomar" -Body {
@@ -1416,6 +1762,25 @@ Start-Sleep -Seconds 30
     $fixture = New-DialogContractFixture -Root (Join-Path $testRoot "dialog-permanent") -DialogStatus "speicherentscheidung_offen" -Rueckfragen @($storageQuestion) -Angaben @($fact)
     $personalHash = (Get-FileHash -LiteralPath $fixture.Personal -Algorithm SHA256).Hash
     $beforeProfileHash = (Get-FileHash -LiteralPath $fixture.Profile -Algorithm SHA256).Hash
+    $beforeProfileBytes = [System.IO.File]::ReadAllBytes($fixture.Profile)
+    $beforeOrderBytes = [System.IO.File]::ReadAllBytes($fixture.Auftrag)
+    $recoveryDir = Join-Path $fixture.Work '.dialogtransaktion-recovery'
+    New-Item -Path $recoveryDir -ItemType Directory | Out-Null
+    [System.IO.File]::WriteAllBytes((Join-Path $recoveryDir 'profile.before.bin'), $beforeProfileBytes)
+    [System.IO.File]::WriteAllBytes((Join-Path $recoveryDir 'order.before.bin'), $beforeOrderBytes)
+    $interruptedProfileBytes = [System.Text.UTF8Encoding]::new($false).GetBytes(((Get-Content -LiteralPath $fixture.Profile -Raw -Encoding UTF8) + "`nUnterbrochene Transaktion"))
+    [System.IO.File]::WriteAllBytes($fixture.Profile, $interruptedProfileBytes)
+    $recoveryJournal = [ordered]@{
+      schemaVersion = 1
+      profileFileName = Split-Path -Path $fixture.Profile -Leaf
+      orderFileName = Split-Path -Path $fixture.Auftrag -Leaf
+      profileBeforeSha256 = (Get-FileHash -LiteralPath (Join-Path $recoveryDir 'profile.before.bin') -Algorithm SHA256).Hash
+      profileAfterSha256 = ([System.BitConverter]::ToString(([System.Security.Cryptography.SHA256]::HashData($interruptedProfileBytes))).Replace('-', ''))
+      orderBeforeSha256 = (Get-FileHash -LiteralPath (Join-Path $recoveryDir 'order.before.bin') -Algorithm SHA256).Hash
+      orderAfterSha256 = (Get-FileHash -LiteralPath $fixture.Auftrag -Algorithm SHA256).Hash
+      createdAtUtc = [datetime]::UtcNow.ToString('o')
+    }
+    Set-Content -LiteralPath (Join-Path $recoveryDir 'journal.json') -Encoding UTF8 -Value ($recoveryJournal | ConvertTo-Json -Depth 6)
     $arguments = @(
       "-AuftragPath", $fixture.Auftrag,
       "-AngabeId", "typescript-angabe",
@@ -1433,6 +1798,7 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ((Get-FileHash -LiteralPath $fixture.Personal -Algorithm SHA256).Hash -eq $personalHash) -Message "Nicht zuständige persönliche Stammdaten wurden verändert."
     $profileText = Get-Content -LiteralPath $fixture.Profile -Raw -Encoding UTF8
     Assert-True -Condition (@([regex]::Matches($profileText, [regex]::Escape($formulation))).Count -eq 1) -Message "Bestätigte Formulierung fehlt oder wurde dupliziert."
+    Assert-True -Condition ($profileText -notmatch 'Unterbrochene Transaktion' -and -not (Test-Path -LiteralPath $recoveryDir)) -Message 'Unterbrochene Profiltransaktion wurde nicht vor der neuen Übernahme sicher wiederhergestellt.'
     $auftrag = Get-Content -LiteralPath $fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
     $stored = @($auftrag.dialog.angaben)[0]
     Assert-True -Condition ($stored.speicherentscheidung -eq "dauerhaft" -and $stored.profilaktualisierung.status -eq "aktualisiert") -Message "Dauerhafte Zustimmung wurde nicht mit Erfolgsstatus protokolliert."
@@ -1654,7 +2020,7 @@ Start-Sleep -Seconds 30
     $statusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Ermittle-Bewerbungsstatus.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-AlsJson")
     Assert-True -Condition ($statusResult.ExitCode -eq 0) -Message "Statusrekonstruktion schlug fehl: $($statusResult.Output -join ' | ')"
     $status = ($statusResult.Output -join "`n") | ConvertFrom-Json
-    Assert-True -Condition ($status.schemaVersion -eq 1 -and $status.phase -eq "profilabgleich") -Message "Statuswerkzeug erkannte die Dialogphase nicht."
+    Assert-True -Condition ($status.schemaVersion -eq 2 -and $status.phase -eq "profilabgleich" -and $null -eq $status.technicalAttempt) -Message "Statuswerkzeug erkannte die Dialogphase oder das neue technische Zustandsfeld nicht."
     Assert-True -Condition (@($status.requiredPrompts) -contains "Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md") -Message "Statuswerkzeug nennt das zuständige Dialogmodul nicht."
     Assert-True -Condition ($status.workFolder -eq $fixture.Work) -Message "Statuswerkzeug meldet einen anderen Arbeitsordner."
     Assert-True -Condition ((Get-FileHash -LiteralPath $fixture.Auftrag -Algorithm SHA256).Hash -eq $beforeOrderHash) -Message "Statusrekonstruktion veränderte den Auftrag."
@@ -1687,6 +2053,27 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($second.ExitCode -eq 0) -Message "Aktualisierung des veralteten Workflow-Checkpoints schlug fehl."
     $updatedCheckpoint = Get-Content -LiteralPath $checkpointPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition (@($updatedCheckpoint.history).Count -eq 2 -and @($updatedCheckpoint.history)[1].sequence -eq 2) -Message "Workflow-Checkpoint führt keine begrenzte, konsistente Schritt-Historie."
+  }
+
+  Invoke-Test -Name "Status zeigt fehlgeschlagene PDF-Stufe und veraltete Kandidatenbindung" -Body {
+    $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot 'status-failed-pdf')
+    $auftrag = Get-Content -LiteralPath $fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+    $auftrag | Add-Member -NotePropertyName dokumentumfang -NotePropertyValue ([ordered]@{ auswahl = 'A'; kennung = 'komplette_bewerbung'; lebenslauf = 'individuell'; anschreiben = $true; emailNachricht = $true; bestaetigt = $true }) -Force
+    $auftrag | Add-Member -NotePropertyName dialog -NotePropertyValue ([ordered]@{ status = 'abgeschlossen'; rueckfragen = @(); angaben = @() }) -Force
+    Set-Content -LiteralPath $fixture.Auftrag -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 12)
+    $cacheModule = Import-Module (Join-Path $toolsRoot 'Common/FinalizationCache.psm1') -Force -PassThru
+    $sourcePath = Join-Path $fixture.Candidate 'Lebenslauf - TEST.PERSON.html'
+    $statePath = Join-Path $fixture.Work 'Pruefstand.json'
+    $fingerprint = & $cacheModule { param($root, $sourcePath) Get-FinalizationStageFingerprint -Stage pdf -Root $root -InputFiles @($sourcePath) -Parameters @{ browser = 'synthetisch' } } $fixture.Work $sourcePath
+    $failure = [ordered]@{ stage = 'pdf'; tool = 'Exportiere-PDF.ps1'; exitCode = 1; errorCode = 'tool_failed'; message = 'Synthetischer PDF-Fehler' }
+    & $cacheModule { param($path, $root, $fingerprint, $failure) Save-FinalizationStageResult -Path $path -Root $root -Stage pdf -Fingerprint $fingerprint -OutputFiles @() -DurationMs 1 -Status failed -Failure $failure } $statePath $fixture.Work $fingerprint $failure
+    $statusResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Ermittle-Bewerbungsstatus.ps1') -Arguments @('-Arbeitsordner', $fixture.Work, '-AlsJson')
+    $status = ($statusResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition ($statusResult.ExitCode -eq 0 -and $status.schemaVersion -eq 2 -and $status.phase -eq 'technische_vorbereitung' -and $status.technicalAttempt.stage -eq 'pdf' -and $status.technicalAttempt.status -eq 'failed' -and $status.technicalAttempt.current) -Message 'Status zeigt einen aktuellen fehlgeschlagenen PDF-Schritt nicht korrekt.'
+    Add-Content -LiteralPath $sourcePath -Encoding UTF8 -Value '<!-- Kandidat geändert -->'
+    $staleResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Ermittle-Bewerbungsstatus.ps1') -Arguments @('-Arbeitsordner', $fixture.Work, '-AlsJson')
+    $stale = ($staleResult.Output -join "`n") | ConvertFrom-Json
+    Assert-True -Condition ($staleResult.ExitCode -eq 0 -and -not [bool]$stale.technicalAttempt.current -and $stale.technicalAttempt.staleReason -eq 'eingabe_geaendert') -Message 'Status kennzeichnet einen hashabweichenden Kandidaten nicht als veraltet.'
   }
 
   Invoke-Test -Name "Dialogfall 9: Unklarer Kleinmodellzustand bleibt nach einer Wiederholung fail-closed" -Body {
@@ -1794,7 +2181,7 @@ Start-Sleep -Seconds 30
     )
     Assert-True -Condition ($prepare.ExitCode -eq 0) -Message "Browserfreie E-Mail-Vorbereitung schlug fehl: $($prepare.Output -join ' | ')"
     $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
-    Assert-True -Condition ($report.schemaVersion -eq 5 -and $report.personalReview -eq "textpruefung" -and $report.expectedScreenshots -eq 0) -Message "E-Mail-only-Bericht fordert nicht die persönliche Textprüfung ohne Screenshots."
+    Assert-True -Condition ($report.schemaVersion -eq 7 -and $report.personalReview -eq "textpruefung" -and $report.expectedScreenshots -eq 0 -and $null -ne $report.approvalRequest) -Message "E-Mail-only-Bericht fordert nicht die persönliche Textprüfung ohne Screenshots oder Freigabe-ID."
     Assert-True -Condition (-not [string]::IsNullOrWhiteSpace([string]$report.runtime.os) -and $report.runtime.psEdition -eq "Core") -Message "Finalisierungsbericht enthält keinen gültigen Runtime-Fingerprint."
     Assert-True -Condition (@($report.artifacts.html).Count -eq 0 -and @($report.artifacts.pdf).Count -eq 0 -and @($report.artifacts.screenshots).Count -eq 0) -Message "E-Mail-only erzeugte HTML-, PDF- oder Screenshotartefakte."
     foreach ($reportPath in @($report.layoutReport, $report.pdfReport, $report.atsReport)) {
@@ -1877,6 +2264,11 @@ Start-Sleep -Seconds 30
     )
     Assert-True -Condition ($changedTechnicalReportPublish.ExitCode -ne 0) -Message "Geänderter nicht-erforderlich-Bericht wurde als vorbereiteter Nachweis akzeptiert."
     [System.IO.File]::WriteAllText([string]$preparedReport.pdfReport, $pdfReportJson, [System.Text.UTF8Encoding]::new($false))
+    $approval = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Erzeuge-Sichtfreigabe.ps1") -Arguments @(
+      "-Arbeitsordner", $fixture.Work, "-FreigabeId", [string]$preparedReport.approvalRequest.approvalId,
+      "-Bestaetigt", "-Notiz", "E-Mail-Text persönlich vollständig geprüft."
+    )
+    Assert-True -Condition ($approval.ExitCode -eq 0) -Message "E-Mail-only-Sichtfreigabe konnte nicht gebunden werden: $($approval.Output -join ' | ')"
     $publish = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @(
       "-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile,
       "-Veroeffentlichen", "-VisuellGeprueft"
@@ -1926,6 +2318,18 @@ Start-Sleep -Seconds 30
     Assert-True -Condition ($auftrag.bewerbungslogistik.stellenart -eq "Vollzeit" -and $auftrag.bewerbungslogistik.arbeitsmodell -eq "hybrid") -Message "Logistik-Snapshot ist unvollständig."
     Assert-True -Condition ($auftrag.bewerbungsentscheidung -eq "noch_festzulegen") -Message "Initiale Bewerbungsentscheidung ist nicht offen markiert."
     Assert-True -Condition ($auftrag.quellnachweise.stammdatenSha256BeiAnlage -eq (Get-FileHash -LiteralPath $data.Personal -Algorithm SHA256).Hash) -Message "Stammdaten-Quellhash fehlt oder stimmt nicht."
+    $matrixDraftPath = Join-Path (Split-Path -Path $auftragPath -Parent) "Anforderungsmatrix--ENTWURF.json"
+    $matrixDraft = Get-Content -LiteralPath $matrixDraftPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($matrixDraft.schemaVersion -eq 5) -Message "Neue Bewerbung erhält keinen Matrixentwurf nach Schema 5."
+    Assert-True -Condition ($matrixDraft.anschreibenStrategie.status -eq "ausstehend" -and $null -ne $matrixDraft.externeQuellen) -Message "Schema-5-Matrixentwurf enthält keine Anschreibenstrategie oder Quellenliste."
+    Assert-True -Condition ($null -ne $matrixDraft.recruiterStrategie -and $matrixDraft.recruiterStrategie.profilSubstanz -eq "noch_zu_pruefen") -Message "Matrixentwurf enthält keine offene Recruiter-Strategie."
+    foreach ($strategyField in @("kernbotschaft", "prioritaetsAnforderungen", "profilHighlights", "transferbruecken", "auslassungen")) {
+      Assert-True -Condition ($matrixDraft.recruiterStrategie.PSObject.Properties.Name -contains $strategyField) -Message "Matrixentwurf enthält das Recruiter-Feld '$strategyField' nicht."
+    }
+    Assert-True -Condition ($null -ne $matrixDraft.stellenanzeigeAbdeckung) -Message 'Matrixentwurf enthält keine Schema-4-Stellenanzeigenabdeckung.'
+    $evidenceDraftPath = Join-Path (Split-Path -Path $auftragPath -Parent) 'Evidenzindex--ENTWURF.json'
+    $evidenceDraft = Get-Content -LiteralPath $evidenceDraftPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($evidenceDraft.schemaVersion -eq 1 -and $null -ne $evidenceDraft.belege) -Message 'Ordnerhelfer erzeugt keinen Evidenzindex-Entwurf.'
     $checkpoint = Get-Content -LiteralPath (Join-Path (Split-Path -Path $auftragPath -Parent) "Workflow-Checkpoint.json") -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ($checkpoint.lastCompletedStep -eq "auftrag_angelegt" -and $checkpoint.artifacts.Count -gt 0) -Message "Ordnerhelfer erzeugte keinen gebundenen Initial-Checkpoint."
   }
@@ -2257,13 +2661,13 @@ Start-Sleep -Seconds 30
   }
 
   Invoke-Test -Name "Inhaltsprüfer akzeptiert vollständigen Anforderungs- und Zeitraumabgleich" -Body {
-    $fixture = New-ValidContentFixture -Root (Join-Path $testRoot "valid-content")
+    $fixture = Convert-ToSchema2Fixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "valid-content"))
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
     Assert-True -Condition ($result.ExitCode -eq 0) -Message "Vollständiger Inhaltsabgleich wurde abgelehnt: $($result.Output -join ' | ')"
   }
 
   Invoke-Test -Name "Passfoto-Subcommand und Inhaltsprüfung unterscheiden fehlende, gültige und ungültige Quellen" -Body {
-    $fixture = New-ValidContentFixture -Root (Join-Path $testRoot "passfoto-content")
+    $fixture = Convert-ToSchema2Fixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "passfoto-content"))
     $cvPath = Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.html"
     $cvHtml = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
     $cvHtml = $cvHtml.Replace('</main>', "<!-- passfoto:start -->`n{{PASSFOTO_BLOCK}}`n<!-- passfoto:end -->`n</main>")
@@ -2293,7 +2697,7 @@ Start-Sleep -Seconds 30
     )
     Assert-True -Condition ($content.ExitCode -eq 0) -Message "Bytegleich eingebettetes Passfoto wurde abgelehnt: $($content.Output -join ' | ')"
     $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    Assert-True -Condition ($report.schemaVersion -eq 4 -and $report.passfoto.status -eq 'eingebettet' -and $report.passfoto.sourceSha256 -eq $report.passfoto.embeddedSha256) -Message "Inhaltsbericht weist die Passfoto-Bindung nicht korrekt aus."
+    Assert-True -Condition ($report.schemaVersion -eq 6 -and $report.passfoto.status -eq 'eingebettet' -and $report.passfoto.sourceSha256 -eq $report.passfoto.embeddedSha256) -Message "Inhaltsbericht weist die Passfoto-Bindung nicht korrekt aus."
 
     $validHtml = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
     $photoTag = [regex]::Match($validHtml, '(?is)<img\b[^>]*class="bewerbungsfoto"[^>]*>').Value
@@ -2335,6 +2739,274 @@ Start-Sleep -Seconds 30
     $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True -Condition ($report.fitAssessment.classification -eq "stark" -and $report.fitAssessment.scorePercent -eq 100) -Message "Gewichtete Eignungsbewertung ist unerwartet."
     Assert-True -Condition ($report.profileLinksMode -eq "rollenrelevant") -Message "Profillink-Modus fehlt im Bericht."
+  }
+
+  Invoke-Test -Name "Schema-3-Inhaltsprüfung bestätigt vollständige Recruiter-Abdeckung" -Body {
+    $fixture = Convert-ToSchema3RecruiterFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "schema3-recruiter-valid"))
+    $reportPath = Join-Path $fixture.Work "Inhalt-Schema3.json"
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix, "-BerichtPath", $reportPath)
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Vollständige Schema-3-Recruiter-Abdeckung wurde abgelehnt: $($result.Output -join ' | ')"
+    $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($report.schemaVersion -eq 6 -and $report.recruiterCoverage.status -eq "ok") -Message "Inhaltsbericht weist die gültige Recruiter-Abdeckung nicht maschinenlesbar aus."
+    Assert-True -Condition ($report.recruiterCoverage.highlights.Count -eq 2 -and $report.recruiterCoverage.firstPageRequirementIds -contains "muss-1") -Message "Highlights oder Seite-1-Abdeckung fehlen im Recruiter-Bericht."
+  }
+
+  Invoke-Test -Name "Schema-4-Inhaltsprüfung bindet Stellenanforderungen und Profilbelege an Quellen" -Body {
+    $fixture = Convert-ToSchema4EvidenceFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot 'schema4-evidence-valid'))
+    $reportPath = Join-Path $fixture.Work 'Inhalt-Schema4.json'
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $fixture.Folder, '-StammdatenPath', $fixture.Personal, '-ProfilPath', $fixture.Profile, '-AuftragPath', $fixture.Auftrag, '-AnforderungsmatrixPath', $fixture.Matrix, '-EvidenzindexPath', $fixture.Evidenzindex, '-BerichtPath', $reportPath)
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Vollständige Schema-4-Beweiskette wurde abgelehnt: $($result.Output -join ' | ')"
+    $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($report.evidenceCoverage.status -eq 'ok' -and $report.evidenceCoverage.explicitJobSignalLines.Count -ge 2 -and $report.evidenceCoverage.profileEvidence.Count -eq 3 -and @($report.evidenceCoverage.profileEvidence | Where-Object { $_.quelle -eq 'auftrag_angabe' -and $_.valid }).Count -eq 1) -Message 'Schema-4-Bericht weist die Quellenbeweiskette nicht vollständig aus.'
+  }
+
+  Invoke-Test -Name "Schema-4-Inhaltsprüfung verwirft fehlende Stellenabdeckung und unbelegte Direktbehauptungen" -Body {
+    $missingSource = Convert-ToSchema4EvidenceFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot 'schema4-missing-source'))
+    $matrix = Get-Content -LiteralPath $missingSource.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrix.stellenanzeigeAbdeckung.fundstellen = @($matrix.stellenanzeigeAbdeckung.fundstellen[0])
+    Set-Content -LiteralPath $missingSource.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 12)
+    $missingResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $missingSource.Folder, '-StammdatenPath', $missingSource.Personal, '-ProfilPath', $missingSource.Profile, '-AuftragPath', $missingSource.Auftrag, '-AnforderungsmatrixPath', $missingSource.Matrix, '-EvidenzindexPath', $missingSource.Evidenzindex)
+    Assert-True -Condition ($missingResult.ExitCode -ne 0) -Message 'Nicht abgedeckte explizite Stellenaufgabe wurde akzeptiert.'
+
+    $fabricated = Convert-ToSchema4EvidenceFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot 'schema4-fabricated-evidence'))
+    $fabricatedMatrix = Get-Content -LiteralPath $fabricated.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $fabricatedMatrix.requirements[0].belegRefIds = @('nicht-vorhanden')
+    Set-Content -LiteralPath $fabricated.Matrix -Encoding UTF8 -Value ($fabricatedMatrix | ConvertTo-Json -Depth 12)
+    $fabricatedResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $fabricated.Folder, '-StammdatenPath', $fabricated.Personal, '-ProfilPath', $fabricated.Profile, '-AuftragPath', $fabricated.Auftrag, '-AnforderungsmatrixPath', $fabricated.Matrix, '-EvidenzindexPath', $fabricated.Evidenzindex)
+    Assert-True -Condition ($fabricatedResult.ExitCode -ne 0) -Message 'Unbekannte Profilevidenz wurde als Direktbeleg akzeptiert.'
+  }
+
+  Invoke-Test -Name "Schema-5-Anschreibenstrategie bindet Nutzen, Quellen und Evidenzdisposition" -Body {
+    $fixture = Convert-ToSchema4EvidenceFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot 'schema5-letter-valid'))
+    $matrix = Get-Content -LiteralPath $fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrix.schemaVersion = 5
+    $matrix | Add-Member -NotePropertyName externeQuellen -NotePropertyValue @() -Force
+    $matrix | Add-Member -NotePropertyName anschreibenStrategie -NotePropertyValue ([ordered]@{
+      status = 'final'
+      argumente = @(
+        [ordered]@{ id='argument-1'; anforderungIds=@('muss-1'); belegRefIds=@('profil-weiterbildung'); stellenFundstellen=@('stelle-profil'); externeQuellenIds=@(); arbeitgeberbezug='Die geforderte Audit-Rolle verbindet klare Prüfaufgaben mit verlässlicher Dokumentation.'; nutzenargument='Damit erhält das Team eine nachvollziehbare Grundlage für konsistente Audit-Entscheidungen.'; sichtbareAnker=@('Audit Firma Audit-Rolle Vollzeit nach Vereinbarung') },
+        [ordered]@{ id='argument-2'; anforderungIds=@('muss-1'); belegRefIds=@('profil-projekt'); stellenFundstellen=@('stelle-aufgabe'); externeQuellenIds=@(); arbeitgeberbezug='Die konkrete Audit-Aufgabe profitiert von meiner strukturierten Projektpraxis.'; nutzenargument='Mein eigener Beitrag unterstützt eine verständliche und belastbare Umsetzung der Aufgabe.'; sichtbareAnker=@('Audit Firma Audit-Rolle Vollzeit nach Vereinbarung') }
+      )
+      abweichungBegruendung = ''
+    }) -Force
+    $matrix.recruiterStrategie.auslassungen = @([ordered]@{ thema='Verfügbarkeit'; begruendung='Die Angabe gehört zur Logistik und nicht als fachliches Argument in das Anschreiben.'; anforderungId=''; belegRefIds=@('dialog-verfuegbarkeit') })
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 15)
+    $reportPath = Join-Path $fixture.Work 'Inhalt-Schema5.json'
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $fixture.Folder, '-StammdatenPath', $fixture.Personal, '-ProfilPath', $fixture.Profile, '-AuftragPath', $fixture.Auftrag, '-AnforderungsmatrixPath', $fixture.Matrix, '-EvidenzindexPath', $fixture.Evidenzindex, '-BerichtPath', $reportPath)
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Gültige Schema-5-Anschreibenstrategie wurde abgelehnt: $($result.Output -join ' | ')"
+    $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($report.schemaVersion -eq 6 -and $report.anschreibenCoverage.status -eq 'ok' -and $report.evidenzDisposition.status -eq 'ok' -and $report.externalSourceCoverage.status -eq 'ok') -Message 'Schema-5-Coverage-Berichte sind unvollständig.'
+  }
+
+  Invoke-Test -Name "Schema-5-Prüfung blockiert unklassifizierte Evidenz und falsche Anschreibenanker" -Body {
+    $fixture = Convert-ToSchema4EvidenceFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot 'schema5-letter-invalid'))
+    $matrix = Get-Content -LiteralPath $fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrix.schemaVersion = 5
+    $matrix | Add-Member -NotePropertyName externeQuellen -NotePropertyValue @() -Force
+    $matrix | Add-Member -NotePropertyName anschreibenStrategie -NotePropertyValue ([ordered]@{ status='final'; argumente=@([ordered]@{ id='argument-1'; anforderungIds=@('muss-1'); belegRefIds=@('profil-weiterbildung'); stellenFundstellen=@('stelle-profil'); externeQuellenIds=@(); arbeitgeberbezug='Konkreter Arbeitgeberbezug für die Audit-Aufgabe und ihre Anforderungen.'; nutzenargument='Konkreter Nutzen durch nachvollziehbare und strukturierte Audit-Umsetzung.'; sichtbareAnker=@('nicht sichtbar') }, [ordered]@{ id='argument-2'; anforderungIds=@('muss-1'); belegRefIds=@('profil-projekt'); stellenFundstellen=@('stelle-aufgabe'); externeQuellenIds=@(); arbeitgeberbezug='Die Aufgabe profitiert von belegter Projektpraxis und strukturierter Dokumentation.'; nutzenargument='Der eigene Beitrag unterstützt eine belastbare Umsetzung der ausgeschriebenen Aufgabe.'; sichtbareAnker=@('Audit Firma Audit-Rolle Vollzeit nach Vereinbarung') }); abweichungBegruendung='' }) -Force
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 15)
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $fixture.Folder, '-StammdatenPath', $fixture.Personal, '-ProfilPath', $fixture.Profile, '-AuftragPath', $fixture.Auftrag, '-AnforderungsmatrixPath', $fixture.Matrix, '-EvidenzindexPath', $fixture.Evidenzindex)
+    Assert-True -Condition ($result.ExitCode -ne 0) -Message 'Fehlender Anschreibenanker oder unklassifizierte Evidenz wurde akzeptiert.'
+  }
+
+  Invoke-Test -Name "Schema-5-Quellenmetadaten validieren URL, Abrufzeit und sichtbare Verwendung" -Body {
+    $fixture = Convert-ToSchema4EvidenceFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot 'schema5-source-invalid'))
+    $matrix = Get-Content -LiteralPath $fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrix.schemaVersion = 5
+    $matrix | Add-Member -NotePropertyName externeQuellen -NotePropertyValue @([ordered]@{ id='quelle-unternehmen'; typ='unternehmen'; titel='Audit-Firma'; herausgeber='Audit-Firma'; url='not-a-url'; abgerufenAmUtc=(Get-Date).ToUniversalTime().ToString('o'); quellenstand=''; aussage='Die Stelle verbindet Audit-Aufgaben mit strukturierter Dokumentation.'; verwendungen=@([ordered]@{ zweck='arbeitgeberbezug'; zielDokument='anschreiben'; sichtbareAnker=@('Audit Firma Audit-Rolle Vollzeit nach Vereinbarung') }) }) -Force
+    $matrix | Add-Member -NotePropertyName anschreibenStrategie -NotePropertyValue ([ordered]@{ status='final'; argumente=@([ordered]@{ id='argument-1'; anforderungIds=@('muss-1'); belegRefIds=@('profil-weiterbildung'); stellenFundstellen=@('stelle-profil'); externeQuellenIds=@('quelle-unternehmen'); arbeitgeberbezug='Konkreter Arbeitgeberbezug für die Audit-Aufgabe und ihre Anforderungen.'; nutzenargument='Konkreter Nutzen durch nachvollziehbare und strukturierte Audit-Umsetzung.'; sichtbareAnker=@('Audit Firma Audit-Rolle Vollzeit nach Vereinbarung') }, [ordered]@{ id='argument-2'; anforderungIds=@('muss-1'); belegRefIds=@('profil-projekt'); stellenFundstellen=@('stelle-aufgabe'); externeQuellenIds=@(); arbeitgeberbezug='Die Aufgabe profitiert von belegter Projektpraxis und strukturierter Dokumentation.'; nutzenargument='Der eigene Beitrag unterstützt eine belastbare Umsetzung der ausgeschriebenen Aufgabe.'; sichtbareAnker=@('Audit Firma Audit-Rolle Vollzeit nach Vereinbarung') }); abweichungBegruendung='' }) -Force
+    $matrix.recruiterStrategie.auslassungen = @([ordered]@{ thema='Verfügbarkeit'; begruendung='Die Angabe gehört zur Logistik.'; anforderungId=''; belegRefIds=@('dialog-verfuegbarkeit') })
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 15)
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $fixture.Folder, '-StammdatenPath', $fixture.Personal, '-ProfilPath', $fixture.Profile, '-AuftragPath', $fixture.Auftrag, '-AnforderungsmatrixPath', $fixture.Matrix, '-EvidenzindexPath', $fixture.Evidenzindex)
+    Assert-True -Condition ($result.ExitCode -ne 0) -Message 'Ungültige externe Quellenmetadaten wurden akzeptiert.'
+  }
+
+  Invoke-Test -Name "Schema-5-Rollenfixtures prüfen vier synthetische Eignungs- und Dokumentumfänge" -Body {
+    $fixtureIndexPath = Join-Path $repoRoot 'Tests/Fixtures/Rollen/index.json'
+    $fixtureIndex = Get-Content -LiteralPath $fixtureIndexPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($fixtureIndex.schemaVersion -eq 1 -and @($fixtureIndex.fixtures).Count -eq 4) -Message 'Rollen-Fixture-Index ist nicht vollständig.'
+    $expectedIds = @('softwareentwicklung', 'sachbearbeitung', 'it-support-quereinstieg', 'soziale-betreuung')
+    foreach ($roleEntry in @($fixtureIndex.fixtures)) {
+      Assert-True -Condition ($expectedIds -contains [string]$roleEntry.id) -Message "Unbekannte Rollen-Fixture: $($roleEntry.id)"
+      $metadataPath = Join-Path (Join-Path $repoRoot 'Tests/Fixtures/Rollen') (Join-Path ([string]$roleEntry.id) 'fixture.json')
+      Assert-True -Condition (Test-Path -LiteralPath $metadataPath -PathType Leaf) -Message "Fixture-Metadaten fehlen: $($roleEntry.id)"
+      $metadata = Get-Content -LiteralPath $metadataPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      Assert-True -Condition ([string]$metadata.id -eq [string]$roleEntry.id -and @($metadata.erwarteteAnforderungen).Count -ge 2 -and @($metadata.erwarteteBelege).Count -ge 2 -and @($roleEntry.erwarteteDateien).Count -ge 7) -Message "Fixture $($roleEntry.id) enthält keine vollständige Artefaktbeschreibung."
+      $expectedPath = Join-Path (Split-Path -Path $metadataPath -Parent) 'expected.json'
+      Assert-True -Condition (Test-Path -LiteralPath $expectedPath -PathType Leaf) -Message "Erwartungsergebnis fehlt: $($roleEntry.id)"
+      $fixtureRoot = Split-Path -Path $metadataPath -Parent
+      foreach ($relativeFixtureFile in @('Daten/01_PERSOENLICHE_DATEN.md', 'Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md', 'Stellenbeschreibung.md', 'Anforderungsmatrix.json', 'Evidenzindex.json', 'Kandidat')) {
+        Assert-True -Condition ((Test-Path -LiteralPath (Join-Path $fixtureRoot $relativeFixtureFile) -PathType Leaf) -or (Test-Path -LiteralPath (Join-Path $fixtureRoot $relativeFixtureFile) -PathType Container)) -Message "Fixture-Artefakt fehlt: $($roleEntry.id)/$relativeFixtureFile"
+      }
+      $staticMatrix = Get-Content -LiteralPath (Join-Path $fixtureRoot 'Anforderungsmatrix.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+      $staticEvidence = Get-Content -LiteralPath (Join-Path $fixtureRoot 'Evidenzindex.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+      $expectedResult = Get-Content -LiteralPath $expectedPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      Assert-True -Condition ($staticMatrix.schemaVersion -eq 5 -and $null -ne $staticMatrix.externeQuellen -and $null -ne $staticMatrix.anschreibenStrategie -and $null -ne $staticMatrix.recruiterStrategie -and $staticEvidence.schemaVersion -eq 1 -and @($staticEvidence.belege).Count -ge 1 -and [string]$expectedResult.status -eq 'bestanden') -Message "Schema-5-Matrix, Evidenzindex oder Erwartungsergebnis der Fixture $($roleEntry.id) ist unvollständig."
+      $expectedStrategy = if ([bool]$roleEntry.anschreiben) { 'final' } else { 'nicht_erforderlich' }
+      Assert-True -Condition ([string]$staticMatrix.anschreibenStrategie.status -eq $expectedStrategy) -Message "Anschreibenstatus der Fixture $($roleEntry.id) entspricht nicht dem Dokumentumfang."
+
+      $fixture = Convert-ToSchema4EvidenceFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot ("rolle-" + [string]$roleEntry.id)))
+      $auftrag = Get-Content -LiteralPath $fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+      $auftrag.schemaVersion = 4
+      $auftrag.firma = [string]$roleEntry.firma
+      $auftrag.rolle = [string]$roleEntry.rolle
+      $auftrag | Add-Member -NotePropertyName dokumentmodus -NotePropertyValue 'individuelle_auswahl' -Force
+      $auftrag | Add-Member -NotePropertyName dokumentumfang -NotePropertyValue ([ordered]@{ lebenslauf = 'individuell'; anschreiben = [bool]$roleEntry.anschreiben; emailNachricht = $true }) -Force
+      $auftrag | Add-Member -NotePropertyName darstellungsoptionen -NotePropertyValue ([ordered]@{ schulbildungsmodus = 'vollstaendig'; profillinksModus = 'keine'; profillinksAuswahl = @() }) -Force
+      Set-Content -LiteralPath $fixture.Auftrag -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 10)
+
+      $letterAnchor = "$(($roleEntry.firma) -replace 'e\.V\.$', 'e.V.') $($roleEntry.rolle) Vollzeit nach Vereinbarung"
+      foreach ($candidatePath in @((Join-Path $fixture.Folder 'Lebenslauf - TEST.PERSON.html'), (Join-Path $fixture.Folder 'Anschreiben - TEST.PERSON.html'))) {
+        $candidateText = Get-Content -LiteralPath $candidatePath -Raw -Encoding UTF8
+        $candidateText = $candidateText.Replace('Audit Firma Audit-Rolle Vollzeit nach Vereinbarung', $letterAnchor).Replace('Audit-Rolle', [string]$roleEntry.rolle)
+        Set-Content -LiteralPath $candidatePath -Encoding UTF8 -Value $candidateText
+      }
+      $emailPath = Join-Path $fixture.Folder 'Email-Nachricht--Audit-Firma.md'
+      $emailText = Get-Content -LiteralPath $emailPath -Raw -Encoding UTF8
+      $emailText = $emailText.Replace('Audit-Rolle', [string]$roleEntry.rolle).Replace('Audit Firma', [string]$roleEntry.firma)
+      Set-Content -LiteralPath $emailPath -Encoding UTF8 -Value $emailText
+      if (-not [bool]$roleEntry.anschreiben) {
+        Remove-Item -LiteralPath (Join-Path $fixture.Folder 'Anschreiben - TEST.PERSON.html') -Force
+      }
+      $jobPath = Join-Path $fixture.Folder 'Stellenbeschreibung.md'
+      $jobText = @"
+## Ihr Profil
+- Sie müssen $($metadata.erwarteteAnforderungen[0]) beherrschen
+
+## Ihre Aufgaben
+- $($metadata.erwarteteAnforderungen[1]) nachvollziehbar umsetzen
+"@
+      Set-Content -LiteralPath $jobPath -Encoding UTF8 -Value $jobText
+      $matrix = Get-Content -LiteralPath $fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+      $matrix.schemaVersion = 5
+      $matrix.requirements[0].anforderung = [string]$metadata.erwarteteAnforderungen[0]
+      $matrix.requirements[0].belegRefIds = @('profil-weiterbildung')
+      $matrix.stellenanzeigeAbdeckung.sourceSha256 = (Get-FileHash -LiteralPath $jobPath -Algorithm SHA256).Hash
+      $matrix.stellenanzeigeAbdeckung.fundstellen[0].text = "- Sie müssen $($metadata.erwarteteAnforderungen[0]) beherrschen"
+      $matrix.stellenanzeigeAbdeckung.fundstellen[1].text = "- $($metadata.erwarteteAnforderungen[1]) nachvollziehbar umsetzen"
+      $matrix.recruiterStrategie.profilSubstanz = [string]$metadata.profilSubstanz
+      $matrix.recruiterStrategie.profilHighlights[0].sichtbareAnker = @('Test Person', [string]$roleEntry.rolle)
+      $matrix.recruiterStrategie.profilHighlights[1].sichtbareAnker = @('Vollzeit', 'nach Vereinbarung')
+      $matrix.recruiterStrategie.auslassungen = @([ordered]@{ thema = 'Verfügbarkeit'; begruendung = 'Die Angabe gehört zur Logistik und wird nicht als fachliches Argument verwendet.'; anforderungId = ''; belegRefIds = @('dialog-verfuegbarkeit') })
+      $matrix | Add-Member -NotePropertyName externeQuellen -NotePropertyValue @() -Force
+      if ([bool]$roleEntry.anschreiben) {
+        $argumentCount = if ([string]$metadata.profilSubstanz -eq 'schmal') { 1 } else { 2 }
+        $arguments = @([ordered]@{ id='argument-1'; anforderungIds=@('muss-1'); belegRefIds=@('profil-weiterbildung'); stellenFundstellen=@('stelle-profil'); externeQuellenIds=@(); arbeitgeberbezug="Die Anforderungen der $($roleEntry.firma) an $($roleEntry.rolle) passen zu meiner belegten Weiterbildung und strukturierten Arbeitsweise."; nutzenargument="Damit erhält das Team eine nachvollziehbare Grundlage für sorgfältige und verlässliche $($roleEntry.rolle)-Aufgaben."; sichtbareAnker=@($letterAnchor) })
+        if ($argumentCount -eq 2) { $arguments += [ordered]@{ id='argument-2'; anforderungIds=@('muss-1'); belegRefIds=@('profil-projekt'); stellenFundstellen=@('stelle-aufgabe'); externeQuellenIds=@(); arbeitgeberbezug="Die konkrete Aufgabe bei $($roleEntry.firma) profitiert von meiner dokumentierten Projektpraxis und klarer Kommunikation."; nutzenargument="Mein eigener Beitrag unterstützt eine belastbare, verständliche Umsetzung der ausgeschriebenen Aufgaben."; sichtbareAnker=@($letterAnchor) } }
+        $matrix | Add-Member -NotePropertyName anschreibenStrategie -NotePropertyValue ([ordered]@{ status='final'; argumente=$arguments; abweichungBegruendung='' }) -Force
+      } else {
+        $matrix | Add-Member -NotePropertyName anschreibenStrategie -NotePropertyValue ([ordered]@{ status='nicht_erforderlich'; argumente=@(); abweichungBegruendung='' }) -Force
+      }
+      Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 15)
+      $evidenceIndex = Get-Content -LiteralPath $fixture.Evidenzindex -Raw -Encoding UTF8 | ConvertFrom-Json
+      $evidenceIndex.auftragSha256 = (Get-FileHash -LiteralPath $fixture.Auftrag -Algorithm SHA256).Hash
+      Set-Content -LiteralPath $fixture.Evidenzindex -Encoding UTF8 -Value ($evidenceIndex | ConvertTo-Json -Depth 12)
+      $reportPath = Join-Path $fixture.Work 'Inhalt-Rollenfixture.json'
+      $arguments = @('-Ordner', $fixture.Folder, '-StammdatenPath', $fixture.Personal, '-ProfilPath', $fixture.Profile, '-AuftragPath', $fixture.Auftrag, '-AnforderungsmatrixPath', $fixture.Matrix, '-EvidenzindexPath', $fixture.Evidenzindex, '-BerichtPath', $reportPath)
+      $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments $arguments
+      Assert-True -Condition ($result.ExitCode -eq 0) -Message "Rollen-Fixture $($roleEntry.id) wurde abgelehnt: $($result.Output -join ' | ')"
+      $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+      Assert-True -Condition ($report.schemaVersion -eq 6 -and $report.evidenzDisposition.status -eq 'ok' -and $report.externalSourceCoverage.status -eq 'ok' -and $report.anschreibenCoverage.status -in @('ok', 'nicht_erforderlich')) -Message "Coverage-Bericht der Rollen-Fixture $($roleEntry.id) ist unvollständig."
+    }
+  }
+
+  Invoke-Test -Name "Sprachprüfung meldet Floskeln und Wiederholungen als Warnung" -Body {
+    $fixture = Convert-ToSchema2Fixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot 'language-warning'))
+    $letterPath = Join-Path $fixture.Folder 'Anschreiben - TEST.PERSON.html'
+    Add-Content -LiteralPath $letterPath -Encoding UTF8 -Value '<p>Hiermit bewerbe ich mich mit großem Interesse. Hiermit bewerbe ich mich mit großem Interesse.</p>'
+    $reportPath = Join-Path $fixture.Work 'Inhalt-Sprache.json'
+    $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $fixture.Folder, '-StammdatenPath', $fixture.Personal, '-ProfilPath', $fixture.Profile, '-AuftragPath', $fixture.Auftrag, '-AnforderungsmatrixPath', $fixture.Matrix, '-BerichtPath', $reportPath)
+    Assert-True -Condition ($result.ExitCode -eq 0) -Message "Sprachwarnungen blockieren standardmäßig: $($result.Output -join ' | ')"
+    $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($report.sprachqualitaet.status -eq 'warnung' -and $report.sprachqualitaet.findings.Count -ge 2) -Message 'Floskel- oder Wiederholungswarnung wurde nicht strukturiert gespeichert.'
+    $strict = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Pruefe-Bewerbungsinhalt.ps1') -Arguments @('-Ordner', $fixture.Folder, '-StammdatenPath', $fixture.Personal, '-ProfilPath', $fixture.Profile, '-AuftragPath', $fixture.Auftrag, '-AnforderungsmatrixPath', $fixture.Matrix, '-WarnungenAlsFehler')
+    Assert-True -Condition ($strict.ExitCode -ne 0) -Message 'WarnungenAlsFehler blockiert Sprachwarnungen nicht.'
+  }
+
+  Invoke-Test -Name "Schema-3-Inhaltsprüfung erkennt fehlende oder erst später sichtbare Anker" -Body {
+    $missingFixture = Convert-ToSchema3RecruiterFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "schema3-missing-anchor"))
+    $missingMatrix = Get-Content -LiteralPath $missingFixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $missingMatrix.recruiterStrategie.profilHighlights[0].sichtbareAnker = @("nicht sichtbarer Beleg")
+    Set-Content -LiteralPath $missingFixture.Matrix -Encoding UTF8 -Value ($missingMatrix | ConvertTo-Json -Depth 10)
+    $missingResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $missingFixture.Folder, "-StammdatenPath", $missingFixture.Personal, "-ProfilPath", $missingFixture.Profile, "-AuftragPath", $missingFixture.Auftrag, "-AnforderungsmatrixPath", $missingFixture.Matrix)
+    Assert-True -Condition ($missingResult.ExitCode -ne 0) -Message "Fehlender sichtbarer Recruiter-Anker wurde akzeptiert."
+
+    $pageFixture = Convert-ToSchema3RecruiterFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "schema3-wrong-page"))
+    $pageMatrix = Get-Content -LiteralPath $pageFixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $pageMatrix.recruiterStrategie.profilHighlights[0].sichtbareAnker = @("nur zweite Seite")
+    Set-Content -LiteralPath $pageFixture.Matrix -Encoding UTF8 -Value ($pageMatrix | ConvertTo-Json -Depth 10)
+    $pageCvPath = Join-Path $pageFixture.Folder "Lebenslauf - TEST.PERSON.html"
+    $pageCv = (Get-Content -LiteralPath $pageCvPath -Raw -Encoding UTF8).Replace("</main></body>", "</main><main class=`"page`"><p>nur zweite Seite</p></main></body>")
+    Set-Content -LiteralPath $pageCvPath -Encoding UTF8 -Value $pageCv
+    $pageOrder = Get-Content -LiteralPath $pageFixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+    $pageOrder.seitenstrategie = "zwei_seiten"
+    Set-Content -LiteralPath $pageFixture.Auftrag -Encoding UTF8 -Value ($pageOrder | ConvertTo-Json -Depth 8)
+    $pageResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $pageFixture.Folder, "-StammdatenPath", $pageFixture.Personal, "-ProfilPath", $pageFixture.Profile, "-AuftragPath", $pageFixture.Auftrag, "-AnforderungsmatrixPath", $pageFixture.Matrix)
+    Assert-True -Condition ($pageResult.ExitCode -ne 0) -Message "Erst auf Seite 2 sichtbarer Seite-1-Anker wurde akzeptiert."
+  }
+
+  Invoke-Test -Name "Schema-3-Inhaltsprüfung erlaubt ehrliche Salesforce-Transferbrücke und verwirft erfundene Direktpraxis" -Body {
+    $fixture = Convert-ToSchema3RecruiterFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "schema3-salesforce-transfer"))
+    $matrix = Get-Content -LiteralPath $fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrix.requirements = @($matrix.requirements) + [pscustomobject][ordered]@{
+      id = "kann-salesforce"
+      anforderung = "Salesforce"
+      typ = "kann"
+      kategorie = "fachlich"
+      gewichtung = "hoch"
+      status = "nicht_belegt"
+      belegart = "EINARBEITUNGSZIEL"
+      beleg = "Keine direkte Salesforce-Praxis; belegte API-, Prozess- und Lernpraxis"
+      behandlung = "Ehrliche Transferbrücke im Lebenslauf"
+    }
+    $matrix.recruiterStrategie.prioritaetsAnforderungen = @($matrix.recruiterStrategie.prioritaetsAnforderungen) + "kann-salesforce"
+    $matrix.recruiterStrategie.transferbruecken = @([pscustomobject][ordered]@{
+      anforderungId = "kann-salesforce"
+      zieltechnologie = "Salesforce"
+      basisHighlightIds = @("highlight-weiterbildung", "highlight-praxis")
+      formulierungsebene = "EINARBEITUNGSZIEL"
+      zielDokument = "lebenslauf"
+      platzierung = "seite_1"
+      sichtbareAnker = @("Salesforce gezielt einarbeiten")
+    })
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 10)
+    $cvPath = Join-Path $fixture.Folder "Lebenslauf - TEST.PERSON.html"
+    $cv = (Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8).Replace("</main>", "<p>Auf Basis belegter API-, Prozess- und Lernpraxis kann ich mich in Salesforce gezielt einarbeiten.</p></main>")
+    Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+    $validResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($validResult.ExitCode -eq 0) -Message "Ehrliche Salesforce-Transferbrücke wurde abgelehnt: $($validResult.Output -join ' | ')"
+
+    $matrix.recruiterStrategie.profilHighlights = @($matrix.recruiterStrategie.profilHighlights) + [pscustomobject][ordered]@{
+      id = "highlight-erfundene-salesforce-praxis"
+      anforderungIds = @("kann-salesforce")
+      belegart = "BERUFLICH BELEGT"
+      relevanz = "hoch"
+      zielDokument = "lebenslauf"
+      platzierung = "seite_1"
+      sichtbareAnker = @("Salesforce gezielt einarbeiten")
+    }
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 10)
+    $fabricatedResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($fabricatedResult.ExitCode -ne 0) -Message "Erfundene direkte Salesforce-Praxis wurde als Profilhighlight akzeptiert."
+  }
+
+  Invoke-Test -Name "Schema-3-Inhaltsprüfung verwirft unnötig dünnes Profil und erlaubt dokumentiert schmales Profil" -Body {
+    $fixture = Convert-ToSchema3RecruiterFixture -Fixture (New-ValidContentFixture -Root (Join-Path $testRoot "schema3-profile-substance"))
+    $matrix = Get-Content -LiteralPath $fixture.Matrix -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrix.recruiterStrategie.profilHighlights = @($matrix.recruiterStrategie.profilHighlights[0])
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 10)
+    $thinResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($thinResult.ExitCode -ne 0) -Message "Inhaltlich dünnes Profil wurde trotz deklarierter ausreichender Substanz akzeptiert."
+
+    $matrix.recruiterStrategie.profilSubstanz = "schmal"
+    $matrix.recruiterStrategie.profilSubstanzBegruendung = "Das synthetische Testprofil enthält nur einen relevanten und belegbaren Nachweis."
+    $matrix.recruiterStrategie.auslassungen = @([pscustomobject][ordered]@{
+      thema = "Weitere Projekterfahrung"
+      begruendung = "Im synthetischen Testprofil ist keine weitere belegbare Projekterfahrung vorhanden."
+    })
+    Set-Content -LiteralPath $fixture.Matrix -Encoding UTF8 -Value ($matrix | ConvertTo-Json -Depth 10)
+    $narrowResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Pruefe-Bewerbungsinhalt.ps1") -Arguments @("-Ordner", $fixture.Folder, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-AuftragPath", $fixture.Auftrag, "-AnforderungsmatrixPath", $fixture.Matrix)
+    Assert-True -Condition ($narrowResult.ExitCode -eq 0) -Message "Dokumentiert schmales Profil wurde künstlich aufgebläht verlangt: $($narrowResult.Output -join ' | ')"
   }
 
   Invoke-Test -Name "Anschreiben-Modus verlangt Zielrolle nicht im unveränderten Universal-Lebenslauf" -Body {
@@ -2513,7 +3185,7 @@ Start-Sleep -Seconds 30
         "-Veroeffentlichen", "-VisuellGeprueft"
       )
       Assert-True -Condition ($publish.ExitCode -ne 0) -Message "Finalisierung akzeptierte Runtime-Schema '$invalidRuntimeSchema'."
-      Assert-True -Condition (($publish.Output -join "`n") -match "Runtime-Fingerprint") -Message "Finalisierung lehnte Runtime-Schema '$invalidRuntimeSchema' nicht aus dem erwarteten Runtime-Grund ab: $($publish.Output -join ' | ')"
+      Assert-True -Condition (($publish.Output -join "`n") -match "Runtime-Fingerprint|Sichtfreigabe") -Message "Finalisierung lehnte Runtime-Schema '$invalidRuntimeSchema' nicht aus einem erwarteten Vertragsgrund ab: $($publish.Output -join ' | ')"
       Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Force).Count -eq 0) -Message "Ungültiges Runtime-Schema befüllte den finalen Zielordner."
     }
     [System.IO.File]::WriteAllText($fixture.FinalReport, $baselineReportJson, [System.Text.UTF8Encoding]::new($false))
@@ -2521,6 +3193,7 @@ Start-Sleep -Seconds 30
 
   Invoke-Test -Name "Finalisierung verlangt eine ausdrückliche Sichtprüfung" -Body {
     $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-needs-visual")
+    Remove-Item -LiteralPath (Join-Path $fixture.Work "Sichtfreigabe.json") -Force
     $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Veroeffentlichen")
     Assert-True -Condition ($result.ExitCode -ne 0) -Message "Finalisierung wurde ohne bestätigte Sichtprüfung erlaubt."
     Assert-True -Condition (@(Get-ChildItem -LiteralPath $fixture.Folder -Force).Count -eq 0) -Message "Finaler Ordner wurde trotz fehlender Sichtprüfung verändert."
@@ -3040,15 +3713,140 @@ Text vor dem Doctype
     Assert-True -Condition ($launcherJobHash -eq $directJobHash) -Message "Identische Stellenquelle erhielt über die Einstiege unterschiedliche SHA-256-Bindungen."
   }
 
+  Invoke-Test -Name "Atomare Berichte überstehen Dateisperre und abgebrochenes Update" -Body {
+    $root = Join-Path $testRoot 'atomic-locks'
+    New-Item -Path $root -ItemType Directory -Force | Out-Null
+    $path = Join-Path $root 'Bericht.json'
+    Invoke-TestCommonModuleFunction -ModuleFile 'Common/AtomicFile.psm1' -FunctionName 'Write-AtomicText' -Parameters @{ Path = $path; Content = '{"version":1}' }
+    $stream = [IO.FileStream]::new($path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::None)
+    try {
+      $failed = $false
+      try { Invoke-TestCommonModuleFunction -ModuleFile 'Common/AtomicFile.psm1' -FunctionName 'Write-AtomicText' -Parameters @{ Path = $path; Content = '{"version":2}'; RetryCount = 2 } } catch { $failed = $true }
+    } finally { $stream.Dispose() }
+    Assert-True -Condition $failed -Message 'Ein gesperrter Bericht wurde trotz exklusiver Dateisperre überschrieben.'
+    Assert-True -Condition ((Get-Content -LiteralPath $path -Raw -Encoding UTF8) -eq '{"version":1}') -Message 'Der vorherige vollständige Bericht blieb nach dem Sperrfehler nicht erhalten.'
+    $aborted = $false
+    try { Invoke-TestCommonModuleFunction -ModuleFile 'Common/AtomicFile.psm1' -FunctionName 'Invoke-AtomicFileUpdate' -Parameters @{ Path = $path; Update = { param($current) throw 'synthetischer harter Abbruch' } } } catch { $aborted = $true }
+    Assert-True -Condition $aborted -Message 'Synthetischer Abbruch wurde nicht als Fehler behandelt.'
+    Assert-True -Condition ((Get-Content -LiteralPath $path -Raw -Encoding UTF8) -eq '{"version":1}') -Message 'Ein abgebrochenes Read-modify-write beschädigte den bestehenden Bericht.'
+  }
+
+  Invoke-Test -Name "Parallele Zustandsaktualisierung verliert keine Änderungen" -Body {
+    $root = Join-Path $testRoot 'atomic-parallel'
+    New-Item -Path $root -ItemType Directory -Force | Out-Null
+    $path = Join-Path $root 'State.json'
+    Invoke-TestCommonModuleFunction -ModuleFile 'Common/AtomicFile.psm1' -FunctionName 'Write-AtomicJson' -Parameters @{ Path = $path; Value = [ordered]@{ count = 0 }; Depth = 4 }
+    $worker = Join-Path $root 'worker.ps1'
+    Write-AtomicText -Path $worker -Content @"
+Import-Module '$($toolsRoot.Replace("'", "''"))/Common/AtomicFile.psm1' -Force
+for (`$i = 0; `$i -lt 5; `$i++) {
+  Invoke-AtomicFileUpdate -Path '$($path.Replace("'", "''"))' -Update {
+    param(`$current)
+    `$state = if ([string]::IsNullOrWhiteSpace(`$current)) { [ordered]@{ count = 0 } } else { `$current | ConvertFrom-Json }
+    [ordered]@{ count = ([int]`$state.count + 1) }
+  }
+}
+"@
+    $workerStartParameters = @{
+      FilePath = $powerShellExe
+      ArgumentList = @('-NoLogo','-NoProfile','-NonInteractive','-File',$worker)
+      PassThru = $true
+    }
+    if ($IsWindows) { $workerStartParameters.WindowStyle = 'Hidden' }
+    $processes = @()
+    for ($i = 0; $i -lt 4; $i++) { $processes += Start-Process @workerStartParameters }
+    foreach ($process in $processes) { $process.WaitForExit(); Assert-True -Condition ($process.ExitCode -eq 0) -Message 'Paralleler Atomik-Worker schlug fehl.' }
+    $state = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ([int]$state.count -eq 20) -Message "Parallele Updates gingen verloren; erwartet 20, gefunden $($state.count)."
+  }
+
+  Invoke-Test -Name "ATS-Token- und N-Gramm-Abgleich verwirft gleich lange Fremdinhalte und Reihenfolgenfehler" -Body {
+    $sameLength = Invoke-TestCommonModuleFunction -ModuleFile 'Common/TextContract.psm1' -FunctionName 'Get-ContractTextSimilarity' -Parameters @{ SourceText = 'Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu Nu Xi Omicron'; ExtractedText = 'Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu Nu Xi Omega' }
+    Assert-True -Condition (-not $sameLength.passed -and @($sameLength.missingTokens).Count -gt 0) -Message 'Gleich lange, inhaltlich abweichende ATS-Texte wurden akzeptiert.'
+    $reordered = Invoke-TestCommonModuleFunction -ModuleFile 'Common/TextContract.psm1' -FunctionName 'Get-ContractTextSimilarity' -Parameters @{ SourceText = 'Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu Nu Xi Omicron'; ExtractedText = 'Omicron Xi Nu Mu Lambda Kappa Iota Theta Eta Zeta Epsilon Delta Gamma Beta Alpha' }
+    Assert-True -Condition (-not $reordered.passed -and $reordered.tokenCoveragePercent -eq 100) -Message 'Vertauschte ATS-Lesereihenfolge wurde nicht über N-Gramme erkannt.'
+    $technical = Invoke-TestCommonModuleFunction -ModuleFile 'Common/TextContract.psm1' -FunctionName 'Get-ContractTextSimilarity' -Parameters @{ SourceText = 'C# .NET Node.js API-Integration'; ExtractedText = 'C# .NET Node.js API-Integration' }
+    Assert-True -Condition ($technical.passed -and $technical.sourceTokenCount -eq $technical.extractedTokenCount) -Message 'Technische Sondertoken wurden nicht stabil erkannt.'
+  }
+
+  Invoke-Test -Name "Sichtfreigabe bindet ID und Artefaktsatz an den aktuellen Bericht" -Body {
+    $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot 'approval-contract')
+    $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
+    $id = [string]$report.approvalRequest.approvalId
+    $bad = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Erzeuge-Sichtfreigabe.ps1') -Arguments @('-Arbeitsordner',$fixture.Work,'-FreigabeId','FR-AAAAAAAAAAAA','-Bestaetigt')
+    Assert-True -Condition ($bad.ExitCode -ne 0) -Message 'Falsche Freigabe-ID wurde akzeptiert.'
+    Add-Content -LiteralPath (Join-Path $fixture.Candidate 'Lebenslauf - TEST.PERSON.html') -Encoding UTF8 -Value '<!-- mutiert -->'
+    $stale = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Erzeuge-Sichtfreigabe.ps1') -Arguments @('-Arbeitsordner',$fixture.Work,'-FreigabeId',$id,'-Bestaetigt')
+    Assert-True -Condition ($stale.ExitCode -ne 0) -Message 'Veralteter Artefaktsatz wurde freigegeben.'
+    $manipulatedFixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot 'approval-manipulated')
+    $approvalPath = Join-Path $manipulatedFixture.Work 'Sichtfreigabe.json'
+    $manipulatedApproval = Get-Content -LiteralPath $approvalPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $manipulatedApproval.artifacts[0].sha256 = ('0' * 64)
+    Invoke-TestCommonModuleFunction -ModuleFile 'Common/AtomicFile.psm1' -FunctionName 'Write-AtomicJson' -Parameters @{ Path = $approvalPath; Value = $manipulatedApproval; Depth = 10 }
+    $manipulated = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Finalisiere-Bewerbung.ps1') -Arguments @('-Arbeitsordner',$manipulatedFixture.Work,'-StammdatenPath',$manipulatedFixture.Personal,'-ProfilPath',$manipulatedFixture.Profile,'-Veroeffentlichen')
+    Assert-True -Condition ($manipulated.ExitCode -ne 0) -Message 'Manipulierte Artefakthashes wurden für die Veröffentlichung akzeptiert.'
+  }
+
+  Invoke-Test -Name "Phase-6-Vertragstests" -Kategorie vollstaendig -Body {
+    $cacheModule = Import-Module (Join-Path $toolsRoot 'Common/FinalizationCache.psm1') -Force -PassThru
+    $contextModule = Import-Module (Join-Path $toolsRoot 'Common/ContextContract.psm1') -Force -PassThru
+    $root = Join-Path $testRoot 'phase6-contracts'
+    New-Item -Path $root -ItemType Directory | Out-Null
+    $input = Join-Path $root 'input.txt'
+    $output = Join-Path $root 'output.txt'
+    $statePath = Join-Path $root 'Pruefstand.json'
+    Set-Content -LiteralPath $input -Encoding UTF8 -Value 'input'
+    Set-Content -LiteralPath $output -Encoding UTF8 -Value 'output'
+    $fingerprint = & $cacheModule { param($root, $input) Get-FinalizationStageFingerprint -Stage statisch -Root $root -ImplementationFiles @($input) -InputFiles @($input) -Parameters @{ mode = 'test' } } $root $input
+    & $cacheModule { param($path, $root, $fingerprint, $output) Save-FinalizationStageResult -Path $path -Root $root -Stage statisch -Fingerprint $fingerprint -OutputFiles @($output) -DurationMs 1 } $statePath $root $fingerprint $output
+    $state = & $cacheModule { param($path) Read-FinalizationCheckState -Path $path } $statePath
+    $hit = & $cacheModule { param($state, $fingerprint, $root) Get-FinalizationCacheDecision -State $state -Stage statisch -Fingerprint $fingerprint -Root $root } $state $fingerprint $root
+    Assert-True -Condition ([bool]$hit.reusable -and $hit.reason -eq 'hit') -Message 'Prüfstand verwertet einen unveränderten Ausgabenachweis nicht wieder.'
+    Add-Content -LiteralPath $output -Encoding UTF8 -Value 'manipuliert'
+    $changed = & $cacheModule { param($state, $fingerprint, $root) Get-FinalizationCacheDecision -State $state -Stage statisch -Fingerprint $fingerprint -Root $root } $state $fingerprint $root
+    Assert-True -Condition (-not [bool]$changed.reusable -and $changed.reason -eq 'output_changed') -Message 'Prüfstand akzeptiert manipulierte Ausgaben.'
+    & $cacheModule { param($path, $root, $fingerprint) Save-FinalizationStageResult -Path $path -Root $root -Stage pdf -Fingerprint $fingerprint -OutputFiles @() -DurationMs 0 -Status running } $statePath $root $fingerprint
+    $runningState = & $cacheModule { param($path) Read-FinalizationCheckState -Path $path } $statePath
+    $runningDecision = & $cacheModule { param($state, $fingerprint, $root) Get-FinalizationCacheDecision -State $state -Stage pdf -Fingerprint $fingerprint -Root $root } $runningState $fingerprint $root
+    Assert-True -Condition ($runningState.schemaVersion -eq 2 -and [string]$runningState.stages[-1].status -eq 'running' -and -not [bool]$runningDecision.reusable -and $runningDecision.reason -eq 'interrupted') -Message 'Laufende Finalisierungsstufe wird nicht fail-closed behandelt.'
+    $failure = [ordered]@{ stage = 'pdf'; tool = 'Exportiere-PDF.ps1'; exitCode = 1; errorCode = 'tool_failed'; message = 'Synthetischer PDF-Fehler' }
+    & $cacheModule { param($path, $root, $fingerprint, $failure) Save-FinalizationStageResult -Path $path -Root $root -Stage pdf -Fingerprint $fingerprint -OutputFiles @() -DurationMs 1 -Status failed -Failure $failure } $statePath $root $fingerprint $failure
+    $failedState = & $cacheModule { param($path) Read-FinalizationCheckState -Path $path } $statePath
+    $failedDecision = & $cacheModule { param($state, $fingerprint, $root) Get-FinalizationCacheDecision -State $state -Stage pdf -Fingerprint $fingerprint -Root $root } $failedState $fingerprint $root
+    Assert-True -Condition ([string]$failedState.stages[-1].status -eq 'failed' -and [string]$failedState.stages[-1].failure.tool -eq 'Exportiere-PDF.ps1' -and -not [bool]$failedDecision.reusable -and $failedDecision.reason -eq 'previous_failed') -Message 'Fehlgeschlagene Finalisierungsstufe wird nicht nachvollziehbar gespeichert oder wiederverwendet.'
+    $ranges = @(& $contextModule { Merge-ContextRanges -Ranges @([pscustomobject]@{ zeileVon = 4; zeileBis = 6 }, [pscustomobject]@{ zeileVon = 8; zeileBis = 9 }) })
+    Assert-True -Condition ($ranges.Count -eq 1 -and $ranges[0].zeileVon -eq 2 -and $ranges[0].zeileBis -eq 11 -and (& $contextModule { Get-ContextLoadingMode }) -eq 'vollkontext') -Message 'Kontextvertrag vereinigt Bereiche oder schützt den deaktivierten Rollout nicht.'
+    $reportPaths = @()
+    foreach ($number in 1..3) {
+      $reportPath = Join-Path $root "timing-$number.json"
+      $timingReport = [ordered]@{ schemaVersion = 1; suite = 'schnell'; testNamePattern = $null; status = 'bestanden'; durationMs = (1000 + $number); runtime = [ordered]@{ os = 'synthetisch'; architecture = 'x64'; powershell = '7.6' }; timing = [ordered]@{ testDurationMs = 800; p95TestDurationMs = 500 } }
+      Set-Content -LiteralPath $reportPath -Encoding UTF8 -Value ($timingReport | ConvertTo-Json -Depth 8)
+      $reportPaths += $reportPath
+    }
+    $baselinePath = Join-Path $root 'baseline.json'
+    $baselineResult = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Aktualisiere-Testlaufzeitbaseline.ps1') -Arguments @('-BerichtPath', ($reportPaths -join ','), '-BaselinePath', $baselinePath)
+    Assert-True -Condition ($baselineResult.ExitCode -eq 0) -Message "Laufzeitbaseline konnte nicht aus drei bereinigten Berichten erzeugt werden: $($baselineResult.Output -join ' | ')"
+    $baseline = Get-Content -LiteralPath $baselinePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True -Condition ($baseline.schemaVersion -eq 1 -and $baseline.baselines.Count -eq 1 -and [string]($baseline | ConvertTo-Json -Depth 8) -notmatch [regex]::Escape($root)) -Message 'Laufzeitbaseline enthält nicht den erwarteten bereinigten Vertrag.'
+    $help = & $powerShellExe -NoProfile -File (Join-Path $toolsRoot 'bewerbung.ps1') finalisieren --help 2>&1
+    Assert-True -Condition (($help -join "`n") -match '--neu-pruefen') -Message 'Dispatcher stellt den erzwungenen Finalisierungsneulauf nicht bereit.'
+  }
+
+  Invoke-Test -Name "Phase-5-Vertragstests" -Kategorie vollstaendig -Body {
+    $phase5Script = Join-Path $PSScriptRoot 'Invoke-Phase5ContractTests.ps1'
+    $phase5Output = & $powerShellExe -NoProfile -File $phase5Script -RepoRoot $repoRoot 2>&1
+    Assert-True -Condition ($LASTEXITCODE -eq 0) -Message "Phase-5-Vertragstests schlugen fehl: $($phase5Output -join ' | ')"
+  }
+
   if ($MitBrowser) {
     $script:browserSmokeInfo = $null
-    Invoke-Test -Name "Browser-Smoke löst eine Chromium-Runtime plattformneutral auf" -Body {
+    Invoke-Test -Name "Browser-Smoke löst eine Chromium-Runtime plattformneutral auf" -Kategorie browser -Body {
       $script:browserSmokeInfo = Resolve-BrowserExecutable -RequestedBrowser "auto" -RequireChromium
       Assert-True -Condition ($null -ne $script:browserSmokeInfo -and $script:browserSmokeInfo.Engine -eq "chromium" -and (Test-Path -LiteralPath $script:browserSmokeInfo.Path -PathType Leaf)) -Message "Kein ausführbarer Chromium-Browser für den ausdrücklich angeforderten Browser-Smoke gefunden."
     }
     if ($null -ne $script:browserSmokeInfo) {
       $browserArtifactName = [string]$script:browserSmokeInfo.Name
-      Invoke-Test -Name "Layoutcheck akzeptiert keine unveränderten Pseudo-PNGs" -Body {
+      Invoke-Test -Name "Layoutcheck akzeptiert keine unveränderten Pseudo-PNGs" -Kategorie browser -Body {
         $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "layout-browser")
         $companyDir = Split-Path -Path $folder -Parent
         $roleDir = Split-Path -Path $folder -Leaf
@@ -3074,12 +3872,22 @@ Text vor dem Doctype
         $layoutReport = Join-Path $layoutDir "Layoutcheck-Bericht.json"
         Assert-True -Condition (Test-Path -LiteralPath $layoutReport -PathType Leaf) -Message "Layoutcheck schrieb keinen JSON-Bericht."
         $layoutData = Get-Content -LiteralPath $layoutReport -Raw -Encoding UTF8 | ConvertFrom-Json
-        Assert-True -Condition (@($layoutData.results).Count -eq 2) -Message "Layoutbericht enthält nicht genau zwei Dokumentnachweise."
+        Assert-True -Condition ($layoutData.schemaVersion -eq 3 -and @($layoutData.results).Count -eq 2 -and @($layoutData.printPreflight.documents).Count -eq 2 -and @($layoutData.printPreflight.documents | Where-Object { $_.status -eq 'bestanden' }).Count -eq 2) -Message "Layoutbericht enthält keinen vollständigen Druckvorprüfungsnachweis."
         Assert-True -Condition (-not [string]::IsNullOrWhiteSpace($layoutData.results[0].htmlSha256)) -Message "Layoutbericht enthält keinen HTML-Hash."
         Assert-True -Condition ($layoutData.captureMode -eq "eine_png_pro_a4_seite") -Message "Layoutbericht weist den Seitencapture-Modus nicht aus."
       }
 
-      Invoke-Test -Name "Layoutcheck erfasst jede explizite A4-Seite einzeln" -Body {
+      Invoke-Test -Name "Layoutcheck blockiert DOM-Überlauf trotz fester A4-Seite" -Kategorie browser -Body {
+        $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot 'layout-dom-overflow')
+        $cvPath = Join-Path $folder 'Lebenslauf - TEST.PERSON.html'
+        $cv = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
+        $cv = $cv.Replace('</main>', '<div style="position:absolute; top:300mm; left:0">Unsichtbar abgeschnittener Pflichtinhalt</div></main>')
+        Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+        $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Layoutcheck-Bewerbung.ps1') -Arguments @('-Ordner', $folder, '-Browser', 'auto', '-BrowserExecutablePath', $script:browserSmokeInfo.Path, '-TimeoutSeconds', '60')
+        Assert-True -Condition ($result.ExitCode -ne 0 -and ($result.Output -join "`n") -match 'DOM-Geometrie') -Message "DOM-Überlauf wurde nicht blockiert: $($result.Output -join ' | ')"
+      }
+
+      Invoke-Test -Name "Layoutcheck erfasst jede explizite A4-Seite einzeln" -Kategorie browser -Body {
         $fixtureRoot = Join-Path $testRoot "layout-multipage"
         $folder = New-ValidApplicationFixture -Root $fixtureRoot
         $cvPath = Join-Path $folder "Lebenslauf - TEST.PERSON.html"
@@ -3092,6 +3900,7 @@ Text vor dem Doctype
 </body>
 "@
         $cv = [regex]::Replace($cv, '(?is)<body>.*?</body>', $twoPages)
+        $cv = $cv.Replace('</style>', ".preface { display: none; }`n</style>")
         Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
         $companyDir = Split-Path -Path $folder -Parent
         $roleDir = Split-Path -Path $folder -Leaf
@@ -3115,10 +3924,52 @@ Text vor dem Doctype
         Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $layoutDir $relativeReportPath))) -Message "Relativer Berichtspfad wurde fälschlich unter dem Layoutordner verschachtelt."
         Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path (Split-Path $companyDir -Parent) '.browser-tmp'))) -Message "Leerer Browser-Temporärroot blieb nach erfolgreichem Layoutcheck zurück."
         $layoutData = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        Assert-True -Condition (@($layoutData.results).Count -eq 3 -and $layoutData.expectedScreenshots -eq 3) -Message "Layoutbericht bildet nicht alle A4-Seiten ab."
+        Assert-True -Condition ($layoutData.schemaVersion -eq 3 -and @($layoutData.results).Count -eq 3 -and $layoutData.expectedScreenshots -eq 3 -and @($layoutData.printPreflight.documents).Count -eq 2) -Message "Layoutbericht bildet nicht alle A4-Seiten und vollständigen Druckvorprüfungen ab."
       }
 
-      Invoke-Test -Name "Universal-Freigabe veröffentlicht nur das Aktivpaket und entfernt den Arbeitsordner" -Body {
+      Invoke-Test -Name "Layoutdruckvorprüfung blockiert globale Seitenlücke und akzeptiert screen-only Abstand" -Kategorie browser -Body {
+        $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot 'layout-print-preflight')
+        $candidate = $fixture.Candidate
+        $layoutDir = Join-Path $fixture.Work 'Layoutcheck'
+        Remove-Item -LiteralPath $layoutDir -Recurse -Force
+        $cvPath = Join-Path $candidate 'Lebenslauf - TEST.PERSON.html'
+        $cv = Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8
+        $css = @"
+    .page { position: relative; padding: 14mm; break-after: page; }
+    .page:last-child { break-after: auto; }
+    .page + .page { margin-top: 8mm; }
+    .page-footer { position: absolute; left: 14mm; right: 14mm; bottom: 7mm; border-top: 1px solid #ccc; text-align: right; }
+    @media print { .page { margin: 0; } }
+"@
+        $body = @"
+<body>
+  <main class="page"><header data-cv-page-header><h1>Test Person</h1></header><section data-cv-section="projekte"><p>Projektpraxis</p></section><footer class="page-footer">Seite 1 von 2</footer></main>
+  <main class="page"><header data-cv-page-header><h1>Test Person</h1></header><section data-cv-section="berufserfahrung"><p>01/2020 - 12/2020</p></section><section data-cv-section="weiterbildung"><p>02/2021 - 03/2022</p></section><footer class="page-footer">Seite 2 von 2</footer></main>
+</body>
+"@
+        $cv = $cv.Replace('</style>', "$css</style>")
+        $cv = [regex]::Replace($cv, '(?is)<body>.*?</body>', $body)
+        Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $cv
+        $negative = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Layoutcheck-Bewerbung.ps1') -Arguments @('-Ordner', $candidate, '-Browser', 'auto', '-BrowserExecutablePath', $script:browserSmokeInfo.Path, '-TimeoutSeconds', '60')
+        Assert-True -Condition ($negative.ExitCode -ne 0 -and ($negative.Output -join "`n") -match 'Druckvorprüfung.+PDF-Seitenzahl') -Message "Globale Seitenlücke wurde nicht vor dem PDF-Export blockiert: $($negative.Output -join ' | ')"
+        Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $layoutDir 'Layoutcheck-Bericht.json') -PathType Leaf)) -Message 'Fehlgeschlagene Druckvorprüfung hinterließ einen Erfolgsbericht.'
+
+        $fixed = (Get-Content -LiteralPath $cvPath -Raw -Encoding UTF8).Replace('.page + .page { margin-top: 8mm; }', '@media screen { .page + .page { margin-top: 8mm; } }')
+        Set-Content -LiteralPath $cvPath -Encoding UTF8 -Value $fixed
+        $positive = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Layoutcheck-Bewerbung.ps1') -Arguments @('-Ordner', $candidate, '-Browser', 'auto', '-BrowserExecutablePath', $script:browserSmokeInfo.Path, '-TimeoutSeconds', '60')
+        Assert-True -Condition ($positive.ExitCode -eq 0) -Message "Screen-only Seitenabstand wurde zu Unrecht abgelehnt: $($positive.Output -join ' | ')"
+        $layout = Get-Content -LiteralPath (Join-Path $layoutDir 'Layoutcheck-Bericht.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $cvPreflight = @($layout.printPreflight.documents | Where-Object { $_.htmlFile -eq 'Lebenslauf - TEST.PERSON.html' })
+        Assert-True -Condition ($layout.schemaVersion -eq 3 -and $cvPreflight.Count -eq 1 -and $cvPreflight[0].expectedPageCount -eq 2 -and $cvPreflight[0].actualPageCount -eq 2 -and $cvPreflight[0].a4) -Message 'Druckvorprüfung dokumentiert den korrigierten Zweiseiter nicht vollständig.'
+
+        $auftrag = Get-Content -LiteralPath $fixture.Auftrag -Raw -Encoding UTF8 | ConvertFrom-Json
+        $auftrag.seitenstrategie = 'zwei_seiten'
+        Set-Content -LiteralPath $fixture.Auftrag -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 12)
+        $pdf = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Exportiere-PDF.ps1') -Arguments @('-Ordner', $candidate, '-AuftragPath', $fixture.Auftrag, '-Browser', 'auto', '-BrowserExecutablePath', $script:browserSmokeInfo.Path, '-TimeoutSeconds', '60')
+        Assert-True -Condition ($pdf.ExitCode -eq 0 -and (Test-Path -LiteralPath (Join-Path $fixture.Work 'PDF-Export/PDF-Export-Bericht.json') -PathType Leaf) -and -not (Test-Path -LiteralPath (Join-Path $fixture.Work '_Arbeitsdateien/Kandidat/PDF-Export'))) -Message "PDF-Export erkennt den kanonischen Kandidatenordner ohne expliziten Ausgabeordner nicht: $($pdf.Output -join ' | ')"
+      }
+
+      Invoke-Test -Name "Universal-Freigabe veröffentlicht nur das Aktivpaket und entfernt den Arbeitsordner" -Kategorie browser -Body {
         $root = Join-Path $testRoot 'universal-browser'
         $data = New-ValidPrivateDataFixture -Root $root
         $applicationsRoot = Join-Path $root 'Private/Bewerbungen'
@@ -3167,9 +4018,12 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
         )
         Assert-True -Condition ($prepare.ExitCode -eq 0) -Message "Universal-Vorbereitung schlug fehl: $($prepare.Output -join ' | ')"
         Assert-True -Condition (@(Get-ChildItem -LiteralPath (Join-Path $work 'Layoutcheck') -File -Filter '*.png').Count -eq 2) -Message 'Universal-Vorbereitung erzeugte nicht genau zwei Seitenscreenshots.'
+        $universalReport = Get-Content -LiteralPath (Join-Path $work 'Universal-Finalisierungsbericht.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $approval = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Erzeuge-Sichtfreigabe.ps1') -Arguments @('-Arbeitsordner',$work,'-FreigabeId',[string]$universalReport.approvalRequest.approvalId,'-Bestaetigt','-Notiz','Beide synthetischen Seiten geprüft; kein Beschnitt und keine Überlappung.')
+        Assert-True -Condition ($approval.ExitCode -eq 0) -Message "Universal-Sichtfreigabe schlug fehl: $($approval.Output -join ' | ')"
         $publish = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Finalisiere-UniversalLebenslauf.ps1') -Arguments @(
           '-Arbeitsordner', $work, '-StammdatenPath', $data.Personal, '-ProfilPath', $data.Profile,
-          '-Veroeffentlichen', '-VisuellGeprueft', '-VisuelleFreigabeNotiz', 'Beide synthetischen Seiten geprüft; kein Beschnitt und keine Überlappung.'
+          '-Veroeffentlichen', '-VisuellGeprueft'
         )
         Assert-True -Condition ($publish.ExitCode -eq 0) -Message "Universal-Aktivierung schlug fehl: $($publish.Output -join ' | ')"
         Assert-True -Condition (-not (Test-Path -LiteralPath $work)) -Message 'Datierter Universal-Arbeitsordner blieb nach erfolgreicher Aktivierung bestehen.'
@@ -3179,18 +4033,20 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
         Assert-True -Condition ($status.ExitCode -eq 0 -and (($status.Output -join "`n") | ConvertFrom-Json).phase -ceq 'aktiv') -Message 'Status erkennt die bereinigte Aktivfassung nicht.'
       }
 
-      Invoke-Test -Name "Finalisierungs-Vorbereitung rendert ein Passfoto und erzeugt gebundene Browser-, PDF- und ATS-Nachweise" -Body {
+      Invoke-Test -Name "Finalisierungs-Vorbereitung rendert ein Passfoto und erzeugt gebundene Browser-, PDF- und ATS-Nachweise" -Kategorie browser -Body {
         $fixture = New-StagedFinalizationFixture -Root (Join-Path $testRoot "finalize-browser-passfoto") -WithPassfoto
         Remove-Item -LiteralPath $fixture.FinalReport -Force
         $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Finalisiere-Bewerbung.ps1") -Arguments @("-Arbeitsordner", $fixture.Work, "-StammdatenPath", $fixture.Personal, "-ProfilPath", $fixture.Profile, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -eq 0) -Message "Browsergestützte Finalisierungsvorbereitung schlug fehl: $($result.Output -join ' | ')"
         $report = Get-Content -LiteralPath $fixture.FinalReport -Raw -Encoding UTF8 | ConvertFrom-Json
-        Assert-True -Condition ($report.schemaVersion -eq 5 -and $report.status -eq "bereit_zur_sichtpruefung") -Message "Finalisierungsbericht hat nicht das erwartete Schema oder den Vorbereitungsstatus."
+        Assert-True -Condition ($report.schemaVersion -eq 7 -and $report.status -eq "bereit_zur_sichtpruefung" -and -not [string]::IsNullOrWhiteSpace([string]$report.approvalRequest.approvalId) -and @($report.stageRuns).Count -eq 7) -Message "Finalisierungsbericht hat nicht das erwartete Freigabeschema, die Stufenfolge oder den Vorbereitungsstatus."
         Assert-True -Condition ($report.runtime.browser.executable -eq $script:browserSmokeInfo.Path -and -not [string]::IsNullOrWhiteSpace([string]$report.runtime.browser.version)) -Message "Finalisierungsbericht enthält nicht den ausgeführten Browser-Fingerprint."
         Assert-True -Condition (@($report.artifacts.html).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei HTML-Nachweise."
         Assert-True -Condition (@($report.artifacts.pdf).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei PDF-Nachweise."
         Assert-True -Condition (@($report.artifacts.screenshots).Count -eq 2) -Message "Finalisierungsbericht enthält nicht genau zwei Screenshot-Nachweise."
         Assert-True -Condition ($report.sourceInputs.passfoto.name -ceq 'Passfoto.png' -and $report.sourceInputs.passfoto.sha256 -eq (Get-FileHash -LiteralPath $fixture.Passfoto -Algorithm SHA256).Hash) -Message "Reale Browservorbereitung bindet das gerenderte Passfoto nicht als Quelle."
+        $approval = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'Erzeuge-Sichtfreigabe.ps1') -Arguments @('-Arbeitsordner',$fixture.Work,'-FreigabeId',[string]$report.approvalRequest.approvalId,'-Bestaetigt','-Notiz','Alle erzeugten Testseiten geprüft; keine Überlappung oder abgeschnittener Inhalt.')
+        Assert-True -Condition ($approval.ExitCode -eq 0) -Message "Reale Sichtfreigabe schlug fehl: $($approval.Output -join ' | ')"
         Assert-True -Condition (Test-Path -LiteralPath $report.atsReport -PathType Leaf) -Message "Finalisierung schrieb keinen ATS-Prüfbericht."
         Assert-True -Condition (Test-Path -LiteralPath $report.tokenUsageReport.path -PathType Leaf) -Message "Finalisierung schrieb keinen referenzierten Tokenbericht."
         Assert-True -Condition (-not $report.tokenUsageReport.blocksFinalization -and -not $report.tokenUsageReport.includedInManifest) -Message "Tokenbericht ist nicht ausdrücklich nicht blockierend und manifestfrei."
@@ -3204,8 +4060,7 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
           "-Browser", "auto",
           "-BrowserExecutablePath", $script:browserSmokeInfo.Path,
           "-Veroeffentlichen",
-          "-VisuellGeprueft",
-          "-VisuelleFreigabeNotiz", "Alle erzeugten Testseiten geprüft; keine Überlappung oder abgeschnittener Inhalt."
+          "-VisuellGeprueft"
         )
         Assert-True -Condition ($publish.ExitCode -eq 0) -Message "Veröffentlichung nach realer Browservorbereitung schlug fehl: $($publish.Output -join ' | ')"
         Assert-True -Condition (Test-Path -LiteralPath (Join-Path $fixture.Folder "Versand/Lebenslauf - TEST.PERSON.pdf") -PathType Leaf) -Message "Realer Versand-Lebenslauf fehlt."
@@ -3216,7 +4071,7 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
         Assert-True -Condition ($publishedStatic.ExitCode -eq 0) -Message "Reale strukturierte Veröffentlichung wurde abgelehnt: $($publishedStatic.Output -join ' | ')"
       }
 
-      Invoke-Test -Name "PDF-Export lehnt zusätzliche Druckseiten ab" -Body {
+      Invoke-Test -Name "PDF-Export lehnt zusätzliche Druckseiten ab" -Kategorie browser -Body {
         $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "overflow-pdf")
         foreach ($html in Get-ChildItem -LiteralPath $folder -Filter "*.html" -File) {
           $text = Get-Content -LiteralPath $html.FullName -Raw -Encoding UTF8
@@ -3225,11 +4080,11 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
         }
         $result = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($result.ExitCode -ne 0) -Message "PDF mit zusätzlichen Druckseiten wurde fälschlich akzeptiert."
-        Assert-True -Condition (($result.Output -join "`n") -match "PDF-Seitenzahl stimmt nicht mit dem HTML überein") -Message "Export scheiterte nicht aus dem erwarteten Seitenzahl-Grund: $($result.Output -join ' | ')"
+        Assert-True -Condition (($result.Output -join "`n") -match "PDF-Seitenzahl stimmt") -Message "Export scheiterte nicht aus dem erwarteten Seitenzahl-Grund: $($result.Output -join ' | ')"
         Assert-True -Condition (@(Get-ChildItem -LiteralPath $folder -Filter "*.pdf" -File).Count -eq 0) -Message "Fehlgeschlagener Export hinterließ finale PDFs."
       }
 
-      Invoke-Test -Name "Erfolgreicher PDF-Export ersetzt alte Dateien nach Validierung" -Body {
+      Invoke-Test -Name "Erfolgreicher PDF-Export ersetzt alte Dateien nach Validierung" -Kategorie browser -Body {
         $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "valid-pdf")
         $first = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($first.ExitCode -eq 0) -Message "Erster gültiger PDF-Export schlug fehl: $($first.Output -join ' | ')"
@@ -3264,7 +4119,7 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
         }
       }
 
-      Invoke-Test -Name "PDF-Export stellt alte PDFs wieder her, wenn der Berichtstausch scheitert" -Body {
+      Invoke-Test -Name "PDF-Export stellt alte PDFs wieder her, wenn der Berichtstausch scheitert" -Kategorie browser -Body {
         $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "pdf-report-rollback")
         $first = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot "Exportiere-PDF.ps1") -Arguments @("-Ordner", $folder, "-Browser", "auto", "-BrowserExecutablePath", $script:browserSmokeInfo.Path, "-TimeoutSeconds", "60")
         Assert-True -Condition ($first.ExitCode -eq 0) -Message "Vorbereitung des PDF-Rollbacktests schlug fehl: $($first.Output -join ' | ')"
@@ -3286,7 +4141,7 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
         }
       }
 
-      Invoke-Test -Name "PDF-Zielverzeichnis wird nicht als Datei behandelt" -Body {
+      Invoke-Test -Name "PDF-Zielverzeichnis wird nicht als Datei behandelt" -Kategorie browser -Body {
         $folder = New-ValidApplicationFixture -Root (Join-Path $testRoot "pdf-target-directory")
         $invalidTarget = Join-Path $folder "Anschreiben - TEST.PERSON.pdf"
         New-Item -Path $invalidTarget -ItemType Directory | Out-Null
@@ -3294,10 +4149,20 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
         Assert-True -Condition ($result.ExitCode -ne 0) -Message "PDF-Zielverzeichnis wurde als gültige Datei behandelt."
         Assert-True -Condition (($result.Output -join "`n") -match "(?:keine|muss eine) reguläre Datei") -Message "Unerwarteter Fehlergrund für PDF-Zielverzeichnis: $($result.Output -join ' | ')"
       }
+
     }
   }
 } finally {
   if (Test-Path -LiteralPath $testRoot -PathType Container) {
+    if ($Suite -eq 'browser' -and -not [string]::IsNullOrWhiteSpace($BerichtPath)) {
+      $reportTarget = if ([System.IO.Path]::IsPathRooted($BerichtPath)) { [System.IO.Path]::GetFullPath($BerichtPath) } else { [System.IO.Path]::GetFullPath((Join-Path $repoRoot $BerichtPath)) }
+      $artifactRoot = Join-Path (Split-Path -Path $reportTarget -Parent) 'Browser-Artefakte'
+      New-Item -Path $artifactRoot -ItemType Directory -Force | Out-Null
+      foreach ($artifact in @(Get-ChildItem -LiteralPath $testRoot -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension.ToLowerInvariant() -in @('.png', '.pdf', '.json') })) {
+        $relativeArtifact = $artifact.FullName.Substring($testRoot.Length).TrimStart('\', '/') -replace '[\\/]', '__'
+        Copy-Item -LiteralPath $artifact.FullName -Destination (Join-Path $artifactRoot $relativeArtifact) -Force
+      }
+    }
     Get-ChildItem -LiteralPath $testRoot -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { $_.IsReadOnly = $false }
     $fullTestRoot = [System.IO.Path]::GetFullPath($testRoot)
     $fullTempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
@@ -3314,6 +4179,47 @@ if (-not [string]::IsNullOrWhiteSpace($TestNamePattern) -and $script:selectedTes
 Write-Host "Testergebnis: $($passed.Count) bestanden, $($failed.Count) fehlgeschlagen."
 foreach ($failure in $failed) {
   Write-Host "- $failure" -ForegroundColor Red
+}
+
+if (-not [string]::IsNullOrWhiteSpace($BerichtPath)) {
+  $reportFullPath = if ([System.IO.Path]::IsPathRooted($BerichtPath)) {
+    [System.IO.Path]::GetFullPath($BerichtPath)
+  } else {
+    [System.IO.Path]::GetFullPath((Join-Path $repoRoot $BerichtPath))
+  }
+  $reportParent = Split-Path -Path $reportFullPath -Parent
+  New-Item -Path $reportParent -ItemType Directory -Force | Out-Null
+  $endedAtUtc = [DateTime]::UtcNow
+  $totalDurationMs = [int](($endedAtUtc - $script:suiteStartedAtUtc).TotalMilliseconds)
+  $runtimeInfo = [ordered]@{
+    os = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
+    architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+    powershell = $PSVersionTable.PSVersion.ToString()
+  }
+  $timingSummary = Get-TimingSummary -Results @($testResults.ToArray()) -TotalDurationMs $totalDurationMs
+  $runtimeWarnings = @(Get-RuntimeWarnings -Runtime $runtimeInfo -Suite $Suite -DurationMs $totalDurationMs)
+  foreach ($warning in $runtimeWarnings) { Write-Host "[WARNUNG] Laufzeit liegt über der dokumentierten Referenz: $($warning.actualDurationMs) ms statt $($warning.baselineDurationMs) ms." -ForegroundColor Yellow }
+  $report = [ordered]@{
+    schemaVersion = 1
+    suite = $Suite
+    testNamePattern = $TestNamePattern
+    browserRequested = [bool]$MitBrowser
+    startedAtUtc = $script:suiteStartedAtUtc.ToString('o')
+    endedAtUtc = $endedAtUtc.ToString('o')
+    durationMs = $totalDurationMs
+    runtime = $runtimeInfo
+    selectedTestCount = $script:selectedTestCount
+    passedCount = $passed.Count
+    failedCount = $failed.Count
+    status = if ($failed.Count -eq 0) { 'bestanden' } else { 'fehlgeschlagen' }
+    failures = @($failed.ToArray())
+    tests = @($testResults.ToArray())
+    timing = $timingSummary
+    runtimeWarnings = $runtimeWarnings
+  }
+  $reportJson = $report | ConvertTo-Json -Depth 8
+  Set-Content -LiteralPath $reportFullPath -Encoding UTF8 -Value $reportJson
+  Write-Host "Testbericht: $reportFullPath"
 }
 
 if ($failed.Count -gt 0) {

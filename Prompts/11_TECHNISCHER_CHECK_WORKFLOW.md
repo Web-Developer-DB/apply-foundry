@@ -28,9 +28,13 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Bei einem zweiseitigen Lebenslauf muss jeder fachliche `<section>`-Block eine dokumentweit eindeutige `data-cv-section`-Kennung tragen und vollständig auf einer Seite liegen; jeder Seitencontainer benötigt einen mit `data-cv-page-header` markierten Kopf.
 - Eine Änderung an einer HTML-Datei nach dem Layoutcheck macht den bisherigen Screenshot- und PDF-Nachweis ungültig. Maßgeblich sind die SHA-256-Werte in den Prüfberichten.
 - Kandidatendateien einzeln und vollständig schreiben und danach unmittelbar validieren. Insbesondere JSON-Dateien nach jeder Änderung parsen; keine unübersichtliche Sammeländerung darf bei einem Teilfehler mehrere fertige Dokumente halb aktualisiert zurücklassen.
+- Neue `Anforderungsmatrix.json`-Dateien verwenden Schema 5. Vor der Layoutprüfung muss der Inhaltsprüfer die vollständige `recruiterStrategie`, `anschreibenStrategie`, externe Quellen, sichtbare Anker, zulässige Transferbrücken, die Seite-1-Abdeckung sowie die hash- und zeilengebundene Beweiskette aus Stellenbeschreibung, Matrix und Evidenzindex bestätigen; Matrix-Schemata 1 bis 4 bleiben unverändert lesbar.
+- Matrix- und Evidenzmigrationen laufen ausschließlich über `bewerbung.ps1 migrieren`. Der Standard ist read-only; `--anwenden` erzeugt bei fachlichen Lücken nur private Entwürfe und übernimmt vollständige Zielverträge atomar mit Hash-Recheck und Rollback. Status, Inhaltsprüfung und Finalisierung führen keine automatische Migration aus.
 - In einer als verwaltete Sandbox bekannten Umgebung vor dem Browserlauf prüfen, ob eine lokale Browserfreigabe verfügbar ist. Eine vorhandene Freigabe direkt verwenden; andernfalls die Grenze offen melden und keinen erfolgreichen Lauf behaupten.
 - Tokenzahlen niemals schätzen oder aus Textlängen beziehungsweise Teilwerten ableiten. Exakte Zahlen sind nur zulässig, wenn die Agentenlaufzeit sie maschinenlesbar bereitstellt.
 - Ein Runtime-Fingerprint aus Betriebssystem, Architektur, PowerShell-Version und – bei Browserläufen – Browsername, Version und ausführbarer Datei bindet technische Nachweise an die Laufzeit. Nach einem Plattformwechsel Auftrag und Kandidaten erhalten, Layout-, PDF-, ATS- und Finalisierungsnachweise aber vollständig neu erzeugen.
+- Berichte und Zustandsdateien werden über `Tools/Common/AtomicFile.psm1` atomar als UTF-8 geschrieben und innerhalb pfadbasierter Sperren mit begrenzten Wiederholungen aktualisiert. Ein abgebrochener Austausch darf keine Teil-JSON-Datei hinterlassen.
+- `Sichtfreigabe.json` ist der einzige technische Veröffentlichungsnachweis. Die Freigabe-ID, der vorbereitete Finalisierungsbericht und jeder geprüfte Artefakt-Hash müssen aktuell übereinstimmen; ein altes `--visuell-geprueft` ersetzt diesen Nachweis nicht.
 
 ## Gemeinsamer Plattform- und CLI-Einstieg
 
@@ -46,7 +50,7 @@ Unter Ubuntu delegiert der dünne Bash-Launcher seine Argumente unverändert an 
 ./Tools/bewerbung.sh <subcommand> ...
 ```
 
-Die gemeinsamen Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`. Beide Einstiege verwenden dieselben GNU-Langoptionen. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und hat dafür keine Abhängigkeit auf `jq`, Python, Node oder externe SHA-Werkzeuge. Direkte Aufrufe der vorhandenen PowerShell-Fachskripte bleiben kompatibel unterstützt.
+Die gemeinsamen Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Beide Einstiege verwenden dieselben GNU-Langoptionen. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und hat dafür keine Abhängigkeit auf `jq`, Python, Node oder externe SHA-Werkzeuge. Direkte Aufrufe der vorhandenen PowerShell-Fachskripte bleiben kompatibel unterstützt.
 
 `bewerbung.ps1 checkpoint --arbeitsordner "..." --schritt NAME` schreibt einen kompakten, hashgebundenen Fortsetzungsnachweis in den privaten Arbeitsordner. Er ist nach jeder sinnvollen Workflow-Grenze aufzurufen, speichert keine Quellinhalte oder Rohchatdaten und ersetzt keine fachliche Prüfung. Der Statusbefehl verwendet ihn nur bei vollständig übereinstimmenden Arbeitsartefakten als Hinweis; bei Abweichungen bleiben Auftrag, Matrix, Kandidaten und Prüfberichte maßgeblich.
 
@@ -73,11 +77,16 @@ Dieser Lauf:
 - verlangt eine vollständige `Anforderungsmatrix.json`
 - validiert den bestätigten Dokumentumfang und den fortsetzbaren Dialogzustand; neue Aufträge verwenden Schema 5, Legacy-Aufträge der Schemata 1 bis 4 werden nicht automatisch umgeschrieben
 - sperrt ungeklärte zentrale Bewerbungslogistik
-- führt Stammdaten-, Inhalts- und statischen HTML-Check aus
+- führt Dialog und Stammdaten, danach statischen HTML-Check, Inhalt, DOM/Layout, PDF und ATS in dieser festen Abbruchreihenfolge aus
+- schreibt im `Inhalts-Pruefbericht.json` für Matrix-Schema 5 die maschinenlesbare `recruiterCoverage`, `evidenceCoverage`, `anschreibenCoverage`, `externalSourceCoverage`, `evidenzDisposition` und `sprachqualitaet`; fehlende Prioritätsbelege, falsche Zieldokumente oder Seiten, unbelegte Direktbehauptungen, fehlende Quellenanker und unvollständige Strategien blockieren
 - erzeugt frische Layoutscreenshots samt Dichtehinweisen
+- misst bei Chromium zusätzlich DOM-Überlauf, Scrollhöhe und Elementgrenzen je isolierter A4-Seite; jeder sichtbare Überlauf blockiert die Vorbereitung
+- rendert zusätzlich jedes vollständige Original-HTML in eine temporäre A4-PDF und blockiert, wenn ihre Seitenzahl nicht exakt den expliziten `.page`-Containern entspricht; damit werden Wechselwirkungen zwischen Seiten wie druckwirksame Vorschauabstände erkannt
 - exportiert und validiert genau die laut Dokumentumfang ausgewählten HTML-Dokumente als PDFs
 - prüft die PDF-Textschicht und Lesbarkeit für ATS
 - schreibt Hashnachweise für Quellen, sämtliche Kandidatendateien, PDFs und Seitenscreenshots; bei einem individuellen Lebenslauf mit vorhandenem Passfoto kommt exakt der optionale Quellnachweis `passfoto` hinzu
+- schreibt `Pruefstand.json` Schema 2 ausschließlich im privaten Arbeitsordner. Jede Stufe wird vor ihrem Start als `running`, danach als `passed` oder bei einem kontrollierten Werkzeugfehler als `failed` gespeichert. Erfolgreiche Stufen werden nur bei identischen Quellen, Parametern, Werkzeug- und Laufzeithashes wiederverwendet; fehlgeschlagene oder unterbrochene Stufen nie. `--neu-pruefen` umgeht den Prüfstand.
+- schreibt den Vorbereitungsbericht für individuelle Bewerbungen im Schema 7 beziehungsweise für den Universal-Lebenslauf im Schema 2 mit einer neuen, eindeutigen `approvalRequest.approvalId`; Schema-6-Vorbereitungen bleiben veröffentlichbar, liefern aber keine Cachetreffer
 - schreibt den Runtime-Fingerprint in Layout-, PDF-, ATS- und Finalisierungsbericht
 - aktualisiert den nicht blockierenden Diagnosebericht `Tokenverbrauch.json` im Arbeitsordner mindestens mit dem Verfügbarkeitsstatus und referenziert ihn optional im `Finalisierungsbericht.json`
 - veröffentlicht noch keine Datei
@@ -87,10 +96,11 @@ Dieser Lauf:
 Nach der tatsächlichen Sichtprüfung:
 
 ```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen --visuell-geprueft
+pwsh -NoProfile -File Tools/bewerbung.ps1 freigabe --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --freigabe-id FR-XXXXXXXXXXXX --bestaetigt --notiz "Sichtprüfung abgeschlossen."
+pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen
 ```
 
-Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbewertung angegeben werden, zum Beispiel `--visuelle-freigabe-notiz "Alle markierten Seiten geprüft; kein Beschnitt und keine Überlappung."`.
+Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbewertung als `--notiz "Alle markierten Seiten geprüft; kein Beschnitt und keine Überlappung."` im `freigabe`-Aufruf angegeben werden.
 
 Die Veröffentlichung wird verweigert, wenn Quellen, Auftrag, Kandidatendateien oder Screenshots nach der Vorbereitung verändert wurden. Das gilt bei individuellen Lebensläufen auch für das spätere Hinzufügen, Ändern oder Löschen von `Private/Daten/Passfoto.png`. Sie kopiert nicht dateiweise in den Zielordner, sondern veröffentlicht das validierte Set über einen privaten Staging-Ordner gemeinsam. `Versand/` enthält ausschließlich die ausgewählten PDF-Anlagen und gegebenenfalls den E-Mail-Text; `Intern/` enthält vorhandene HTML-Quellen und Nachweise. `Manifest.json` bindet Dokumentumfang und jede veröffentlichte Datei an ihren SHA-256-Wert; das Foto selbst wird nicht separat veröffentlicht.
 
@@ -208,9 +218,10 @@ Visuelle Bewertung des Screenshots:
 - Die Seitenangabe steht nicht als normaler Absatz im Inhalt und wirkt nicht wie ein Rest zwischen zwei Seiten.
 - Formale Stationen wie Berufserfahrung, Weiterbildung, berufliche Bildung und Schulbildung sind sichtbar.
 - Schriftgröße, Zeilenabstand und Weißraum wirken professionell lesbar.
+- Ungewöhnlich freie Flächen wurden zuerst gegen fehlende relevante Profilhighlights, Anwendungskontexte und eigene Beiträge geprüft; Layoutanpassungen kaschieren keine inhaltliche Unterdeckung.
 - Der Screenshot enthält keine Browser-Kopfzeilen, Dateipfade, URLs oder Druckdialog-Reste.
 
-Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären A4-Ansicht. Dadurch wird keine Seite von einer festen Screenshot-Höhe abgeschnitten oder übersehen. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; ihre Warnung muss fachlich bewertet werden und rechtfertigt kein blindes Auffüllen oder Komprimieren.
+Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären A4-Ansicht und ergänzt dies durch eine vollständige Druckvorprüfung des unveränderten HTML. Dadurch wird keine Seite von einer festen Screenshot-Höhe abgeschnitten oder übersehen, und gleichzeitig können global wirksame CSS-Regeln zwischen Seiten keine zusätzliche Druckseite unbemerkt erzeugen. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; ihre Warnung muss fachlich bewertet werden und rechtfertigt kein blindes Auffüllen oder Komprimieren. Bei ungewöhnlich geringer Dichte wird zuerst die Schema-5-Recruiter-, Anschreiben- und Evidenzabdeckung fachlich geprüft, dann die Seitenstrategie und erst danach das Layout verändert.
 
 Die Vorlagen verwenden `Arial, "Liberation Sans", Helvetica, sans-serif`. Windows und Ubuntu müssen weder pixelidentische PNGs noch binär identische PDFs erzeugen. Verbindlich gleich sind Seitenzahl, A4-Geometrie, bestandene Dichteprüfung, Hashbindung und ATS-Prüfung.
 
@@ -269,7 +280,8 @@ Der verbindliche Finalisierungsworkflow führt nach dem PDF-Export `Tools/Pruefe
 
 - Pflichttexte wie Bewerbername, Firma und Zielrolle
 - formale Zeiträume im Lebenslauf
-- Textabdeckung zwischen HTML und PDF
+- Unicode-normalisierte Token-Abdeckung sowie geordnete Bigramm- und Trigramm-Abdeckung zwischen HTML und PDF
+- stabile Tokenisierung technischer Schreibweisen wie `C#`, `.NET` und `Node.js`
 - eine grundlegende, nachvollziehbare Lesereihenfolge
 
 Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versandfertig. Die ATS-Prüfung ersetzt weiterhin nicht die Sichtprüfung. Mehrere ausgewählte Dokumente bleiben getrennte PDFs; eine Formatforderung „PDF“ wird nicht als Gesamt-PDF interpretiert.
@@ -283,14 +295,18 @@ Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versand
 5. Jeden erzeugten Seitenscreenshot visuell öffnen und prüfen; ohne HTML die ausgewählten Textdateien persönlich prüfen.
 6. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.
 7. Bei Dichte- oder Layoutwarnungen die Sichtbewertung als Freigabenotiz dokumentieren.
-8. Erst nach neuer eindeutiger Sichtprüfungsbestätigung mit `--veroeffentlichen --visuell-geprueft` atomar veröffentlichen.
+8. Erst nach neuer eindeutiger Sichtprüfungsbestätigung die im Bericht ausgegebene ID mit `bewerbung.ps1 freigabe --bestaetigt` an den unveränderten Artefaktsatz binden und anschließend mit `--veroeffentlichen` atomar veröffentlichen. Das Legacy-Argument `--visuell-geprueft` erteilt keine Freigabe.
 9. Bei Fehlern nicht final melden; der finale Zielordner muss unverändert bleiben. Der Tokenbericht darf einen ansonsten erfolgreichen Lauf nicht blockieren.
 
 ## CI und gestufter Plattform-Rollout
 
-Die browserfreie PowerShell-Suite läuft mit `fail-fast: false` unverändert auf `windows-2025` und `ubuntu-24.04`; OS-bedingte Skips gehören nicht in diesen Kern. Ubuntu führt zusätzlich `bash -n`, ShellCheck sowie Dispatcher- und Kompatibilitätstests aus. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
+Die browserfreie PowerShell-Suite läuft mit `fail-fast: false` unverändert auf `windows-2025` und `ubuntu-24.04`; sie ist in `schnell` (Parser-, Schema-, Modul- und Vertrags-Canary) sowie `vollstaendig` (alle browserfreien Regressionen einschließlich der vier Rollen-Fixtures) geteilt. Ubuntu führt zusätzlich `bash -n`, ShellCheck sowie Dispatcher- und Kompatibilitätstests aus. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
 
-Browser-Smokes laufen zunächst getrennt, manuell und zeitgesteuert auf beiden Betriebssystemen. Sie prüfen Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und fehlende Restprozesse. Erst nach drei aufeinanderfolgenden grünen Browserläufen je Betriebssystem dürfen die Jobs verpflichtende Pull-Request-Checks werden und Ubuntu darf von Alpha auf stabil wechseln. Bis dieser Nachweis tatsächlich vorliegt, keinen stabilen Linux-Support behaupten.
+Der Windows-Browser-Smoke läuft bei jedem Pull Request sowie zeitgesteuert/manuell unter einem stabilen Checknamen. Ubuntu läuft zunächst nur zeitgesteuert/manuell. Beide Jobs prüfen Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und fehlende Restprozesse. Erst nach drei aufeinanderfolgenden grünen Ubuntu-Paritätsläufen, einem dokumentierten Promotion-PR und einem administrativen Ruleset-Eintrag darf Ubuntu als stabil und PR-verbindlich bezeichnet werden. Ohne Adminzugriff bleibt der Eintrag vorbereitet.
+
+`browser-stability-evidence.yml` darf aus der GitHub-Actions-API nur einen read-only Nachweisentwurf erzeugen. Der Entwurf gilt nicht als Promotion; ein eigener PR muss die drei aufeinanderfolgenden Läufe und alle Kriterien übernehmen.
+
+Echte Prompt-Regressionen verwenden `Tests/PromptRegression/models.json` und `scenarios.json`. Codex und OpenCode bilden die PR-Canary mit identischer OpenAI-Modell-ID; Claude Code und Gemini CLI laufen in der vollständigen wöchentlichen/manuellen Matrix. Der isolierte Runner leert globale Profile, lädt `AGENTS.md` über die jeweilige Umgebung, prüft erlaubte Dateimutationen und meldet fehlende Secrets oder unerwartete Modellweiterleitungen als Fehler. Reports speichern keine Zugangsdaten oder privaten Inhalte.
 
 ## Keine stillen Erfolge
 

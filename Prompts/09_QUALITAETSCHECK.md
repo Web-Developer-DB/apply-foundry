@@ -14,6 +14,10 @@ Vor der technischen Vorbereitung prüft der Agent den fachlichen Kandidatenstand
 - Sind Belegarten aus Prompt 07 eingehalten und wurden keine Arbeitgeber, Zeiträume, Kenntnisse, Abschlüsse, Verantwortlichkeiten oder Logistikangaben erfunden?
 - Enthält die normalisierte Matrix jede eigenständige relevante Muss-/Kann-Anforderung genau einmal, ohne durch Wiederholungen der Anzeige das Gewicht zu vervielfachen?
 - Besitzt jede nicht vollständig erfüllte Muss-Anforderung eine ehrliche Behandlung in Matrix, Analyse oder offenen Fragen?
+- Ist bei Matrix-Schema 5 die `recruiterStrategie` vollständig, nach Recruiter-Relevanz geordnet und mit sichtbaren Dokumentankern belegt? Sind `anschreibenStrategie`, Arbeitgebernutzen, externe Quellen und Evidenzdisposition vollständig? Sind zusätzlich jede Anforderung an eine Stellen-Fundstelle und jeder Direktbeleg an eine valide Profilevidenz gebunden?
+- Besitzt jede kritische oder hoch gewichtete fachliche beziehungsweise erfahrungsbezogene erfüllte oder teilweise erfüllte Anforderung einen sichtbaren Direktbeleg im vorgesehenen Dokument?
+- Verweisen Transferbrücken ausschließlich auf vorhandene Profilhighlights und bleiben sie auf der zulässigen Wahrheitsebene?
+- Ist jede Evidenz-ID verwendet oder als begründete Auslassung erfasst, ohne Nutzung/Auslassungs-Konflikt?
 - Ist die Profilstrategie stellenbezogen, recruiterfreundlich und frei von irrelevanten Inventarlisten?
 - Wurde bei einem ausdrücklichen Bewerbungsauftrag `bewerbungsentscheidung = bewerben` beibehalten und eine Risiko- oder Stretch-Einstufung nicht als Modellveto verwendet?
 - Wurden nur wesentliche Informationslücken erfragt, höchstens drei unabhängige Fragen pro Runde gestellt und beantwortete Fragen nicht wiederholt?
@@ -23,6 +27,9 @@ Vor der technischen Vorbereitung prüft der Agent den fachlichen Kandidatenstand
 ## Lebenslauf, falls ausgewählt
 
 - Ist die Zielrolle schnell erkennbar und durch konkrete Matrixbelege getragen?
+- Sind die wichtigsten Recruiter-Signale auf Seite 1 sichtbar und bei ausreichender Profilsubstanz mindestens zwei personenspezifische Highlights enthalten?
+- Beschreiben priorisierte Projekte und Stationen Aufgabe oder Zweck, relevante Technologien beziehungsweise Kenntnisse und den konkreten eigenen Beitrag, soweit belegt?
+- Ist der Lebenslauf weder durch ausgelassene vorhandene Profilbelege inhaltlich dünn noch bei tatsächlich schmalem Profil künstlich aufgebläht?
 - Bleiben alle verpflichtenden beruflichen, Ausbildungs-/Studien-/Umschulungs- und Weiterbildungsstationen mit Zeitraum und Bezeichnung sichtbar?
 - Bleibt Schulbildung gemäß `vollstaendig` oder als wahre sichtbare Abschlussangabe gemäß `recruiter_kompakt` enthalten?
 - Sind Berufspraxis, übertragbare Erfahrung, Weiterbildung, Projekte, private Praxis, Grundlagen und Einarbeitungsziele sprachlich getrennt?
@@ -30,6 +37,7 @@ Vor der technischen Vorbereitung prüft der Agent den fachlichen Kandidatenstand
 - Entsprechen Stellenart und ausgewählte Profil-Links exakt dem Auftrag?
 - Ist ein individueller Lebenslauf stellenbezogen beziehungsweise ein universeller Lebenslauf hashgleich und unverändert?
 - Ist die gewählte Ein- oder Zwei-Seiten-Strategie fachlich plausibel, ohne versteckte oder abgeschnittene Inhalte?
+- Wurde bei ungewöhnlich viel freier Fläche zuerst auf fehlende relevante Profilsubstanz geprüft und erst danach Typografie oder Abstand angepasst?
 - Liegt bei einem Zweiseiter jeder fachliche Abschnitt vollständig auf genau einer Seite, sind Seitenköpfe und Abschnitte semantisch markiert und beginnt Seite 2 als logisch geschlossener Block statt mitten in einer Rubrik?
 - Wurde bei einem individuellen Lebenslauf exakt `Private/Daten/Passfoto.png` geprüft, eine vorhandene Datei bytegleich eingebettet und bei fehlender Datei jeder Fotoblock vollständig entfernt?
 - Passt ein vorhandenes Foto visuell zum konkreten Design, ohne Verzerrung, problematischen Zuschnitt, Überlappung oder Verdrängung wichtiger Inhalte?
@@ -38,8 +46,11 @@ Vor der technischen Vorbereitung prüft der Agent den fachlichen Kandidatenstand
 
 - Wurde es gegen ausgewählten Lebenslauf oder unmittelbar gegen Profil, Dialogangaben, Matrix und Stelle abgeglichen?
 - Greift es die stärksten zwei bis vier Passungen auf, ohne Lebenslauf oder Matrix nachzuerzählen?
+- Verbindet es diese Belege mit einem konkreten Arbeitgebernutzen und ergänzt damit die scanbaren Lebenslaufbelege?
 - Verweist `Analyse.md` für relevante Inhaltsentscheidungen knapp auf Matrix-IDs; nicht relevante Kategorien benötigen keine künstlichen Einzelentscheidungen?
 - Sind Motivation und Soft Skills mit echten Belegen verbunden und frei von generischen KI-Floskeln oder defensiven Metaformulierungen?
+- Stimmen die Argumente der `anschreibenStrategie` mit Stellen-Fundstellen, Evidenz-IDs, Arbeitgeberbezug, Nutzenargumenten und sichtbaren Anschreibenankern überein?
+- Sind Sprach-, Floskel- und Wiederholungswarnungen im Inhaltsbericht bewertet, ohne Warnungen ungeprüft durch automatische Textänderung zu beseitigen?
 - Sind Stellenart, Eintritt und Gehalt nur entsprechend Auftrag und Anzeige genannt?
 - Wurden keine Unternehmensdetails, Ansprechpartner oder Adressen erfunden?
 - Passt das Anschreiben auf genau eine feste A4-Seite?
@@ -65,6 +76,7 @@ Der verbindliche Vorbereitungslauf muss anschließend bestätigen:
 - PDF-Datei mit korrektem Namen, Struktur, Seitenzahl und DIN-A4-MediaBox für jedes ausgewählte HTML-Dokument;
 - extrahierbare Unicode-Textschicht, Pflichttexte, ausreichende Textabdeckung und grundlegende Lesereihenfolge;
 - Hashbindung von Quellen, Kandidaten, Screenshots, Berichten und PDFs.
+- bei Matrix-Schema 5 eine maschinenlesbare `recruiterCoverage`, `evidenceCoverage`, `anschreibenCoverage`, `externalSourceCoverage`, `evidenzDisposition` und `sprachqualitaet` im `Inhalts-Pruefbericht.json`.
 - optionaler Passfoto-Quellhash ausschließlich dann, wenn `Passfoto.png` für einen individuellen Lebenslauf tatsächlich vorhanden und eingebettet ist.
 
 Eine Firefox- oder andere manuelle Vorschau ist optional und zählt nur, wenn sie wirklich geöffnet und bewertet wurde. Sie ersetzt nicht den verbindlichen Chrome-/Edge-Nachweis.
@@ -74,7 +86,8 @@ Die Finalisierung verwaltet den Abschnitt `## Technischer Prüfbericht (automati
 ## Persönliches Freigabe-Gate
 
 - Jeder im aktuellen Lauf erzeugte Seitenscreenshot muss tatsächlich geöffnet und visuell auf Beschnitt, Überlappung, Lesbarkeit, Seitenverteilung, Footer, problematische Leerflächen und bei vorhandenem Passfoto zusätzlich auf Schärfe, Proportionen sowie Gesichtsausschnitt geprüft werden.
-- Automatische Dichte- oder Layoutwarnungen benötigen eine konkrete Sichtbewertung und gegebenenfalls `-VisuelleFreigabeNotiz`.
+- Automatische Dichte- oder Layoutwarnungen benötigen eine konkrete Sichtbewertung und gegebenenfalls `-VisuelleFreigabeNotiz`; sie sind keine Aufforderung, die Warnungszahl durch künstliches Auffüllen auf null zu bringen.
+- Sprachqualitätswarnungen aus dem Inhaltsbericht sind von blockierenden Fach- und Wahrheitsfehlern getrennt zu behandeln. Sie brauchen eine redaktionelle Entscheidung, aber nicht zwingend eine fehlerfreie Nullwarnungsbilanz.
 - Ohne HTML muss jede ausgewählte Textdatei persönlich vollständig geprüft werden.
 - Jede nachträgliche Quellen- oder Kandidatenänderung entwertet Vorbereitung und Sichtbestätigung.
 - Veröffentlicht wird erst nach einer neuen eindeutigen persönlichen Bestätigung.

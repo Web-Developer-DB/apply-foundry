@@ -77,6 +77,7 @@ Wichtig:
 - `overflow: hidden` darf niemals verwendet werden, um zu lange Inhalte unsichtbar zu machen.
 - Wenn Inhalt nicht vollständig in diese feste A4-Seite passt, muss zuerst fachlich gekürzt oder bewusst auf zwei Seiten gewechselt werden.
 - Keine fixen Höhen für normale Textabschnitte, Listen oder Spalten, wenn dadurch Inhalt abgeschnitten werden könnte.
+- Der verbindliche Layoutcheck misst zusätzlich browserseitig `scrollHeight`, Elementgrenzen und sichtbare Überläufe. Ein Textanker im HTML genügt nicht, wenn sein Element außerhalb der A4-Seite liegt oder abgeschnitten wird.
 
 Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
 
@@ -121,7 +122,20 @@ Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
   text-align: right;
 }
 
+/* Ausschließlich für die Bildschirmvorschau, niemals für das Drucklayout. */
+@media screen {
+  .page + .page {
+    margin-top: 8mm;
+  }
+}
+
 @media print {
+  /* Derselbe Selektor verhindert, dass eine globale ältere Regel die
+     weniger spezifische .page-Margin im Druck überschreibt. */
+  .page + .page {
+    margin-top: 0;
+  }
+
   .page {
     width: 210mm;
     height: 297mm;
@@ -137,6 +151,8 @@ Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
 ```
 
 Für mehrseitige Lebensläufe ist dieser Footer Pflicht. Die Maße für `left`, `right` und `bottom` müssen zur jeweiligen Seitenpolsterung passen. Der Inhalt braucht genügend unteren Abstand, damit er die Trennlinie und Seitenangabe nicht berührt. Seitenzahlen dürfen nicht als normales `<p>` am Ende des Inhaltsflusses stehen.
+
+Abstände, Schatten und Hintergründe zwischen zwei A4-Seiten sind reine Bildschirmvorschau und gehören in `@media screen`. Eine globale Regel wie `.page + .page { margin-top: 8mm; }` kann wegen ihrer höheren CSS-Spezifität im Druck weitergelten und eine Fußzeile auf eine zusätzliche PDF-Seite verschieben. Im Druckmodus muss derselbe Selektor ausdrücklich auf `0` zurückgesetzt werden. Nach jeder Änderung eines mehrseitigen HTML-Dokuments ist vor Dichte- oder Typografiearbeit die vollständige Druckvorprüfung auszuführen: Die Zahl der PDF-Seiten muss exakt der Zahl der expliziten `.page`-Container entsprechen.
 
 Jeder zweiseitige Lebenslauf markiert außerdem den Seitenkopf jeder Seite mit `data-cv-page-header` und jeden fachlichen `<section>`-Block mit einer dokumentweit eindeutigen slugförmigen `data-cv-section`-Kennung. Dieselbe Kennung darf nicht auf beiden Seiten erscheinen. Eine Rubrik wird als Ganzes umverteilt; sie wird nicht durch CSS, Browserumbruch oder duplizierte Kennungen geteilt.
 
@@ -193,7 +209,7 @@ Vor der finalen Ausgabe eines zweiseitigen Lebenslaufs muss die Verteilung auf d
 
 Der automatische Layoutcheck erzeugt für jeden expliziten `.page`-Container ein isoliertes Prüf-HTML und daraus ein eigenes PNG im Format `...--seite-X-von-Y--chrome.png`. Dabei wird genau der ausgewählte Seitencontainer in den Dokumentkörper übernommen; zusätzliche `<main>`-Elemente oder seine ursprüngliche Position dürfen die Seitenauswahl nicht beeinflussen. Bei einem zweiseitigen Lebenslauf müssen beide Seiten einzeln geöffnet und bewertet werden; ein hoher Gesamtscreenshot oder nur die erste Bildschirmhöhe ist kein vollständiger Freigabenachweis.
 
-Die automatische Dichteprüfung wertet ausschließlich den nutzbaren Inhaltsbereich oberhalb von Footer und unterem Sicherheitsabstand. Seitenkante, Scrollbar und fester Footer dürfen nicht als Inhalt gelten. Ein Dichtehinweis ist eine Aufforderung zur Sichtprüfung, kein Auftrag zum blinden Auffüllen, Verkleinern oder Entfernen hochwertiger Inhalte. Recruiter-Lesbarkeit und inhaltliche Priorität bleiben maßgeblich.
+Die automatische Dichteprüfung wertet ausschließlich den nutzbaren Inhaltsbereich oberhalb von Footer und unterem Sicherheitsabstand. Seitenkante, Scrollbar und fester Footer dürfen nicht als Inhalt gelten. Ein Dichtehinweis ist eine Aufforderung zur Sichtprüfung, kein Auftrag zum blinden Auffüllen, Verkleinern oder Entfernen hochwertiger Inhalte. Zuerst werden relevante belegbare Inhalte und die Seitenverteilung geprüft, danach die Ein-/Zweiseitenentscheidung und erst zuletzt moderate Abstands- oder Typografieanpassungen. Recruiter-Lesbarkeit und inhaltliche Priorität bleiben maßgeblich.
 
 ## Lebenslauf-Designstandard
 

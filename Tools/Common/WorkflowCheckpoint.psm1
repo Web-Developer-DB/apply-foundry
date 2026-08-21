@@ -8,6 +8,7 @@ $ErrorActionPreference = 'Stop'
 # Sicherheitsfunktionen. Ein erzwungenes Neuladen würde deren privaten
 # Funktionskontext während eines laufenden Werkzeugs entfernen.
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'Platform.psm1') -ErrorAction Stop
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'AtomicFile.psm1') -ErrorAction Stop
 
 $script:CheckpointFileName = 'Workflow-Checkpoint.json'
 $script:CheckpointSchemaVersion = 1
@@ -288,7 +289,7 @@ function Get-WorkflowCheckpointStatus {
   }
 }
 
-function Write-WorkflowCheckpoint {
+function Write-WorkflowCheckpointCore {
   [CmdletBinding()]
   param(
     [Parameter(Mandatory)][string]$Arbeitsordner,
@@ -335,15 +336,7 @@ function Write-WorkflowCheckpoint {
   }
 
   $safeTarget = Resolve-SafePath -Candidate $context.CheckpointPath -Root $context.WorkFolder -ForWrite -PathType Leaf
-  $temporaryPath = Resolve-SafePath -Candidate (Join-Path -Path $context.WorkFolder -ChildPath ('.workflow-checkpoint-' + [guid]::NewGuid().ToString('N') + '.tmp')) -Root $context.WorkFolder -ForWrite -PathType Leaf
-  try {
-    [System.IO.File]::WriteAllText($temporaryPath, ($checkpoint | ConvertTo-Json -Depth 12), [System.Text.UTF8Encoding]::new($false))
-    [System.IO.File]::Move($temporaryPath, $safeTarget, $true)
-  } finally {
-    if (Test-Path -LiteralPath $temporaryPath -PathType Leaf) {
-      Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
-    }
-  }
+  Write-AtomicJson -Path $safeTarget -Value $checkpoint -Depth 12
   return [pscustomobject][ordered]@{
     path = $safeTarget
     workFolder = $context.WorkFolderRelative
@@ -351,6 +344,18 @@ function Write-WorkflowCheckpoint {
     artifactCount = $artifacts.Count
     artifactSetSha256 = $artifactSetSha256
     updatedAtUtc = $updatedAtUtc
+  }
+}
+
+function Write-WorkflowCheckpoint {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory)][string]$Arbeitsordner,
+    [Parameter(Mandatory)][string]$Schritt
+  )
+  $context = Resolve-WorkflowCheckpointWorkFolder -Arbeitsordner $Arbeitsordner
+  return Invoke-WithAtomicFileLock -Path $context.CheckpointPath -ScriptBlock {
+    Write-WorkflowCheckpointCore -Arbeitsordner $Arbeitsordner -Schritt $Schritt
   }
 }
 
