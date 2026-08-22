@@ -1,0 +1,40 @@
+name: Prompt regression full matrix
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  full-matrix:
+    name: Full prompt matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exakte Prompt-CLI-Versionen installieren
+        run: npm install --global @openai/codex@0.148.0-alpha.15 opencode-ai@1.18.18 @anthropic-ai/claude-code@2.1.235 @google/gemini-cli@0.55.1
+      - name: Fehlende Secrets fail-closed melden
+        shell: bash
+        run: |
+          test -n "$OPENAI_API_KEY" || { echo "OPENAI_API_KEY fehlt"; exit 1; }
+          test -n "$ANTHROPIC_API_KEY" || { echo "ANTHROPIC_API_KEY fehlt"; exit 1; }
+          test -n "$GEMINI_API_KEY" || { echo "GEMINI_API_KEY fehlt"; exit 1; }
+      - name: Vollständige Prompt-Matrix
+        shell: pwsh
+        run: ./Tests/Invoke-PromptRegression.ps1 -Matrix vollstaendig -BerichtPath Tests/Artifacts/prompt-vollstaendig.json
+      - name: Bereinigten Matrixbericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prompt-regression-vollstaendig
+          path: Tests/Artifacts
+          if-no-files-found: ignore
+          retention-days: 7

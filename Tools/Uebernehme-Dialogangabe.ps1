@@ -33,6 +33,7 @@ $script:ApplicationsRoot = $null
 $script:OrderWorkRoot = $null
 $script:DataRoot = $null
 $script:ResolvedOrderPath = $null
+$script:TransactionMutex = $null
 
 function Stop-WithValidationError {
   param([string]$Message)
@@ -345,54 +346,187 @@ function Invoke-DialogValidator {
   }
 }
 
+function Write-BytesWithFlush {
+  param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][byte[]]$Bytes)
+
+  $stream = [System.IO.FileStream]::new($Path, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+  try {
+    $stream.Write($Bytes, 0, $Bytes.Length)
+    $stream.Flush($true)
+  } finally {
+    $stream.Dispose()
+  }
+}
+
+function Move-TemporaryFileAtomically {
+  param([Parameter(Mandatory)][string]$TemporaryPath, [Parameter(Mandatory)][string]$TargetPath)
+
+  if (-not (Test-Path -LiteralPath $TemporaryPath -PathType Leaf)) { throw "Temporäre Transaktionsdatei fehlt: $TemporaryPath" }
+  [System.IO.File]::Move($TemporaryPath, $TargetPath, $true)
+}
+
+function Write-AtomicBytes {
+  param([Parameter(Mandatory)][string]$TargetPath, [Parameter(Mandatory)][byte[]]$Bytes, [Parameter(Mandatory)][string]$TempDirectory)
+
+  $tempPath = Join-Path -Path $TempDirectory -ChildPath ('.write-' + [guid]::NewGuid().ToString('N') + '.tmp')
+  Write-BytesWithFlush -Path $tempPath -Bytes $Bytes
+  Move-TemporaryFileAtomically -TemporaryPath $tempPath -TargetPath $TargetPath
+  if ((Get-Sha256ForBytes -Bytes ([System.IO.File]::ReadAllBytes($TargetPath))) -ine (Get-Sha256ForBytes -Bytes $Bytes)) {
+    throw "Hashprüfung nach atomarem Schreiben fehlgeschlagen: $TargetPath"
+  }
+}
+
+function Enter-DialogTransactionLock {
+  $lockMaterial = "$($script:ResolvedOrderPath)|$($script:DataRoot)"
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($lockMaterial)
+  $hash = Get-Sha256ForBytes -Bytes $bytes
+  $script:TransactionMutex = [System.Threading.Mutex]::new($false, "BewerbungsAgent.Dialog.$hash")
+  try {
+    if (-not $script:TransactionMutex.WaitOne([timespan]::FromSeconds(30))) { throw 'Zeitlimit beim Warten auf die exklusive Dialog-Transaktionssperre.' }
+  } catch {
+    $script:TransactionMutex.Dispose()
+    $script:TransactionMutex = $null
+    throw
+  }
+}
+
+function Exit-DialogTransactionLock {
+  if ($null -eq $script:TransactionMutex) { return }
+  try { $script:TransactionMutex.ReleaseMutex() } catch { }
+  $script:TransactionMutex.Dispose()
+  $script:TransactionMutex = $null
+}
+
+function Recover-PendingDialogTransactions {
+  param([Parameter(Mandatory)][string]$ProfilePath, [Parameter(Mandatory)][string]$OrderPath)
+
+  $pending = @(Get-ChildItem -LiteralPath $script:OrderWorkRoot -Directory -Force -Filter '.dialogtransaktion-*')
+  foreach ($directory in $pending) {
+    $journalPath = Join-Path -Path $directory.FullName -ChildPath 'journal.json'
+    if (-not (Test-Path -LiteralPath $journalPath -PathType Leaf)) {
+      Remove-Item -LiteralPath $directory.FullName -Recurse -Force
+      Write-Host "[WARNUNG] Unvollständige Dialogtransaktion ohne Commit-Journal wurde entfernt." -ForegroundColor Yellow
+      continue
+    }
+    try { $journal = (Get-Content -LiteralPath $journalPath -Raw -Encoding UTF8 | ConvertFrom-Json) } catch { throw "Dialogtransaktionsjournal ist ungültig: $journalPath" }
+    if ([int]$journal.schemaVersion -ne 1 -or [string]$journal.profileFileName -cne (Split-Path -Path $ProfilePath -Leaf) -or [string]$journal.orderFileName -cne (Split-Path -Path $OrderPath -Leaf)) {
+      throw "Dialogtransaktionsjournal passt nicht zum angeforderten Profil- und Auftragsziel: $journalPath"
+    }
+    $profileBackup = Join-Path -Path $directory.FullName -ChildPath 'profile.before.bin'
+    $orderBackup = Join-Path -Path $directory.FullName -ChildPath 'order.before.bin'
+    if (-not (Test-Path -LiteralPath $profileBackup -PathType Leaf) -or -not (Test-Path -LiteralPath $orderBackup -PathType Leaf)) { throw "Dialogtransaktion enthält keine vollständigen Sicherungen: $($directory.FullName)" }
+    $profileBefore = [System.IO.File]::ReadAllBytes($profileBackup)
+    $orderBefore = [System.IO.File]::ReadAllBytes($orderBackup)
+    if ((Get-Sha256ForBytes -Bytes $profileBefore) -ine [string]$journal.profileBeforeSha256 -or (Get-Sha256ForBytes -Bytes $orderBefore) -ine [string]$journal.orderBeforeSha256) { throw "Dialogtransaktion besitzt beschädigte Sicherungshashes: $($directory.FullName)" }
+    $profileCurrent = Get-Sha256ForBytes -Bytes ([System.IO.File]::ReadAllBytes($ProfilePath))
+    $orderCurrent = Get-Sha256ForBytes -Bytes ([System.IO.File]::ReadAllBytes($OrderPath))
+    if ($profileCurrent -notin @([string]$journal.profileBeforeSha256, [string]$journal.profileAfterSha256) -or $orderCurrent -notin @([string]$journal.orderBeforeSha256, [string]$journal.orderAfterSha256)) {
+      throw "Dialogtransaktion kann nach einer externen Änderung nicht sicher wiederhergestellt werden: $($directory.FullName)"
+    }
+    Write-AtomicBytes -TargetPath $ProfilePath -Bytes $profileBefore -TempDirectory $directory.FullName
+    Write-AtomicBytes -TargetPath $OrderPath -Bytes $orderBefore -TempDirectory $directory.FullName
+    Remove-Item -LiteralPath $directory.FullName -Recurse -Force
+    Write-Host "[WARNUNG] Unterbrochene Dialogtransaktion wurde sicher auf den vorherigen konsistenten Stand zurückgesetzt." -ForegroundColor Yellow
+  }
+}
+
+function Invoke-AtomicProfileOrderTransaction {
+  param(
+    [Parameter(Mandatory)][object]$Order,
+    [Parameter(Mandatory)][string]$OrderPath,
+    [Parameter(Mandatory)][bool]$OrderWithBom,
+    [Parameter(Mandatory)][byte[]]$OriginalOrderBytes,
+    [Parameter(Mandatory)][string]$ProfilePath,
+    [Parameter(Mandatory)][byte[]]$OriginalProfileBytes,
+    [Parameter(Mandatory)][byte[]]$NewProfileBytes
+  )
+
+  $OrderPath = Resolve-SafePath -Candidate $OrderPath -Root $script:ApplicationsRoot -MustExist -ForWrite -PathType Leaf
+  $ProfilePath = Resolve-SafePath -Candidate $ProfilePath -Root $script:DataRoot -MustExist -ForWrite -PathType Leaf
+  if (-not (Test-SamePath -Left $OrderPath -Right $script:ResolvedOrderPath)) {
+    throw 'Schreibziel stimmt nicht mit dem validierten Bewerbungsauftrag überein.'
+  }
+  $json = ($Order | ConvertTo-Json -Depth 32) + [Environment]::NewLine
+  $newOrderBytes = ConvertTo-Utf8Bytes -Text $json -WithBom $OrderWithBom
+  if ((Get-Sha256ForBytes -Bytes ([System.IO.File]::ReadAllBytes($ProfilePath))) -ine (Get-Sha256ForBytes -Bytes $OriginalProfileBytes) -or
+      (Get-Sha256ForBytes -Bytes ([System.IO.File]::ReadAllBytes($OrderPath))) -ine (Get-Sha256ForBytes -Bytes $OriginalOrderBytes)) {
+    throw 'Profil oder Bewerbungsauftrag wurde während der vorbereiteten Transaktion verändert.'
+  }
+  $transactionDirectory = Join-Path -Path $script:OrderWorkRoot -ChildPath ('.dialogtransaktion-' + [guid]::NewGuid().ToString('N'))
+  New-Item -Path $transactionDirectory -ItemType Directory -ErrorAction Stop | Out-Null
+  $transactionDirectory = Resolve-SafePath -Candidate $transactionDirectory -Root $script:OrderWorkRoot -MustExist -ForWrite -PathType Container
+  $profileBeforePath = Join-Path -Path $transactionDirectory -ChildPath 'profile.before.bin'
+  $orderBeforePath = Join-Path -Path $transactionDirectory -ChildPath 'order.before.bin'
+  $profileNewPath = Join-Path -Path $transactionDirectory -ChildPath 'profile.after.tmp'
+  $orderNewPath = Join-Path -Path $transactionDirectory -ChildPath 'order.after.tmp'
+  $orderValidationPath = Join-Path -Path $script:OrderWorkRoot -ChildPath ('.dialogauftrag-' + [guid]::NewGuid().ToString('N') + '.tmp')
+  $journalPath = Join-Path -Path $transactionDirectory -ChildPath 'journal.json'
+  $completed = $false
+  try {
+    Write-BytesWithFlush -Path $profileBeforePath -Bytes $OriginalProfileBytes
+    Write-BytesWithFlush -Path $orderBeforePath -Bytes $OriginalOrderBytes
+    Write-BytesWithFlush -Path $profileNewPath -Bytes $NewProfileBytes
+    Write-BytesWithFlush -Path $orderValidationPath -Bytes $newOrderBytes
+    Invoke-DialogValidator -Path $orderValidationPath
+    Remove-Item -LiteralPath $orderValidationPath -Force
+    Write-BytesWithFlush -Path $orderNewPath -Bytes $newOrderBytes
+    $journal = [ordered]@{
+      schemaVersion = 1
+      profileFileName = Split-Path -Path $ProfilePath -Leaf
+      orderFileName = Split-Path -Path $OrderPath -Leaf
+      profileBeforeSha256 = Get-Sha256ForBytes -Bytes $OriginalProfileBytes
+      profileAfterSha256 = Get-Sha256ForBytes -Bytes $NewProfileBytes
+      orderBeforeSha256 = Get-Sha256ForBytes -Bytes $OriginalOrderBytes
+      orderAfterSha256 = Get-Sha256ForBytes -Bytes $newOrderBytes
+      createdAtUtc = [datetime]::UtcNow.ToString('o')
+    }
+    Write-BytesWithFlush -Path $journalPath -Bytes (ConvertTo-Utf8Bytes -Text (($journal | ConvertTo-Json -Depth 6) + [Environment]::NewLine) -WithBom $false)
+    Move-TemporaryFileAtomically -TemporaryPath $profileNewPath -TargetPath $ProfilePath
+    Move-TemporaryFileAtomically -TemporaryPath $orderNewPath -TargetPath $OrderPath
+    if ((Get-Sha256ForBytes -Bytes ([System.IO.File]::ReadAllBytes($ProfilePath))) -ine $journal.profileAfterSha256 -or
+        (Get-Sha256ForBytes -Bytes ([System.IO.File]::ReadAllBytes($OrderPath))) -ine $journal.orderAfterSha256) {
+      throw 'Hashprüfung nach Dialogtransaktion fehlgeschlagen.'
+    }
+    $completed = $true
+  } catch {
+    $transactionError = $_
+    try { Recover-PendingDialogTransactions -ProfilePath $ProfilePath -OrderPath $OrderPath } catch { throw "Dialogtransaktion fehlgeschlagen und die Wiederherstellung ist blockiert: $($_.Exception.Message)" }
+    throw $transactionError
+  } finally {
+    if (Test-Path -LiteralPath $orderValidationPath -PathType Leaf) {
+      Remove-Item -LiteralPath $orderValidationPath -Force -ErrorAction SilentlyContinue
+    }
+    if ($completed -and (Test-Path -LiteralPath $transactionDirectory -PathType Container)) {
+      Remove-Item -LiteralPath $transactionDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+
 function Write-ValidatedOrder {
   param(
-    [object]$Order,
-    [string]$Path,
-    [bool]$WithBom,
-    [byte[]]$OriginalBytes,
+    [Parameter(Mandatory)][object]$Order,
+    [Parameter(Mandatory)][string]$Path,
+    [Parameter(Mandatory)][bool]$WithBom,
+    [Parameter(Mandatory)][byte[]]$OriginalBytes,
     [string]$ProfilePathToRollback,
     [byte[]]$OriginalProfileBytes
   )
 
+  if (-not [string]::IsNullOrWhiteSpace($ProfilePathToRollback) -or $null -ne $OriginalProfileBytes) {
+    throw 'Mehrdatei-Änderungen müssen über Invoke-AtomicProfileOrderTransaction erfolgen.'
+  }
   $Path = Resolve-SafePath -Candidate $Path -Root $script:ApplicationsRoot -MustExist -ForWrite -PathType Leaf
-  if (-not (Test-SamePath -Left $Path -Right $script:ResolvedOrderPath)) {
-    throw 'Schreibziel stimmt nicht mit dem validierten Bewerbungsauftrag überein.'
-  }
-  $json = ($Order | ConvertTo-Json -Depth 32) + [Environment]::NewLine
-  $newBytes = ConvertTo-Utf8Bytes -Text $json -WithBom $WithBom
-  $parent = Split-Path -Path $Path -Parent
-  $temporaryPath = Resolve-SafePath -Candidate (Join-Path -Path $parent -ChildPath ('.dialogauftrag-' + [guid]::NewGuid().ToString('N') + '.tmp')) -Root $script:OrderWorkRoot -ForWrite -PathType Leaf
-  if ((Test-SamePath -Left $temporaryPath -Right $Path) -or
-      (-not [string]::IsNullOrWhiteSpace($ProfilePathToRollback) -and (Test-SamePath -Left $temporaryPath -Right $ProfilePathToRollback))) {
-    throw 'Temporäres Schreibziel darf keine Eingabedatei aliasieren.'
-  }
+  if (-not (Test-SamePath -Left $Path -Right $script:ResolvedOrderPath)) { throw 'Schreibziel stimmt nicht mit dem validierten Bewerbungsauftrag überein.' }
+  if ((Get-Sha256ForBytes -Bytes ([System.IO.File]::ReadAllBytes($Path))) -ine (Get-Sha256ForBytes -Bytes $OriginalBytes)) { throw 'Bewerbungsauftrag wurde zwischen Prüfung und atomarem Schreiben verändert.' }
+  $newBytes = ConvertTo-Utf8Bytes -Text (($Order | ConvertTo-Json -Depth 32) + [Environment]::NewLine) -WithBom $WithBom
+  $temporaryPath = Join-Path -Path $script:OrderWorkRoot -ChildPath ('.dialogauftrag-' + [guid]::NewGuid().ToString('N') + '.tmp')
   try {
-    [System.IO.File]::WriteAllBytes($temporaryPath, $newBytes)
+    Write-BytesWithFlush -Path $temporaryPath -Bytes $newBytes
     Invoke-DialogValidator -Path $temporaryPath
-    try {
-      $Path = Resolve-SafePath -Candidate $Path -Root $script:ApplicationsRoot -MustExist -ForWrite -PathType Leaf
-      [System.IO.File]::WriteAllBytes($Path, $newBytes)
-    } catch {
-      if (-not [string]::IsNullOrWhiteSpace($ProfilePathToRollback) -and $null -ne $OriginalProfileBytes) {
-        $ProfilePathToRollback = Resolve-SafePath -Candidate $ProfilePathToRollback -Root $script:DataRoot -MustExist -ForWrite -PathType Leaf
-        [System.IO.File]::WriteAllBytes($ProfilePathToRollback, $OriginalProfileBytes)
-      }
-      if ($null -ne $OriginalBytes) {
-        $Path = Resolve-SafePath -Candidate $Path -Root $script:ApplicationsRoot -MustExist -ForWrite -PathType Leaf
-        [System.IO.File]::WriteAllBytes($Path, $OriginalBytes)
-      }
-      throw
-    }
+    Move-TemporaryFileAtomically -TemporaryPath $temporaryPath -TargetPath $Path
+    if ((Get-Sha256ForBytes -Bytes ([System.IO.File]::ReadAllBytes($Path))) -ine (Get-Sha256ForBytes -Bytes $newBytes)) { throw 'Hashprüfung nach atomarem Auftragsschreiben fehlgeschlagen.' }
   } finally {
-    if (Test-Path -LiteralPath $temporaryPath -PathType Leaf) {
-      try {
-        $temporaryPath = Resolve-SafePath -Candidate $temporaryPath -Root $script:OrderWorkRoot -MustExist -ForWrite -PathType Leaf
-        [System.IO.File]::Delete($temporaryPath)
-      } catch {
-        Write-Host "[WARNUNG] Temporäre Dialogdatei konnte nicht sicher entfernt werden: $($_.Exception.Message)" -ForegroundColor Yellow
-      }
-    }
+    if (Test-Path -LiteralPath $temporaryPath -PathType Leaf) { Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue }
   }
 }
 
@@ -598,6 +732,13 @@ if (-not $isIdempotentRetry) {
     Stop-WithValidationError -Message 'ErwarteterDateiHash weicht vom vor der Zustimmung gespeicherten Profilhash ab.'
   }
 }
+
+try {
+  Enter-DialogTransactionLock
+  Recover-PendingDialogTransactions -ProfilePath $requestedProfileFull -OrderPath $resolvedOrderPath
+} catch {
+  Stop-WithValidationError -Message "Exklusive Dialogtransaktion konnte nicht sicher vorbereitet werden: $($_.Exception.Message)"
+}
 try {
   $profileState = Read-Utf8FileState -Path $requestedProfileFull
   $actualBeforeHash = Get-Sha256ForBytes -Bytes $profileState.Bytes
@@ -618,6 +759,7 @@ if ($isIdempotentRetry) {
       $storedFormulation -ceq $normalizedFormulation -and
       $storedAfterHash -ieq $actualBeforeHash) {
     Write-Host "[OK] Dialogangabe wurde bereits dauerhaft und hashgleich verarbeitet: $AngabeId" -ForegroundColor Green
+    Exit-DialogTransactionLock
     exit 0
   }
   Stop-WithValidationError -Message 'Dialogangabe ist bereits dauerhaft mit einem anderen oder nicht mehr hashgleichen Profilnachweis verarbeitet.'
@@ -666,25 +808,9 @@ try {
   if ($currentHashBeforeCommit -ine $actualBeforeHash) {
     throw "Profildatei wurde zwischen Prüfung und Schreiben verändert: $currentHashBeforeCommit statt $actualBeforeHash"
   }
-  if (-not $profileResult.AlreadyPresent) {
-    $requestedProfileFull = Resolve-SafePath -Candidate $requestedProfileFull -Root $script:DataRoot -MustExist -ForWrite -PathType Leaf
-    [System.IO.File]::WriteAllBytes($requestedProfileFull, $newProfileBytes)
-    $profileWasWritten = $true
-    $writtenHash = (Get-FileHash -LiteralPath $requestedProfileFull -Algorithm SHA256).Hash
-    if ($writtenHash -ine $actualAfterHash) {
-      throw "Hashprüfung nach Profiländerung fehlgeschlagen: $writtenHash statt $actualAfterHash"
-    }
-  }
-  Write-ValidatedOrder -Order $auftrag -Path $resolvedOrderPath -WithBom $orderState.HasBom -OriginalBytes $orderState.Bytes -ProfilePathToRollback $(if ($profileWasWritten) { $requestedProfileFull } else { '' }) -OriginalProfileBytes $(if ($profileWasWritten) { $profileState.Bytes } else { $null })
+  Invoke-AtomicProfileOrderTransaction -Order $auftrag -OrderPath $resolvedOrderPath -OrderWithBom $orderState.HasBom -OriginalOrderBytes $orderState.Bytes -ProfilePath $requestedProfileFull -OriginalProfileBytes $profileState.Bytes -NewProfileBytes $newProfileBytes
+  $profileWasWritten = -not $profileResult.AlreadyPresent
 } catch {
-  if ($profileWasWritten) {
-    try {
-      $requestedProfileFull = Resolve-SafePath -Candidate $requestedProfileFull -Root $script:DataRoot -MustExist -ForWrite -PathType Leaf
-      [System.IO.File]::WriteAllBytes($requestedProfileFull, $profileState.Bytes)
-    } catch {
-      Write-Host "[FEHLER] Zusätzlich konnte die ursprüngliche Profildatei nicht automatisch wiederhergestellt werden: $($_.Exception.Message)" -ForegroundColor Red
-    }
-  }
   Stop-WithValidationError -Message "Dauerhafte Profilübernahme wurde abgebrochen: $($_.Exception.Message)"
 }
 
@@ -693,4 +819,5 @@ if ($profileResult.AlreadyPresent) {
 } else {
   Write-Host "[OK] Bestätigte Dialogangabe wurde im Abschnitt '$normalizedSection' dauerhaft übernommen und im Bewerbungsauftrag protokolliert: $AngabeId" -ForegroundColor Green
 }
+Exit-DialogTransactionLock
 exit 0

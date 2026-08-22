@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "sachbearbeitung",
+  "rolle": "Kaufmännische Sachbearbeitung",
+  "firma": "Beispiel Verwaltung AG",
+  "umfang": "C",
+  "profilSubstanz": "ausreichend",
+  "erwarteteAnforderungen": ["Organisation", "Dokumentation", "Sorgfalt"],
+  "erwarteteBelege": ["BERUFLICH BELEGT", "ÜBERTRAGBAR"]
+}

@@ -18,6 +18,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'Common/Platform.psm1') -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'Common/AtomicFile.psm1') -Force
 
 function Stop-UniversalSetup {
   param([string]$Message, [int]$Code = 2)
@@ -114,7 +115,7 @@ $order = [ordered]@{
   status = 'dokumenterstellung'
   createdAtUtc = [datetime]::UtcNow.ToString('o')
 }
-Set-Content -LiteralPath $orderPath -Encoding UTF8 -Value ($order | ConvertTo-Json -Depth 8)
+Write-AtomicJson -Path $orderPath -Value $order -Depth 8
 
 $positioning = @"
 # Positionierungsgrundlage für den universellen Lebenslauf

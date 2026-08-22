@@ -264,7 +264,7 @@ Eine Nutzerantwort wird nicht ungeprüft wörtlich in Bewerbungsunterlagen oder 
 | gewünschte künftige Vertiefung | `EINARBEITUNGSZIEL` |
 | ausdrücklich keine Erfahrung | für diesen Auftrag `nicht_belegt`; nicht als vorhandene Kompetenz speichern |
 
-Erfasse bei Bedarf Kontext, ungefähre Dauer, Projektbezug sowie praktische oder theoretische Tiefe. Wähle die stärkste wahrheitsgemäße Formulierung, ohne private, schulische, autodidaktische oder ehrenamtliche Erfahrung als Berufserfahrung auszugeben.
+Erfasse bei Bedarf Kontext, ungefähre Dauer, Projektbezug sowie praktische oder theoretische Tiefe. Fragt eine Anzeige oder ein Formular nach der Dauer einer eng benannten Tätigkeit, trenne zwingend: (1) konkreten Anwendungs- und Erfahrungskontext, (2) die exakt oder ungefähr bekannte Dauer dieser eng benannten Tätigkeit und (3) breitere angrenzende Erfahrung als eigenen, nicht künstlich quantifizierten Zeitraum. Eine Angabe wie „seit ChatGPT verfügbar ist“ darf nicht zu einer geratenen Monatszahl umgerechnet werden. Wähle die stärkste wahrheitsgemäße Formulierung, ohne private, schulische, autodidaktische oder ehrenamtliche Erfahrung als Berufserfahrung auszugeben.
 
 ## Phase 5: Auftragsbezogene und dauerhafte Angaben trennen
 

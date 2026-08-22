@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "requirements": [
     {
       "id": "muss-1",
@@ -10,6 +10,8 @@
       "status": "erfuellt",
       "belegart": "WEITERBILDUNG",
       "beleg": "kurzer, überprüfbarer Beleg aus den privaten Profildaten",
+      "stellenFundstellen": ["stelle-muss-1"],
+      "belegRefIds": ["profil-weiterbildung-1"],
       "behandlung": "früh im Lebenslauf und sachlich im Anschreiben sichtbar machen"
     },
     {
@@ -21,7 +23,65 @@
       "status": "unklar",
       "belegart": "",
       "beleg": "",
+      "stellenFundstellen": ["stelle-kann-1"],
+      "belegRefIds": [],
       "behandlung": "nicht behaupten und bei hoher Relevanz in Offene_Fragen.md dokumentieren"
     }
-  ]
+  ],
+  "recruiterStrategie": {
+    "kernbotschaft": "Weitergebildetes Entwicklungsprofil mit belegter Projektpraxis und übertragbarer technischer Problemlösungsstärke",
+    "profilSubstanz": "ausreichend",
+    "profilSubstanzBegruendung": "Mehrere stellenrelevante Qualifikations-, Projekt- und Berufspraxisbelege sind vorhanden.",
+    "prioritaetsAnforderungen": ["muss-1"],
+    "profilHighlights": [
+      {
+        "id": "highlight-weiterbildung",
+        "anforderungIds": ["muss-1"],
+        "belegart": "WEITERBILDUNG",
+        "belegRefIds": ["profil-weiterbildung-1"],
+        "relevanz": "hoch",
+        "zielDokument": "lebenslauf",
+        "platzierung": "seite_1",
+        "sichtbareAnker": ["konkrete Weiterbildung", "konkrete Technologie"]
+      },
+      {
+        "id": "highlight-projekt",
+        "anforderungIds": ["muss-1"],
+        "belegart": "PROJEKTPRAXIS",
+        "belegRefIds": ["profil-projekt-1"],
+        "relevanz": "hoch",
+        "zielDokument": "lebenslauf",
+        "platzierung": "seite_1",
+        "sichtbareAnker": ["konkretes Projekt", "eigener Beitrag"]
+      }
+    ],
+    "transferbruecken": [],
+    "auslassungen": [
+      {
+        "thema": "nicht rollenrelevante Zusatzkenntnis",
+        "begruendung": "Kein konkreter Recruiter-Nutzen für die Zielrolle."
+      }
+    ]
+  },
+  "stellenanzeigeAbdeckung": {
+    "sourceSha256": "SHA-256 der vollständig gespeicherten Stellenbeschreibung.md",
+    "fundstellen": [
+      {
+        "id": "stelle-muss-1",
+        "zeileVon": 1,
+        "zeileBis": 1,
+        "text": "konkrete Muss-Anforderung aus der Stellenbeschreibung",
+        "klassifikation": "anforderung",
+        "anforderungIds": ["muss-1"]
+      },
+      {
+        "id": "stelle-kann-1",
+        "zeileVon": 2,
+        "zeileBis": 2,
+        "text": "konkrete Kann-Anforderung aus der Stellenbeschreibung",
+        "klassifikation": "anforderung",
+        "anforderungIds": ["kann-1"]
+      }
+    ]
+  }
 }

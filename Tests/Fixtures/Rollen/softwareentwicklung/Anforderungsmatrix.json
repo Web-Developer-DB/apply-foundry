@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 5,
+  "requirements": [{ "id": "muss-react", "anforderung": "React", "typ": "muss", "status": "erfuellt", "belegRefIds": ["profil-react"], "stellenFundstellen": ["stelle-react"] }],
+  "externeQuellen": [],
+  "anschreibenStrategie": { "status": "final", "argumente": [{ "id": "argument-react", "anforderungIds": ["muss-react"], "belegRefIds": ["profil-react"], "stellenFundstellen": ["stelle-react"], "externeQuellenIds": [], "arbeitgeberbezug": "Fiktiv Software GmbH erhält belegte Frontend-Praxis.", "nutzenargument": "Nachvollziehbare Komponenten unterstützen verlässliche Produktarbeit.", "sichtbareAnker": ["Fiktiv Software GmbH", "Frontend-Entwickler"] }] },
+  "recruiterStrategie": { "profilSubstanz": "ausreichend", "auslassungen": [] }
+}

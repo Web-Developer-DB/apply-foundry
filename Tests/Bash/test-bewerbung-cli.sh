@@ -89,7 +89,8 @@ printf '%s\n' \
   '#requires -PSEdition Core' \
   '[CmdletBinding()]' \
   'param([string]$Arbeitsordner)' \
-  'if ($Arbeitsordner -eq "validierungsfehler") { exit 2 }' \
+  'if (-not [IO.Path]::IsPathFullyQualified($Arbeitsordner)) { exit 9 }' \
+  'if ([IO.Path]::GetFileName($Arbeitsordner) -eq "validierungsfehler") { exit 2 }' \
   'exit 7' \
   > "$dispatch_root/Tools/Ermittle-Bewerbungsstatus.ps1"
 
@@ -112,12 +113,15 @@ diagnose_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root
   --browser-executable-path '-browser pfad/mit leerzeichen' \
   --als-json \
   --browser-erforderlich)"
+expected_browser_path_json="$(pwsh -NoLogo -NoProfile -NonInteractive -Command '[IO.Path]::GetFullPath("-browser pfad/mit leerzeichen") | ConvertTo-Json -Compress')"
+expected_browser_path_json="${expected_browser_path_json//$'\r'/}"
+expected_browser_fragment="\"executable\":$expected_browser_path_json"
 [[ "$diagnose_output" == *'"browser":"chromium"'* ]] || fail "Browserwert wurde nicht kanonisch normalisiert."
-[[ "$diagnose_output" == *'"executable":"-browser pfad/mit leerzeichen"'* ]] || fail "Browserpfad wurde veraendert."
+[[ "$diagnose_output" == *"$expected_browser_fragment"* ]] || fail "Browserpfad wurde nicht gegen das Aufrufverzeichnis normalisiert."
 [[ "$diagnose_output" == *'"json":true'* && "$diagnose_output" == *'"required":true'* ]] || fail "Diagnose-Schalter wurden nicht korrekt gebunden."
 
 help_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" --help)"
-for command_name in diagnose neu universal-neu universal-status universal-finalisieren status checkpoint stammdaten dialog-pruefen dialog-uebernehmen passfoto inhalt pruefen layout pdf ats finalisieren tokenbericht tests; do
+for command_name in diagnose neu universal-neu universal-status universal-finalisieren status checkpoint stammdaten dialog-pruefen dialog-uebernehmen passfoto inhalt pruefen layout pdf ats finalisieren freigabe tokenbericht tests; do
   [[ "$help_output" == *"$command_name"* ]] || fail "Subcommand fehlt in der globalen Hilfe: $command_name"
 done
 

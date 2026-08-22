@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "defaultTimeoutSeconds": 180,
+  "models": [
+    {
+      "id": "codex-openai",
+      "agent": "codex",
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "command": "codex",
+      "cliPackage": "@openai/codex",
+      "cliVersion": "0.148.0-alpha.15",
+      "credentialVariable": "OPENAI_API_KEY",
+      "tier": "pr",
+      "arguments": ["exec", "--ephemeral", "--ignore-user-config", "--sandbox", "read-only", "--model", "gpt-5.6-terra", "--json"]
+    },
+    {
+      "id": "opencode-openai",
+      "agent": "opencode",
+      "provider": "openai",
+      "model": "openai/gpt-5.6-terra",
+      "command": "opencode",
+      "cliPackage": "opencode-ai",
+      "cliVersion": "1.18.18",
+      "credentialVariable": "OPENAI_API_KEY",
+      "tier": "pr",
+      "arguments": ["run", "--model", "openai/gpt-5.6-terra", "--format", "json"]
+    },
+    {
+      "id": "claude-anthropic",
+      "agent": "claude",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "command": "claude",
+      "cliPackage": "@anthropic-ai/claude-code",
+      "cliVersion": "2.1.235",
+      "credentialVariable": "ANTHROPIC_API_KEY",
+      "tier": "vollstaendig",
+      "arguments": ["--print", "--output-format", "json", "--model", "claude-sonnet-4-6", "--permission-mode", "plan"]
+    },
+    {
+      "id": "gemini-google",
+      "agent": "gemini",
+      "provider": "google",
+      "model": "gemini-3.7-flash",
+      "command": "gemini",
+      "cliPackage": "@google/gemini-cli",
+      "cliVersion": "0.55.1",
+      "credentialVariable": "GEMINI_API_KEY",
+      "tier": "vollstaendig",
+      "arguments": ["--prompt", "", "--model", "gemini-3.7-flash", "--output-format", "json", "--approval-mode", "plan"]
+    }
+  ]
+}

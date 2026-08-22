@@ -11,7 +11,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Agentenregeln-AGENTS.md-0F766E?style=flat-square" alt="Agentenunabhängiger Einstieg über AGENTS.md">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.8.0-2563EB?style=flat-square" alt="Aktuelle Version 1.8.0"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-Unreleased-2563EB?style=flat-square" alt="Aktueller unveröffentlichter Entwicklungsstand"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-22C55E?style=flat-square" alt="MIT-Lizenz"></a>
   <a href="https://github.com/Web-Developer-DB/apply-foundry/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/apply-foundry/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
   <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
@@ -39,7 +39,12 @@ Dieses Repository stellt unterschiedlichen Coding-Agenten denselben spezialisier
 | :---: | :---: | :---: |
 | Jede Bewerbung wird neu aus Stelle und Profil aufgebaut. | Echte Daten und Ergebnisse bleiben unter `Private/`. | Inhalt und alle für den gewählten Umfang erforderlichen Layout-, PDF-, ATS- oder Textnachweise werden kontrolliert. |
 
-Aus einer Stellenbeschreibung und deinen Profildaten entstehen nur die ausdrücklich gewählten Bestandteile: ein individueller oder unverändert übernommener universeller Lebenslauf, ein Anschreiben und/oder eine E-Mail-Nachricht. HTML-, PDF-, Screenshot- und ATS-Artefakte werden nur erzeugt, wenn der Umfang sie erfordert. Analyse, Anforderungsmatrix und Qualitätsnachweise bleiben im privaten Arbeitsbereich.
+Aus einer Stellenbeschreibung und deinen Profildaten entstehen nur die ausdrücklich gewählten Bestandteile: ein individueller oder unverändert übernommener universeller Lebenslauf, ein Anschreiben und/oder eine E-Mail-Nachricht. HTML-, PDF-, Screenshot- und ATS-Artefakte werden nur erzeugt, wenn der Umfang sie erfordert. Für HTML-Dokumente besteht der Layoutnachweis aus einer isolierten PNG-Prüfung je A4-Seite und einer vollständigen Druckvorprüfung des Original-HTMLs. Analyse, Anforderungsmatrix und Qualitätsnachweise bleiben im privaten Arbeitsbereich.
+
+`Console App.md` ist ausschließlich eine kompakte Roadmap (nicht implementiert und nicht operativ verbindlich); maßgeblich bleiben `AGENTS.md`, die kanonischen Prompts und die vorhandenen Werkzeuge.
+
+> [!NOTE]
+> **Aktueller Entwicklungsstand:** Die Änderungen unter `Unveröffentlicht` in [`CHANGELOG.md`](CHANGELOG.md) sind noch nicht als Release markiert. Der aktuelle technische Vertrag umfasst die gemeinsame Chromium-Druckvorprüfung, `Layoutcheck-Bericht.json` Schema 3, `Pruefstand.json` Schema 2 mit `running`/`passed`/`failed`, die Statusbindung über `technicalAttempt` sowie aufrufortunabhängig normalisierte Einzelpfade und Pfadlisten. Die private Freigabe bleibt bis zur persönlichen Sichtprüfung gesperrt.
 
 ### Fünf Auswahlen für den Dokumentumfang
 
@@ -511,7 +516,7 @@ Der Agent trennt bewusst vier Zustände. Ein **Kandidat** ist dabei nur eine noc
 5. **Auftrag und Matrix festlegen** – Dokumentumfang, Bewerbungsentscheidung, Belege und Strategie werden maschinenlesbar gespeichert.
 6. **Ausgewählte Kandidaten erstellen** – Es entstehen ausschließlich die gewählten Bestandteile; ein Universal-Lebenslauf bleibt hashgleich.
 7. **Fachlich korrigieren** – Stelle, Profil, Dialogangaben, Matrix und vorhandene Dokumente werden auf Wahrheit und Konsistenz geprüft.
-8. **Technisch vorbereiten** – HTML-Bestandteile erhalten PDF-, Screenshot- und ATS-Nachweise; bei E-Mail-only werden diese Berichte als `nicht_erforderlich` geschrieben.
+8. **Technisch vorbereiten** – HTML-Bestandteile erhalten isolierte A4-Screenshots, eine vollständige Druckvorprüfung des Original-HTMLs, PDF- und ATS-Nachweise; bei E-Mail-only werden diese Berichte als `nicht_erforderlich` geschrieben.
 9. **Persönlich prüfen und veröffentlichen** – Du prüfst jede erzeugte Seite oder den reinen E-Mail-Text. Erst danach wird das geprüfte Set lokal freigegeben und mit `Manifest.json` gebunden.
 
 <details>
@@ -535,7 +540,9 @@ Pro Runde werden höchstens drei wesentliche, voneinander unabhängige Fragen ge
 
 **5 · Bewerbungsauftrag und Matrix**
 
-`Bewerbungsauftrag.json` Schema 5 friert Firma, Rolle, portable Root-relative Pfade, Logistik, den bestätigten Dokumentumfang und den normalisierten Dialogzustand für genau diese Bewerbung ein. Die vollständige `Anforderungsmatrix.json` dokumentiert Gewichtung, Beleg und Behandlung jeder relevanten Anforderung.
+`Bewerbungsauftrag.json` Schema 5 friert Firma, Rolle, portable Root-relative Pfade, Logistik, den bestätigten Dokumentumfang und den normalisierten Dialogzustand für genau diese Bewerbung ein. Neue Bewerbungen verwenden `Anforderungsmatrix.json` Schema 5: zusätzlich zu Gewichtung, Beleg und Behandlung enthält sie die maschinenlesbare Anschreibenstrategie, strukturierte externe Quellen und die Evidenzdisposition. Matrix-Schemata 1 bis 4 bleiben für bestehende Bewerbungen lesbar.
+
+Legacy-Matrizen können ausdrücklich über `bewerbung.ps1 migrieren --arbeitsordner "..."` geprüft werden. Der Standardlauf ist read-only. `--anwenden` erzeugt bei fehlenden fachlichen Ergänzungen nur private Migrationsentwürfe; eine Übernahme in `Anforderungsmatrix.json` und `Evidenzindex.json` erfolgt erst nach vollständiger Zielvertragsprüfung. Leser, Statusprüfung und Finalisierung migrieren niemals automatisch. `Migrationsbericht.json` verwendet Schema 1 und bindet die Vorher-/Nachher-Hashes.
 
 **6 · Umfangsgerechter Kandidat**
 
@@ -547,7 +554,7 @@ Der Agent liest Stellenbeschreibung, Analyse, private Daten, normalisierte Dialo
 
 **8 · Technische Vorbereitung**
 
-Der Finalisierungslauf leitet die erwarteten Dateien aus `dokumentumfang` ab. Für jedes HTML-Dokument erzeugt er PDF, ATS-Nachweis und einen Screenshot je A4-Seite. Ein reiner E-Mail-Auftrag erhält stattdessen nachvollziehbare `nicht_erforderlich`-Berichte. Der Status lautet danach lediglich `bereit_zur_sichtpruefung`.
+Der Finalisierungslauf leitet die erwarteten Dateien aus `dokumentumfang` ab. Für jedes HTML-Dokument erzeugt er einen Screenshot je A4-Seite und prüft anschließend das vollständige Original-HTML mit denselben Chromium-Druckparametern auf frische A4-PDF, Dateikopf, Abschlussmarker, Seitenzahl und MediaBox. Erst danach werden PDF- und ATS-Nachweis erzeugt. Ein reiner E-Mail-Auftrag erhält stattdessen nachvollziehbare `nicht_erforderlich`-Berichte. Der Status lautet danach lediglich `bereit_zur_sichtpruefung`.
 
 **9 · Persönliche Prüfung und gemeinsame Veröffentlichung**
 
@@ -628,10 +635,12 @@ Alles in diesem Bereich bleibt privat und wird nicht versendet.
 | `Stammdaten-Pruefbericht.json` | Ergebnis der Identitäts-, Kontakt- und Logistikprüfung | bei blockierenden Stammdatenfehlern zur Diagnose öffnen |
 | `Inhalts-Pruefbericht.json` | Konsistenz-, Zeitraum-, Darstellungs- und Passungsprüfung | fachliche Fehler und Warnungen nachvollziehen |
 | `Layoutcheck/*.png` | ein frischer Screenshot je expliziter A4-Seite der ausgewählten HTML-Dokumente | **jede vorhandene PNG-Datei tatsächlich öffnen und visuell prüfen** |
-| `Layoutcheck/Layoutcheck-Bericht.json` | Browser, Abmessungen, Seiten, Screenshot-Hashes und Dichtehinweise; bei E-Mail-only `nicht_erforderlich` | Layoutwarnungen einer konkreten Seite oder den bewusst entfallenen Lauf nachvollziehen |
-| `PDF-Export/PDF-Export-Bericht.json` | HTML-/PDF-Hashes, Dateigröße, Seitenzahl und A4-MediaBox; bei E-Mail-only `nicht_erforderlich` | PDF-Exportfehler oder den bewusst entfallenen Export technisch einordnen |
-| `ATS-Pruefbericht.json` | Textabdeckung, Pflichttexte und Lesereihenfolge vorhandener PDFs; bei E-Mail-only `nicht_erforderlich` | ATS-Lesbarkeit oder den bewusst entfallenen PDF-Test nachvollziehen |
-| `Finalisierungsbericht.json` | Schema-5-Vorbereitungsnachweis mit Dokumentumfang, Runtime-Fingerprint, persönlicher Prüfart und Hashes der tatsächlich erwarteten Artefakte | Status und Prüflauf nachvollziehen; für die Integrität des veröffentlichten Endstands ist `Manifest.json` maßgeblich |
+| `Layoutcheck/Layoutcheck-Bericht.json` | Schema 3 mit Runtime-Fingerprint, Browser, Abmessungen, Seiten-/Screenshot-Hashes, isolierter DOM-/Dichteprüfung und vollständiger Druckvorprüfung (`expectedPageCount`, `actualPageCount`, A4, MediaBox); bei E-Mail-only `nicht_erforderlich` | Layoutwarnungen, Druckseitenabweichungen oder den bewusst entfallenen Lauf nachvollziehen |
+| `PDF-Export/PDF-Export-Bericht.json` | HTML-/PDF-Hashes, Dateigröße, Seitenzahl und A4-MediaBox aus derselben vollständigen Druckvorprüfung; bei E-Mail-only `nicht_erforderlich` | PDF-Exportfehler oder den bewusst entfallenen Export technisch einordnen |
+| `ATS-Pruefbericht.json` | Schema-2-Nachweis mit Pflichttexten, Unicode-normalisierten Token-/N-Gramm-Metriken, Lesereihenfolge und Artefakt-Hashes; bei E-Mail-only `nicht_erforderlich` | ATS-Lesbarkeit oder den bewusst entfallenen PDF-Test nachvollziehen |
+| `Pruefstand.json` | Schema-2-Zustand mit jeder Finalisierungsstufe als `running`, `passed` oder `failed`, Fingerprints, Ausgaben und bereinigten Fehlerdetails | technische Versuche, abgebrochene Stufen und veraltete Cacheeinträge nachvollziehen |
+| `Finalisierungsbericht.json` | Schema-7-Vorbereitungsnachweis mit Dokumentumfang, Runtime-Fingerprint, persönlicher Prüfart, `technicalAttempt`, Freigabe-ID-Anforderung und Hashes der tatsächlich erwarteten Artefakte | Status und Prüflauf nachvollziehen; für die Integrität des veröffentlichten Endstands ist `Manifest.json` maßgeblich |
+| `Sichtfreigabe.json` | Aktueller, chatbestätigter Nachweis (Schema 1), der Freigabe-ID, vorbereiteten Bericht und unveränderten Artefaktsatz einschließlich SHA-256 bindet | Einziger technischer Berechtigungsnachweis für die lokale Veröffentlichung |
 | `Tokenverbrauch.json` | anbieterneutraler Nutzungsbericht mit exakten Laufzeitwerten oder eindeutiger Nichtverfügbarkeit | Diagnose und Kosten nachvollziehen; niemals als Qualitäts- oder Versandnachweis verwenden |
 
 Die Entwurfsgerüste können nach Fertigstellung weiterhin im Arbeitsordner liegen. Sie sind keine zweite freigegebene Bewerbung. Maschinenlesbare Berichte und Screenshots werden absichtlich **nicht** nach `Intern/` kopiert.
@@ -749,7 +758,7 @@ Verwende --browser auto, veröffentliche noch nichts und nenne mir danach:
 - die klare Bestätigung, ob der Status bereit_zur_sichtpruefung erreicht ist.
 ```
 
-Dieser Lauf validiert zuerst Umfang und Dialogstatus und prüft danach Stammdaten sowie Inhalte. Für jedes ausgewählte HTML-Dokument erzeugt er A4-Screenshots und eine PDF und kontrolliert deren ATS-Text. Bei einem bestätigten reinen E-Mail-Auftrag startet er keinen Browser und schreibt Layout-, PDF- und ATS-Bericht mit `nicht_erforderlich`. Öffne erst nach bestätigtem Status `bereit_zur_sichtpruefung` jede genannte PNG- beziehungsweise Textdatei.
+Dieser Lauf validiert zuerst Umfang und Dialogstatus und prüft danach Stammdaten sowie Inhalte. Für jedes ausgewählte HTML-Dokument erzeugt er A4-Screenshots, führt die vollständige Druckvorprüfung des Original-HTMLs aus, exportiert eine PDF und kontrolliert deren ATS-Text. Bei einem bestätigten reinen E-Mail-Auftrag startet er keinen Browser und schreibt Layout-, PDF- und ATS-Bericht mit `nicht_erforderlich`. Öffne erst nach bestätigtem Status `bereit_zur_sichtpruefung` jede genannte PNG- beziehungsweise Textdatei.
 
 Der Lauf aktualisiert außerdem `Tokenverbrauch.json` im privaten Arbeitsordner. Das Tool selbst kennt keine Nutzungsdaten des übergeordneten Agenten und schreibt deshalb ohne maschinenlesbare Laufzeitwerte `unavailable` und `null`. Ein kompatibler Agent darf diese Felder anschließend nur mit tatsächlich von seiner Laufzeit bereitgestellten exakten Werten aktualisieren. Der Bericht beeinflusst den Finalisierungsstatus nicht.
 
@@ -777,13 +786,25 @@ Bei einer Layoutwarnung beschreibst du zusätzlich konkret, was du auf der betro
 pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --browser auto
 ```
 
-**2. Nach der Sichtprüfung lokal freigeben**
+**2. Nach der Sichtprüfung die vorbereitete Freigabe-ID bestätigen**
 
 ```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen --visuell-geprueft
+pwsh -NoProfile -File Tools/bewerbung.ps1 freigabe `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --freigabe-id FR-XXXXXXXXXXXX `
+  --bestaetigt `
+  --notiz "Sichtprüfung aller genannten PNG-Seiten abgeschlossen; keine abgeschnittenen oder verdeckten Inhalte."
 ```
 
-Bei einer Layoutwarnung ist zusätzlich eine ehrliche Bewertung über `--visuelle-freigabe-notiz "..."` erforderlich. Änderungen an Quellen, Arbeitsversionen oder Screenshots machen vorhandene Prüfnachweise ungültig. Ein Wechsel des Betriebssystems macht Layout-, PDF-, ATS- und Finalisierungsnachweise ebenfalls ungültig, lässt Auftrag und Kandidaten aber bestehen. Dann muss die Vorbereitung erneut laufen; öffne danach jede neu erzeugte PNG-Datei und führe Schritt 2 erst nach dieser neuen Sichtprüfung noch einmal aus.
+Die ID steht im vorbereiteten `Finalisierungsbericht.json` (beziehungsweise im Universalbericht). Der neue CLI-Schritt schreibt `Sichtfreigabe.json` nur für genau diesen unveränderten Bericht und Artefaktsatz. Bei Layoutwarnungen ist eine ehrliche, konkrete `--notiz` verpflichtend. Erst danach darf veröffentlicht werden:
+
+```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --veroeffentlichen
+```
+
+`--visuell-geprueft` ist nur noch ein veraltetes Kompatibilitätsargument und erteilt keine Berechtigung. Änderungen an Quellen, Arbeitsversionen oder Screenshots machen vorhandene Prüfnachweise und die Sichtfreigabe ungültig; der Stand muss vollständig neu vorbereitet und mit einer neuen ID geprüft werden. Bereits veröffentlichte Stände bleiben lesbar.
 
 <details>
 <summary><strong>Bereits veröffentlichte Bewerbung korrigieren</strong></summary>
@@ -791,10 +812,17 @@ Bei einer Layoutwarnung ist zusätzlich eine ehrliche Bewertung über `--visuell
 Bearbeite veröffentlichte Dateien nicht direkt unter `Versand/` oder `Intern/`. Bitte den Agenten um die Korrektur der Arbeitsversion unter `Kandidat/`, wiederhole die technische Vorbereitung und kontrolliere alle neuen Screenshots. Erst danach darf der neu geprüfte Satz den bestehenden Zielordner bewusst ersetzen:
 
 ```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen --visuell-geprueft --ersetzen
+pwsh -NoProfile -File Tools/bewerbung.ps1 freigabe `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --freigabe-id FR-XXXXXXXXXXXX `
+  --bestaetigt `
+  --notiz "Neue Sichtprüfung nach der Korrektur abgeschlossen."
+pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren `
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+  --veroeffentlichen --ersetzen
 ```
 
-Bei Layoutwarnungen gilt auch hier zusätzlich `--visuelle-freigabe-notiz "..."`.
+Bei Layoutwarnungen muss die konkrete Bewertung in `--notiz` der neuen Sichtfreigabe stehen.
 
 </details>
 
@@ -878,8 +906,8 @@ Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgesch
 
 | Komponente | Status | Verwendung |
 | --- | --- | --- |
-| Windows + PowerShell 7.6 | 🟢 primär unterstützt | am umfassendsten geprüfter Projektablauf |
-| Ubuntu 24.04 x86_64 + PowerShell 7.6 | 🟠 Alpha | gleiche Kernlogik und feste CI-Matrix; stabil erst nach drei grünen Browserläufen |
+| Windows + PowerShell 7.6 | 🟢 primär unterstützt | am umfassendsten geprüfter Projektablauf; Windows-Browser-Smoke ist als PR-Check konfiguriert |
+| Ubuntu 24.04 x86_64 + PowerShell 7.6 | 🟠 Alpha | gleiche Kernlogik; Browser-Smoke zunächst nur zeitgesteuert/manuell, stabil erst nach drei Paritätsläufen |
 | PowerShell-Werkzeuge unter `Tools/` | 🟢 kanonischer Kern | Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Freigabeprüfungen |
 | Chrome, Edge oder Chromium | 🔵 für HTML-Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung für ausgewählte HTML-Dokumente; nicht für E-Mail-only |
 | Firefox | 🟡 Diagnose | ausschließlich Layoutdiagnose; unzulässig für PDF und Finalisierung |
@@ -950,10 +978,10 @@ Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Absc
 
 - Der stabil bezeichnete Workflow ist derzeit Windows mit PowerShell 7.6; Ubuntu 24.04 nutzt dieselbe Kernimplementierung, bleibt aber bis zum belegten Browser-Rollout im Alpha-Status.
 - Automatischer PDF-Export unterstützt Chrome, Edge und Chromium, nicht Firefox.
-- Browser-Smokes laufen zunächst nur manuell und zeitgesteuert und sind nicht verpflichtend. Erst nach drei aufeinanderfolgenden grünen Läufen je Betriebssystem werden sie Pull-Request-Gates und Ubuntu darf als stabil bezeichnet werden.
-- OpenCode, Claude Code und andere Adapter stellen den Projekteinstieg bereit; ein vollständiger Bewerbungsdurchlauf wurde nicht mit jeder Umgebung und jedem Modell wiederholt.
+- Der Windows-Browser-Smoke läuft auf Pull Requests und ist als verpflichtender Ruleset-Check vorbereitet; Ubuntu bleibt bis zu drei dokumentierten Paritätsläufen außerhalb des Pull-Request-Gates.
+- OpenCode, Codex, Claude Code und Gemini CLI sind über die maschinenlesbare Modellmatrix vorbereitet; echte Läufe benötigen die jeweils dokumentierten Secrets und exakten CLI-Versionen.
 - Lokale Modelle benötigen genügend Kontext und zuverlässige Werkzeugaufrufe. Uneindeutige Auswahl- oder Speicherantworten müssen fehlergeschlossen bleiben; fehlende Bildfähigkeit darf nicht als bestandene PNG-Prüfung ausgegeben werden.
-- Der Dialogvertrag und seine fiktiven Fixtures sind dokumentiert. Für den Nachweis von Version 1.8.0 wurde kein neuer realer Ollama-Modelllauf für die A–E-Auswahl oder Profilzustimmung ausgeführt.
+- Der Dialogvertrag und seine fiktiven Fixtures sind dokumentiert. Für den aktuellen Stand wurde kein neuer realer Ollama-Modelllauf für die A–E-Auswahl oder Profilzustimmung ausgeführt.
 - Nicht jede Agentenoberfläche stellt maschinenlesbare Tokenwerte bereit oder kann Lebenslauf und Gesamtsitzung getrennt messen. In diesem Fall bleibt der Bericht ausdrücklich `unavailable`; das Projekt schätzt keine Werte.
 - HTML- und PDF-Prüfungen sind konservativ auf den unterstützten Chromium-Export ausgerichtet; ungewöhnliche Designs und andere PDF-Erzeuger benötigen zusätzliche Regressionstests.
 - Eine echte manuelle Sichtprüfung bleibt erforderlich, besonders bei neuen Designs und zweiseitigen Lebensläufen.
@@ -1103,13 +1131,16 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die sechs Einstiege, verlangt eine
 | `Pruefe-Stammdaten.ps1` | Identität, Kontakt und Logistik prüfen | ohne Parameter oder mit Auftragspfad |
 | `Pruefe-Bewerbungsinhalt.ps1` | Inhalt gegen Auftrag und Matrix prüfen | `-Ordner "..." -AuftragPath "..." -AnforderungsmatrixPath "..."` |
 | `Pruefe-Bewerbung.ps1` | umfangsabhängigen statischen Mindestcheck ausführen | `-Ordner "..." -AuftragPath "..."` |
-| `Layoutcheck-Bewerbung.ps1` | A4-Screenshots und Dichtebericht erzeugen | Kandidaten- und `-OutputRoot`-Pfad übergeben |
-| `Exportiere-PDF.ps1` | je ausgewähltem HTML-Dokument eine PDF sicher exportieren und prüfen | Kandidaten-, Auftrags- und `-OutputRoot`-Pfad übergeben |
+| `Migriere-Bewerbungsnachweise.ps1` | Matrix und Evidenzindex ausdrücklich, versioniert und atomar auf den aktuellen Vertrag vorbereiten oder übernehmen | `-Arbeitsordner "..." [-Anwenden] [-AlsJson]` |
+| `Layoutcheck-Bewerbung.ps1` | isolierte A4-Screenshots, DOM-/Dichteprüfung und vollständige Druckvorprüfung erzeugen | Kandidaten- und `-OutputRoot`-Pfad übergeben |
+| `Exportiere-PDF.ps1` | je ausgewähltem HTML-Dokument eine PDF mit der gemeinsamen Druckvorprüfung sicher exportieren | Kandidaten-, Auftrags- und `-OutputRoot`-Pfad übergeben |
 | `Pruefe-ATS.ps1` | Unicode-Textschicht und Lesereihenfolge vorhandener PDFs prüfen | Bestandteil der Finalisierung für HTML-Dokumente |
 | `Finalisiere-Bewerbung.ps1` | verbindliches Prepare-/Publish-Gate | `-Arbeitsordner "..."` |
+| `Erzeuge-Sichtfreigabe.ps1` | Chat-bestätigte Freigabe-ID an den unveränderten Bericht und Artefaktsatz binden | `-Arbeitsordner "..." -FreigabeId FR-XXXXXXXXXXXX -Bestaetigt` |
+| `Tools/Common/*.psm1` | gemeinsame Atomik-, Sperr-, JSON-, Umfangs-, Matrix-, Evidenz-, Slug-, Text-, Freigabe-, Cache- und Druckverträge | werden von den Fachwerkzeugen verwendet |
 | `Aktualisiere-Tokenbericht.ps1` | exakte Laufzeitwerte oder eindeutige Nichtverfügbarkeit standardisiert speichern | `-Arbeitsordner "..." -Messbereich lebenslauf` |
 
-Der Dispatcher bietet `diagnose`, `neu`, `status`, `checkpoint`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `tokenbericht` und `tests`. Er normalisiert `--dokumente` einmal zentral als kommaseparierte, typgeprüfte Liste; Werte mit Leerzeichen, Umlauten oder führendem Bindestrich bleiben einzelne Argumente. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime.
+Der Dispatcher bietet `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Einzelne Pfadoptionen werden gegen das ursprüngliche Aufrufverzeichnis absolut normalisiert; `--dokumente` und `--bericht-path` werden als typgeprüfte, kommaseparierte Listen behandelt. Werte mit Leerzeichen, Umlauten oder führendem Bindestrich bleiben einzelne Argumente. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime.
 
 Nach dem Erstellen eines individuellen Lebenslauf-HTMLs verarbeitet der Agent den optionalen markierten Fotoblock ohne Ausgabe der Bilddaten:
 
@@ -1163,11 +1194,13 @@ Jede normalisierte Angabe verwendet `speicherentscheidung = ausstehend`, `nur_au
 | --- | --- | --- |
 | `Stammdaten-Pruefbericht.json` | `Pruefe-Stammdaten.ps1` | Status, Fehler/Warnungen, Feldzustände sowie aufgelöste Bewerbungslogistik und deren Quelle |
 | `Inhalts-Pruefbericht.json` | `Pruefe-Bewerbungsinhalt.ps1` | formale Zeiträume, Darstellungsmodi, Profil-Links, optionaler Passfoto-Status, gewichtete Eignung sowie Fehler/Warnungen |
-| `Layoutcheck/Layoutcheck-Bericht.json` | `Layoutcheck-Bewerbung.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, Browser, Abmessungen, HTML- und Screenshot-Hashes, Seite/Seitenzahl und Dichtehinweise oder Status `nicht_erforderlich` |
-| `PDF-Export/PDF-Export-Bericht.json` | `Exportiere-PDF.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, HTML-/PDF-Hashes, PDF-Größe, Seitenzahl und A4-MediaBox oder Status `nicht_erforderlich` |
-| `ATS-Pruefbericht.json` | `Pruefe-ATS.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, extrahierbare Zeichen, Textabdeckung, Pflichttexte, Lesereihenfolge und Ergebnis je PDF oder Status `nicht_erforderlich` |
+| `Layoutcheck/Layoutcheck-Bericht.json` | `Layoutcheck-Bewerbung.ps1` beziehungsweise Finalisierung | Schema 3: Runtime-Fingerprint, Browser, Abmessungen, HTML-/Screenshot-Hashes, isolierte DOM-/Dichteprüfung und vollständige Druckvorprüfung mit erwarteter/tatsächlicher Seitenzahl und A4-Ergebnis oder Status `nicht_erforderlich` |
+| `PDF-Export/PDF-Export-Bericht.json` | `Exportiere-PDF.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, HTML-/PDF-Hashes, PDF-Größe, Seitenzahl und A4-MediaBox aus derselben vollständigen Druckvorprüfung oder Status `nicht_erforderlich` |
+| `ATS-Pruefbericht.json` | `Pruefe-ATS.ps1` beziehungsweise Finalisierung | Schema 2: Runtime-Fingerprint, extrahierbare Zeichen, Unicode-normalisierte Token-/N-Gramm-Abdeckung, Pflichttexte, Lesereihenfolge, Artefakt-Hashes und Ergebnis je PDF oder Status `nicht_erforderlich` |
 | `Tokenverbrauch.json` | Agent beziehungsweise `Aktualisiere-Tokenbericht.ps1` | Anbieter, Modell, optionale nicht sensible Vorgangs-ID, Messquelle, Messzeiten und ausschließlich exakt bereitgestellte Tokenfelder je Messbereich; andernfalls `unavailable` und `null` |
-| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Schema-5-Release-Status, Runtime-Fingerprint, Dokumentumfang, persönliche Prüfart, Pfade, erwartete Screenshots, Warnungen, optionale Tokenbericht-Referenz sowie Hashes der vier Pflichtquellen, des nur bei Verwendung ergänzten Passfotos, der drei technischen Prüfberichte und der tatsächlich erwarteten Kandidatenartefakte |
+| `Pruefstand.json` | `Finalisiere-Bewerbung.ps1` und `Tools/Common/FinalizationCache.psm1` | Schema 2: Stufenstatus `running`, `passed` oder `failed`, Fingerprint, Ausgaben, Dauer und bereinigte Fehlerdaten; fehlgeschlagene oder unterbrochene Stufen werden nie aus dem Cache wiederverwendet |
+| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Schema-7-Vorbereitungsstatus, Runtime-Fingerprint, Dokumentumfang, persönliche Prüfart, `technicalAttempt`, Freigabe-ID-Anforderung, Pfade, erwartete Screenshots, Warnungen, optionale Tokenbericht-Referenz sowie Hashes der vier Pflichtquellen, des nur bei Verwendung ergänzten Passfotos, der drei technischen Prüfberichte und der tatsächlich erwarteten Kandidatenartefakte |
+| `Sichtfreigabe.json` | `bewerbung.ps1 freigabe` | Schema-1-Nachweis der Chat-Bestätigung mit Freigabe-ID, vorbereitetem Bericht, Artefaktsatz und SHA-256-Werten; Voraussetzung für die lokale Veröffentlichung |
 
 `Pruefe-Bewerbung.ps1` schreibt bewusst keinen eigenen JSON-Bericht; sein Vertrag sind Konsolenausgabe und Exitcode.
 
@@ -1227,13 +1260,31 @@ Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `str
 Die browserfreie Regressionstestsuite prüft unter anderem Agenteneinstieg, Adapter, Pfad- und Fortsetzungsverträge, Fremdanweisungen, README-Verweise, Tokenbericht, Schema-5-Portabilität, Legacy-Lesen, Dialogstatus, Profilhash, Artefaktbindungen, Staging, Veröffentlichung und Fehlerszenarien:
 
 ```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 tests
+pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite schnell
+pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite vollstaendig
 ```
 
 Mit lokaler Browsermatrix:
 
 ```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite browser
+# Kompatibilitätsalias:
 pwsh -NoProfile -File Tools/bewerbung.ps1 tests --mit-browser
+```
+
+Die Prompt-Regressionen werden isoliert und fail-closed ausgeführt:
+
+```powershell
+pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite prompt-pr
+pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite prompt-vollstaendig
+```
+
+`schnell` ist die kurze Parser-/Vertrags- und Canary-Teilmenge, `vollstaendig` umfasst alle browserfreien Regressionen einschließlich der vier Rollen-Fixtures und `browser` ergänzt Chromium. Jeder Lauf kann mit `--bericht-path` einen bereinigten Schema-1-Bericht mit Median, p95, Kategorien und den langsamsten Tests schreiben. Aus drei erfolgreichen ungefilterten Berichten derselben Plattform erzeugt `bewerbung.ps1 test-baseline --bericht-path "eins.json,zwei.json,drei.json"` eine öffentliche Laufzeitreferenz; Abweichungen über 25 Prozent und mindestens einer Sekunde bleiben zunächst Warnungen. Die Rollen-Fixtures liegen unter [`Tests/Fixtures/Rollen`](Tests/Fixtures/Rollen); echte `Private/`-Daten werden nie kopiert.
+
+Der gezielte Rollenlauf durch Anlage, Dialogprüfung, Inhaltsprüfung, Finalisierung, synthetische Freigabe und Veröffentlichung lautet:
+
+```powershell
+pwsh -NoProfile -File Tests/Fixtures/Rollen/Invoke-RoleFixtures.ps1
 ```
 
 Bash separat:
@@ -1242,11 +1293,15 @@ Bash separat:
 bash Tests/Bash/test-bewerbung-cli.sh
 ```
 
-Die feste CI-Matrix in [`.github/workflows/tests.yml`](.github/workflows/tests.yml) führt dieselbe vollständige browserfreie PowerShell-Suite mit `fail-fast: false` auf `windows-2025` und `ubuntu-24.04` aus. Ubuntu prüft zusätzlich Bash-Syntax, ShellCheck, Dispatcher und Kompatibilitätswrapper. [`.github/workflows/browser-smoke.yml`](.github/workflows/browser-smoke.yml) läuft zunächst nur manuell und zeitgesteuert mit synthetischen Daten auf beiden Systemen und ist bewusst noch kein verpflichtender Pull-Request-Check.
+Die feste CI-Matrix in [`.github/workflows/tests.yml`](.github/workflows/tests.yml) trennt schnelle und vollständige browserfreie PowerShell-Suiten mit `fail-fast: false` auf `windows-2025` und `ubuntu-24.04`. Ubuntu prüft zusätzlich Bash-Syntax, ShellCheck, Dispatcher und Kompatibilitätswrapper. [`.github/workflows/browser-smoke.yml`](.github/workflows/browser-smoke.yml) führt den Windows-Smoke bei jedem Pull Request sowie zeitgesteuert/manuell aus; der Windows-Job ist als stabiler Checkname für das Ruleset vorgesehen. Ubuntu bleibt bis zum Nachweis in [`Tests/Stabilitaetsnachweise/browser-smoke.json`](Tests/Stabilitaetsnachweise/browser-smoke.json) auf zeitgesteuerte und manuelle Läufe begrenzt.
 
-Die dokumentierten Frischsitzungs-, CLI- und Modelltests stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md). Die neun Dialogfälle mit Eingabe, erwartetem Datei-/Dialogzustand und getrenntem Automatisierungsstatus stehen in [`Tests/Interaktiver-Bewerbungsdialog.md`](Tests/Interaktiver-Bewerbungsdialog.md). Beide Kataloge verwenden ausschließlich öffentliche Regeln beziehungsweise temporäre fiktive Fixtures und nennen nicht ausgeführte Umgebungen ausdrücklich. Die deterministischen Dialogverträge sind kein Beleg für natürliches Sprachverständnis eines konkreten Modells; ein neuer realer Ollama-Dialogtest wurde für Version 1.8.0 nicht ausgeführt.
+Die PR-Canary [`prompt-regression-pr.yml`](.github/workflows/prompt-regression-pr.yml) vergleicht Codex und OpenCode mit derselben Modell-ID `gpt-5.6-terra`; die vollständige Matrix [`prompt-regression-full.yml`](.github/workflows/prompt-regression-full.yml) läuft wöchentlich und manuell mit Claude Code und Gemini CLI. Fehlende Secrets schlagen geschlossen fehl.
 
-Ubuntu wird erst nach drei aufeinanderfolgenden grünen Browserläufen je Zielsystem als stabil bezeichnet. Testzahlen und konkrete Umgebungsnachweise werden nicht aus veralteten Läufen abgeleitet; der aktuelle Stand ist in CI und in der Kompatibilitätsübersicht nachvollziehbar.
+Der read-only Workflow [`browser-stability-evidence.yml`](.github/workflows/browser-stability-evidence.yml) erstellt aus der Actions-API nur einen Nachweisentwurf. Erst ein separater Promotion-PR darf drei vollständige Läufe in den Stabilitätsnachweis übernehmen und Ubuntu für Pull Requests beziehungsweise Rulesets hochstufen.
+
+Die dokumentierten Frischsitzungs-, CLI- und Modelltests stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md). Die neun Dialogfälle mit Eingabe, erwartetem Datei-/Dialogzustand und getrenntem Automatisierungsstatus stehen in [`Tests/Interaktiver-Bewerbungsdialog.md`](Tests/Interaktiver-Bewerbungsdialog.md). Beide Kataloge verwenden ausschließlich öffentliche Regeln beziehungsweise temporäre fiktive Fixtures und nennen nicht ausgeführte Umgebungen ausdrücklich. Die deterministischen Dialogverträge sind kein Beleg für natürliches Sprachverständnis eines konkreten Modells; ein neuer realer Ollama-Dialogtest wurde für den aktuellen Stand nicht ausgeführt.
+
+Ubuntu wird erst nach drei aufeinanderfolgenden grünen Browserläufen auf Ubuntu als stabil bezeichnet. Testzahlen und konkrete Umgebungsnachweise werden nicht aus veralteten Läufen abgeleitet; der aktuelle Stand ist in CI und in der Kompatibilitätsübersicht nachvollziehbar.
 
 <details>
 <summary><strong>HTML-, PDF- und Browser-Verträge</strong></summary>
@@ -1258,9 +1313,10 @@ Jede laut Dokumentumfang vorhandene finale HTML-Datei muss eigenständig funktio
 - `@page { size: A4; margin: 0; }` ist gesetzt.
 - Jede `.page` misst exakt `210mm × 297mm`.
 - `overflow: hidden` ist nur auf der äußeren `.page` zulässig.
+- Vorschauabstände, Schatten und Seitenhintergründe stehen ausschließlich unter `@media screen`; ein Selektor wie `.page + .page` wird im Druckmodus mit gleicher Spezifität ausdrücklich auf `margin-top: 0` gesetzt.
 - Ein ausgewählter Lebenslauf nutzt bewusst eine oder zwei explizite A4-Seiten; ein Anschreiben genau eine.
 
-Der Browserlauf gilt nur als erfolgreich, wenn er rechtzeitig mit Exitcode `0` endet und alle erwarteten Dateien frisch erzeugt. Native Prozesse erhalten getrennte Argumentlisten, begrenzte Ausgaben und einen Timeout; bei Überschreitung wird der gesamte Prozessbaum beendet. PNGs benötigen gültige Signatur und Abmessungen. Der plattformneutrale .NET-PNG-Leser verarbeitet die erwarteten nicht-interlaced 8-Bit-Grau-, RGB- und RGBA-Dateien mit Filtern 0 bis 4; ein nicht auswertbares PNG lässt die erforderliche Dichteprüfung fehlschlagen. PDFs benötigen Header, EOF-Marker, DIN-A4-MediaBox, passende Seitenzahl und eine ATS-lesbare Unicode-Textschicht.
+Der Browserlauf gilt nur als erfolgreich, wenn er rechtzeitig mit Exitcode `0` endet und alle erwarteten Dateien frisch erzeugt. Native Prozesse erhalten getrennte Argumentlisten, begrenzte Ausgaben und einen Timeout; bei Überschreitung wird der gesamte Prozessbaum beendet. PNGs benötigen gültige Signatur und Abmessungen. Der plattformneutrale .NET-PNG-Leser verarbeitet die erwarteten nicht-interlaced 8-Bit-Grau-, RGB- und RGBA-Dateien mit Filtern 0 bis 4; ein nicht auswertbares PNG lässt die erforderliche Dichteprüfung fehlschlagen. Die gemeinsame Druckvorprüfung rendert zusätzlich das vollständige Original-HTML mit denselben Chromium-Parametern, prüft PDF-Frische, Header, EOF-Marker, DIN-A4-MediaBox und verlangt exakt so viele PDF-Seiten wie explizite `.page`-Container. PDFs benötigen außerdem eine ATS-lesbare Unicode-Textschicht.
 
 Chrome, Edge oder Chromium übernimmt den automatischen PDF-Export. Firefox ist für manuelle Druckvorschau und manuellen Export geeignet, aber nicht Teil des verbindlichen CLI-PDF-Exports. PNGs und PDFs müssen zwischen Windows und Ubuntu nicht binär oder pixelidentisch sein; dieselbe Seitenzahl, A4-Geometrie, Dichte-, Hash- und ATS-Prüfung ist das Paritätskriterium.
 
@@ -1311,7 +1367,7 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | kompakter, hashgebundener Fortsetzungscheckpoint | `Tools/Aktualisiere-WorkflowCheckpoint.ps1`, `Tools/Common/WorkflowCheckpoint.psm1` |
 | Dialogzustand und kontrollierte Profilübernahme | `Tools/Pruefe-Dialogstatus.ps1`, `Tools/Uebernehme-Dialogangabe.ps1` |
 | Stammdaten und Inhalt | `Tools/Pruefe-Stammdaten.ps1`, `Tools/Pruefe-Bewerbungsinhalt.ps1` |
-| Finalisierung | `Tools/Finalisiere-Bewerbung.ps1` |
+| Finalisierung und Sichtfreigabe | `Tools/Finalisiere-Bewerbung.ps1`, `Tools/Erzeuge-Sichtfreigabe.ps1`, `Tools/Common/ApprovalContract.psm1` |
 | Tokenbericht | `Tools/Aktualisiere-Tokenbericht.ps1` |
 | statischer Check | `Tools/Pruefe-Bewerbung.ps1` |
 | Layout und PDF | `Tools/Layoutcheck-Bewerbung.ps1`, `Tools/Exportiere-PDF.ps1` |

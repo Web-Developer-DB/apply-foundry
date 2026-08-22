@@ -31,6 +31,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'Common/Platform.psm1') -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'Common/ApprovalContract.psm1') -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'Common/JsonContract.psm1') -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'Common/AtomicFile.psm1') -Force
 
 function Stop-UniversalFinalization {
   param([string]$Message, [int]$Code = 1)
@@ -225,7 +228,7 @@ if (-not $Veroeffentlichen) {
     $warnings = @($layoutData.results | ForEach-Object { [string]$_.densityWarning } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     $candidateRecords = @(Get-ChildItem -LiteralPath $candidate -File | Sort-Object Name | ForEach-Object { Get-ArtifactRecord -File $_ -Root $work })
     $report = [ordered]@{
-      schemaVersion = 1
+      schemaVersion = 2
       status = 'bereit_zur_sichtpruefung'
       preparedAtUtc = [datetime]::UtcNow.ToString('o')
       workId = Split-Path $work -Leaf
@@ -243,22 +246,52 @@ if (-not $Veroeffentlichen) {
       )
       layoutWarnings = $warnings
     }
-    Set-Content -LiteralPath $finalReport -Encoding UTF8 -Value ($report | ConvertTo-Json -Depth 10)
+    $approvalRecords = @(Get-ContractApprovalRecords -Report $report)
+    $report.approvalRequest = [ordered]@{
+      approvalId = New-ContractApprovalId
+      reviewKind = 'png_sichtpruefung'
+      artifactSetSha256 = Get-ContractArtifactSetHash -Records $approvalRecords -Root $work
+      artifactCount = $approvalRecords.Count
+      createdAtUtc = [datetime]::UtcNow.ToString('o')
+    }
+    Write-AtomicJson -Path $finalReport -Value $report -Depth 10
   } catch {
     Stop-UniversalFinalization "Vorbereitung fehlgeschlagen: $($_.Exception.Message)"
   }
   Write-Host '[OK] Universeller Lebenslauf ist technisch bereit zur persönlichen Sichtprüfung.' -ForegroundColor Green
   foreach ($png in Get-ChildItem -LiteralPath $layoutDir -File -Filter '*.png' | Sort-Object Name) { Write-Host "- $($png.FullName)" }
-  Write-Host 'Nach vollständiger Sichtprüfung mit universal-finalisieren --veroeffentlichen --visuell-geprueft aktivieren.'
+  Write-Host "Nach vollständiger Sichtprüfung die Freigabe-ID im Chat bestätigen und speichern:"
+  Write-Host ".\Tools\bewerbung.ps1 freigabe --arbeitsordner `"$work`" --freigabe-id $($report.approvalRequest.approvalId) --bestaetigt"
   exit 0
 }
 
-if (-not $VisuellGeprueft) { Stop-UniversalFinalization 'Aktivierung erfordert --visuell-geprueft nach tatsächlicher Prüfung beider PNG-Seiten.' }
 if (-not (Test-Path -LiteralPath $finalReport -PathType Leaf)) { Stop-UniversalFinalization 'Vorbereitungsbericht fehlt; zuerst ohne --veroeffentlichen vorbereiten.' }
 
 try {
   $prepared = Get-Content -LiteralPath $finalReport -Raw -Encoding UTF8 | ConvertFrom-Json
-  if ([int]$prepared.schemaVersion -ne 1 -or [string]$prepared.status -cne 'bereit_zur_sichtpruefung') { throw 'Vorbereitungsbericht besitzt keinen veröffentlichbaren Zustand.' }
+  if ([int]$prepared.schemaVersion -ne 2 -or [string]$prepared.status -cne 'bereit_zur_sichtpruefung') { throw 'Vorbereitungsbericht besitzt keinen aktuellen Freigabestatus; Altstände müssen neu vorbereitet werden.' }
+  $approvalPath = Join-Path $work 'Sichtfreigabe.json'
+  if (-not (Test-Path -LiteralPath $approvalPath -PathType Leaf)) { throw 'Sichtfreigabe.json fehlt. Zuerst die im Chat bestätigte Freigabe-ID speichern.' }
+  $approval = Read-ContractJson -Path $approvalPath
+  if ([int](Get-ContractJsonProperty $approval 'schemaVersion') -ne 1 -or [string](Get-ContractJsonProperty $approval 'kind') -cne 'sichtfreigabe' -or
+      (Get-ContractJsonProperty $approval 'humanConfirmation') -isnot [bool] -or -not [bool](Get-ContractJsonProperty $approval 'humanConfirmation')) { throw 'Sichtfreigabe besitzt kein gültiges bestätigtes Schema.' }
+  $request = Get-ContractJsonProperty $prepared 'approvalRequest'
+  if ($null -eq $request -or [string](Get-ContractJsonProperty $approval 'approvalId') -cne [string](Get-ContractJsonProperty $request 'approvalId') -or [string](Get-ContractJsonProperty $approval 'artifactSetSha256') -cne [string](Get-ContractJsonProperty $request 'artifactSetSha256')) { throw 'Sichtfreigabe ist nicht an die aktuelle Freigabe-ID oder den aktuellen Artefaktsatz gebunden.' }
+  $preparedHash = (Get-FileHash -LiteralPath $finalReport -Algorithm SHA256).Hash
+  if ([string](Get-ContractJsonProperty (Get-ContractJsonProperty $approval 'preparedReport') 'sha256') -ine $preparedHash) { throw 'Sichtfreigabe gehört nicht zum aktuellen Universal-Finalisierungsbericht.' }
+  $approvalRecords = @(Get-ContractApprovalRecords -Report $prepared)
+  Test-ContractArtifactRecordsCurrent -Records $approvalRecords -Root $work
+  if ((Get-ContractArtifactSetHash -Records $approvalRecords -Root $work) -cne [string](Get-ContractJsonProperty $approval 'artifactSetSha256')) { throw 'Artefaktsatz wurde seit der Sichtfreigabe verändert.' }
+  $boundApprovalRecords = @(Get-ContractJsonProperty $approval 'artifacts')
+  if ($boundApprovalRecords.Count -ne $approvalRecords.Count) { throw 'Sichtfreigabe enthält nicht genau den vorbereiteten Artefaktsatz.' }
+  Test-ContractArtifactRecordsCurrent -Records $boundApprovalRecords -Root $work
+  $boundRecordsForHash = @($boundApprovalRecords | ForEach-Object {
+    $boundPath = [string](Get-ContractJsonProperty $_ 'path')
+    $absoluteBoundPath = if ([IO.Path]::IsPathRooted($boundPath)) { [IO.Path]::GetFullPath($boundPath) } else { [IO.Path]::GetFullPath((Join-Path $work $boundPath)) }
+    $normalized = [ordered]@{ path = $absoluteBoundPath; bytes = Get-ContractJsonProperty $_ 'bytes'; sha256 = Get-ContractJsonProperty $_ 'sha256' }
+    $normalized
+  })
+  if ((Get-ContractArtifactSetHash -Records $boundRecordsForHash -Root $work) -cne [string](Get-ContractJsonProperty $approval 'artifactSetSha256')) { throw 'Sichtfreigabe-Artefakthashes stimmen nicht mit dem gebundenen Satz überein.' }
   Test-ArtifactRecords -Records @($prepared.order) -Root $work
   Test-ArtifactRecords -Records @($prepared.candidate) -Root $work
   Test-ArtifactRecords -Records @($prepared.screenshots) -Root $work
@@ -267,8 +300,9 @@ try {
     if ((Get-FileHash -LiteralPath $binding.Path -Algorithm SHA256).Hash -ine [string]$binding.Record.sha256) { throw 'Private Quelle wurde nach der Vorbereitung verändert.' }
   }
   $warnings = @($prepared.layoutWarnings)
-  if ($warnings.Count -gt 0 -and [string]::IsNullOrWhiteSpace($VisuelleFreigabeNotiz)) {
-    throw 'Layoutwarnungen erfordern eine konkrete --visuelle-freigabe-notiz.'
+  $freigabeNotiz = [regex]::Replace(([string](Get-ContractJsonProperty $approval 'note')).Trim(), '\s+', ' ')
+  if ($warnings.Count -gt 0 -and [string]::IsNullOrWhiteSpace($freigabeNotiz)) {
+    throw 'Layoutwarnungen erfordern eine konkrete Notiz in der Chat-bestätigten Sichtfreigabe.'
   }
   $html = Get-Content -LiteralPath $htmlPath -Raw -Encoding UTF8
   Test-UniversalSectionPlan -Html $html -Order $order
@@ -319,12 +353,12 @@ try {
       zielrollen = @('Frontend-Entwickler', 'Backend-Entwickler', 'Fullstack-Entwickler')
       activatedAtUtc = [datetime]::UtcNow.ToString('o')
       workId = [string]$prepared.workId
-      personalReview = [ordered]@{ kind = 'png_sichtpruefung'; confirmed = $true; note = ([string]$VisuelleFreigabeNotiz).Trim() }
+      personalReview = [ordered]@{ kind = 'png_sichtpruefung'; confirmed = $true; approvalId = [string](Get-ContractJsonProperty $approval 'approvalId'); note = $freigabeNotiz }
       layoutWarnings = $warnings
       sourceInputs = $prepared.sources
       files = $publishedFiles
     }
-    Set-Content -LiteralPath (Join-Path $stage 'Manifest.json') -Encoding UTF8 -Value ($manifest | ConvertTo-Json -Depth 10)
+    Write-AtomicJson -Path (Join-Path $stage 'Manifest.json') -Value $manifest -Depth 10
     Test-ArtifactRecords -Records $publishedFiles -Root $stage
 
     if (Test-Path -LiteralPath $active) {

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "status": "vorbereitet",
+  "requiredConsecutiveRuns": 3,
+  "promotion": {
+    "ubuntuPullRequest": false,
+    "requiredRulesetCheck": false,
+    "promotionPullRequest": null
+  },
+  "runs": []
+}

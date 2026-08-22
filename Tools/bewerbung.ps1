@@ -12,6 +12,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$script:InvocationDirectory = (Get-Location).Path
 
 $script:CommandOrder = @(
   "diagnose",
@@ -21,17 +22,21 @@ $script:CommandOrder = @(
   "universal-finalisieren",
   "status",
   "checkpoint",
+  "migrieren",
   "stammdaten",
   "dialog-pruefen",
   "dialog-uebernehmen",
   "passfoto",
+  "kontext",
   "inhalt",
   "pruefen",
   "layout",
   "pdf",
   "ats",
   "finalisieren",
+  "freigabe",
   "tokenbericht",
+  "test-baseline",
   "tests"
 )
 
@@ -45,7 +50,7 @@ function Stop-Cli {
 function New-CliOption {
   param(
     [Parameter(Mandatory = $true)][string]$Parameter,
-    [ValidateSet("string", "switch", "enum", "int", "long", "datetime", "documents")]
+    [ValidateSet("string", "path", "path_list", "switch", "enum", "int", "long", "datetime", "documents")]
     [string]$Kind = "string",
     [string[]]$Allowed = @(),
     [Nullable[long]]$Min,
@@ -53,6 +58,10 @@ function New-CliOption {
     [string]$Placeholder = "WERT"
   )
 
+  # Every option shown as a filesystem path is resolved once by the dispatcher
+  # against the caller's original working directory.  Individual tools retain
+  # their own validation for direct invocation.
+  if ($Kind -eq 'string' -and $Placeholder -eq 'PFAD') { $Kind = 'path' }
   return @{
     Parameter = $Parameter
     Kind = $Kind
@@ -154,6 +163,17 @@ $script:Commands = @{
       "--als-json" = New-CliOption -Parameter "AlsJson" -Kind switch
     }
   }
+  "migrieren" = @{
+    RelativePath = "Migriere-Bewerbungsnachweise.ps1"
+    Summary = "Matrix und Evidenzindex versioniert migrieren"
+    Required = @("--arbeitsordner")
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--als-json" = New-CliOption -Parameter "AlsJson" -Kind switch
+      "--anwenden" = New-CliOption -Parameter "Anwenden" -Kind switch
+      "--bericht-path" = New-CliOption -Parameter "BerichtPath" -Placeholder "PFAD"
+    }
+  }
   "stammdaten" = @{
     RelativePath = "Pruefe-Stammdaten.ps1"
     Summary = "Stammdaten pruefen"
@@ -198,6 +218,16 @@ $script:Commands = @{
     Required = @("--arbeitsordner")
     Options = [ordered]@{
       "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+    }
+  }
+  "kontext" = @{
+    RelativePath = "Erzeuge-Kontextmanifest.ps1"
+    Summary = "Hashgebundenen Kontextplan fuer eine Schema-5-Bewerbung erzeugen"
+    Required = @("--arbeitsordner")
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--profil-path" = New-CliOption -Parameter "ProfilPath" -Placeholder "PFAD"
+      "--bericht-path" = New-CliOption -Parameter "BerichtPath" -Placeholder "PFAD"
     }
   }
   "inhalt" = @{
@@ -287,7 +317,19 @@ $script:Commands = @{
       "--visuell-geprueft" = New-CliOption -Parameter "VisuellGeprueft" -Kind switch
       "--visuelle-freigabe-notiz" = New-CliOption -Parameter "VisuelleFreigabeNotiz" -Placeholder "TEXT"
       "--ersetzen" = New-CliOption -Parameter "Ersetzen" -Kind switch
+      "--neu-pruefen" = New-CliOption -Parameter "NeuPruefen" -Kind switch
       "--timeout-seconds" = New-CliOption -Parameter "TimeoutSeconds" -Kind int -Min 1 -Max 600 -Placeholder "SEKUNDEN"
+    }
+  }
+  "freigabe" = @{
+    RelativePath = "Erzeuge-Sichtfreigabe.ps1"
+    Summary = "Chat-bestaetigte Sichtfreigabe an den aktuellen Artefaktsatz binden"
+    Required = @("--arbeitsordner", "--freigabe-id", "--bestaetigt")
+    Options = [ordered]@{
+      "--arbeitsordner" = New-CliOption -Parameter "Arbeitsordner" -Placeholder "PFAD"
+      "--freigabe-id" = New-CliOption -Parameter "FreigabeId" -Placeholder "ID"
+      "--bestaetigt" = New-CliOption -Parameter "Bestaetigt" -Kind switch
+      "--notiz" = New-CliOption -Parameter "Notiz" -Placeholder "TEXT"
     }
   }
   "tokenbericht" = @{
@@ -313,12 +355,24 @@ $script:Commands = @{
       "--gesamt-tokens" = New-CliOption -Parameter "GesamtTokens" -Kind long -Min 0 -Max ([long]::MaxValue) -Placeholder "ANZAHL"
     }
   }
+  "test-baseline" = @{
+    RelativePath = "Aktualisiere-Testlaufzeitbaseline.ps1"
+    Summary = "Aus drei erfolgreichen Testberichten eine Laufzeitbaseline bilden"
+    Required = @("--bericht-path")
+    Options = [ordered]@{
+      "--bericht-path" = New-CliOption -Parameter "BerichtPath" -Kind path_list -Placeholder "PFAD[,PFAD,PFAD]"
+      "--baseline-path" = New-CliOption -Parameter "BaselinePath" -Placeholder "PFAD"
+    }
+  }
   "tests" = @{
     RelativePath = "../Tests/Run-RegressionTests.ps1"
     Summary = "Projektweite synthetische Regressionstests ausfuehren"
     Required = @()
     Options = [ordered]@{
       "--mit-browser" = New-CliOption -Parameter "MitBrowser" -Kind switch
+      "--suite" = New-CliOption -Parameter "Suite" -Kind enum -Allowed @("schnell", "vollstaendig", "browser", "prompt-pr", "prompt-vollstaendig") -Placeholder "NAME"
+      "--bericht-path" = New-CliOption -Parameter "BerichtPath" -Placeholder "PFAD"
+      "--test-name-pattern" = New-CliOption -Parameter "TestNamePattern" -Placeholder "REGEX"
     }
   }
 }
@@ -375,6 +429,27 @@ function ConvertTo-CliValue {
   switch ($Option.Kind) {
     "string" {
       return $RawValue
+    }
+    "path" {
+      if ([System.IO.Path]::IsPathFullyQualified($RawValue)) {
+        return [System.IO.Path]::GetFullPath($RawValue)
+      }
+      return [System.IO.Path]::GetFullPath((Join-Path -Path $script:InvocationDirectory -ChildPath $RawValue))
+    }
+    "path_list" {
+      $paths = [System.Collections.Generic.List[string]]::new()
+      foreach ($part in $RawValue.Split(',', [System.StringSplitOptions]::None)) {
+        $value = $part.Trim()
+        if ([string]::IsNullOrWhiteSpace($value)) {
+          Stop-Cli "Leerer Pfad in $OptionName ist nicht zulaessig."
+        }
+        if ([System.IO.Path]::IsPathFullyQualified($value)) {
+          $paths.Add([System.IO.Path]::GetFullPath($value))
+        } else {
+          $paths.Add([System.IO.Path]::GetFullPath((Join-Path -Path $script:InvocationDirectory -ChildPath $value)))
+        }
+      }
+      return ($paths -join ',')
     }
     "enum" {
       foreach ($allowedValue in $Option.Allowed) {

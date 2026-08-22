@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "profilSha256": "SHA-256 der fachlichen Profildatei Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md",
+  "belege": [
+    {
+      "id": "profil-weiterbildung-1",
+      "quelle": "profil",
+      "zeileVon": 1,
+      "zeileBis": 1,
+      "text": "genauer, in der Profildatei vorhandener Nachweis",
+      "belegart": "WEITERBILDUNG"
+    },
+    {
+      "id": "profil-projekt-1",
+      "quelle": "profil",
+      "zeileVon": 2,
+      "zeileBis": 2,
+      "text": "genauer, in der Profildatei vorhandener Projektnachweis",
+      "belegart": "PROJEKTPRAXIS"
+    }
+  ]
+}

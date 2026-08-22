@@ -38,6 +38,8 @@ param(
   [switch]$StammdatenpruefungUeberspringen
 )
 
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force -Global
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $script:PathComparison = if ([System.IO.Path]::DirectorySeparatorChar -eq '\') { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
@@ -46,6 +48,9 @@ $orderPathsModule = Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "C
 Import-Module -Name $orderPathsModule -Force -ErrorAction Stop
 Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "Platform.psm1") -Force -ErrorAction Stop
 Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "WorkflowCheckpoint.psm1") -Force -ErrorAction Stop
+Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "MatrixContract.psm1") -Force -ErrorAction Stop
+Import-Module -Name (Join-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath "Common") -ChildPath "EvidenceIndexContract.psm1") -Force -ErrorAction Stop
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/AtomicFile.psm1") -Force -Global
 
 function Stop-WithValidationError {
   param([string]$Message)
@@ -603,6 +608,7 @@ $emailEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Email-Nachricht--$fi
 $qualitaetscheckEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Qualitaetscheck--ENTWURF.md"
 $offeneFragenEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Offene_Fragen--ENTWURF.md"
 $anforderungsmatrixEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Anforderungsmatrix--ENTWURF.json"
+$evidenzindexEntwurfFile = Join-Path -Path $arbeitsDir -ChildPath "Evidenzindex--ENTWURF.json"
 $auftragFile = Join-Path -Path $arbeitsDir -ChildPath "Bewerbungsauftrag.json"
 $druckHinweisFile = Join-Path -Path $kandidatDir -ChildPath "Druck-Hinweis.md"
 $universalCandidateFile = if ([string]::IsNullOrWhiteSpace($applicantFileName)) { "" } else { Join-Path -Path $kandidatDir -ChildPath "Lebenslauf - $applicantFileName.html" }
@@ -747,37 +753,15 @@ if (-not (Test-Path -LiteralPath $auftragFile -PathType Leaf)) {
     quellnachweise = $sourceEvidence
     createdAtUtc = [datetime]::UtcNow.ToString("o")
   }
-  Set-Content -LiteralPath $auftragFile -Encoding UTF8 -Value ($auftrag | ConvertTo-Json -Depth 8)
+  Write-AtomicJson -Path $auftragFile -Value $auftrag -Depth 8
 }
 
 if (-not (Test-Path -LiteralPath $anforderungsmatrixEntwurfFile)) {
-  Set-Content -LiteralPath $anforderungsmatrixEntwurfFile -Encoding UTF8 -Value @"
-{
-  "schemaVersion": 3,
-  "requirements": [
-    {
-      "id": "muss-1",
-      "anforderung": "durch den Agenten aus der Stellenbeschreibung zu extrahieren",
-      "typ": "muss",
-      "kategorie": "fachlich",
-      "gewichtung": "hoch",
-      "status": "unklar",
-      "belegart": "",
-      "beleg": "",
-      "behandlung": "vor Erstellung der Kandidatendateien klären"
-    }
-  ],
-  "recruiterStrategie": {
-    "kernbotschaft": "durch den Agenten aus Zielrolle, Stellenanforderungen und den stärksten belegten Profilargumenten abzuleiten",
-    "profilSubstanz": "noch_zu_pruefen",
-    "profilSubstanzBegruendung": "vor der Dokumenterstellung anhand der relevanten Profildaten zu prüfen",
-    "prioritaetsAnforderungen": ["muss-1"],
-    "profilHighlights": [],
-    "transferbruecken": [],
-    "auslassungen": []
-  }
+  Write-AtomicJson -Path $anforderungsmatrixEntwurfFile -Value (New-MatrixDraft -IncludeLetter:$includeLetter) -Depth 12
 }
-"@
+
+if (-not (Test-Path -LiteralPath $evidenzindexEntwurfFile)) {
+  Write-AtomicJson -Path $evidenzindexEntwurfFile -Value (New-EvidenceIndexDraft) -Depth 8
 }
 
 if (-not (Test-Path -LiteralPath $analyseEntwurfFile)) {
@@ -865,6 +849,7 @@ if (-not (Test-Path -LiteralPath $arbeitsnotizenFile)) {
 - Finaler Bewerbungsordner: $zielDir
 - Entwurfs-/Arbeitsdateien: $arbeitsDir
 - Kandidatendateien vor Freigabe: $kandidatDir
+- Vor der Dokumenterstellung: Anforderungsmatrix.json und Evidenzindex.json aus den jeweiligen Entwürfen fachlich vervollständigen.
 
 Dieser Ordner ist nur für temporäre Entwürfe und Arbeitsnotizen gedacht.
 Versandfertig benannte Kandidatendateien gehören zunächst in den Kandidatenordner.

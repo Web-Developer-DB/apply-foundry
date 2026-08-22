@@ -1,0 +1,30 @@
+name: Browser stability evidence draft
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 4 * * 3"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  evidence-draft:
+    name: Read-only browser stability draft
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read-only Nachweisentwurf aus der Actions-API
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./Tests/Collect-BrowserStabilityEvidence.ps1 -Repository '${{ github.repository }}' -Token $env:GITHUB_TOKEN -OutputPath Tests/Artifacts/browser-stability-draft.json
+      - name: Nachweisentwurf hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-stability-draft
+          path: Tests/Artifacts/browser-stability-draft.json
+          if-no-files-found: ignore
+          retention-days: 7

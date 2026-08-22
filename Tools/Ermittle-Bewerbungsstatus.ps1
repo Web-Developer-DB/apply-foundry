@@ -15,6 +15,8 @@ Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/OrderPaths.psm1"
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Passfoto.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/Platform.psm1") -Force
 Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/WorkflowCheckpoint.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/MatrixContract.psm1") -Force
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath "Common/EvidenceIndexContract.psm1") -Force
 
 function Stop-Status {
   param([string]$Message, [int]$Code = 1)
@@ -151,6 +153,10 @@ function Test-FinalReportArtifacts {
   try {
     $orderPath = Resolve-SafePath -Candidate (Join-Path -Path $WorkFolder -ChildPath 'Bewerbungsauftrag.json') -Root $WorkFolder -MustExist -ForWrite -PathType Leaf
     $order = Get-Content -LiteralPath $orderPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrixPath = Resolve-SafePath -Candidate (Join-Path -Path $WorkFolder -ChildPath 'Anforderungsmatrix.json') -Root $WorkFolder -MustExist -ForWrite -PathType Leaf
+    $matrix = Get-Content -LiteralPath $matrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrixSchema = [int](Get-JsonProperty -Object $matrix -Name 'schemaVersion')
+    if ($matrixSchema -ge 5) { $expectedSourceNames.Add('evidenzindex') }
     $schema = [int](Get-JsonProperty -Object $order -Name 'schemaVersion')
     $scope = Get-JsonProperty -Object $order -Name 'dokumentumfang'
     $cvKind = if ($schema -ge 4) {
@@ -201,7 +207,7 @@ function Test-FinalReportRuntimeCurrent {
   param([object]$Report)
 
   $schema = Get-JsonProperty -Object $Report -Name 'schemaVersion'
-  if (($schema -isnot [int] -and $schema -isnot [long]) -or [int]$schema -ne 5) { return $false }
+  if (($schema -isnot [int] -and $schema -isnot [long]) -or [int]$schema -notin @(6, 7)) { return $false }
   $runtime = Get-JsonProperty -Object $Report -Name 'runtime'
   if ($null -eq $runtime) { return $false }
   $runtimeSchema = Get-JsonProperty -Object $runtime -Name 'schemaVersion'
@@ -220,6 +226,48 @@ function Test-FinalReportRuntimeCurrent {
     )
   }
   return $matches
+}
+
+function Get-TechnicalAttempt {
+  param([Parameter(Mandatory)][string]$WorkFolder)
+
+  $statePath = Join-Path -Path $WorkFolder -ChildPath 'Pruefstand.json'
+  if (-not (Test-Path -LiteralPath $statePath -PathType Leaf)) { return $null }
+  try {
+    $state = Get-Content -LiteralPath $statePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ([int](Get-JsonProperty -Object $state -Name 'schemaVersion') -ne 2 -or
+        [string](Get-JsonProperty -Object $state -Name 'kind') -ne 'finalisierungs_pruefstand') { return $null }
+    $stages = @((Get-JsonProperty -Object $state -Name 'stages'))
+    if ($stages.Count -eq 0) { return $null }
+    $last = $stages[$stages.Count - 1]
+    $isCurrent = $true
+    $staleReason = $null
+    $fingerprint = Get-JsonProperty -Object $last -Name 'fingerprint'
+    foreach ($input in @((Get-JsonProperty -Object $fingerprint -Name 'inputs'))) {
+      $relative = [string](Get-JsonProperty -Object $input -Name 'path')
+      if ([string]::IsNullOrWhiteSpace($relative) -or $relative.StartsWith('<extern>/')) { continue }
+      $path = Join-Path -Path $WorkFolder -ChildPath ($relative -replace '/', [IO.Path]::DirectorySeparatorChar)
+      if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        $isCurrent = $false; $staleReason = 'eingabe_fehlt'; break
+      }
+      $file = Get-Item -LiteralPath $path
+      if ([int64]$file.Length -ne [int64](Get-JsonProperty -Object $input -Name 'bytes') -or
+          (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ine [string](Get-JsonProperty -Object $input -Name 'sha256')) {
+        $isCurrent = $false; $staleReason = 'eingabe_geaendert'; break
+      }
+    }
+    return [pscustomobject][ordered]@{
+      stage = [string](Get-JsonProperty -Object $last -Name 'id')
+      status = [string](Get-JsonProperty -Object $last -Name 'status')
+      current = $isCurrent
+      staleReason = $staleReason
+      startedAtUtc = Get-JsonProperty -Object $last -Name 'startedAtUtc'
+      completedAtUtc = Get-JsonProperty -Object $last -Name 'completedAtUtc'
+      failure = Get-JsonProperty -Object $last -Name 'failure'
+    }
+  } catch {
+    return [pscustomobject][ordered]@{ stage = $null; status = 'unlesbar'; current = $false; staleReason = 'pruefstand_unlesbar'; startedAtUtc = $null; completedAtUtc = $null; failure = $null }
+  }
 }
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path -Path $PSScriptRoot -ChildPath '..'))
@@ -326,6 +374,20 @@ foreach ($pattern in $expectedFiles) {
 }
 
 $matrixPath = Resolve-SafePath -Candidate (Join-Path $resolvedWork 'Anforderungsmatrix.json') -Root $resolvedWork
+$matrixStrategyIncomplete = $false
+if (Test-Path -LiteralPath $matrixPath -PathType Leaf) {
+  try {
+    $matrixForStatus = Get-Content -LiteralPath $matrixPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $matrixContractInfo = Get-MatrixContractInfo -Matrix $matrixForStatus
+    if ([int]$matrixContractInfo.schemaVersion -ge 5) {
+      $letterSelectedForStatus = [bool](Get-JsonProperty -Object $scope -Name 'anschreiben')
+      $letterStrategyForStatus = Get-JsonProperty -Object $matrixForStatus -Name 'anschreibenStrategie'
+      $strategyStatusForStatus = if ($null -eq $letterStrategyForStatus) { '' } else { [string](Get-JsonProperty -Object $letterStrategyForStatus -Name 'status') }
+      $matrixStrategyIncomplete = ($letterSelectedForStatus -and $strategyStatusForStatus -ne 'final') -or (-not $letterSelectedForStatus -and $strategyStatusForStatus -notin @('nicht_erforderlich', ''))
+      if ($matrixContractInfo.requiresEvidenzindex -and -not (Test-Path -LiteralPath (Join-Path $resolvedWork 'Evidenzindex.json') -PathType Leaf)) { $matrixStrategyIncomplete = $true }
+    }
+  } catch { $matrixStrategyIncomplete = $true }
+}
 $finalReportPath = Resolve-SafePath -Candidate (Join-Path $resolvedWork 'Finalisierungsbericht.json') -Root $resolvedWork
 $finalReportValid = $false
 $finalStatus = ''
@@ -342,6 +404,7 @@ if (Test-Path -LiteralPath $finalReportPath -PathType Leaf) {
 
 $scopeConfirmed = [bool](Get-JsonProperty -Object $scope -Name 'bestaetigt')
 $dialogStatus = [string](Get-JsonProperty -Object $dialog -Name 'status')
+$technicalAttempt = Get-TechnicalAttempt -WorkFolder $resolvedWork
 $phase = ''
 $nextAction = ''
 $requiredPrompts = @()
@@ -358,6 +421,10 @@ if (-not $scopeConfirmed) {
   $phase = 'strategie_und_matrix'
   $nextAction = 'Profilstrategie festlegen und die deduplizierte Anforderungsmatrix finalisieren.'
   $requiredPrompts = @('Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md', 'Prompts/06_ROLLENLOGIK.md', 'Prompts/07_WAHRHEIT_UND_GRENZEN.md')
+} elseif ($matrixStrategyIncomplete) {
+  $phase = 'strategie_und_matrix'
+  $nextAction = 'Anschreibenstrategie, Quellenregister und Evidenzdisposition des Schema-5-Auftrags vervollständigen.'
+  $requiredPrompts = @('Prompts/02_VORPRUEFUNG_UND_ANFORDERUNGSMATRIX.md', 'Prompts/04_ANSCHREIBEN_REGELN.md', 'Prompts/07_WAHRHEIT_UND_GRENZEN.md')
 } elseif ($missingFiles.Count -gt 0) {
   $phase = 'dokumenterstellung'
   $nextAction = 'Nur die laut Dokumentumfang noch fehlenden Kandidatendateien erstellen.'
@@ -366,6 +433,12 @@ if (-not $scopeConfirmed) {
   if ([bool](Get-JsonProperty -Object $scope -Name 'anschreiben')) { $requiredPrompts += 'Prompts/04_ANSCHREIBEN_REGELN.md' }
   if ([bool](Get-JsonProperty -Object $scope -Name 'emailNachricht')) { $requiredPrompts += 'Prompts/05_EMAIL_NACHRICHT_REGELN.md' }
   if ([string](Get-JsonProperty -Object $scope -Name 'lebenslauf') -ne 'nicht_enthalten' -or [bool](Get-JsonProperty -Object $scope -Name 'anschreiben')) { $requiredPrompts += 'Prompts/08_HTML_CSS_DESIGNREGELN.md' }
+} elseif ($null -ne $technicalAttempt -and [string]$technicalAttempt.status -in @('failed', 'running')) {
+  $phase = 'technische_vorbereitung'
+  $failureHint = if ($null -ne $technicalAttempt.failure -and -not [string]::IsNullOrWhiteSpace([string](Get-JsonProperty -Object $technicalAttempt.failure -Name 'message'))) { ': ' + [string](Get-JsonProperty -Object $technicalAttempt.failure -Name 'message') } else { '' }
+  $stateLabel = if ([string]$technicalAttempt.status -eq 'running') { 'unterbrochen oder noch aktiv' } else { 'fehlgeschlagen' }
+  $nextAction = "Letzter technischer Schritt '$($technicalAttempt.stage)' ist $stateLabel$failureHint. Ursache korrigieren und die Finalisierung erneut starten."
+  $requiredPrompts = @('Prompts/08_HTML_CSS_DESIGNREGELN.md', 'Prompts/09_QUALITAETSCHECK.md', 'Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md')
 } elseif ($finalReportValid -and $finalStatus -eq 'bereit_zur_sichtpruefung') {
   $phase = 'persoenliche_pruefung'
   $nextAction = 'Jede gebundene PNG-Seite beziehungsweise ausgewählte Textdatei persönlich prüfen und danach eindeutig bestätigen.'
@@ -400,7 +473,7 @@ try {
 }
 
 $result = [ordered]@{
-  schemaVersion = 1
+  schemaVersion = 2
   workFolder = $resolvedWork
   candidateFolder = $candidateFolder
   phase = $phase
@@ -409,6 +482,7 @@ $result = [ordered]@{
   missingCandidateFiles = @($missingFiles)
   finalReportValid = $finalReportValid
   finalStatus = if ([string]::IsNullOrWhiteSpace($finalStatus)) { $null } else { $finalStatus }
+  technicalAttempt = $technicalAttempt
   workflowCheckpoint = $workflowCheckpoint
   requiredPrompts = @($requiredPrompts)
   nextAction = $nextAction
@@ -421,6 +495,12 @@ if ($AlsJson) {
   Write-Host "Phase: $phase"
   if ($blockers.Count -gt 0) { Write-Host "Blocker: $($blockers -join ', ')" }
   if ($missingFiles.Count -gt 0) { Write-Host "Fehlende Kandidatendateien: $($missingFiles -join ', ')" }
+  if ($null -ne $technicalAttempt) {
+    $attemptLabel = "Technischer Versuch: $($technicalAttempt.stage) = $($technicalAttempt.status)"
+    if (-not [bool]$technicalAttempt.current) { $attemptLabel += ' (veraltet)' }
+    if ($null -ne $technicalAttempt.failure -and -not [string]::IsNullOrWhiteSpace([string](Get-JsonProperty -Object $technicalAttempt.failure -Name 'message'))) { $attemptLabel += ": $([string](Get-JsonProperty -Object $technicalAttempt.failure -Name 'message'))" }
+    Write-Host $attemptLabel
+  }
   if ($workflowCheckpoint.valid) {
     Write-Host "Workflow-Checkpoint: aktuell ($($workflowCheckpoint.lastCompletedStep), $($workflowCheckpoint.artifactCount) Artefakte)"
   } elseif ($workflowCheckpoint.available) {
