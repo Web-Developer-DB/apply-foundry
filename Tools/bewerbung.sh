@@ -9,9 +9,22 @@ if [[ ! -f "$dispatcher" ]]; then
   exit 1
 fi
 
-if ! pwsh_path="$(command -v pwsh 2>/dev/null)" || [[ -z "$pwsh_path" ]]; then
-  printf 'Fehler: PowerShell 7.6 oder neuer ist erforderlich; pwsh wurde nicht gefunden.\n' >&2
-  exit 2
+pwsh_path="$(command -v pwsh 2>/dev/null || true)"
+if [[ -z "$pwsh_path" ]]; then
+  runtime_manifest="$script_dir/PowerShell-runtime.json"
+  runtime_version="$(sed -n 's/.*\"version\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p' "$runtime_manifest" | head -n 1)"
+  if [[ -n "${XDG_DATA_HOME:-}" ]]; then
+    local_runtime_root="$XDG_DATA_HOME/apply-foundry/runtime/powershell/$runtime_version"
+  else
+    local_runtime_root="${HOME:-/tmp}/.local/share/apply-foundry/runtime/powershell/$runtime_version"
+  fi
+  if [[ -x "$local_runtime_root/pwsh" ]]; then
+    pwsh_path="$local_runtime_root/pwsh"
+  else
+    printf 'Fehler: PowerShell 7.6 oder neuer ist erforderlich; pwsh wurde nicht gefunden.\n' >&2
+    printf 'Vorschlag: ./Tools/setup-linux.sh --runtime --dry-run\n' >&2
+    exit 2
+  fi
 fi
 
 # shellcheck disable=SC2016 # PowerShell variables must remain literal here.

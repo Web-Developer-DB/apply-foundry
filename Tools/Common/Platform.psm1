@@ -231,8 +231,9 @@ function Get-PlatformInfo {
       $isWsl = (Get-Content -LiteralPath '/proc/sys/kernel/osrelease' -Raw) -match '(?i)microsoft|wsl'
     }
   }
+  $packageManager = Get-PackageManager
   $supported = ($IsWindows -and $architecture -eq 'x64') -or
-    ($IsLinux -and $architecture -eq 'x64' -and $distributionId -eq 'ubuntu' -and $distributionVersion -eq '24.04')
+    ($IsLinux -and $architecture -eq 'x64' -and -not [string]::IsNullOrWhiteSpace($packageManager))
 
   [pscustomobject][ordered]@{
     Name = $name
@@ -245,9 +246,30 @@ function Get-PlatformInfo {
     DistributionId = $distributionId
     DistributionVersion = $distributionVersion
     Architecture = $architecture
+    PackageManager = $packageManager
     PowerShellVersion = $PSVersionTable.PSVersion.ToString()
     PSEdition = $PSVersionTable.PSEdition
   }
+}
+
+function Get-PackageManager {
+  [CmdletBinding()]
+  param()
+
+  if ($IsWindows) {
+    $winget = Get-Command -Name 'winget.exe' -CommandType Application -ErrorAction SilentlyContinue
+    if ($winget) { return 'winget' }
+    return $null
+  }
+  if (-not $IsLinux) { return $null }
+  foreach ($name in @('apt-get', 'dnf', 'yum', 'pacman', 'zypper')) {
+    $command = Get-Command -Name $name -CommandType Application -ErrorAction SilentlyContinue
+    if ($command) {
+      if ($name -eq 'apt-get') { return 'apt' }
+      return $name
+    }
+  }
+  return $null
 }
 
 function Get-PathStringComparison {
@@ -645,6 +667,7 @@ function Get-RuntimeFingerprint {
     osDescription = $platform.OSDescription
     distributionId = $platform.DistributionId
     distributionVersion = $platform.DistributionVersion
+    packageManager = $platform.PackageManager
     wsl = $platform.IsWsl
     architecture = $platform.Architecture
     powerShellVersion = $platform.PowerShellVersion
@@ -655,6 +678,7 @@ function Get-RuntimeFingerprint {
 
 Export-ModuleMember -Function @(
   'Get-PlatformInfo',
+  'Get-PackageManager',
   'Get-PathStringComparison',
   'Get-CanonicalPath',
   'Test-SamePath',

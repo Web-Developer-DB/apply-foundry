@@ -23,6 +23,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Windows-Setup-Dry-run
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./Tools/setup-windows.ps1 -All -DryRun -Format json
+      - name: Windows PowerShell 5.1-Setup-Dry-run
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./Tools/setup-windows.ps1 -All -DryRun -Format json
       - name: Schnelle synthetische Suite
         shell: pwsh
         run: ./Tests/Run-RegressionTests.ps1 -Suite schnell -BerichtPath Tests/Artifacts/test-fast-${{ matrix.os }}.json
@@ -64,10 +72,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Bash-Syntax
-        run: bash -n Tools/bewerbung.sh Tools/neue-bewerbung.sh Tools/setup-ubuntu.sh Tests/Bash/test-bewerbung-cli.sh Tests/Bash/test-setup-ubuntu.sh
+        run: bash -n Tools/bewerbung.sh Tools/neue-bewerbung.sh Tools/setup-linux.sh Tools/setup-ubuntu.sh Tests/Bash/test-bewerbung-cli.sh Tests/Bash/test-setup-linux.sh Tests/Bash/test-setup-ubuntu.sh
       - name: ShellCheck
-        run: shellcheck Tools/bewerbung.sh Tools/neue-bewerbung.sh Tools/setup-ubuntu.sh Tests/Bash/test-bewerbung-cli.sh Tests/Bash/test-setup-ubuntu.sh
+        run: shellcheck Tools/bewerbung.sh Tools/neue-bewerbung.sh Tools/setup-linux.sh Tools/setup-ubuntu.sh Tests/Bash/test-bewerbung-cli.sh Tests/Bash/test-setup-linux.sh Tests/Bash/test-setup-ubuntu.sh
       - name: Dispatcher- und Kompatibilitätstests
         run: bash Tests/Bash/test-bewerbung-cli.sh
       - name: Opt-in-Setup-Tests
         run: bash Tests/Bash/test-setup-ubuntu.sh
+      - name: Plattformneutrale Setup-Tests
+        run: bash Tests/Bash/test-setup-linux.sh

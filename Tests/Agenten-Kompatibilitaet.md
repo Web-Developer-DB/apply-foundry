@@ -35,7 +35,7 @@ Diese statischen Prüfungen beweisen die Projektstruktur. Sie beweisen nicht, da
 
 ## Aktueller automatisierter Plattformvertrag
 
-Die feste browserfreie CI-Matrix führt dieselbe vollständige PowerShell-Suite mit `fail-fast: false` auf `windows-2025` und `ubuntu-24.04` aus. Der separate Ubuntu-Job prüft `bewerbung.sh`, `neue-bewerbung.sh` und `setup-ubuntu.sh` mit Bash-Syntax und ShellCheck sowie Dispatcher- und Kompatibilitätsfälle. Keine dieser Prüfungen liest `Private/`; alle Bewerbungsfixtures sind synthetisch.
+Die feste browserfreie CI-Matrix führt dieselbe vollständige PowerShell-Suite mit `fail-fast: false` auf `windows-2025` und `ubuntu-24.04` aus. Der separate Linux-Job prüft `bewerbung.sh`, `neue-bewerbung.sh`, `setup-linux.sh` und den Kompatibilitätsalias `setup-ubuntu.sh` mit Bash-Syntax und ShellCheck sowie Dispatcher- und Kompatibilitätsfälle. Der zeitgesteuerte Workflow `linux-compatibility.yml` installiert und prüft zusätzlich Ubuntu 24.04/26.04, Debian, Fedora, Rocky, Arch und openSUSE in ephemeren Containern. Keine dieser Prüfungen liest `Private/`; alle Bewerbungsfixtures sind synthetisch.
 
 Der Windows-Browser-Smoke läuft in einem getrennten Job bei jedem Pull Request sowie zeitgesteuert/manuell und verwendet den stabilen Namen `Windows browser smoke (required)`. Ubuntu läuft zunächst nur zeitgesteuert/manuell; der leere beziehungsweise fortgeschriebene Schema-1-Nachweis in `Tests/Stabilitaetsnachweise/browser-smoke.json` verlangt drei aufeinanderfolgende grüne Paritätsläufe mit Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und ohne Restprozesse. Ein Workflow ersetzt keinen tatsächlichen Ruleset-Eintrag; ohne Adminzugriff bleibt der Check vorbereitet.
 
@@ -62,7 +62,7 @@ Diese Angaben trennen den tatsächlich ausgeführten Windows-Test von nicht gete
 | OpenCode unter Windows | bestanden / empfohlen | persönliche Nutzerprüfung: Projekt ohne bekannte Probleme geöffnet und verwendet; die exakte OpenCode-Version wurde nicht erfasst |
 | Codex-Desktop-App unter Linux oder macOS | nicht getestet | derzeit kein belastbarer Plattformnachweis; Windows-Ergebnisse werden nicht übertragen |
 
-Für die aktuelle Empfehlung gilt daher: Windows zuerst. Linux und macOS bleiben offen, bis dort ein eigener Testlauf dokumentiert ist. Die technische Ubuntu-Alpha-Angabe weiter unten betrifft die PowerShell-, Bash- und Browserwerkzeuge des Projekts und ist kein Codex-Desktop-App-Nachweis.
+Für die aktuelle Empfehlung gilt daher: Windows zuerst. Linux bleibt für Agentenumgebung und technischen Workflow ein eigener Vorschaupfad; macOS ist nicht Teil des unterstützten Plattformumfangs. Ein technischer Linux-Nachweis ist kein Codex-Desktop-App-Nachweis.
 
 ## Aktuell tatsächlich lokal geprüft
 
@@ -75,8 +75,8 @@ Die folgenden Nachweise wurden am 19.08.2026 ausschließlich mit synthetischen D
 | Windows-Browsermatrix | bestanden | Chrome `151.0.7922.76`, `Run-RegressionTests.ps1 -Suite browser` → 106 bestanden, 0 fehlgeschlagen; Chrome-Sandbox blieb aktiv |
 | Rollen-Fixture-Runner | bestanden | sechs gebündelte synthetische Phasenfälle einschließlich Anlage, Dialog, Inhalt, Finalisierung, Freigabe und Veröffentlichung |
 | Bash-Einstiege | bestanden | Syntaxprüfung sowie Dispatcher-/Kompatibilitätstests unter Git Bash |
-| Ubuntu-Setup-Vertrag | bestanden | Ubuntu-24.04-WSL: Parser, OS-Abweisung, Quellenherkunft, `--dry-run` und Idempotenz; keine Pakete installiert |
-| Nativer Ubuntu-PowerShell-/Browserlauf | offen | PowerShell 7.6 und Browser wurden in der WSL-Distribution nicht durch den Agenten installiert; die vollständigen Linux-Nachweise müssen über CI beziehungsweise ein ausdrücklich gestartetes Setup folgen |
+| Linux-Setup-Vertrag | bestanden | Parser, JSON-Dry-run, Paketmanagererkennung, Kompatibilitätsalias und Idempotenz; keine Pakete installiert |
+| Nativer Linux-PowerShell-/Browserlauf | offen | PowerShell 7.6 und Browser wurden in der lokalen Distribution nicht durch den Agenten installiert; die vollständigen Linux-Nachweise müssen über CI beziehungsweise ein ausdrücklich gestartetes Setup folgen |
 | Lokales ShellCheck | offen | lokal nicht installiert; die feste Ubuntu-CI führt ShellCheck aus |
 | Prompt-Canary | fail-closed vorbereitet | keine lokale `OPENAI_API_KEY`; der Runner erzeugt einen Fehlerbericht und führt keinen Modelllauf ohne Secret aus |
 

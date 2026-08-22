@@ -605,7 +605,7 @@ if ($commandName -ne "diagnose") {
   }
   if (-not $platform.Supported) {
     $distribution = if ($platform.IsLinux) { " $($platform.DistributionId) $($platform.DistributionVersion)" } else { "" }
-    Stop-Cli "Nicht unterstützte Umgebung: $($platform.Name)$distribution, Architektur $($platform.Architecture). Unterstützt werden Windows x64 und Ubuntu 24.04 x86_64."
+    Stop-Cli "Nicht unterstützte Umgebung: $($platform.Name)$distribution, Architektur $($platform.Architecture), Paketmanager $($platform.PackageManager). Unterstützt werden Windows x64 sowie Linux x64 mit APT, DNF/YUM, Pacman oder Zypper."
   }
 }
 

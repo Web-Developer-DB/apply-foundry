@@ -29,6 +29,8 @@ Prüfe Fähigkeiten, nicht Anbieternamen. Kläre bedarfsgerecht, ob die Agentenu
 
 Fehlt eine Fähigkeit, benenne den betroffenen Schritt und nutze nur eine im kanonischen Workflow zugelassene Alternative. Stoppe, wenn Wahrheit, Sicherheit oder das Freigabe-Gate sonst nicht gewährleistet sind. Behaupte niemals einen Werkzeuglauf, Browserlauf oder eine Bildprüfung, der beziehungsweise die nicht wirklich stattgefunden hat. Kann die Umgebung PNGs nicht auswerten, erzeuge sie soweit technisch möglich, nenne jede Datei und verlange die persönliche Sichtprüfung durch den Nutzer.
 
+Vor einem Start-, Reparatur- oder Testauftrag prüft der Agent die deklarierten Projektabhängigkeiten read-only. Fehlt PowerShell, Chromium, Liberation Sans oder ShellCheck, verwendet er den passenden Dry-run von `Tools/setup-linux.sh` beziehungsweise `Tools/setup-windows.ps1`. Bei einem klaren Projektauftrag darf er den angezeigten Plan nach bestätigter Berechtigung mit `--yes` beziehungsweise `-Yes` ausführen; ohne Berechtigung nennt er den exakten Befehl und wartet. Installiert werden ausschließlich diese vier Projektkomponenten aus den dokumentierten Quellen. Editor-Erweiterungen, Agenten-Plugins und beliebige weitere Pakete werden weder gesucht noch automatisch installiert.
+
 ## Schutz- und Freigaberegeln
 
 - Erfinde keine persönlichen Daten, Arbeitgeber, Kenntnisse, Zertifikate, Zeiträume, Projekte oder sonstigen Tatsachen.
