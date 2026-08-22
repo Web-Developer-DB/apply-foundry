@@ -19,6 +19,7 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Geändert
 
+- Repository- und Produktidentität auf **Apply Foundry** (`apply-foundry`) umgestellt: README, GitHub-Links, Console-App-Spezifikation, Laufzeitverzeichnisse, temporäre Testpfade, interne .NET-Namensräume, cspell-Konfiguration und die README-Visualisierung verwenden jetzt den neuen Namen.
 - Individuelle Lebensläufe binden ein vorhandenes Passfoto vollständig als private PNG-Datenressource ein und passen dessen Darstellung an das konkrete Design an. Fehlt die Datei, entstehen weder Rückfrage noch Fotoplatz; universelle Lebensläufe bleiben stets unverändert.
 - Zweiseitige Lebensläufe markieren Seitenköpfe und fachliche Abschnitte semantisch; ein Abschnitt darf nicht technisch über zwei Seiten geteilt werden. Der universelle Softwareentwicklungs-Lebenslauf bindet zusätzlich seine exakte recruiterfreundliche Abschnittsfolge.
 - Technische Vorbereitung und Veröffentlichung führen `passfoto` nur bei tatsächlicher Verwendung als optionalen fünften Quellnachweis. Hinzufügen, Ändern oder Löschen der Datei entwertet bestehende technische und persönliche Sichtnachweise.

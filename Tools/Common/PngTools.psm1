@@ -4,7 +4,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-if (-not ('BewerbungsAgent.Imaging.PortablePngReader' -as [type])) {
+if (-not ('ApplyFoundry.Imaging.PortablePngReader' -as [type])) {
   Add-Type -TypeDefinition @'
 using System;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-namespace BewerbungsAgent.Imaging
+namespace ApplyFoundry.Imaging
 {
     public sealed class PngImageData
     {
@@ -245,13 +245,13 @@ function Read-PngImage {
   if ([System.IO.Path]::GetExtension($resolvedPath) -ine '.png') {
     throw "Datei besitzt nicht die Erweiterung .png: $resolvedPath"
   }
-  return [BewerbungsAgent.Imaging.PortablePngReader]::Read($resolvedPath, $MaxPixels)
+  return [ApplyFoundry.Imaging.PortablePngReader]::Read($resolvedPath, $MaxPixels)
 }
 
 function Get-PngPixel {
   [CmdletBinding()]
   param(
-    [Parameter(Mandatory)][BewerbungsAgent.Imaging.PngImageData]$Image,
+    [Parameter(Mandatory)][ApplyFoundry.Imaging.PngImageData]$Image,
     [Parameter(Mandatory)][int]$X,
     [Parameter(Mandatory)][int]$Y
   )

@@ -306,8 +306,8 @@ ensure_apt_updated() {
   fi
 }
 
-setup_tmp_dir=$(mktemp -d -t bewerbungs-agent-setup.XXXXXXXX)
-if [[ ! "$setup_tmp_dir" =~ ^/[^[:cntrl:]]*/bewerbungs-agent-setup\.[A-Za-z0-9]+$ || -L "$setup_tmp_dir" ]]; then
+setup_tmp_dir=$(mktemp -d -t apply-foundry-setup.XXXXXXXX)
+if [[ ! "$setup_tmp_dir" =~ ^/[^[:cntrl:]]*/apply-foundry-setup\.[A-Za-z0-9]+$ || -L "$setup_tmp_dir" ]]; then
   die_runtime "Unsicheres temporäres Verzeichnis wurde verweigert: $setup_tmp_dir"
 fi
 

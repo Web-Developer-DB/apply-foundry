@@ -48,7 +48,7 @@ function Test-TemporaryWriteAccess {
   if (-not (Test-Path -LiteralPath $temporaryDirectory -PathType Container)) {
     throw "Temporärverzeichnis existiert nicht: $temporaryDirectory"
   }
-  $probePath = Join-Path -Path $temporaryDirectory -ChildPath ('.bewerbungs-agent-probe-' + [guid]::NewGuid().ToString('N'))
+  $probePath = Join-Path -Path $temporaryDirectory -ChildPath ('.apply-foundry-probe-' + [guid]::NewGuid().ToString('N'))
   $stream = $null
   try {
     $stream = [System.IO.File]::Open($probePath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)

@@ -5,12 +5,12 @@
   "useGitignore": true,
   "dictionaryDefinitions": [
     {
-      "name": "bewerbungs-agent",
+      "name": "apply-foundry",
       "path": "./.cspell/project-words.txt",
       "addWords": true
     }
   ],
-  "dictionaries": ["bewerbungs-agent"],
+  "dictionaries": ["apply-foundry"],
   "ignoreRegExpList": [
     "/(?:href=[\"']#|id=[\"'])[^\"']+[\"']/g",
     "/\\(#[a-z0-9-]+\\)/g"

@@ -1,10 +1,10 @@
-# Bewerbungs-Agent als installierbare Console App
+# Apply Foundry als installierbare Console App
 
 ## 1. Zweck und Status dieses Dokuments
 
-Dieses Dokument ist die verbindliche, entscheidungsfertige Implementierungsspezifikation für eine installierbare Terminal-Anwendung des bestehenden Bewerbungs-Agenten. Es richtet sich an ein nachfolgendes Codex-Modell und soll die Implementierung ohne weitere grundlegende Produkt- oder Architekturentscheidungen ermöglichen.
+Dieses Dokument ist die verbindliche, entscheidungsfertige Implementierungsspezifikation für eine installierbare Terminal-Anwendung von Apply Foundry. Es richtet sich an ein nachfolgendes Codex-Modell und soll die Implementierung ohne weitere grundlegende Produkt- oder Architekturentscheidungen ermöglichen.
 
-Die geplante Anwendung heißt zunächst **Bewerbungs-Agent**. Sie stellt den bestehenden lokalen Bewerbungsworkflow über eine einfach installierbare Console App bereit. Der Workflow selbst wird nicht neu erfunden, sondern über die vorhandenen Prompts, PowerShell-Werkzeuge, Tests, Checkpoints und Freigaberegeln gesteuert.
+Die geplante Anwendung heißt zunächst **Apply Foundry**. Sie stellt den bestehenden lokalen Bewerbungsworkflow über eine einfach installierbare Console App bereit. Der Workflow selbst wird nicht neu erfunden, sondern über die vorhandenen Prompts, PowerShell-Werkzeuge, Tests, Checkpoints und Freigaberegeln gesteuert.
 
 Vor Beginn der Implementierung muss das ausführende Modell:
 
@@ -19,7 +19,7 @@ Vor Beginn der Implementierung muss das ausführende Modell:
 Der Anwender soll:
 
 1. die Anwendung unter Windows installieren oder als portable ZIP entpacken,
-2. sie über das Startmenü oder `bewerbungs-agent.exe` öffnen,
+2. sie über das Startmenü oder `apply-foundry.exe` öffnen,
 3. sich einmal mit seinem bestehenden Codex-/OpenAI-Konto anmelden,
 4. Bewerbungsaufträge in natürlicher Sprache eingeben,
 5. den vollständigen vorhandenen Bewerbungsworkflow benutzen können,
@@ -184,7 +184,7 @@ ConsoleApp/
 │   ├── create-installer.ps1
 │   └── verify-package.ps1
 ├── installer/
-│   └── BewerbungsAgent.iss
+│   └── ApplyFoundry.iss
 └── tests/
     ├── unit/
     ├── integration/
@@ -201,16 +201,16 @@ Die Struktur darf nur aus einem konkreten technischen Grund geändert werden. Ab
 Der primäre Einstieg lautet:
 
 ```powershell
-bewerbungs-agent.exe
+apply-foundry.exe
 ```
 
 Unterstützte Startargumente:
 
 ```powershell
-bewerbungs-agent.exe --workspace "C:\Pfad\Zum\Arbeitsordner"
-bewerbungs-agent.exe --diagnose
-bewerbungs-agent.exe --version
-bewerbungs-agent.exe --help
+apply-foundry.exe --workspace "C:\Pfad\Zum\Arbeitsordner"
+apply-foundry.exe --diagnose
+apply-foundry.exe --version
+apply-foundry.exe --help
 ```
 
 Ohne Argumente startet die interaktive Terminaloberfläche.
@@ -275,7 +275,7 @@ Ein Fehler in einem optionalen Bestandteil wie Bash darf den Windows-Betrieb nic
 Die normale benutzerbezogene Installation verwendet:
 
 ```text
-%LOCALAPPDATA%\Programs\BewerbungsAgent\
+%LOCALAPPDATA%\Programs\ApplyFoundry\
 ```
 
 Administratorrechte sind nicht erforderlich.
@@ -285,7 +285,7 @@ Administratorrechte sind nicht erforderlich.
 Konfiguration, Logs, Runtime-Zustand und das isolierte Codex-Profil liegen unter:
 
 ```text
-%LOCALAPPDATA%\BewerbungsAgent\
+%LOCALAPPDATA%\ApplyFoundry\
 ├── config/
 ├── codex-home/
 ├── logs/
@@ -300,7 +300,7 @@ Konfiguration, Logs, Runtime-Zustand und das isolierte Codex-Profil liegen unter
 Der Standardarbeitsbereich liegt unter:
 
 ```text
-%USERPROFILE%\Documents\Bewerbungs-Agent\
+%USERPROFILE%\Documents\apply-foundry\
 ```
 
 Darin befindet sich eine verwaltete Kopie der Workflowdateien:
@@ -324,7 +324,7 @@ CHANGELOG.md
 
 Zusätzlich zum Installer wird eine portable ZIP-Datei erzeugt. Sie enthält Anwendung, Node-Runtime, Codex-Runtime, `rg`, PowerShell und öffentliche Workflowdateien.
 
-Private Daten gehören niemals in das portable Distributionsarchiv. Persönliche Zustände werden auch bei der portablen Variante standardmäßig unter `%LOCALAPPDATA%\BewerbungsAgent` und im ausgewählten Dokumente-Arbeitsbereich gespeichert.
+Private Daten gehören niemals in das portable Distributionsarchiv. Persönliche Zustände werden auch bei der portablen Variante standardmäßig unter `%LOCALAPPDATA%\ApplyFoundry` und im ausgewählten Dokumente-Arbeitsbereich gespeichert.
 
 ## 8. Mitgelieferte Laufzeiten und Abhängigkeiten
 

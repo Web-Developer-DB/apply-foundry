@@ -13,7 +13,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Path $PSScriptRoot -Parent
 $toolsRoot = Join-Path -Path $repoRoot -ChildPath "Tools"
 $powerShellExe = (Get-Process -Id $PID).Path
-$testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("bewerbungs-agent-tests-" + [guid]::NewGuid().ToString("N"))
+$testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("apply-foundry-tests-" + [guid]::NewGuid().ToString("N"))
 $passed = New-Object System.Collections.Generic.List[string]
 $failed = New-Object System.Collections.Generic.List[string]
 $script:selectedTestCount = 0
@@ -3301,7 +3301,7 @@ h1 { font-size: 28px; margin: 0 0 2mm; } h2 { color: #315f88; font-size: 16px; }
     Get-ChildItem -LiteralPath $testRoot -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { $_.IsReadOnly = $false }
     $fullTestRoot = [System.IO.Path]::GetFullPath($testRoot)
     $fullTempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
-    if ($fullTestRoot.StartsWith($fullTempRoot, [System.StringComparison]::OrdinalIgnoreCase) -and ((Split-Path -Leaf $fullTestRoot) -like "bewerbungs-agent-tests-*")) {
+    if ($fullTestRoot.StartsWith($fullTempRoot, [System.StringComparison]::OrdinalIgnoreCase) -and ((Split-Path -Leaf $fullTestRoot) -like "apply-foundry-tests-*")) {
       Remove-Item -LiteralPath $fullTestRoot -Recurse -Force
     }
   }

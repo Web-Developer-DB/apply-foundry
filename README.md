@@ -1,8 +1,8 @@
 <p align="center">
-  <img src=".github/assets/readme-hero.svg" alt="bewerbungs-agent – agentenunabhängiger KI-Bewerbungsworkflow" width="100%">
+  <img src=".github/assets/readme-hero.svg" alt="apply-foundry – agentenunabhängiger KI-Bewerbungsworkflow" width="100%">
 </p>
 
-<h1 align="center">bewerbungs-agent</h1>
+<h1 align="center">apply-foundry</h1>
 
 <p align="center">
   <strong>Agentenunabhängiger KI-Bewerbungsworkflow</strong><br>
@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Agentenregeln-AGENTS.md-0F766E?style=flat-square" alt="Agentenunabhängiger Einstieg über AGENTS.md">
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.8.0-2563EB?style=flat-square" alt="Aktuelle Version 1.8.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-22C55E?style=flat-square" alt="MIT-Lizenz"></a>
-  <a href="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/bewerbungs-agent/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
+  <a href="https://github.com/Web-Developer-DB/apply-foundry/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/apply-foundry/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
   <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
   <a href="#plattformstatus"><img src="https://img.shields.io/badge/Linux-Alpha-F59E0B?style=flat-square" alt="Linux-Unterstützung im Alpha-Status"></a>
   <img src="https://img.shields.io/badge/Datenschutz-Local--first-7C3AED?style=flat-square" alt="Datenschutz nach dem Local-first-Prinzip">
@@ -173,11 +173,11 @@ Unter Ubuntu kann derselbe Check über `./Tools/bewerbung.sh diagnose` gestartet
 Wenn du das Projekt noch nicht auf deinem Rechner hast, führe diese beiden Befehle aus:
 
 ```bash
-git clone https://github.com/Web-Developer-DB/bewerbungs-agent.git
-cd bewerbungs-agent
+git clone https://github.com/Web-Developer-DB/apply-foundry.git
+cd apply-foundry
 ```
 
-Wenn du das Projekt bereits geklont hast, überspringe die Befehle. Öffne genau den Projektordner – standardmäßig heißt er `bewerbungs-agent` – als Arbeitsverzeichnis deiner Agentenumgebung. Öffne nicht nur den übergeordneten Ordner.
+Wenn du das Projekt bereits geklont hast, überspringe die Befehle. Öffne genau den Projektordner – standardmäßig heißt er `apply-foundry` – als Arbeitsverzeichnis deiner Agentenumgebung. Öffne nicht nur den übergeordneten Ordner.
 
 Im Dateimanager oder Editor müssen anschließend unter anderem `AGENTS.md`, `README.md`, `Prompts/`, `Private.example/` und `Tools/` sichtbar sein. Mit diesem Befehl kannst du unter PowerShell den Terminalpfad prüfen:
 
@@ -197,21 +197,21 @@ Verwende eine bereits installierte und eingerichtete Umgebung. Installations- un
 Codex CLI:
 
 ```bash
-cd bewerbungs-agent
+cd apply-foundry
 codex
 ```
 
 OpenCode:
 
 ```bash
-cd bewerbungs-agent
+cd apply-foundry
 opencode
 ```
 
 OpenCode mit einem über Ollama bereitgestellten Modell:
 
 ```bash
-cd bewerbungs-agent
+cd apply-foundry
 ollama launch opencode
 ```
 
@@ -222,7 +222,7 @@ Prüfe bei lokalen Modellen besonders Kontextlänge und zuverlässige Werkzeugau
 Claude Code:
 
 ```bash
-cd bewerbungs-agent
+cd apply-foundry
 claude
 ```
 
@@ -987,7 +987,7 @@ Dieser Abschnitt richtet sich an Mitwirkende, die Prompts, Tools, Tests oder Dat
 <summary><strong>Öffentliche und private Projektstruktur</strong></summary>
 
 ```text
-bewerbungs-agent/
+apply-foundry/
 ├─ .github/
 │  ├─ assets/readme-hero.svg
 │  └─ workflows/tests.yml

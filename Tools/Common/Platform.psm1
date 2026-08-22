@@ -4,7 +4,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-if (-not ('BewerbungsAgent.Platform.NativeProcessRunner' -as [type])) {
+if (-not ('ApplyFoundry.Platform.NativeProcessRunner' -as [type])) {
   Add-Type -TypeDefinition @'
 using System;
 using System.Collections;
@@ -14,7 +14,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BewerbungsAgent.Platform
+namespace ApplyFoundry.Platform
 {
     public sealed class BoundedTextCapture
     {
@@ -455,7 +455,7 @@ function Invoke-NativeProcess {
       throw "Arbeitsverzeichnis existiert nicht: $resolvedWorkingDirectory"
     }
   }
-  return [BewerbungsAgent.Platform.NativeProcessRunner]::Run(
+  return [ApplyFoundry.Platform.NativeProcessRunner]::Run(
     $resolvedExecutable,
     [string[]]$ArgumentList,
     $resolvedWorkingDirectory,
