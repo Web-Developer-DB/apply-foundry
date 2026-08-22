@@ -110,12 +110,13 @@ flowchart LR
 
 Nach dem Start einer Agentensitzung im Projektstamm laden AGENTS-kompatible Agenten die Routing- und Sicherheitsregeln aus [`AGENTS.md`](AGENTS.md). [`CLAUDE.md`](CLAUDE.md) und [`GEMINI.md`](GEMINI.md) sind dünne Adapter, die dieselben Regeln importieren. `AGENTS.md` weist den Agenten an, den einzigen vollständigen Workflow aus [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) nur für Bewerbungsaufträge zu lesen; die Module `01` bis `11` werden erst beim jeweils zuständigen Arbeitsschritt geladen. Die vollständige Auswahl-, Rückfrage- und Speicherlogik liegt zentral in [`Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md`](Prompts/01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md). [`opencode.json`](opencode.json) deaktiviert die OpenCode-Freigabefunktion im Projekt, dupliziert aber weder Prompts noch Modell- oder Providerwahl.
 
-| Umgebung | Projektstatus | Automatische Projektregeln | Lokaler Teststand vom 06.08.2026 |
+| Umgebung | Projektstatus | Automatische Projektregeln | Lokaler Teststand vom 22.08.2026 |
 | --- | --- | --- | --- |
 | Codex in VS Code | unterstützt | `AGENTS.md` | strukturell geprüft; kein vollständiger Beispielworkflow in einer frischen IDE-Sitzung |
 | Codex CLI | unterstützt | `AGENTS.md` | CLI `0.146.0-alpha.9.2`; frische Read-only-Sitzung erkannte das Projekt und lud den kanonischen Prompt |
-| ChatGPT-Desktop-App mit Codex | vorbereitet | `AGENTS.md` | gemeinsamer Adapter vorhanden; nicht in einer frischen App-Sitzung getestet |
-| OpenCode | vorbereitet | `AGENTS.md` und `opencode.json` | CLI `1.18.10` und aufgelöste Projektkonfiguration mit isoliertem Benutzerprofil geprüft; keine frische Modellsitzung abgeschlossen |
+| Codex in der ChatGPT-Desktop-App (Windows) | empfohlen / getestet | `AGENTS.md` | Projektstamm geöffnet, Regeln gelesen, Dateien bearbeitet, PowerShell-Regression ausgeführt und Git-Workflow erfolgreich abgeschlossen |
+| Codex in der ChatGPT-Desktop-App (Linux/macOS) | nicht getestet | `AGENTS.md` | keine belastbare Aussage; der Windows-Test wird nicht auf Linux oder macOS übertragen |
+| OpenCode (Windows) | empfohlen / Nutzerprüfung bestanden | `AGENTS.md` und `opencode.json` | Projekt laut persönlicher Windows-Prüfung ohne bekannte Probleme verwendbar; exakte OpenCode-Version nicht erfasst |
 | OpenCode mit Ollama | experimentell | dieselben Projektregeln; Ollama ergänzt Provider und Modell zur Laufzeit | Launcher bis OpenCode `1.18.10` geprüft; lokaler `qwen3.5:9b`-Startauftrag erreichte nach 120 Sekunden den Timeout |
 | Claude Code | vorbereitet | `CLAUDE.md` → `AGENTS.md` | Adapter automatisiert geprüft; Claude CLI lokal nicht installiert |
 | Gemini-basierter Coding-Agent | vorbereitet | `GEMINI.md` → `AGENTS.md` | Adapter automatisiert geprüft; keine frische Modellsitzung |
@@ -123,7 +124,7 @@ Nach dem Start einer Agentensitzung im Projektstamm laden AGENTS-kompatible Agen
 
 „Unterstützt“ bedeutet hier, dass der Projekteinstieg und die erforderlichen Verträge vorhanden sind. Es bedeutet nicht, dass jedes Modell den langen Workflow gleich zuverlässig ausführt. Die reproduzierbaren Prüfungen und die Abgrenzung zwischen lokal getestet und nur vorbereitet stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md).
 
-Codex CLI, OpenCode und Claude Code sind **Agentenumgebungen**: Sie lesen Dateien, führen Werkzeuge aus und verwalten den Ablauf. Ollama ist dagegen ein **Modellanbieter** für lokale oder gehostete Modelle. Das Modell erzeugt und bewertet Inhalte; OpenCode bleibt auch beim Start über Ollama der ausführende Agent.
+Codex CLI, Codex in der ChatGPT-Desktop-App, OpenCode und Claude Code sind **Agentenumgebungen**: Sie lesen Dateien, führen Werkzeuge aus und verwalten den Ablauf. Ollama ist dagegen ein **Modellanbieter** für lokale oder gehostete Modelle. Das Modell erzeugt und bewertet Inhalte; OpenCode bleibt auch beim Start über Ollama der ausführende Agent. Für dieses Projekt ist unter Windows derzeit die Codex-Desktop-App oder OpenCode empfehlenswert. Linux und macOS sind als Codex-Desktop-Umgebungen noch nicht getestet.
 
 Diese Dateien stellen Kontext bereit, sind aber kein Betriebssystem-Autostart: Allein durch das Öffnen des Ordners wird kein Shell-Befehl ausgeführt und keine Bewerbung gestartet. Ein eindeutiger Dokumentwunsch startet ohne erneute Auswahlfrage; bei einer bloßen Stellenbeschreibung fragt der Agent zuerst A–E ab. Ohne konkreten Auftrag nennt er nur die Einstiege neue Bewerbung, Dateneinrichtung/-prüfung, Fortsetzung beziehungsweise Standabfrage und Projektentwicklung.
 
@@ -231,7 +232,7 @@ cd apply-foundry
 claude
 ```
 
-Alternativ kannst du den Projektordner in der ChatGPT-Desktop-App öffnen und dort **Codex** mit der lokalen Umgebung wählen oder die Codex-Erweiterung in VS Code verwenden. Diese Oberflächen sind optional; die gemeinsamen Regeln kommen weiterhin aus `AGENTS.md`.
+Alternativ kannst du den Projektordner in der ChatGPT-Desktop-App öffnen und dort **Codex** mit der lokalen Umgebung wählen oder die Codex-Erweiterung in VS Code verwenden. Unter Windows ist die Codex-Desktop-App für dieses Projekt bereits praktisch geprüft und empfehlenswert. Diese Oberflächen sind optional; die gemeinsamen Regeln kommen weiterhin aus `AGENTS.md`. Linux und macOS wurden in diesem Projektstand noch nicht getestet.
 
 > [!NOTE]
 > Die Befehle funktionieren nur, wenn das jeweilige Programm installiert, angemeldet beziehungsweise konfiguriert ist. Das Laden einer Regeldatei garantiert außerdem nicht, dass jedes Modell die Anweisungen gleich zuverlässig befolgt.

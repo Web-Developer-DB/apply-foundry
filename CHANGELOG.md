@@ -48,6 +48,7 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 ### Geändert
 
 - Repository- und Produktidentität auf **Apply Foundry** (`apply-foundry`) umgestellt: README, GitHub-Links, Console-App-Roadmap und die README-Visualisierung verwenden jetzt den neuen Namen.
+- Kompatibilitätsdokumentation ergänzt: Codex in der ChatGPT-Desktop-App und OpenCode sind unter Windows als empfohlen dokumentiert; Linux und macOS bleiben bis zu einem eigenen Lauf ausdrücklich ungetestet.
 - `README.md`, `Prompts/README.md` und `Vorlagen/README.md` dokumentieren den aktuellen unveröffentlichten Stand einschließlich Druckvorprüfung, Berichtsschemata, Finalisierungsstatus und aufrufortunabhängiger Pfadnormalisierung.
 - `bewerbung.ps1 tests --suite ...` ist die gemeinsame Schnittstelle; `-MitBrowser` bleibt als Browseralias lesbar. README, technischer Workflow und Agenten-Kompatibilitätsübersicht dokumentieren die schnelle/vollständige Teilung, die OpenCode-Canary und den Alpha-Status von Ubuntu bis zur Promotion.
 

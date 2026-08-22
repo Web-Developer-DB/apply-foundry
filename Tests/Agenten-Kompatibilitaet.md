@@ -1,6 +1,6 @@
 # Agenten-Kompatibilität und manuelle Smoketests
 
-Stand: 19.08.2026
+Stand: 22.08.2026
 
 Dieses Dokument trennt automatisierte Strukturprüfungen, tatsächlich ausgeführte lokale Starts und noch offene End-to-End-Tests. Alle Frischsitzungstests verwenden ausschließlich öffentliche Projektregeln in einem temporären Verzeichnis. Echte Dateien unter `Private/` dürfen dafür niemals kopiert, gelesen oder verändert werden.
 
@@ -51,6 +51,18 @@ Die CI-Canary führt Codex und OpenCode mit derselben OpenAI-Modell-ID aus. Die 
 | Gemini CLI | `0.55.1` | `gemini-3.7-flash` | wöchentlich/manuell |
 
 Der Runner kopiert nur öffentliche Projektdateien in ein temporäres Git-Repository, leert globale Agentenprofile, setzt `OPENCODE_CONFIG_DIR` isoliert und akzeptiert ausschließlich deterministische Dateizustände, Validatoren sowie erforderliche und verbotene Signale. Transiente Quota-/Transportfehler werden höchstens zweimal wiederholt; inhaltliche oder Sicherheitsfehler nicht.
+
+## Persönlicher Windows-App-Test
+
+Diese Angaben trennen den tatsächlich ausgeführten Windows-Test von nicht getesteten Plattformen und von einer persönlichen Nutzerprüfung:
+
+| Umgebung | Ergebnis | Nachweis |
+| --- | --- | --- |
+| Codex in der ChatGPT-Desktop-App unter Windows | bestanden / empfohlen | Projektstamm geöffnet, `AGENTS.md` und der kanonische Workflow verwendet, Dateien bearbeitet, PowerShell-Regression ausgeführt sowie Commit-, Merge- und Push-Workflow erfolgreich durchgeführt |
+| OpenCode unter Windows | bestanden / empfohlen | persönliche Nutzerprüfung: Projekt ohne bekannte Probleme geöffnet und verwendet; die exakte OpenCode-Version wurde nicht erfasst |
+| Codex-Desktop-App unter Linux oder macOS | nicht getestet | derzeit kein belastbarer Plattformnachweis; Windows-Ergebnisse werden nicht übertragen |
+
+Für die aktuelle Empfehlung gilt daher: Windows zuerst. Linux und macOS bleiben offen, bis dort ein eigener Testlauf dokumentiert ist. Die technische Ubuntu-Alpha-Angabe weiter unten betrifft die PowerShell-, Bash- und Browserwerkzeuge des Projekts und ist kein Codex-Desktop-App-Nachweis.
 
 ## Aktuell tatsächlich lokal geprüft
 
