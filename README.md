@@ -15,7 +15,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-22C55E?style=flat-square" alt="MIT-Lizenz"></a>
   <a href="https://github.com/Web-Developer-DB/apply-foundry/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/apply-foundry/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
   <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
-  <a href="#plattformstatus"><img src="https://img.shields.io/badge/Linux-Alpha-F59E0B?style=flat-square" alt="Linux-Unterstützung im Alpha-Status"></a>
+  <a href="#plattformstatus"><img src="https://img.shields.io/badge/Linux-Vorschau-F59E0B?style=flat-square" alt="Linux-Unterstützung im Vorschau-Status"></a>
   <img src="https://img.shields.io/badge/Datenschutz-Local--first-7C3AED?style=flat-square" alt="Datenschutz nach dem Local-first-Prinzip">
 </p>
 
@@ -59,7 +59,7 @@ Aus einer Stellenbeschreibung und deinen Profildaten entstehen nur die ausdrück
 Bei einem eindeutigen Auftrag wie `Lebenslauf und Anschreiben, aber keine E-Mail` überspringt der Agent die Auswahlfrage. Eine bloße Stellenbeschreibung legt den Umfang dagegen nicht fest. Auswahl B friert die Universalquelle per SHA-256 ein. Für eine reine E-Mail ohne Anlagen ist eine zusätzliche eindeutige Bestätigung erforderlich.
 
 > [!NOTE]
-> **Kanonische Werkzeugkette:** PowerShell 7.6 Core auf Windows und Ubuntu 24.04 sowie für ausgewählte HTML-Dokumente Chrome, Edge oder Chromium. Die Agentenumgebung ist frei wählbar, muss aber Dateien bearbeiten und Terminalbefehle ausführen können. Ubuntu bleibt bis zu drei aufeinanderfolgenden grünen Browsernachweisen im [Alpha-Status](#plattformstatus).
+> **Kanonische Werkzeugkette:** PowerShell 7.6 Core auf Windows und Linux x86_64 sowie für ausgewählte HTML-Dokumente Chromium, Chrome oder Edge. Die Agentenumgebung ist frei wählbar, muss aber Dateien bearbeiten und Terminalbefehle ausführen können. Linux bleibt bis zu drei aufeinanderfolgenden grünen Browsernachweisen im [Vorschau-Status](#plattformstatus).
 
 ### So fließen deine Daten
 
@@ -149,7 +149,8 @@ Dieser Abschnitt ist für alle, die mit dem Projekt Bewerbungen erstellen möcht
 
 | Benötigt | Wofür? |
 | --- | --- |
-| Windows oder Ubuntu 24.04 mit [PowerShell 7.6](https://learn.microsoft.com/powershell/scripting/install/install-powershell) | eine gemeinsame fachliche Prüf- und Freigabekette; Ubuntu bleibt bis zum Browser-Rolloutnachweis Alpha |
+| Windows x64 oder Linux x64 mit APT, DNF/YUM, Pacman oder Zypper und [PowerShell 7.6](https://learn.microsoft.com/powershell/scripting/install/install-powershell) | eine gemeinsame fachliche Prüf- und Freigabekette; Linux bleibt bis zum Rolloutnachweis Vorschau |
+| macOS | derzeit nicht unterstützt | kein Bootstrap und kein belastbarer Plattformnachweis in diesem Projektstand |
 | Git | Repository klonen und später aktualisieren; bei einem bereits vorhandenen Projektordner nicht für den Workflow selbst erforderlich |
 | eine eingerichtete Agentenumgebung | Projektregeln lesen, Dateien bearbeiten und Terminalbefehle ausführen |
 | Chrome, Edge oder Chromium | für ausgewählte HTML-Dokumente verbindliche Layoutbilder und geprüfte PDFs erzeugen |
@@ -172,7 +173,7 @@ pwsh --version
 pwsh -NoProfile -File Tools/bewerbung.ps1 diagnose
 ```
 
-Unter Ubuntu kann derselbe Check über `./Tools/bewerbung.sh diagnose` gestartet werden. Das optionale `Tools/setup-ubuntu.sh` wird niemals automatisch ausgeführt; ohne Auswahl zeigt es nur Hilfe. Prüfe geplante Änderungen zuerst etwa mit `./Tools/setup-ubuntu.sh --all --dry-run` und starte eine reale Installation nur ausdrücklich nach der angezeigten Vorschau.
+Unter Linux kann derselbe Check über `./Tools/bewerbung.sh diagnose` gestartet werden. Der read-only Installationsplan lautet `./Tools/setup-linux.sh --all --dry-run --format json`; `setup-ubuntu.sh` bleibt als Kompatibilitätsalias erhalten. Eine reale Installation führt der Agent nur nach dem angezeigten Plan und bestätigter Berechtigung aus.
 
 #### 1. Projekt herunterladen und öffnen
 
@@ -908,16 +909,17 @@ Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgesch
 | Komponente | Status | Verwendung |
 | --- | --- | --- |
 | Windows + PowerShell 7.6 | 🟢 primär unterstützt | am umfassendsten geprüfter Projektablauf; Windows-Browser-Smoke ist als PR-Check konfiguriert |
-| Ubuntu 24.04 x86_64 + PowerShell 7.6 | 🟠 Alpha | gleiche Kernlogik; Browser-Smoke zunächst nur zeitgesteuert/manuell, stabil erst nach drei Paritätsläufen |
+| Linux x86_64 + APT/DNF/YUM/Pacman/Zypper | 🟠 Vorschau | gleiche Kernlogik; Bootstrap mit nativen Paketen und geprüftem PowerShell-Archiv, Browser-Smoke zunächst zeitgesteuert/manuell |
+| macOS | 🔴 nicht unterstützt | kein Setup, keine automatische Paketinstallation und kein technischer Plattformvertrag |
 | PowerShell-Werkzeuge unter `Tools/` | 🟢 kanonischer Kern | Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Freigabeprüfungen |
 | Chrome, Edge oder Chromium | 🔵 für HTML-Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung für ausgewählte HTML-Dokumente; nicht für E-Mail-only |
 | Firefox | 🟡 Diagnose | ausschließlich Layoutdiagnose; unzulässig für PDF und Finalisierung |
 | Bash | 🟢 dünner Linux-Einstieg | löst nur den Skriptpfad auf, prüft PowerShell 7.6 und delegiert unveränderte Argumente |
 | Agent mit PNG-Auswertung | 🟡 optional | kann Screenshots zusätzlich beurteilen; persönliche Sichtprüfung bleibt Pflicht |
 
-Für die normale Nutzung brauchst du dieses Repository, gepflegte Daten unter `Private/Daten/`, einen Agenten mit Datei- und Terminalzugriff und eine konkrete Stellenbeschreibung. Die Kernwerkzeuge verlangen [PowerShell 7.6 Core](https://learn.microsoft.com/powershell/scripting/install/powershell-support-lifecycle?view=powershell-7.6); diese LTS-Linie wird laut Microsoft bis November 2028 unterstützt. Der Linux-Launcher hat keine fachlichen Abhängigkeiten auf `jq`, Python, Node oder externe SHA-Werkzeuge. `Tools/bewerbung.ps1 diagnose` prüft die Umgebung read-only. `Tools/setup-ubuntu.sh` ist ein ausdrücklich aufzurufendes, opt-in Installationswerkzeug für [Ubuntu 24.04 x86_64](https://learn.microsoft.com/powershell/scripting/install/install-ubuntu?view=powershell-7.6) und wird niemals automatisch gestartet. Die agentenspezifischen Start- und Teststände stehen in der [Kompatibilitätsübersicht](#agentenkompatibilitaet).
+Für die normale Nutzung brauchst du dieses Repository, gepflegte Daten unter `Private/Daten/`, einen Agenten mit Datei- und Terminalzugriff und eine konkrete Stellenbeschreibung. Die Kernwerkzeuge verlangen [PowerShell 7.6 Core](https://learn.microsoft.com/powershell/scripting/install/powershell-support-lifecycle?view=powershell-7.6). Die Distributions- und Archiventscheidung folgt Microsofts [Linux-Installationsübersicht](https://learn.microsoft.com/en-us/powershell/scripting/install/linux-overview?view=powershell-7.6); die konkrete Archivversion und ihr SHA-256 stehen in `Tools/PowerShell-runtime.json`. Der Linux-Launcher hat keine Abhängigkeiten auf `jq`, Python oder Node. `Tools/bewerbung.ps1 diagnose` prüft die Umgebung read-only. Fehlende PowerShell-, Chromium-, Font- oder ShellCheck-Komponenten können über `setup-linux.sh` beziehungsweise `setup-windows.ps1` geplant und nach Zustimmung installiert werden. Arch und openSUSE verwenden für PowerShell den gepinnten, SHA-256-geprüften offiziellen Archiv-Fallback; unbekannte Paketmanager erhalten nur eine Anleitung. Die agentenspezifischen Start- und Teststände stehen in der [Kompatibilitätsübersicht](#agentenkompatibilitaet).
 
-`auto` sucht unter Windows Chrome → Edge → Chromium und unter Ubuntu Chrome → Chromium → Edge. Mit `--browser-executable-path` kann ein anderer lokaler Pfad ausdrücklich gewählt werden; er muss existieren, eine Version liefern und eine Chromium-Engine verwenden. Firefox bleibt ausschließlich eine Layoutdiagnose. Die Designvorlagen nutzen `Arial, "Liberation Sans", Helvetica, sans-serif`; unter Ubuntu stellt `fonts-liberation2` die kompatible Schrift bereit.
+`auto` sucht unter Windows Chrome → Edge → Chromium und unter Linux Chrome → Chromium → Edge. Mit `--browser-executable-path` kann ein anderer lokaler Pfad ausdrücklich gewählt werden; er muss existieren, eine Version liefern und eine Chromium-Engine verwenden. Firefox bleibt ausschließlich eine Layoutdiagnose. Die Designvorlagen nutzen `Arial, "Liberation Sans", Helvetica, sans-serif`; das Setup wählt je Paketmanager das passende Liberation-Sans-Paket. Ubuntu liefert Chromium teilweise nur als Snap-Transition; diese wird gemäß Projektvertrag nicht automatisch installiert und im Setup-Plan als manuelle Voraussetzung ausgewiesen.
 
 <details>
 <summary><strong>Bewerbungsordner manuell anlegen</strong></summary>
@@ -934,7 +936,7 @@ pwsh -NoProfile -File Tools/bewerbung.ps1 neu `
   --umfang-quelle direkter_auftrag
 ```
 
-Linux / Bash (Alpha):
+Linux / Bash (Vorschau):
 
 ```bash
 ./Tools/bewerbung.sh neu \
@@ -977,9 +979,9 @@ Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Absc
 
 ### ⚠️ Bekannte Grenzen
 
-- Der stabil bezeichnete Workflow ist derzeit Windows mit PowerShell 7.6; Ubuntu 24.04 nutzt dieselbe Kernimplementierung, bleibt aber bis zum belegten Browser-Rollout im Alpha-Status.
+- Der stabil bezeichnete Workflow ist derzeit Windows mit PowerShell 7.6; Linux nutzt dieselbe Kernimplementierung, bleibt aber bis zum belegten Browser-Rollout je Zielprofil im Vorschau-Status.
 - Automatischer PDF-Export unterstützt Chrome, Edge und Chromium, nicht Firefox.
-- Der Windows-Browser-Smoke läuft auf Pull Requests und ist als verpflichtender Ruleset-Check vorbereitet; Ubuntu bleibt bis zu drei dokumentierten Paritätsläufen außerhalb des Pull-Request-Gates.
+- Der Windows-Browser-Smoke läuft auf Pull Requests und ist als verpflichtender Ruleset-Check vorbereitet; Linux bleibt bis zu drei dokumentierten Paritätsläufen je Zielprofil außerhalb des Pull-Request-Gates.
 - OpenCode, Codex, Claude Code und Gemini CLI sind über die maschinenlesbare Modellmatrix vorbereitet; echte Läufe benötigen die jeweils dokumentierten Secrets und exakten CLI-Versionen.
 - Lokale Modelle benötigen genügend Kontext und zuverlässige Werkzeugaufrufe. Uneindeutige Auswahl- oder Speicherantworten müssen fehlergeschlossen bleiben; fehlende Bildfähigkeit darf nicht als bestandene PNG-Prüfung ausgegeben werden.
 - Der Dialogvertrag und seine fiktiven Fixtures sind dokumentiert. Für den aktuellen Stand wurde kein neuer realer Ollama-Modelllauf für die A–E-Auswahl oder Profilzustimmung ausgeführt.
@@ -1002,7 +1004,7 @@ Dieser Abschnitt richtet sich an Mitwirkende, die Prompts, Tools, Tests oder Dat
 | [Prompt-System](Prompts/README.md) | Agentenablauf und fachliche Regelmodule |
 | [Vorlagen](Vorlagen/README.md) | HTML-Designreferenzen und Matrixbeispiel |
 | [Technische Dateiverträge](#dateivertraege) | vollständiger Artefaktbaum, Prüfberichte und Hash-Scope |
-| [CI-Workflow](.github/workflows/tests.yml) | Windows-/Ubuntu-Testmatrix |
+| [CI-Workflow](.github/workflows/tests.yml) | Windows-/Linux-Testmatrix |
 
 ### Projektprinzipien
 
@@ -1123,7 +1125,8 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die sechs Einstiege, verlangt eine
 | `Neue-Bewerbung.ps1` | direkte kompatible Fachschnittstelle für Schema-5-Aufträge | `-Firma "..." -Rolle "..." -UmfangAuswahl A` |
 | `neue-bewerbung.sh` | kompatibler Alias für `bewerbung.sh neu` | `--firma "..." --rolle "..." --umfang A` |
 | `Pruefe-Umgebung.ps1` | read-only Preflight für Runtime, OS, Architektur, Browser, Temp, Schreibzugriff und Fonts | über `bewerbung.ps1 diagnose` |
-| `setup-ubuntu.sh` | ausschließlich opt-in Ubuntu-24.04-Setup mit Vorschau und Bestätigung | `--dry-run --all` |
+| `setup-linux.sh` | opt-in, distributionsneutraler Abhängigkeitsplan und Bootstrap | `--dry-run --all --format json` |
+| `setup-windows.ps1` | opt-in Windows-Bootstrap über winget | `-DryRun -All -Format json` |
 | `Ermittle-Bewerbungsstatus.ps1` | letzten oder angegebenen Arbeitsstand read-only aus Dateien und Hashnachweisen rekonstruieren | `-AlsJson` oder `-Arbeitsordner "..." -AlsJson` |
 | `Aktualisiere-WorkflowCheckpoint.ps1` | kompakten, hashgebundenen Fortsetzungsnachweis ohne Quellkopien schreiben | `-Arbeitsordner "..." -Schritt analyse_abgeschlossen` |
 | `Pruefe-Dialogstatus.ps1` | Umfang, Rückfragen, Angaben, Widersprüche und Speicherentscheidungen validieren | `-AuftragPath ".../Bewerbungsauftrag.json" -FuerDokumenterstellung` |
@@ -1294,15 +1297,15 @@ Bash separat:
 bash Tests/Bash/test-bewerbung-cli.sh
 ```
 
-Die feste CI-Matrix in [`.github/workflows/tests.yml`](.github/workflows/tests.yml) trennt schnelle und vollständige browserfreie PowerShell-Suiten mit `fail-fast: false` auf `windows-2025` und `ubuntu-24.04`. Ubuntu prüft zusätzlich Bash-Syntax, ShellCheck, Dispatcher und Kompatibilitätswrapper. [`.github/workflows/browser-smoke.yml`](.github/workflows/browser-smoke.yml) führt den Windows-Smoke bei jedem Pull Request sowie zeitgesteuert/manuell aus; der Windows-Job ist als stabiler Checkname für das Ruleset vorgesehen. Ubuntu bleibt bis zum Nachweis in [`Tests/Stabilitaetsnachweise/browser-smoke.json`](Tests/Stabilitaetsnachweise/browser-smoke.json) auf zeitgesteuerte und manuelle Läufe begrenzt.
+Die feste CI-Matrix in [`.github/workflows/tests.yml`](.github/workflows/tests.yml) trennt schnelle und vollständige browserfreie PowerShell-Suiten mit `fail-fast: false` auf `windows-2025` und `ubuntu-24.04`. Linux prüft zusätzlich Bash-Syntax, ShellCheck, Dispatcher und Kompatibilitätswrapper. [`linux-compatibility.yml`](.github/workflows/linux-compatibility.yml) führt die Installations- und Vollsuite zeitgesteuert/manuell in Ubuntu-, Debian-, Fedora-, Rocky-, Arch- und openSUSE-Containern aus. Ubuntu installiert wegen der Snap-Transition nur Runtime, Fonts und ShellCheck; der Chromium-Smoke läuft dort nur, wenn bereits ein nativer Browser vorhanden ist. [`.github/workflows/browser-smoke.yml`](.github/workflows/browser-smoke.yml) führt den Windows-Smoke bei jedem Pull Request sowie zeitgesteuert/manuell aus; Linux bleibt bis zum Nachweis je Zielprofil auf zeitgesteuerte und manuelle Läufe begrenzt.
 
 Die PR-Canary [`prompt-regression-pr.yml`](.github/workflows/prompt-regression-pr.yml) vergleicht Codex und OpenCode mit derselben Modell-ID `gpt-5.6-terra`; die vollständige Matrix [`prompt-regression-full.yml`](.github/workflows/prompt-regression-full.yml) läuft wöchentlich und manuell mit Claude Code und Gemini CLI. Fehlende Secrets schlagen geschlossen fehl.
 
-Der read-only Workflow [`browser-stability-evidence.yml`](.github/workflows/browser-stability-evidence.yml) erstellt aus der Actions-API nur einen Nachweisentwurf. Erst ein separater Promotion-PR darf drei vollständige Läufe in den Stabilitätsnachweis übernehmen und Ubuntu für Pull Requests beziehungsweise Rulesets hochstufen.
+Der read-only Workflow [`browser-stability-evidence.yml`](.github/workflows/browser-stability-evidence.yml) erstellt aus der Actions-API nur einen Nachweisentwurf. Erst ein separater Promotion-PR darf drei vollständige Läufe je Linux-Zielprofil in den Stabilitätsnachweis übernehmen und Linux für Pull Requests beziehungsweise Rulesets hochstufen.
 
 Die dokumentierten Frischsitzungs-, CLI- und Modelltests stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md). Die neun Dialogfälle mit Eingabe, erwartetem Datei-/Dialogzustand und getrenntem Automatisierungsstatus stehen in [`Tests/Interaktiver-Bewerbungsdialog.md`](Tests/Interaktiver-Bewerbungsdialog.md). Beide Kataloge verwenden ausschließlich öffentliche Regeln beziehungsweise temporäre fiktive Fixtures und nennen nicht ausgeführte Umgebungen ausdrücklich. Die deterministischen Dialogverträge sind kein Beleg für natürliches Sprachverständnis eines konkreten Modells; ein neuer realer Ollama-Dialogtest wurde für den aktuellen Stand nicht ausgeführt.
 
-Ubuntu wird erst nach drei aufeinanderfolgenden grünen Browserläufen auf Ubuntu als stabil bezeichnet. Testzahlen und konkrete Umgebungsnachweise werden nicht aus veralteten Läufen abgeleitet; der aktuelle Stand ist in CI und in der Kompatibilitätsübersicht nachvollziehbar.
+Linux wird je Zielprofil erst nach drei aufeinanderfolgenden grünen Browserläufen als stabil bezeichnet. Testzahlen und konkrete Umgebungsnachweise werden nicht aus veralteten Läufen abgeleitet; der aktuelle Stand ist in CI und in der Kompatibilitätsübersicht nachvollziehbar.
 
 <details>
 <summary><strong>HTML-, PDF- und Browser-Verträge</strong></summary>
@@ -1319,7 +1322,7 @@ Jede laut Dokumentumfang vorhandene finale HTML-Datei muss eigenständig funktio
 
 Der Browserlauf gilt nur als erfolgreich, wenn er rechtzeitig mit Exitcode `0` endet und alle erwarteten Dateien frisch erzeugt. Native Prozesse erhalten getrennte Argumentlisten, begrenzte Ausgaben und einen Timeout; bei Überschreitung wird der gesamte Prozessbaum beendet. PNGs benötigen gültige Signatur und Abmessungen. Der plattformneutrale .NET-PNG-Leser verarbeitet die erwarteten nicht-interlaced 8-Bit-Grau-, RGB- und RGBA-Dateien mit Filtern 0 bis 4; ein nicht auswertbares PNG lässt die erforderliche Dichteprüfung fehlschlagen. Die gemeinsame Druckvorprüfung rendert zusätzlich das vollständige Original-HTML mit denselben Chromium-Parametern, prüft PDF-Frische, Header, EOF-Marker, DIN-A4-MediaBox und verlangt exakt so viele PDF-Seiten wie explizite `.page`-Container. PDFs benötigen außerdem eine ATS-lesbare Unicode-Textschicht.
 
-Chrome, Edge oder Chromium übernimmt den automatischen PDF-Export. Firefox ist für manuelle Druckvorschau und manuellen Export geeignet, aber nicht Teil des verbindlichen CLI-PDF-Exports. PNGs und PDFs müssen zwischen Windows und Ubuntu nicht binär oder pixelidentisch sein; dieselbe Seitenzahl, A4-Geometrie, Dichte-, Hash- und ATS-Prüfung ist das Paritätskriterium.
+Chrome, Edge oder Chromium übernimmt den automatischen PDF-Export. Firefox ist für manuelle Druckvorschau und manuellen Export geeignet, aber nicht Teil des verbindlichen CLI-PDF-Exports. PNGs und PDFs müssen zwischen Windows und Linux nicht binär oder pixelidentisch sein; dieselbe Seitenzahl, A4-Geometrie, Dichte-, Hash- und ATS-Prüfung ist das Paritätskriterium.
 
 </details>
 

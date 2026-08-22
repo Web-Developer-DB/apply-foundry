@@ -44,7 +44,7 @@ PowerShell 7.6 Core enthält die einzige fachliche Implementierung. Unter Window
 pwsh -NoProfile -File Tools/bewerbung.ps1 <subcommand> ...
 ```
 
-Unter Ubuntu delegiert der dünne Bash-Launcher seine Argumente unverändert an denselben Dispatcher:
+Unter Linux delegiert der dünne Bash-Launcher seine Argumente unverändert an denselben Dispatcher:
 
 ```bash
 ./Tools/bewerbung.sh <subcommand> ...
@@ -58,7 +58,7 @@ Die gemeinsamen Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-
 
 Der getrennte Universalprozess verwendet `universal-neu`, `universal-status` und `universal-finalisieren`. Er arbeitet ausschließlich unter `Private/Bewerbungen/_Universal-Lebenslauf/`, verlangt für den Softwareentwicklungs-Zweiseiter die exakte atomare Abschnittsverteilung aus `Universalauftrag.json` und aktiviert erst nach den beiden persönlich geprüften PNG-Seiten. `Aktiv/` enthält danach nur PDF, HTML und Manifest; der datierte Arbeitsordner wird nach erfolgreicher Aktivierung vollständig entfernt. Scheitert nur diese letzte Bereinigung, erkennt derselbe erneute Freigabeaufruf die bereits hashgleich aktive Fassung und wiederholt ausschließlich die Bereinigung.
 
-`bewerbung.ps1 diagnose` prüft PowerShell-Version, Betriebssystem, Architektur, Browser, Temp- und Schreibzugriff sowie Fonts read-only. Das opt-in Werkzeug `Tools/setup-ubuntu.sh` unterstützt nur Ubuntu 24.04 x86_64 und wird niemals automatisch vom Workflow oder Agenten gestartet. Es kennt `--runtime`, `--browser chrome`, `--fonts`, `--all`, `--dry-run` und `--yes`. Ausgewählt werden PowerShell 7.6 aus der offiziellen Microsoft-Quelle, Google Chrome Stable aus der offiziellen Google-Quelle und `fonts-liberation2`; ohne Komponentenauswahl zeigt das Skript nur Hilfe. `--dry-run` zeigt geplante Änderungen ohne Ausführung, und reale Änderungen benötigen nach der Vorschau eine interaktive Bestätigung oder `--yes`. Bereits passende Installationen sind ein idempotenter Erfolg. Falsches OS oder falsche Architektur endet mit Exitcode `2`; Download-, Signatur- oder Paketfehler enden mit Exitcode `1` und nennen den erreichten Teilzustand.
+`bewerbung.ps1 diagnose` prüft PowerShell-Version, Betriebssystem, Architektur, Paketmanager, Browser, Temp- und Schreibzugriff sowie Fonts read-only. `Tools/setup-linux.sh` unterstützt Linux x86_64 mit APT, DNF/YUM, Pacman oder Zypper; `Tools/setup-ubuntu.sh` bleibt ein Kompatibilitätsalias. `Tools/setup-windows.ps1` verwendet ausschließlich winget und ist mit Windows PowerShell 5.1 startbar. Beide Setup-Werkzeuge kennen Dry-run, JSON-Ausgabe und eine explizite Bestätigung. Ausgewählt werden PowerShell 7.6, Chromium, Liberation Sans und optional ShellCheck. Für Arch, openSUSE und nicht direkt paketierte Linux-Runtimes wird das gepinnte, SHA-256-geprüfte offizielle PowerShell-Archiv in einem benutzereigenen XDG-Ordner verwendet; AUR und Snap werden nicht automatisch verwendet. Ubuntu-Snap-Transitions für Chromium werden ausdrücklich abgelehnt und als manuelle Voraussetzung ausgegeben. Bereits passende Installationen sind idempotent. Unbekannte Paketmanager enden mit Exitcode `2` und einer manuellen Anleitung; Download-, Signatur- oder Paketfehler enden mit Exitcode `1` und nennen den erreichten Teilzustand.
 
 ## Verbindlicher Finalisierungsworkflow
 
@@ -174,7 +174,7 @@ Der Layoutcheck:
 
 Als Einzelwerkzeug ist der Browser-Layoutcheck für Diagnose optional. Im verbindlichen Finalisierungsworkflow ist er für jeden ausgewählten HTML-Bestandteil Voraussetzung. Enthält ein ausdrücklich bestätigter Umfang nur eine E-Mail, gibt es keinen Browserlauf; stattdessen bleibt die persönliche Textprüfung Pflicht. Wenn ein erforderlicher Browserlauf wegen lokaler Browser- oder Sandbox-Einschränkungen nicht läuft, darf die Bewerbung nicht veröffentlicht werden.
 
-## Browserauswahl unter Windows und Ubuntu
+## Browserauswahl unter Windows und Linux
 
 Im Standardweg wählt das Skript automatisch einen unterstützten installierten Browser aus:
 
@@ -182,7 +182,7 @@ Im Standardweg wählt das Skript automatisch einen unterstützten installierten 
 pwsh -NoProfile -File Tools/bewerbung.ps1 layout --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" --browser auto
 ```
 
-`auto` sucht unter Windows in der Reihenfolge Chrome, Edge, Chromium und unter Ubuntu in der Reihenfolge Chrome, Chromium, Edge. `--browser-executable-path` überschreibt die Suche, wird aber auf Existenz, Version und Chromium-Engine geprüft. Firefox ist ausschließlich für das Subcommand `layout` als Diagnose zulässig; PDF-Export und Finalisierung lehnen ihn ab. Besonders in Sandbox-Umgebungen können Headless-Browser ohne echte Layoutursache fehlschlagen oder hängen. Wenn der Lauf im Sandbox-Kontext keine Screenshot-Dateien erzeugt, mit einem Browser-Startfehler endet oder hängen bleibt:
+`auto` sucht unter Windows in der Reihenfolge Chrome, Edge, Chromium und unter Linux in der Reihenfolge Chrome, Chromium, Edge. `--browser-executable-path` überschreibt die Suche, wird aber auf Existenz, Version und Chromium-Engine geprüft. Firefox ist ausschließlich für das Subcommand `layout` als Diagnose zulässig; PDF-Export und Finalisierung lehnen ihn ab. Besonders in Sandbox-Umgebungen können Headless-Browser ohne echte Layoutursache fehlschlagen oder hängen. Wenn der Lauf im Sandbox-Kontext keine Screenshot-Dateien erzeugt, mit einem Browser-Startfehler endet oder hängen bleibt:
 
 - den Lauf nicht als bestandenen Layoutcheck werten
 - nicht automatisch auf Firefox ausweichen, wenn ein unterstützter Chromium-Browser lokal vorhanden ist
@@ -223,7 +223,7 @@ Visuelle Bewertung des Screenshots:
 
 Der Layoutcheck isoliert jeden expliziten `.page`-Container in einer temporären A4-Ansicht und ergänzt dies durch eine vollständige Druckvorprüfung des unveränderten HTML. Dadurch wird keine Seite von einer festen Screenshot-Höhe abgeschnitten oder übersehen, und gleichzeitig können global wirksame CSS-Regeln zwischen Seiten keine zusätzliche Druckseite unbemerkt erzeugen. Die Dichteheuristik ignoriert Footer und unteren Sicherheitsabstand; ihre Warnung muss fachlich bewertet werden und rechtfertigt kein blindes Auffüllen oder Komprimieren. Bei ungewöhnlich geringer Dichte wird zuerst die Schema-5-Recruiter-, Anschreiben- und Evidenzabdeckung fachlich geprüft, dann die Seitenstrategie und erst danach das Layout verändert.
 
-Die Vorlagen verwenden `Arial, "Liberation Sans", Helvetica, sans-serif`. Windows und Ubuntu müssen weder pixelidentische PNGs noch binär identische PDFs erzeugen. Verbindlich gleich sind Seitenzahl, A4-Geometrie, bestandene Dichteprüfung, Hashbindung und ATS-Prüfung.
+Die Vorlagen verwenden `Arial, "Liberation Sans", Helvetica, sans-serif`. Windows und Linux müssen weder pixelidentische PNGs noch binär identische PDFs erzeugen. Verbindlich gleich sind Seitenzahl, A4-Geometrie, bestandene Dichteprüfung, Hashbindung und ATS-Prüfung.
 
 ## Automatischer PDF-Export
 
@@ -300,9 +300,9 @@ Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versand
 
 ## CI und gestufter Plattform-Rollout
 
-Die browserfreie PowerShell-Suite läuft mit `fail-fast: false` unverändert auf `windows-2025` und `ubuntu-24.04`; sie ist in `schnell` (Parser-, Schema-, Modul- und Vertrags-Canary) sowie `vollstaendig` (alle browserfreien Regressionen einschließlich der vier Rollen-Fixtures) geteilt. Ubuntu führt zusätzlich `bash -n`, ShellCheck sowie Dispatcher- und Kompatibilitätstests aus. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
+Die browserfreie PowerShell-Suite läuft mit `fail-fast: false` unverändert auf `windows-2025` und `ubuntu-24.04`; sie ist in `schnell` (Parser-, Schema-, Modul- und Vertrags-Canary) sowie `vollstaendig` (alle browserfreien Regressionen einschließlich der vier Rollen-Fixtures) geteilt. Linux führt zusätzlich `bash -n`, ShellCheck sowie Dispatcher- und Kompatibilitätstests aus. Der zeitgesteuerte `linux-compatibility.yml`-Workflow installiert und prüft Ubuntu, Debian, Fedora, Rocky, Arch und openSUSE in ephemeren Containern. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
 
-Der Windows-Browser-Smoke läuft bei jedem Pull Request sowie zeitgesteuert/manuell unter einem stabilen Checknamen. Ubuntu läuft zunächst nur zeitgesteuert/manuell. Beide Jobs prüfen Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und fehlende Restprozesse. Erst nach drei aufeinanderfolgenden grünen Ubuntu-Paritätsläufen, einem dokumentierten Promotion-PR und einem administrativen Ruleset-Eintrag darf Ubuntu als stabil und PR-verbindlich bezeichnet werden. Ohne Adminzugriff bleibt der Eintrag vorbereitet.
+Der Windows-Browser-Smoke läuft bei jedem Pull Request sowie zeitgesteuert/manuell unter einem stabilen Checknamen. Linux läuft zunächst nur zeitgesteuert/manuell. Beide Jobs prüfen Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und fehlende Restprozesse. Erst nach drei aufeinanderfolgenden grünen Linux-Paritätsläufen je Zielprofil, einem dokumentierten Promotion-PR und einem administrativen Ruleset-Eintrag darf Linux als stabil und PR-verbindlich bezeichnet werden. Ohne Adminzugriff bleibt der Eintrag vorbereitet.
 
 `browser-stability-evidence.yml` darf aus der GitHub-Actions-API nur einen read-only Nachweisentwurf erzeugen. Der Entwurf gilt nicht als Promotion; ein eigener PR muss die drei aufeinanderfolgenden Läufe und alle Kriterien übernehmen.
 

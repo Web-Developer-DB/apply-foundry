@@ -1,0 +1,67 @@
+name: Linux compatibility
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  distro:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu-24.04
+            image: ubuntu:24.04
+          - name: ubuntu-26.04
+            image: ubuntu:26.04
+          - name: debian-13
+            image: debian:13
+          - name: fedora
+            image: fedora:latest
+          - name: rocky-9
+            image: rockylinux:9
+          - name: arch
+            image: archlinux:base
+          - name: opensuse-tumbleweed
+            image: opensuse/tumbleweed:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installieren, diagnostizieren und regressionsprüfen
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/repo" \
+            --workdir /repo \
+            "$IMAGE" \
+            bash -lc '
+              export DEBIAN_FRONTEND=noninteractive
+              . /etc/os-release
+              if [ "${ID:-}" = ubuntu ]; then
+                bash Tools/setup-linux.sh --runtime --fonts --shellcheck --dry-run --format json
+                bash Tools/setup-linux.sh --runtime --fonts --shellcheck --yes
+              else
+                bash Tools/setup-linux.sh --all --dry-run --format json
+                bash Tools/setup-linux.sh --all --yes
+              fi
+              PWSH="$(command -v pwsh || true)"
+              if [ -z "$PWSH" ]; then PWSH="${XDG_DATA_HOME:-$HOME/.local/share}/apply-foundry/runtime/powershell/7.6.4/pwsh"; fi
+              if command -v chromium >/dev/null 2>&1 || [ -x /usr/bin/chromium ]; then
+                "$PWSH" -NoLogo -NoProfile -NonInteractive -File Tools/bewerbung.ps1 diagnose --browser chromium --browser-erforderlich
+              else
+                echo "Chromium-Smoke übersprungen: Distribution stellt unter dem No-Snap-Vertrag keinen nativen Chromium-Pfad bereit."
+                "$PWSH" -NoLogo -NoProfile -NonInteractive -File Tools/bewerbung.ps1 diagnose
+              fi
+              "$PWSH" -NoLogo -NoProfile -NonInteractive -File Tools/bewerbung.ps1 tests --suite vollstaendig
+              if command -v chromium >/dev/null 2>&1 || [ -x /usr/bin/chromium ]; then
+                "$PWSH" -NoLogo -NoProfile -NonInteractive -File Tools/bewerbung.ps1 tests --suite browser
+              fi
+              bash Tests/Bash/test-setup-linux.sh
+            '

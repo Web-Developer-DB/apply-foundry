@@ -8,6 +8,8 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ### Hinzugefügt
 
+- Plattformneutraler Abhängigkeits-Bootstrap für Linux x86_64 mit APT, DNF/YUM, Pacman und Zypper sowie Windows PowerShell 5.1/winget. PowerShell 7.6 wird auf nicht direkt paketierten Linux-Systemen über ein gepinntes, SHA-256-geprüftes offizielles Archiv benutzerlokal bereitgestellt; `setup-ubuntu.sh` bleibt als Kompatibilitätsalias erhalten.
+
 - Gemeinsame Chromium-Druckvorprüfung für Layoutcheck und PDF-Export: jedes vollständige Original-HTML wird auf A4, PDF-Struktur und die exakte Übereinstimmung von expliziten `.page`-Containern und Druckseiten geprüft. `Layoutcheck-Bericht.json` verwendet dafür Schema 3.
 - `Pruefstand.json` Schema 2 hält laufende, bestandene und fehlgeschlagene Finalisierungsstufen mit bereinigten Fehlerdaten fest. Die Statusausgabe zeigt den letzten technischen Versuch und erkennt hashabweichende Eingaben als veraltet.
 - Der CLI-Dispatcher normalisiert einzelne Pfade und kommagetrennte Pfadlisten gegen das ursprüngliche Aufrufverzeichnis, bevor er ein Fachwerkzeug startet.
