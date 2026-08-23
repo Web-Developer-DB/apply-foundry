@@ -42,8 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Ubuntu-Browser-Smoke
-        shell: pwsh
-        run: ./Tests/Run-RegressionTests.ps1 -Suite browser -BerichtPath Tests/Artifacts/browser-ubuntu.json
+        run: python3 Tools/bewerbung.py tests --suite browser --bericht-path Tests/Artifacts/browser-ubuntu.json
       - name: Bereinigte Browserartefakte hochladen
         if: always()
         uses: actions/upload-artifact@v4

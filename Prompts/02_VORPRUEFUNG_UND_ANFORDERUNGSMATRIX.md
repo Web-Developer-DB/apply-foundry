@@ -6,10 +6,14 @@ Vor dem Schreiben einer Bewerbung müssen Stammdaten, Bewerbungslogistik und Ste
 
 ## Stammdatenprüfung
 
-Unter PowerShell zuerst ausführen:
+Zuerst über den Plattform-Dispatcher ausführen:
 
 ```powershell
-.\Tools\Pruefe-Stammdaten.ps1
+pwsh -NoProfile -File Tools/bewerbung.ps1 stammdaten
+```
+
+```bash
+python3 Tools/bewerbung.py stammdaten
 ```
 
 Pflichtangaben zu Identität und Kontakt dürfen keine Beispielplatzhalter enthalten. Die zentralen Entscheidungen zu gewünschter Stellenart, gewünschtem Arbeitsmodell, Verwendung eines Gehaltswunschs und Gehaltslogik müssen vor der finalen Freigabe eindeutig gepflegt sein.
@@ -20,7 +24,7 @@ Ungeklärte zentrale Bewerbungslogistik im Bewerbungsauftrag wird bei der Finali
 
 ## Bewerbungsauftrag
 
-`Tools/Neue-Bewerbung.ps1` beziehungsweise `Tools/neue-bewerbung.sh` erzeugt im privaten Arbeitsordner eine Datei `Bewerbungsauftrag.json`. Unmittelbar danach wird die tatsächlich übergebene Stellenbeschreibung in `Kandidat/Stellenbeschreibung.md` gesichert, bevor Profilabgleich oder Rückfragen beginnen. Ein Platzhalter des Ordnerhelfers ist kein fortsetzbarer Stelleninhalt.
+Das Subcommand `neu` des Plattform-Dispatchers (`pwsh -NoProfile -File Tools/bewerbung.ps1` unter Windows, `python3 Tools/bewerbung.py` unter Linux) erzeugt im privaten Arbeitsordner eine Datei `Bewerbungsauftrag.json`. `Tools/neue-bewerbung.sh` bleibt unter Linux ein kompatibler Alias. Unmittelbar danach wird die tatsächlich übergebene Stellenbeschreibung in `Kandidat/Stellenbeschreibung.md` gesichert, bevor Profilabgleich oder Rückfragen beginnen. Ein Platzhalter des Ordnerhelfers ist kein fortsetzbarer Stelleninhalt.
 
 Ab Schema 4 enthält sie mindestens:
 
@@ -73,7 +77,7 @@ Jede relevante Anforderung erhält:
 - `beleg`: kurze, konkrete Datengrundlage
 - `behandlung`: Verwendung in Lebenslauf, Anschreiben, Analyse oder offenen Fragen
 
-Neue Bewerbungen verwenden für `Anforderungsmatrix.json` Schema 5. Die Schemata 1 bis 4 bleiben für vorhandene Bewerbungen lesbar und werden nicht automatisch migriert. Eine ausdrückliche Migration erfolgt ausschließlich über `bewerbung.ps1 migrieren`; fachlich nicht ableitbare Felder werden als private Entwürfe mit offenen Ergänzungen ausgegeben. Schema 5 übernimmt die verbindliche `recruiterStrategie` aus Schema 4, ergänzt `anschreibenStrategie` und `externeQuellen` sowie eine unabhängige Beweiskette:
+Neue Bewerbungen verwenden für `Anforderungsmatrix.json` Schema 5. Die Schemata 1 bis 4 bleiben für vorhandene Bewerbungen lesbar und werden nicht automatisch migriert. Eine ausdrückliche Migration erfolgt ausschließlich über das Subcommand `migrieren` des jeweiligen Plattform-Dispatchers; fachlich nicht ableitbare Felder werden als private Entwürfe mit offenen Ergänzungen ausgegeben. Schema 5 übernimmt die verbindliche `recruiterStrategie` aus Schema 4, ergänzt `anschreibenStrategie` und `externeQuellen` sowie eine unabhängige Beweiskette:
 
 - `stellenanzeigeAbdeckung`: SHA-256 der vollständig gespeicherten `Stellenbeschreibung.md` und zeilengebundene `fundstellen`. Jede Fundstelle enthält stabile ID, Zeilenbereich, exakten Text, Klassifikation (`anforderung`, `aufgabe` oder `nicht_anforderung`) sowie zugeordnete Matrix-IDs oder eine konkrete Begründung.
 - `stellenFundstellen`: mindestens eine Fundstellen-ID je Matrixanforderung. Explizite Muss-/Kann-Signale und Aufgaben der Anzeige dürfen weder stillschweigend fehlen noch nur durch eine freie Analyse behauptet werden.

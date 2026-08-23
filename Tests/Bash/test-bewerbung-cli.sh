@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(cd -- "$script_dir/../.." && pwd -P)"
-dispatcher="$repo_root/Tools/bewerbung.ps1"
+dispatcher="$repo_root/Tools/bewerbung.py"
 launcher="$repo_root/Tools/bewerbung.sh"
 compat_launcher="$repo_root/Tools/neue-bewerbung.sh"
 test_root="$(mktemp -d)"
@@ -22,8 +22,7 @@ fail() {
 assert_exit() {
   local expected="$1"
   shift
-  local output_file="$test_root/last-output.txt"
-  local code
+  local output_file="$test_root/last-output.txt" code
   set +e
   "$@" >"$output_file" 2>&1
   code=$?
@@ -36,169 +35,76 @@ assert_exit() {
 }
 
 for required_file in "$dispatcher" "$launcher" "$compat_launcher"; do
-  [[ -f "$required_file" ]] || fail "Erforderliche CLI-Datei fehlt: $required_file"
+  [[ -f "$required_file" ]] || fail "Erforderliche Linux-CLI-Datei fehlt: $required_file"
 done
-for executable_file in "$launcher" "$compat_launcher"; do
-  [[ -x "$executable_file" ]] || fail "Shell-Einstieg besitzt nicht den Git-Ausführungsmodus 100755: $executable_file"
+for executable_file in "$dispatcher" "$launcher" "$compat_launcher"; do
+  [[ -x "$executable_file" ]] || fail "Linux-Einstieg besitzt nicht den Git-Ausführungsmodus 100755: $executable_file"
 done
 
 bash -n "$launcher"
 bash -n "$compat_launcher"
-
 for shell_file in "$launcher" "$compat_launcher"; do
-  if grep -Eq '(^|[^[:alnum:]_])eval([[:space:]]|$)' "$shell_file"; then
-    fail "Shell-Einstieg verwendet eval: $shell_file"
-  fi
-  if grep -Eq '(^|[^[:alnum:]_])(jq|python3?|node|sha256sum|shasum)([[:space:]]|$)' "$shell_file"; then
-    fail "Shell-Einstieg enthaelt verbotene Fachlogik-Abhaengigkeiten: $shell_file"
-  fi
+  grep -Eq '(^|[^[:alnum:]_])eval([[:space:]]|$)' "$shell_file" && fail "Shell-Einstieg verwendet eval: $shell_file"
+  grep -Fq 'pwsh' "$shell_file" && fail "Linux-Alias hängt weiterhin von PowerShell ab: $shell_file"
 done
 
-# shellcheck disable=SC2016 # PowerShell variables must remain literal here.
-pwsh_version="$(pwsh -NoLogo -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()')"
-if [[ ! "$pwsh_version" =~ ^([0-9]+)\.([0-9]+) ]] || ((BASH_REMATCH[1] < 7 || (BASH_REMATCH[1] == 7 && BASH_REMATCH[2] < 6))); then
-  fail "Dispatcher-Test erfordert PowerShell 7.6 oder neuer; gefunden wurde $pwsh_version."
-fi
+python3 -I -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' || fail 'Python 3.9 oder neuer ist für den Linux-Vertragstest erforderlich.'
 
-dispatch_root="$test_root/dispatcher"
-mkdir -p "$dispatch_root/Tools/Common" "$dispatch_root/Tests"
-cp -- "$dispatcher" "$dispatch_root/Tools/bewerbung.ps1"
-cp -- "$repo_root/Tools/Common/Platform.psm1" "$dispatch_root/Tools/Common/Platform.psm1"
-
-# shellcheck disable=SC2016 # PowerShell variables must remain literal here.
-printf '%s\n' \
-  '#requires -Version 7.6' \
-  '#requires -PSEdition Core' \
-  '[CmdletBinding()]' \
-  'param([string]$Firma, [string]$Rolle = "Bewerbung", [string]$UmfangAuswahl, [string[]]$Dokumente, [switch]$Fortsetzen)' \
-  '[ordered]@{ firma = $Firma; rolle = $Rolle; umfang = $UmfangAuswahl; dokumente = @($Dokumente); fortsetzen = [bool]$Fortsetzen } | ConvertTo-Json -Compress' \
-  > "$dispatch_root/Tools/Neue-Bewerbung.ps1"
-
-# shellcheck disable=SC2016 # PowerShell variables must remain literal here.
-printf '%s\n' \
-  '#requires -Version 7.6' \
-  '#requires -PSEdition Core' \
-  '[CmdletBinding()]' \
-  'param([string]$Browser, [string]$BrowserExecutablePath, [switch]$AlsJson, [switch]$BrowserErforderlich)' \
-  '[ordered]@{ browser = $Browser; executable = $BrowserExecutablePath; json = [bool]$AlsJson; required = [bool]$BrowserErforderlich } | ConvertTo-Json -Compress' \
-  > "$dispatch_root/Tools/Pruefe-Umgebung.ps1"
-
-# shellcheck disable=SC2016 # PowerShell variables must remain literal here.
-printf '%s\n' \
-  '#requires -Version 7.6' \
-  '#requires -PSEdition Core' \
-  '[CmdletBinding()]' \
-  'param([string]$Arbeitsordner)' \
-  'if (-not [IO.Path]::IsPathFullyQualified($Arbeitsordner)) { exit 9 }' \
-  'if ([IO.Path]::GetFileName($Arbeitsordner) -eq "validierungsfehler") { exit 2 }' \
-  'exit 7' \
-  > "$dispatch_root/Tools/Ermittle-Bewerbungsstatus.ps1"
-
-dispatch_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" \
-  neu \
-  --firma '-Ae Firma mit Leerzeichen' \
-  --rolle 'Entwicklung fuer Muenchen' \
-  --umfang=e \
-  --dokumente ' lebenslauf, Anschreiben ' \
-  --fortsetzen)"
-[[ "$dispatch_output" == *'"firma":"-Ae Firma mit Leerzeichen"'* ]] || fail "Fuehrender Bindestrich oder Leerzeichen gingen bei --firma verloren."
-[[ "$dispatch_output" == *'"rolle":"Entwicklung fuer Muenchen"'* ]] || fail "Wert mit Leerzeichen wurde veraendert."
-[[ "$dispatch_output" == *'"umfang":"E"'* ]] || fail "Enumwert wurde nicht kanonisch normalisiert."
-[[ "$dispatch_output" == *'"dokumente":["lebenslauf","anschreiben"]'* ]] || fail "Dokumente-CSV wurde nicht korrekt normalisiert."
-[[ "$dispatch_output" == *'"fortsetzen":true'* ]] || fail "Schalter wurde nicht korrekt gebunden."
-
-diagnose_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" \
-  diagnose \
-  --browser Chromium \
-  --browser-executable-path '-browser pfad/mit leerzeichen' \
-  --als-json \
-  --browser-erforderlich)"
-expected_browser_path_json="$(pwsh -NoLogo -NoProfile -NonInteractive -Command '[IO.Path]::GetFullPath("-browser pfad/mit leerzeichen") | ConvertTo-Json -Compress')"
-expected_browser_path_json="${expected_browser_path_json//$'\r'/}"
-expected_browser_fragment="\"executable\":$expected_browser_path_json"
-[[ "$diagnose_output" == *'"browser":"chromium"'* ]] || fail "Browserwert wurde nicht kanonisch normalisiert."
-[[ "$diagnose_output" == *"$expected_browser_fragment"* ]] || fail "Browserpfad wurde nicht gegen das Aufrufverzeichnis normalisiert."
-[[ "$diagnose_output" == *'"json":true'* && "$diagnose_output" == *'"required":true'* ]] || fail "Diagnose-Schalter wurden nicht korrekt gebunden."
-
-help_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" --help)"
-for command_name in diagnose neu universal-neu universal-status universal-finalisieren status checkpoint stammdaten dialog-pruefen dialog-uebernehmen passfoto inhalt pruefen layout pdf ats finalisieren freigabe tokenbericht tests; do
-  [[ "$help_output" == *"$command_name"* ]] || fail "Subcommand fehlt in der globalen Hilfe: $command_name"
+help_output="$(python3 -B "$dispatcher" --help)"
+for command_name in diagnose neu universal-neu universal-status universal-finalisieren status checkpoint migrieren stammdaten dialog-pruefen dialog-uebernehmen passfoto kontext inhalt pruefen layout pdf ats finalisieren freigabe tokenbericht test-baseline tests; do
+  [[ "$help_output" == *"$command_name"* ]] || fail "Subcommand fehlt in der globalen Python-Hilfe: $command_name"
 done
 
-assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" unbekannt
-assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --rolle Test
-default_role_output="$(pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma Test)"
-[[ "$default_role_output" == *'"firma":"Test"'* ]] || fail "Kompatibler Neu-Aufruf ohne --rolle wurde abgewiesen."
-[[ "$default_role_output" == *'"rolle":"Bewerbung"'* ]] || fail "Kompatibler Neu-Aufruf erbte nicht die bisherige Standardrolle Bewerbung."
-assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma Test --unbekannt Wert
-assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma
-assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma Test --fortsetzen=true
-assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma Test --firma Zweitwert
-assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma Test --dokumente lebenslauf,unbekannt
-assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" neu --firma Test --dokumente lebenslauf,lebenslauf
-assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" layout --ordner Test --width 319
-assert_exit 2 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" status --arbeitsordner validierungsfehler
-assert_exit 1 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" status --arbeitsordner laufzeitfehler
-assert_exit 1 pwsh -NoLogo -NoProfile -NonInteractive -File "$dispatch_root/Tools/bewerbung.ps1" tests --mit-browser
+alias_help="$("$launcher" --help)"
+[[ "$alias_help" == "$help_output" ]] || fail 'bewerbung.sh delegiert nicht unverändert an den Python-Dispatcher.'
+compat_help="$("$compat_launcher" --help)"
+[[ "$compat_help" == *'Aufruf: neu [optionen]'* ]] || fail 'neue-bewerbung.sh setzt das Subcommand neu nicht voran.'
+
+assert_exit 2 python3 -B "$dispatcher" unbekannt
+assert_exit 2 python3 -B "$dispatcher" neu --rolle Test
+assert_exit 2 python3 -B "$dispatcher" neu --firma Test --unbekannt Wert
+assert_exit 2 python3 -B "$dispatcher" neu --firma
+assert_exit 2 python3 -B "$dispatcher" neu --firma Test --fortsetzen=true
+assert_exit 2 python3 -B "$dispatcher" neu --firma Test --firma Zweitwert
+assert_exit 2 python3 -B "$dispatcher" neu --firma Test --dokumente lebenslauf,unbekannt
+assert_exit 2 python3 -B "$dispatcher" neu --firma Test --dokumente lebenslauf,lebenslauf
+assert_exit 2 python3 -B "$dispatcher" layout --ordner Test --width 319
 
 wrapper_root="$test_root/wrapper/Tools"
-fake_bin="$test_root/fake-bin"
-mkdir -p "$wrapper_root" "$fake_bin"
+mkdir -p "$wrapper_root"
 cp -- "$launcher" "$compat_launcher" "$wrapper_root/"
-printf '%s\n' '# synthetic dispatcher marker' > "$wrapper_root/bewerbung.ps1"
 chmod +x "$wrapper_root/bewerbung.sh" "$wrapper_root/neue-bewerbung.sh"
 
-# shellcheck disable=SC2016 # The generated fake launcher must expand these variables later.
 printf '%s\n' \
-  '#!/usr/bin/env bash' \
-  'set -euo pipefail' \
-  'for argument in "$@"; do' \
-  '  if [[ "$argument" == "-Command" ]]; then' \
-  '    printf "%s\n" "${FAKE_PWSH_VERSION:-7.6.0}"' \
-  '    exit "${FAKE_VERSION_EXIT_CODE:-0}"' \
-  '  fi' \
-  'done' \
-  ': "${FAKE_CAPTURE_PATH:?}"' \
-  ': > "$FAKE_CAPTURE_PATH"' \
-  'printf "%s\0" "$@" > "$FAKE_CAPTURE_PATH"' \
-  'exit "${FAKE_PWSH_EXIT_CODE:-0}"' \
-  > "$fake_bin/pwsh"
-chmod +x "$fake_bin/pwsh"
+  '#!/usr/bin/env python3' \
+  'import os, sys' \
+  'target = os.environ["FAKE_CAPTURE_PATH"]' \
+  'with open(target, "wb") as stream:' \
+  '    for value in sys.argv[1:]:' \
+  '        stream.write(value.encode("utf-8") + b"\0")' \
+  'raise SystemExit(int(os.environ.get("FAKE_EXIT_CODE", "0")))' \
+  '# synthetic Python dispatcher used only by the Bash adapter contract' \
+  > "$wrapper_root/bewerbung.py"
+chmod +x "$wrapper_root/bewerbung.py"
 
 capture="$test_root/direct.capture"
-env PATH="$fake_bin:$PATH" FAKE_CAPTURE_PATH="$capture" \
-  "$wrapper_root/bewerbung.sh" neu --firma '-Firma mit Leerzeichen' --rolle 'Rolle fuer Koeln'
-
+env FAKE_CAPTURE_PATH="$capture" \
+  "$wrapper_root/bewerbung.sh" neu --firma '-Firma mit Leerzeichen' --rolle 'Rolle für Köln'
 captured=()
-while IFS= read -r -d '' value; do
-  captured+=("$value")
-done < "$capture"
-[[ ${#captured[@]} -eq 10 ]] || fail "Bash-Launcher veraenderte die Anzahl der Argumente."
-[[ "${captured[0]}" == "-NoLogo" && "${captured[1]}" == "-NoProfile" && "${captured[2]}" == "-NonInteractive" && "${captured[3]}" == "-File" ]] || fail "Bash-Launcher verwendet nicht den erwarteten pwsh-Aufruf."
-[[ "${captured[4]}" == "$wrapper_root/bewerbung.ps1" ]] || fail "Bash-Launcher adressiert nicht den benachbarten Dispatcher."
-[[ "${captured[5]}" == "neu" && "${captured[6]}" == "--firma" && "${captured[7]}" == "-Firma mit Leerzeichen" && "${captured[8]}" == "--rolle" && "${captured[9]}" == "Rolle fuer Koeln" ]] || fail "Bash-Launcher reichte Nutzerargumente nicht unveraendert weiter."
+while IFS= read -r -d '' value; do captured+=("$value"); done < "$capture"
+[[ ${#captured[@]} -eq 5 ]] || fail 'Bash-Launcher veränderte die Anzahl der Nutzerargumente.'
+[[ "${captured[0]}" == neu && "${captured[1]}" == --firma && "${captured[2]}" == '-Firma mit Leerzeichen' && "${captured[3]}" == --rolle && "${captured[4]}" == 'Rolle für Köln' ]] || fail 'Bash-Launcher reichte Nutzerargumente nicht bytegetreu weiter.'
 
 compat_capture="$test_root/compat.capture"
-env PATH="$fake_bin:$PATH" FAKE_CAPTURE_PATH="$compat_capture" \
+env FAKE_CAPTURE_PATH="$compat_capture" \
   "$wrapper_root/neue-bewerbung.sh" --firma 'Kompatibel GmbH' --umfang A
-
 compat_args=()
-while IFS= read -r -d '' value; do
-  compat_args+=("$value")
-done < "$compat_capture"
-[[ ${#compat_args[@]} -eq 10 ]] || fail "Kompatibilitaetswrapper veraenderte die Anzahl der Argumente."
-[[ "${compat_args[5]}" == "neu" && "${compat_args[6]}" == "--firma" && "${compat_args[7]}" == "Kompatibel GmbH" && "${compat_args[8]}" == "--umfang" && "${compat_args[9]}" == "A" ]] || fail "Kompatibilitaetswrapper setzte das Subcommand neu nicht korrekt voran."
+while IFS= read -r -d '' value; do compat_args+=("$value"); done < "$compat_capture"
+[[ ${#compat_args[@]} -eq 5 ]] || fail 'Kompatibilitätsalias veränderte die Anzahl der Nutzerargumente.'
+[[ "${compat_args[0]}" == neu && "${compat_args[1]}" == --firma && "${compat_args[2]}" == 'Kompatibel GmbH' && "${compat_args[3]}" == --umfang && "${compat_args[4]}" == A ]] || fail 'Kompatibilitätsalias setzte neu nicht korrekt voran.'
 
-old_version_capture="$test_root/old-version.capture"
-assert_exit 2 env PATH="$fake_bin:$PATH" FAKE_CAPTURE_PATH="$old_version_capture" FAKE_PWSH_VERSION="7.5.9" "$wrapper_root/bewerbung.sh" diagnose
-[[ ! -e "$old_version_capture" ]] || fail "Launcher startete den Dispatcher trotz PowerShell kleiner 7.6."
+failure_capture="$test_root/failure.capture"
+assert_exit 1 env FAKE_CAPTURE_PATH="$failure_capture" FAKE_EXIT_CODE=1 "$wrapper_root/bewerbung.sh" diagnose
+[[ -s "$failure_capture" ]] || fail 'Launcher gab den Laufzeitfehler des Python-Dispatchers nicht zurück.'
 
-invalid_version_capture="$test_root/invalid-version.capture"
-assert_exit 2 env PATH="$fake_bin:$PATH" FAKE_CAPTURE_PATH="$invalid_version_capture" FAKE_PWSH_VERSION="unbekannt" "$wrapper_root/bewerbung.sh" diagnose
-[[ ! -e "$invalid_version_capture" ]] || fail "Launcher startete den Dispatcher trotz ungueltigem Versionsformat."
-
-runtime_failure_capture="$test_root/runtime-failure.capture"
-assert_exit 1 env PATH="$fake_bin:$PATH" FAKE_CAPTURE_PATH="$runtime_failure_capture" FAKE_PWSH_EXIT_CODE="1" "$wrapper_root/bewerbung.sh" diagnose
-[[ -s "$runtime_failure_capture" ]] || fail "Launcher gab den Laufzeitfehler nicht vom Dispatcher zurueck."
-
-printf '[OK] Einheitliche CLI- und Wrapper-Regressionstests bestanden.\n'
+printf '[OK] Python-CLI- und Linux-Alias-Regressionstests bestanden.\n'

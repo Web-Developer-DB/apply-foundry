@@ -29,48 +29,54 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Eine Änderung an einer HTML-Datei nach dem Layoutcheck macht den bisherigen Screenshot- und PDF-Nachweis ungültig. Maßgeblich sind die SHA-256-Werte in den Prüfberichten.
 - Kandidatendateien einzeln und vollständig schreiben und danach unmittelbar validieren. Insbesondere JSON-Dateien nach jeder Änderung parsen; keine unübersichtliche Sammeländerung darf bei einem Teilfehler mehrere fertige Dokumente halb aktualisiert zurücklassen.
 - Neue `Anforderungsmatrix.json`-Dateien verwenden Schema 5. Vor der Layoutprüfung muss der Inhaltsprüfer die vollständige `recruiterStrategie`, `anschreibenStrategie`, externe Quellen, sichtbare Anker, zulässige Transferbrücken, die Seite-1-Abdeckung sowie die hash- und zeilengebundene Beweiskette aus Stellenbeschreibung, Matrix und Evidenzindex bestätigen; Matrix-Schemata 1 bis 4 bleiben unverändert lesbar.
-- Matrix- und Evidenzmigrationen laufen ausschließlich über `bewerbung.ps1 migrieren`. Der Standard ist read-only; `--anwenden` erzeugt bei fachlichen Lücken nur private Entwürfe und übernimmt vollständige Zielverträge atomar mit Hash-Recheck und Rollback. Status, Inhaltsprüfung und Finalisierung führen keine automatische Migration aus.
+- Matrix- und Evidenzmigrationen laufen ausschließlich über das Subcommand `migrieren` des jeweiligen Plattform-Dispatchers. Der Standard ist read-only; `--anwenden` erzeugt bei fachlichen Lücken nur private Entwürfe und übernimmt vollständige Zielverträge atomar mit Hash-Recheck und Rollback. Status, Inhaltsprüfung und Finalisierung führen keine automatische Migration aus.
 - In einer als verwaltete Sandbox bekannten Umgebung vor dem Browserlauf prüfen, ob eine lokale Browserfreigabe verfügbar ist. Eine vorhandene Freigabe direkt verwenden; andernfalls die Grenze offen melden und keinen erfolgreichen Lauf behaupten.
 - Tokenzahlen niemals schätzen oder aus Textlängen beziehungsweise Teilwerten ableiten. Exakte Zahlen sind nur zulässig, wenn die Agentenlaufzeit sie maschinenlesbar bereitstellt.
-- Ein Runtime-Fingerprint aus Betriebssystem, Architektur, PowerShell-Version und – bei Browserläufen – Browsername, Version und ausführbarer Datei bindet technische Nachweise an die Laufzeit. Nach einem Plattformwechsel Auftrag und Kandidaten erhalten, Layout-, PDF-, ATS- und Finalisierungsnachweise aber vollständig neu erzeugen.
-- Berichte und Zustandsdateien werden über `Tools/Common/AtomicFile.psm1` atomar als UTF-8 geschrieben und innerhalb pfadbasierter Sperren mit begrenzten Wiederholungen aktualisiert. Ein abgebrochener Austausch darf keine Teil-JSON-Datei hinterlassen.
+- Ein Runtime-Fingerprint aus Betriebssystem, Architektur, Sprache und Version der Kernruntime sowie – bei Browserläufen – Browsername, Version und ausführbarer Datei bindet technische Nachweise an die Laufzeit. Nach einem Wechsel zwischen Windows und Linux oder umgekehrt Auftrag und Kandidaten erhalten, Layout-, PDF-, ATS-, Finalisierungs- und Sichtnachweise aber vollständig neu erzeugen.
+- Berichte und Zustandsdateien werden in beiden Kernen atomar als UTF-8 geschrieben und innerhalb pfadbasierter Sperren mit begrenzten Wiederholungen aktualisiert. Ein abgebrochener Austausch darf keine Teil-JSON-Datei hinterlassen.
 - `Sichtfreigabe.json` ist der einzige technische Veröffentlichungsnachweis. Die Freigabe-ID, der vorbereitete Finalisierungsbericht und jeder geprüfte Artefakt-Hash müssen aktuell übereinstimmen; ein altes `--visuell-geprueft` ersetzt diesen Nachweis nicht.
 
-## Gemeinsamer Plattform- und CLI-Einstieg
+## Gemeinsamer Plattform- und CLI-Vertrag
 
-PowerShell 7.6 Core enthält die einzige fachliche Implementierung. Unter Windows wird der Dispatcher direkt gestartet:
+Windows verwendet die fachliche PowerShell-7.6-Implementierung:
 
 ```powershell
 pwsh -NoProfile -File Tools/bewerbung.ps1 <subcommand> ...
 ```
 
-Unter Linux delegiert der dünne Bash-Launcher seine Argumente unverändert an denselben Dispatcher:
+Linux verwendet die eigenständige Standardbibliotheksimplementierung mit System-Python 3.9 oder neuer:
 
 ```bash
-./Tools/bewerbung.sh <subcommand> ...
+python3 Tools/bewerbung.py <subcommand> ...
 ```
 
-Die gemeinsamen Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Beide Einstiege verwenden dieselben GNU-Langoptionen. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. Bash enthält keine Bewerbungs-, JSON-, Hash- oder Dateilogik und hat dafür keine Abhängigkeit auf `jq`, Python, Node oder externe SHA-Werkzeuge. Direkte Aufrufe der vorhandenen PowerShell-Fachskripte bleiben kompatibel unterstützt.
+Die gemeinsamen 23 Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Beide Kerne verwenden dieselben GNU-Langoptionen, Pfadnormalisierung und privaten Artefaktschemata. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. `bewerbung.sh` und `neue-bewerbung.sh` bleiben reine Linux-Aliase. Direkte Aufrufe der vorhandenen PowerShell-Fachskripte bleiben unter Windows kompatibel unterstützt.
 
-`bewerbung.ps1 checkpoint --arbeitsordner "..." --schritt NAME` schreibt einen kompakten, hashgebundenen Fortsetzungsnachweis in den privaten Arbeitsordner. Er ist nach jeder sinnvollen Workflow-Grenze aufzurufen, speichert keine Quellinhalte oder Rohchatdaten und ersetzt keine fachliche Prüfung. Der Statusbefehl verwendet ihn nur bei vollständig übereinstimmenden Arbeitsartefakten als Hinweis; bei Abweichungen bleiben Auftrag, Matrix, Kandidaten und Prüfberichte maßgeblich.
+Ein bereits installiertes PowerShell 7.6 kann unter Linux während der gestuften Migration direkt mit `pwsh -NoProfile -File Tools/bewerbung.ps1 ...` als Legacy-Fallback aufgerufen werden. Die Linux-Aliase zeigen dennoch auf Python, kein Linux-CI-Job verwendet `pwsh`, und der Linux-Bootstrap installiert PowerShell nicht.
 
-`bewerbung.ps1 passfoto --arbeitsordner "..."` ist der idempotente Einbettungsschritt für einen individuellen Kandidaten-Lebenslauf. Er prüft ausschließlich `Private/Daten/Passfoto.png`, ersetzt den einmaligen markierten Block durch eine bytegleiche eingebettete PNG-Ressource oder leert ihn bei fehlender Datei. Bildbytes werden nie ausgegeben. Universelle oder abgewählte Lebensläufe werden abgelehnt und niemals verändert.
+Das Subcommand `checkpoint --arbeitsordner "..." --schritt NAME` schreibt einen kompakten, hashgebundenen Fortsetzungsnachweis in den privaten Arbeitsordner. Es ist nach jeder sinnvollen Workflow-Grenze aufzurufen, speichert keine Quellinhalte oder Rohchatdaten und ersetzt keine fachliche Prüfung. Der Statusbefehl verwendet ihn nur bei vollständig übereinstimmenden Arbeitsartefakten als Hinweis; bei Abweichungen bleiben Auftrag, Matrix, Kandidaten und Prüfberichte maßgeblich.
+
+Das Subcommand `passfoto --arbeitsordner "..."` ist der idempotente Einbettungsschritt für einen individuellen Kandidaten-Lebenslauf. Es prüft ausschließlich `Private/Daten/Passfoto.png`, ersetzt den einmaligen markierten Block durch eine bytegleiche eingebettete PNG-Ressource oder leert ihn bei fehlender Datei. Bildbytes werden nie ausgegeben. Universelle oder abgewählte Lebensläufe werden abgelehnt und niemals verändert.
 
 Der getrennte Universalprozess verwendet `universal-neu`, `universal-status` und `universal-finalisieren`. Er arbeitet ausschließlich unter `Private/Bewerbungen/_Universal-Lebenslauf/`, verlangt für den Softwareentwicklungs-Zweiseiter die exakte atomare Abschnittsverteilung aus `Universalauftrag.json` und aktiviert erst nach den beiden persönlich geprüften PNG-Seiten. `Aktiv/` enthält danach nur PDF, HTML und Manifest; der datierte Arbeitsordner wird nach erfolgreicher Aktivierung vollständig entfernt. Scheitert nur diese letzte Bereinigung, erkennt derselbe erneute Freigabeaufruf die bereits hashgleich aktive Fassung und wiederholt ausschließlich die Bereinigung.
 
-`bewerbung.ps1 diagnose` prüft PowerShell-Version, Betriebssystem, Architektur, Paketmanager, Browser, Temp- und Schreibzugriff sowie Fonts read-only. `Tools/setup-linux.sh` unterstützt Linux x86_64 mit APT, DNF/YUM, Pacman oder Zypper; `Tools/setup-ubuntu.sh` bleibt ein Kompatibilitätsalias. `Tools/setup-windows.ps1` verwendet ausschließlich winget und ist mit Windows PowerShell 5.1 startbar. Beide Setup-Werkzeuge kennen Dry-run, JSON-Ausgabe und eine explizite Bestätigung. Ausgewählt werden PowerShell 7.6, Chromium, Liberation Sans und optional ShellCheck. Für Arch, openSUSE und nicht direkt paketierte Linux-Runtimes wird das gepinnte, SHA-256-geprüfte offizielle PowerShell-Archiv in einem benutzereigenen XDG-Ordner verwendet; AUR und Snap werden nicht automatisch verwendet. Ubuntu-Snap-Transitions für Chromium werden ausdrücklich abgelehnt und als manuelle Voraussetzung ausgegeben. Bereits passende Installationen sind idempotent. Unbekannte Paketmanager enden mit Exitcode `2` und einer manuellen Anleitung; Download-, Signatur- oder Paketfehler enden mit Exitcode `1` und nennen den erreichten Teilzustand.
+`diagnose` prüft Kernruntime, Betriebssystem, Architektur, Paketmanager, Browser, Temp- und Schreibzugriff sowie Fonts read-only und liefert Diagnoseschema 3 mit `coreRuntime`. Neue Linux-Setup-Ausgaben verwenden Schema 2; alte Ausgaben bleiben lesbar. Die privaten Auftrags-, Matrix-, Prüfstands-, Freigabe- und Manifest-Schemata ändern sich dadurch nicht. `Tools/setup-linux.py` unterstützt Linux x86_64 mit APT, DNF/YUM, Pacman oder Zypper; `Tools/setup-ubuntu.sh` bleibt ein Kompatibilitätsalias. `Tools/setup-windows.ps1` verwendet ausschließlich winget und ist mit Windows PowerShell 5.1 startbar. Beide Setup-Wege kennen Dry-run, JSON-Ausgabe und eine explizite Bestätigung. Unter Linux werden System-Python 3.9+, Chromium, Liberation Sans und optional ShellCheck geprüft; unter Windows PowerShell 7.6, ein Chromium-Browser, Arial und optional ShellCheck. Fehlt Python unter Linux, darf ausschließlich `setup-linux.sh` als minimaler Bash-Bootstrap die Runtime über den erkannten Distributionspaketmanager installieren und delegiert danach an Python. PyPI, virtuelle Umgebungen, Snap, AUR und fremde Browserquellen sind ausgeschlossen. Bereits passende Installationen sind idempotent. Unbekannte Paketmanager enden mit Exitcode `2` und einer manuellen Anleitung; Paketfehler enden mit Exitcode `1` und nennen den erreichten Teilzustand.
+
+Der Pacman-Plan setzt `packageManagerOperation.fullSystemUpgrade = true`, kennzeichnet die erste Änderung mit `includesFullSystemUpgrade` und nennt den vollständigen `-Syu`-Lauf; spätere Paketinstallationen desselben Laufs verwenden `-S`. Diese breite Systemaktualisierung ist Bestandteil des vorab zu bestätigenden Plans. Fehlt Chromium unter Ubuntu oder in RHEL-kompatiblen Basis-Repositories, bleibt die Komponente blockiert und `manualInstruction` nennt Voraussetzung sowie exakten `verificationCommand`; Snap, EPEL und andere Communityquellen werden nicht registriert. Liberation Sans wird über eine tatsächlich vorhandene reguläre Fontdatei validiert; eine bloße Namensauflösung oder ein Symlink reicht nicht, und der Dateifallback funktioniert ohne `fc-match`.
 
 ## Verbindlicher Finalisierungsworkflow
 
 Der Standardweg verwendet das Subcommand `finalisieren` und den privaten Arbeitsordner.
 
-Bei einer Fortsetzung oder Standabfrage liefert `bewerbung.ps1 status --als-json` zuvor die nächste belegte Phase und die dafür benötigten Promptmodule. Es ersetzt keine Prüfung, verhindert aber unnötiges erneutes Laden bereits abgeschlossener Phasen.
+Bei einer Fortsetzung oder Standabfrage liefert `status --als-json` zuvor die nächste belegte Phase und die dafür benötigten Promptmodule. Es ersetzt keine Prüfung, verhindert aber unnötiges erneutes Laden bereits abgeschlossener Phasen.
 
 Vorbereitung mit allen maschinellen Prüfungen:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --browser auto
+```bash
+python3 Tools/bewerbung.py finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --browser auto
 ```
+
+Unter Windows lautet der entsprechende Einstieg `pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren ...` mit denselben GNU-Langoptionen.
 
 Dieser Lauf:
 
@@ -95,9 +101,9 @@ Dieser Lauf:
 
 Nach der tatsächlichen Sichtprüfung:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 freigabe --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --freigabe-id FR-XXXXXXXXXXXX --bestaetigt --notiz "Sichtprüfung abgeschlossen."
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen
+```bash
+python3 Tools/bewerbung.py freigabe --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --freigabe-id FR-XXXXXXXXXXXX --bestaetigt --notiz "Sichtprüfung abgeschlossen."
+python3 Tools/bewerbung.py finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --veroeffentlichen
 ```
 
 Liegen automatische Layoutwarnungen vor, muss zusätzlich eine konkrete Sichtbewertung als `--notiz "Alle markierten Seiten geprüft; kein Beschnitt und keine Überlappung."` im `freigabe`-Aufruf angegeben werden.
@@ -108,15 +114,15 @@ Layout- und PDF-Einzelwerkzeuge lösen relative Berichtspfade gegen das Aufrufve
 
 Die nachfolgenden Einzelwerkzeuge bleiben für Diagnose, Entwicklung und gezielte Wiederholungen verfügbar. Für neue Bewerbungen ersetzt ihre manuelle Verkettung nicht den verbindlichen Finalisierungsworkflow.
 
-Insbesondere ist `Exportiere-PDF.ps1` kein allgemeiner Konverter für lose Dokumentordner. Verwende es nur zur Fehlerdiagnose eines bereits korrekt angelegten Kandidatenstands; für den normalen Ablauf ist ausschließlich `bewerbung.ps1 finalisieren` vorgesehen.
+Insbesondere ist ein Einzelwerkzeug wie `Exportiere-PDF.ps1` kein allgemeiner Konverter für lose Dokumentordner. Verwende es nur unter Windows zur Fehlerdiagnose eines bereits korrekt angelegten Kandidatenstands; für den normalen Ablauf ist auf beiden Plattformen ausschließlich das Subcommand `finalisieren` vorgesehen.
 
 ## Tokenverbrauch und Laufzeitmessung
 
 Der standardisierte Bericht wird mit folgendem Werkzeug aktualisiert:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 tokenbericht `
-  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+```bash
+python3 Tools/bewerbung.py tokenbericht \
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" \
   --messbereich lebenslauf
 ```
 
@@ -130,8 +136,8 @@ Zulässige Messbereiche sind `lebenslauf`, `gesamte_bewerbung` und `technische_v
 
 Der verbindliche Finalisierungslauf führt den statischen Prüfer selbst aus. Ein zusätzlicher separater Vorablauf ist nicht erforderlich. Zur gezielten Diagnose eines Kandidatenfehlers kann er manuell ausgeführt werden:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 pruefen --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
+```bash
+python3 Tools/bewerbung.py pruefen --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
 ```
 
 Der Prüfer kontrolliert:
@@ -153,10 +159,10 @@ Ein erfolgreicher Einzellauf diagnostiziert nur den aktuellen Kandidatenstand. D
 
 Wenn ein lokaler Browser verfügbar ist, kann zusätzlich ein visueller Layoutcheck erzeugt werden:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 layout `
-  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
-  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck" `
+```bash
+python3 Tools/bewerbung.py layout \
+  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" \
+  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck" \
   --browser auto
 ```
 
@@ -168,7 +174,7 @@ Der Layoutcheck:
 - prüft nach jedem Browserlauf, ob die Ausgabedatei wirklich erzeugt wurde
 - entfernt alte erwartete Ausgaben vor dem Lauf und akzeptiert keine veralteten Dateien
 - validiert PNG-Signatur, Aktualität und exakte Bildabmessungen
-- wertet erwartete nicht-interlaced PNGs mit 8-Bit-Grau-, RGB- oder RGBA-Pixeln und den PNG-Filtern 0 bis 4 über den kleinen plattformneutralen .NET-Leser aus; ein nicht auswertbares PNG lässt die erforderliche Dichteprüfung fehlschlagen
+- wertet erwartete nicht-interlaced PNGs mit 8-Bit-Grau-, RGB- oder RGBA-Pixeln und den PNG-Filtern 0 bis 4 über den jeweiligen dependency-freien Laufzeitleser aus; ein nicht auswertbares PNG lässt die erforderliche Dichteprüfung fehlschlagen
 - beendet hängende Browser nach dem konfigurierten Timeout
 - meldet Fehler sichtbar, statt stille Browserfehler zu übergehen
 
@@ -178,8 +184,8 @@ Als Einzelwerkzeug ist der Browser-Layoutcheck für Diagnose optional. Im verbin
 
 Im Standardweg wählt das Skript automatisch einen unterstützten installierten Browser aus:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 layout --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" --browser auto
+```bash
+python3 Tools/bewerbung.py layout --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" --browser auto
 ```
 
 `auto` sucht unter Windows in der Reihenfolge Chrome, Edge, Chromium und unter Linux in der Reihenfolge Chrome, Chromium, Edge. `--browser-executable-path` überschreibt die Suche, wird aber auf Existenz, Version und Chromium-Engine geprüft. Firefox ist ausschließlich für das Subcommand `layout` als Diagnose zulässig; PDF-Export und Finalisierung lehnen ihn ab. Besonders in Sandbox-Umgebungen können Headless-Browser ohne echte Layoutursache fehlschlagen oder hängen. Wenn der Lauf im Sandbox-Kontext keine Screenshot-Dateien erzeugt, mit einem Browser-Startfehler endet oder hängen bleibt:
@@ -189,6 +195,8 @@ pwsh -NoProfile -File Tools/bewerbung.ps1 layout --ordner "Private/Bewerbungen/F
 - denselben Befehl außerhalb der Sandbox oder mit lokaler Browserfreigabe erneut ausführen
 - bei Bedarf den tatsächlich installierten Browser mit `--browser chrome`, `--browser edge` oder `--browser chromium` gezielt diagnostizieren
 - den Sandbox-Fehler in `Qualitaetscheck.md` nur als technischen Laufzeitfehler dokumentieren
+
+Auf normalen Hosts bleibt die Chromium-Sandbox aktiv; `--no-sandbox` und `--disable-gpu-sandbox` werden nicht verwendet. Der Linux-Python-Kern lehnt einen Browserstart als Root fail-closed ab. Nur die ephemeren Root-Container von `linux-compatibility.yml` dürfen mit dem ausdrücklich gesetzten `APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER=1` die eng begrenzte CI-Ausnahme aktivieren; Agenten und Benutzer dürfen diese Variable nicht als lokale Problemlösung setzen.
 
 Erfolgreiche Screenshots liegen hier:
 
@@ -229,17 +237,17 @@ Die Vorlagen verwenden `Arial, "Liberation Sans", Helvetica, sans-serif`. Window
 
 Wenn ausgewählte finale HTML-Dateien technisch im grünen Bereich sind, werden genau diese automatisch als PDF exportiert:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 pdf `
-  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
-  --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
-  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export" `
+```bash
+python3 Tools/bewerbung.py pdf \
+  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" \
+  --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" \
+  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export" \
   --browser auto
 ```
 
 Der PDF-Export:
 
-- führt zuerst `Tools/Pruefe-Bewerbung.ps1` aus
+- führt zuerst denselben statischen Vertragsprüfer wie das Subcommand `pruefen` aus
 - bricht ab, wenn der statische Check fehlschlägt
 - nutzt Chrome, Edge oder Chromium Headless für den PDF-Export
 - speichert die PDFs beim Einzellauf im geprüften HTML-/Kandidatenordner; die Finalisierung übernimmt sie anschließend ausschließlich nach `Versand/`
@@ -264,11 +272,11 @@ Für Diagnose werden Layoutcheck und PDF-Export mit ihren ausdrücklich genannte
 
 Der Export kann auf beiden Plattformen gezielt mit Chrome ausgeführt werden:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 pdf `
-  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
-  --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
-  --browser chrome `
+```bash
+python3 Tools/bewerbung.py pdf \
+  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" \
+  --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" \
+  --browser chrome \
   --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export"
 ```
 
@@ -276,7 +284,7 @@ Wenn kein unterstützter Chromium-Browser verfügbar ist, wird kein PDF-Export a
 
 ## ATS-Prüfung der PDFs
 
-Der verbindliche Finalisierungsworkflow führt nach dem PDF-Export `Tools/Pruefe-ATS.ps1` aus. Das Werkzeug extrahiert die Unicode-Textschicht ohne externes PDF-Paket und prüft:
+Der verbindliche Finalisierungsworkflow führt nach dem PDF-Export den ATS-Prüfer des jeweiligen Plattformkerns aus. Er extrahiert die Unicode-Textschicht ohne externes PDF-Paket und prüft:
 
 - Pflichttexte wie Bewerbername, Firma und Zielrolle
 - formale Zeiträume im Lebenslauf
@@ -295,18 +303,24 @@ Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versand
 5. Jeden erzeugten Seitenscreenshot visuell öffnen und prüfen; ohne HTML die ausgewählten Textdateien persönlich prüfen.
 6. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.
 7. Bei Dichte- oder Layoutwarnungen die Sichtbewertung als Freigabenotiz dokumentieren.
-8. Erst nach neuer eindeutiger Sichtprüfungsbestätigung die im Bericht ausgegebene ID mit `bewerbung.ps1 freigabe --bestaetigt` an den unveränderten Artefaktsatz binden und anschließend mit `--veroeffentlichen` atomar veröffentlichen. Das Legacy-Argument `--visuell-geprueft` erteilt keine Freigabe.
+8. Erst nach neuer eindeutiger Sichtprüfungsbestätigung die im Bericht ausgegebene ID mit dem Subcommand `freigabe --bestaetigt` an den unveränderten Artefaktsatz binden und anschließend mit `finalisieren --veroeffentlichen` atomar veröffentlichen. Das Legacy-Argument `--visuell-geprueft` erteilt keine Freigabe.
 9. Bei Fehlern nicht final melden; der finale Zielordner muss unverändert bleiben. Der Tokenbericht darf einen ansonsten erfolgreichen Lauf nicht blockieren.
 
 ## CI und gestufter Plattform-Rollout
 
-Die browserfreie PowerShell-Suite läuft mit `fail-fast: false` unverändert auf `windows-2025` und `ubuntu-24.04`; sie ist in `schnell` (Parser-, Schema-, Modul- und Vertrags-Canary) sowie `vollstaendig` (alle browserfreien Regressionen einschließlich der vier Rollen-Fixtures) geteilt. Linux führt zusätzlich `bash -n`, ShellCheck sowie Dispatcher- und Kompatibilitätstests aus. Der zeitgesteuerte `linux-compatibility.yml`-Workflow installiert und prüft Ubuntu, Debian, Fedora, Rocky, Arch und openSUSE in ephemeren Containern. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
+Die schnellen und vollständigen Windows-PowerShell-Suiten laufen als getrennte Jobs auf `windows-2025` weiter. Linux führt `schnell` und `vollstaendig` ausschließlich über `python3 Tools/bewerbung.py tests` aus und prüft zusätzlich `python3 -m unittest`, `bash -n`, ShellCheck sowie die reinen Launcher- und Bootstrap-Verträge; in keinem Linux-Job wird `pwsh` installiert oder aufgerufen. Der zeitgesteuerte `linux-compatibility.yml`-Workflow installiert und prüft Ubuntu 24.04/26.04, Debian 13, Fedora, Rocky 9, Arch und openSUSE in ephemeren Containern. Ubuntu bleibt wegen der Snap-Transition ohne automatisch installierten Browser; Rocky 9 installiert aus den Base-Repositories nur Runtime und Fonts und muss Browser sowie ShellCheck ohne EPEL als blockiert melden. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
 
-Der Windows-Browser-Smoke läuft bei jedem Pull Request sowie zeitgesteuert/manuell unter einem stabilen Checknamen. Linux läuft zunächst nur zeitgesteuert/manuell. Beide Jobs prüfen Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und fehlende Restprozesse. Erst nach drei aufeinanderfolgenden grünen Linux-Paritätsläufen je Zielprofil, einem dokumentierten Promotion-PR und einem administrativen Ruleset-Eintrag darf Linux als stabil und PR-verbindlich bezeichnet werden. Ohne Adminzugriff bleibt der Eintrag vorbereitet.
+Die Cross-Core-Auftragsparität wird in fünf zusätzlichen Jobs geprüft: Windows/PowerShell und Linux/Python erzeugen aus denselben öffentlichen synthetischen Quellen einen Schema-5-Auftrag, einen echten Ursprungs-Runtime-Fingerprint sowie je ein vollständiges synthetisches `Private`-Artefakt. Zwei Gegenkernjobs rekonstruieren den Status, schreiben einen portablen Checkpoint fort und verlangen über den jeweiligen produktiven Runtime-Validator, dass der fremde technische Schema-1-Fingerprint veraltet ist. Erst danach vergleicht ein Ubuntu-Job die getrennt hochgeladenen `normalized-order.json` bytegenau. Das belegt Auftragsanlage, Status-/Checkpoint-Fortsetzung und Runtime-Entwertung, nicht bereits die vollständige Rollenfixture- oder Browserparität.
 
-`browser-stability-evidence.yml` darf aus der GitHub-Actions-API nur einen read-only Nachweisentwurf erzeugen. Der Entwurf gilt nicht als Promotion; ein eigener PR muss die drei aufeinanderfolgenden Läufe und alle Kriterien übernehmen.
+Der Windows-Browser-Smoke läuft bei jedem Pull Request sowie zeitgesteuert/manuell unter einem stabilen Checknamen. Linux läuft zunächst nur zeitgesteuert/manuell und führt die native Python-Browsersuite mit synthetischen Layout-, PDF-, ATS-, Finalisierungs- und Freigabefällen aus. Das Linux-Promotion-Gate ist damit noch nicht erfüllt: Erst wenn Collector, Validator und öffentlicher Nachweis je Zielprofil drei aufeinanderfolgende vollständige Läufe mit Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und ohne Restprozesse belegen, darf ein dokumentierter Promotion-PR Linux als stabil und PR-verbindlich einstufen. Ein administrativer Ruleset-Eintrag ist zusätzlich erforderlich; ohne Adminzugriff bleibt er nur vorbereitet.
 
-Echte Prompt-Regressionen verwenden `Tests/PromptRegression/models.json` und `scenarios.json`. Codex und OpenCode bilden die PR-Canary mit identischer OpenAI-Modell-ID; Claude Code und Gemini CLI laufen in der vollständigen wöchentlichen/manuellen Matrix. Der isolierte Runner leert globale Profile, lädt `AGENTS.md` über die jeweilige Umgebung, prüft erlaubte Dateimutationen und meldet fehlende Secrets oder unerwartete Modellweiterleitungen als Fehler. Reports speichern keine Zugangsdaten oder privaten Inhalte.
+`browser-stability-evidence.yml` darf aus der GitHub-Actions-API nur einen read-only Nachweisentwurf erzeugen. Der aktuelle Entwurf ist noch auf Ubuntu 24.04 beschränkt; die Distributionsmatrix lädt deshalb bereinigte Vollsuite- und verfügbare Browserberichte je Zielprofil getrennt hoch. Vor einer Promotion müssen Collector, Validator und öffentlicher Stabilitätsnachweis auf alle Zielprofile erweitert werden. Der Entwurf gilt nicht als Promotion; ein eigener PR muss danach je Profil drei aufeinanderfolgende Läufe und alle Kriterien übernehmen.
+
+Echte Prompt-Regressionen verwenden `Tests/PromptRegression/models.json` und `scenarios.json` und laufen unter Linux über `python3 Tools/bewerbung.py tests --suite prompt-pr` beziehungsweise `prompt-vollstaendig`. Codex und OpenCode bilden die PR-Canary mit identischer OpenAI-Modell-ID; Claude Code und Gemini CLI laufen in der vollständigen wöchentlichen/manuellen Matrix. Die Testworkflows installieren `bubblewrap` ausschließlich als CI-Sandbox-Voraussetzung und prüfen den Namespace vor jedem Modelllauf; es gehört nicht zu den Benutzerabhängigkeiten von `setup-linux.py`. Versionsprobe und Agentlauf sehen im Mount-/PID-/User-Namespace nur die synthetische Arbeitskopie sowie read-only eingebundene Systemruntimes, nicht das Host-Home. Das Netz bleibt ausschließlich für die Provider-API geteilt. Fehlt `bwrap` oder sind User-Namespaces gesperrt, entsteht fail-closed ein Schema-1-Fehlerbericht.
+
+Der Runner reicht nur das deklarierte Credential weiter, lädt `AGENTS.md` über die jeweilige Umgebung und prüft Mutationsgrenzen sowie Ausgabesignale. Das Zielmodell muss im kataloggebundenen Argumentvektor stehen; weist die CLI ein tatsächlich verwendetes Modell maschinenlesbar aus, muss es exakt passen. Die Rollenfixtures beginnen ohne Matrix und Evidenzindex und müssen beide neu, schema-, SHA-, Evidenz- und strategievalidiert erzeugen; der direkte Rollenfall prüft zusätzlich ausgewählte Dokumente, A4-Grundstruktur und Platzhalterfreiheit. Fehlende Secrets und CLI-Versionsdrift schlagen fehl. Ein grüner Lauf belegt diese definierten Verträge, nicht jedes fachliche Verhalten beliebiger Modelle. Reports speichern keine Zugangsdaten oder privaten Inhalte.
+
+Nur der Actions-Evidence-Sammler bleibt vorerst ein PowerShell-Hilfswerkzeug auf `windows-2025`. Prompt-, Kern- und Distributionsjobs unter Linux installieren oder starten kein `pwsh`.
 
 ## Keine stillen Erfolge
 

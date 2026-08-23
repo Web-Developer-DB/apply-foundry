@@ -209,23 +209,7 @@ function Test-FinalReportRuntimeCurrent {
   $schema = Get-JsonProperty -Object $Report -Name 'schemaVersion'
   if (($schema -isnot [int] -and $schema -isnot [long]) -or [int]$schema -notin @(6, 7)) { return $false }
   $runtime = Get-JsonProperty -Object $Report -Name 'runtime'
-  if ($null -eq $runtime) { return $false }
-  $runtimeSchema = Get-JsonProperty -Object $runtime -Name 'schemaVersion'
-  if (($runtimeSchema -isnot [int] -and $runtimeSchema -isnot [long]) -or [int]$runtimeSchema -ne 1) { return $false }
-  $current = Get-RuntimeFingerprint
-  $matches = (
-    [string](Get-JsonProperty -Object $runtime -Name 'os') -ceq [string]$current.os -and
-    [string](Get-JsonProperty -Object $runtime -Name 'architecture') -ceq [string]$current.architecture -and
-    [string](Get-JsonProperty -Object $runtime -Name 'psEdition') -ceq 'Core'
-  )
-  if ($matches -and [string]$current.os -ceq 'linux') {
-    $matches = (
-      [string](Get-JsonProperty -Object $runtime -Name 'distributionId') -ceq [string]$current.distributionId -and
-      [string](Get-JsonProperty -Object $runtime -Name 'distributionVersion') -ceq [string]$current.distributionVersion -and
-      [string](Get-JsonProperty -Object $runtime -Name 'wsl') -ceq [string]$current.wsl
-    )
-  }
-  return $matches
+  return $null -ne $runtime -and (Test-RuntimeFingerprintCurrent -Fingerprint $runtime)
 }
 
 function Get-TechnicalAttempt {

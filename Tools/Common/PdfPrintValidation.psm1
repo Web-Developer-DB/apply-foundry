@@ -176,7 +176,7 @@ function Invoke-HtmlPrintPreflight {
     New-Item -Path $runRoot -ItemType Directory | Out-Null
     New-Item -Path $profileDir -ItemType Directory | Out-Null
     $arguments = @(
-      '--headless=new', '--disable-gpu', '--disable-gpu-sandbox', '--no-sandbox', '--disable-dev-shm-usage',
+      '--headless=new', '--disable-gpu', '--disable-dev-shm-usage',
       '--no-first-run', '--disable-background-networking', '--disable-extensions',
       "--user-data-dir=$profileDir", "--print-to-pdf=$browserPdfPath", '--print-to-pdf-no-header', '--no-pdf-header-footer',
       ([System.Uri]::new($HtmlFile.FullName).AbsoluteUri)

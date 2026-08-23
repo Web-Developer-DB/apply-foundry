@@ -59,7 +59,7 @@ Aus einer Stellenbeschreibung und deinen Profildaten entstehen nur die ausdrück
 Bei einem eindeutigen Auftrag wie `Lebenslauf und Anschreiben, aber keine E-Mail` überspringt der Agent die Auswahlfrage. Eine bloße Stellenbeschreibung legt den Umfang dagegen nicht fest. Auswahl B friert die Universalquelle per SHA-256 ein. Für eine reine E-Mail ohne Anlagen ist eine zusätzliche eindeutige Bestätigung erforderlich.
 
 > [!NOTE]
-> **Kanonische Werkzeugkette:** PowerShell 7.6 Core auf Windows und Linux x86_64 sowie für ausgewählte HTML-Dokumente Chromium, Chrome oder Edge. Die Agentenumgebung ist frei wählbar, muss aber Dateien bearbeiten und Terminalbefehle ausführen können. Linux bleibt bis zu drei aufeinanderfolgenden grünen Browsernachweisen im [Vorschau-Status](#plattformstatus).
+> **Kanonische Werkzeugkette:** PowerShell 7.6 Core unter Windows, System-Python 3.9+ unter Linux x86_64 sowie für ausgewählte HTML-Dokumente Chromium, Chrome oder Edge. Die Agentenumgebung ist frei wählbar, muss aber Dateien bearbeiten und Terminalbefehle ausführen können. Linux bleibt bis zu drei aufeinanderfolgenden grünen Browsernachweisen je Zielprofil im [Vorschau-Status](#plattformstatus).
 
 ### So fließen deine Daten
 
@@ -149,8 +149,9 @@ Dieser Abschnitt ist für alle, die mit dem Projekt Bewerbungen erstellen möcht
 
 | Benötigt | Wofür? |
 | --- | --- |
-| Windows x64 oder Linux x64 mit APT, DNF/YUM, Pacman oder Zypper und [PowerShell 7.6](https://learn.microsoft.com/powershell/scripting/install/install-powershell) | eine gemeinsame fachliche Prüf- und Freigabekette; Linux bleibt bis zum Rolloutnachweis Vorschau |
-| macOS | derzeit nicht unterstützt | kein Bootstrap und kein belastbarer Plattformnachweis in diesem Projektstand |
+| Windows x64 mit [PowerShell 7.6](https://learn.microsoft.com/powershell/scripting/install/install-powershell) | stabiler PowerShell-Prüf- und Freigabekern |
+| Linux x64 mit System-Python 3.9+ und APT, DNF/YUM, Pacman oder Zypper | vertragsgleicher Python-Prüf- und Freigabekern; bis zum Rolloutnachweis Vorschau |
+| macOS | derzeit nicht unterstützt; kein Bootstrap und kein belastbarer Plattformnachweis in diesem Projektstand |
 | Git | Repository klonen und später aktualisieren; bei einem bereits vorhandenen Projektordner nicht für den Workflow selbst erforderlich |
 | eine eingerichtete Agentenumgebung | Projektregeln lesen, Dateien bearbeiten und Terminalbefehle ausführen |
 | Chrome, Edge oder Chromium | für ausgewählte HTML-Dokumente verbindliche Layoutbilder und geprüfte PDFs erzeugen |
@@ -160,7 +161,7 @@ Dieser Abschnitt ist für alle, die mit dem Projekt Bewerbungen erstellen möcht
 > [!TIP]
 > Führe Projektbefehle immer im Projektstamm aus, in dem `AGENTS.md`, `README.md`, `Prompts/` und `Tools/` liegen. Ein Editor wie VS Code ist optional.
 
-Prüfe im Terminal die installierten Grundlagen:
+Prüfe im Terminal die installierten Grundlagen. Unter Windows:
 
 ```powershell
 git --version
@@ -170,10 +171,22 @@ pwsh --version
 `pwsh` muss PowerShell 7.6 Core melden. Die Agentenumgebung prüft zusätzlich Dateizugriff, Terminal, Browser, PNG-Auswertung, Nutzungsdaten und Sandboxgrenzen jeweils vor dem betroffenen Schritt. Fehlt beispielsweise die Bildauswertung, darf sie keine visuelle Prüfung behaupten; sie muss die PNGs erzeugen und dich zur persönlichen Prüfung auffordern. Der gemeinsame read-only Preflight lautet:
 
 ```powershell
+./Tools/setup-windows.ps1 -All -DryRun -Format json
 pwsh -NoProfile -File Tools/bewerbung.ps1 diagnose
 ```
 
-Unter Linux kann derselbe Check über `./Tools/bewerbung.sh diagnose` gestartet werden. Der read-only Installationsplan lautet `./Tools/setup-linux.sh --all --dry-run --format json`; `setup-ubuntu.sh` bleibt als Kompatibilitätsalias erhalten. Eine reale Installation führt der Agent nur nach dem angezeigten Plan und bestätigter Berechtigung aus.
+Unter Linux ist System-Python 3.9+ die Kernruntime; PowerShell ist dort nicht erforderlich:
+
+```bash
+git --version
+python3 --version
+python3 Tools/setup-linux.py --all --dry-run --format json
+python3 Tools/bewerbung.py diagnose
+```
+
+`./Tools/bewerbung.sh` bleibt ein kompatibler Alias. Fehlt Python selbst, darf `./Tools/setup-linux.sh --runtime --dry-run` als minimaler Bootstrap verwendet werden; danach delegiert er an `setup-linux.py`. `setup-ubuntu.sh` bleibt ebenfalls ein Alias. Eine reale Installation führt der Agent nur nach dem angezeigten Plan und bestätigter Berechtigung aus. Linux verwendet keine PyPI-Pakete, virtuelle Umgebung, Snap-, AUR- oder fremde Browserquelle.
+
+Ist PowerShell 7.6 unter Linux bereits vorhanden, bleibt der direkte Aufruf `pwsh -NoProfile -File Tools/bewerbung.ps1 ...` während der gestuften Migration als ausdrücklich benannter Legacy-Fallback verfügbar. Er ist kein Linux-Alias, keine CI-Voraussetzung und wird vom Linux-Setup nicht installiert.
 
 #### 1. Projekt herunterladen und öffnen
 
@@ -315,7 +328,7 @@ Kontrolliere vor der ersten Bewerbung:
 Lass danach den maschinellen Stammdatencheck vom geöffneten Agenten ausführen:
 
 ```text
-Führe Tools/Pruefe-Stammdaten.ps1 für meine Daten unter Private/Daten aus.
+Führe über den Plattform-Dispatcher das Subcommand stammdaten für meine Daten unter Private/Daten aus.
 Erkläre mir Fehler und Warnungen in einfacher Sprache.
 Korrigiere nur Angaben, für die ich dir echte Informationen gegeben habe, und erfinde nichts.
 Erstelle noch keine Bewerbung. Melde mir am Ende eindeutig, ob der Stammdatencheck erfolgreich ist.
@@ -363,7 +376,7 @@ unverändert. Erstelle nur Anschreiben und E-Mail neu und prüfe den Lebenslauf-
 
 Die Kurzform `Erstelle nur ein Anschreiben und verwende meinen universellen Lebenslauf` wird als Einstieg mit Universal-Lebenslauf erkannt. Soll abweichend von Auswahl B keine E-Mail-Nachricht entstehen, nenne das ausdrücklich.
 
-Zum erstmaligen Erstellen oder bewussten Aktualisieren der Universalquelle genügt der Auftrag `Erstelle beziehungsweise aktualisiere meinen universellen Softwareentwicklungs-Lebenslauf.` Der getrennte Ablauf verwendet `bewerbung.ps1 universal-neu`, `universal-status` und `universal-finalisieren`. Erst nach Prüfung beider PNG-Seiten entsteht das kleine Aktivpaket; sein datierter Arbeitsordner wird danach vollständig entfernt.
+Zum erstmaligen Erstellen oder bewussten Aktualisieren der Universalquelle genügt der Auftrag `Erstelle beziehungsweise aktualisiere meinen universellen Softwareentwicklungs-Lebenslauf.` Der getrennte Ablauf verwendet die Subcommands `universal-neu`, `universal-status` und `universal-finalisieren` des jeweiligen Plattform-Dispatchers. Erst nach Prüfung beider PNG-Seiten entsteht das kleine Aktivpaket; sein datierter Arbeitsordner wird danach vollständig entfernt.
 
 Weitere eindeutige Beispiele sind `Erstelle nur ein Anschreiben.` und `Erstelle nur einen individuellen Lebenslauf.` Eine reine E-Mail-Nachricht ohne Lebenslauf und Anschreiben muss der Agent vor der Auftragsanlage noch einmal ausdrücklich als Auftrag ohne Anlagen bestätigen lassen.
 
@@ -544,7 +557,7 @@ Pro Runde werden höchstens drei wesentliche, voneinander unabhängige Fragen ge
 
 `Bewerbungsauftrag.json` Schema 5 friert Firma, Rolle, portable Root-relative Pfade, Logistik, den bestätigten Dokumentumfang und den normalisierten Dialogzustand für genau diese Bewerbung ein. Neue Bewerbungen verwenden `Anforderungsmatrix.json` Schema 5: zusätzlich zu Gewichtung, Beleg und Behandlung enthält sie die maschinenlesbare Anschreibenstrategie, strukturierte externe Quellen und die Evidenzdisposition. Matrix-Schemata 1 bis 4 bleiben für bestehende Bewerbungen lesbar.
 
-Legacy-Matrizen können ausdrücklich über `bewerbung.ps1 migrieren --arbeitsordner "..."` geprüft werden. Der Standardlauf ist read-only. `--anwenden` erzeugt bei fehlenden fachlichen Ergänzungen nur private Migrationsentwürfe; eine Übernahme in `Anforderungsmatrix.json` und `Evidenzindex.json` erfolgt erst nach vollständiger Zielvertragsprüfung. Leser, Statusprüfung und Finalisierung migrieren niemals automatisch. `Migrationsbericht.json` verwendet Schema 1 und bindet die Vorher-/Nachher-Hashes.
+Legacy-Matrizen können ausdrücklich über das Subcommand `migrieren --arbeitsordner "..."` des jeweiligen Plattform-Dispatchers geprüft werden. Der Standardlauf ist read-only. `--anwenden` erzeugt bei fehlenden fachlichen Ergänzungen nur private Migrationsentwürfe; eine Übernahme in `Anforderungsmatrix.json` und `Evidenzindex.json` erfolgt erst nach vollständiger Zielvertragsprüfung. Leser, Statusprüfung und Finalisierung migrieren niemals automatisch. `Migrationsbericht.json` verwendet Schema 1 und bindet die Vorher-/Nachher-Hashes.
 
 **6 · Umfangsgerechter Kandidat**
 
@@ -784,27 +797,29 @@ Bei einer Layoutwarnung beschreibst du zusätzlich konkret, was du auf der betro
 
 **1. Technisch vorbereiten**
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --browser auto
+```bash
+python3 Tools/bewerbung.py finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --browser auto
 ```
 
 **2. Nach der Sichtprüfung die vorbereitete Freigabe-ID bestätigen**
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 freigabe `
-  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
-  --freigabe-id FR-XXXXXXXXXXXX `
-  --bestaetigt `
+```bash
+python3 Tools/bewerbung.py freigabe \
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" \
+  --freigabe-id FR-XXXXXXXXXXXX \
+  --bestaetigt \
   --notiz "Sichtprüfung aller genannten PNG-Seiten abgeschlossen; keine abgeschnittenen oder verdeckten Inhalte."
 ```
 
 Die ID steht im vorbereiteten `Finalisierungsbericht.json` (beziehungsweise im Universalbericht). Der neue CLI-Schritt schreibt `Sichtfreigabe.json` nur für genau diesen unveränderten Bericht und Artefaktsatz. Bei Layoutwarnungen ist eine ehrliche, konkrete `--notiz` verpflichtend. Erst danach darf veröffentlicht werden:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren `
-  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+```bash
+python3 Tools/bewerbung.py finalisieren \
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" \
   --veroeffentlichen
 ```
+
+Unter Windows wird jeweils `pwsh -NoProfile -File Tools/bewerbung.ps1` anstelle von `python3 Tools/bewerbung.py` verwendet; die GNU-Langoptionen bleiben gleich.
 
 `--visuell-geprueft` ist nur noch ein veraltetes Kompatibilitätsargument und erteilt keine Berechtigung. Änderungen an Quellen, Arbeitsversionen oder Screenshots machen vorhandene Prüfnachweise und die Sichtfreigabe ungültig; der Stand muss vollständig neu vorbereitet und mit einer neuen ID geprüft werden. Bereits veröffentlichte Stände bleiben lesbar.
 
@@ -813,14 +828,14 @@ pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren `
 
 Bearbeite veröffentlichte Dateien nicht direkt unter `Versand/` oder `Intern/`. Bitte den Agenten um die Korrektur der Arbeitsversion unter `Kandidat/`, wiederhole die technische Vorbereitung und kontrolliere alle neuen Screenshots. Erst danach darf der neu geprüfte Satz den bestehenden Zielordner bewusst ersetzen:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 freigabe `
-  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
-  --freigabe-id FR-XXXXXXXXXXXX `
-  --bestaetigt `
+```bash
+python3 Tools/bewerbung.py freigabe \
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" \
+  --freigabe-id FR-XXXXXXXXXXXX \
+  --bestaetigt \
   --notiz "Neue Sichtprüfung nach der Korrektur abgeschlossen."
-pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren `
-  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+python3 Tools/bewerbung.py finalisieren \
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" \
   --veroeffentlichen --ersetzen
 ```
 
@@ -846,37 +861,37 @@ In den folgenden Beispielen liegen die prüfbaren HTML-Dateien im Kandidatenordn
 
 **Statischer Check**
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 pruefen `
-  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
+```bash
+python3 Tools/bewerbung.py pruefen \
+  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" \
   --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json"
 ```
 
 Warnungen können streng als Fehler behandelt werden:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 pruefen `
-  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
-  --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
+```bash
+python3 Tools/bewerbung.py pruefen \
+  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" \
+  --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" \
   --warnungen-als-fehler
 ```
 
 **Layout-Screenshots**
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 layout `
-  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
-  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck" `
+```bash
+python3 Tools/bewerbung.py layout \
+  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" \
+  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Layoutcheck" \
   --browser auto
 ```
 
 **PDF-Export**
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 pdf `
-  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" `
-  --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" `
-  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export" `
+```bash
+python3 Tools/bewerbung.py pdf \
+  --ordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat" \
+  --auftrag-path "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Bewerbungsauftrag.json" \
+  --output-root "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/PDF-Export" \
   --browser auto
 ```
 
@@ -909,17 +924,21 @@ Ein bewusst zweiseitiger Lebenslauf ist besser als ein gequetschtes oder abgesch
 | Komponente | Status | Verwendung |
 | --- | --- | --- |
 | Windows + PowerShell 7.6 | 🟢 primär unterstützt | am umfassendsten geprüfter Projektablauf; Windows-Browser-Smoke ist als PR-Check konfiguriert |
-| Linux x86_64 + APT/DNF/YUM/Pacman/Zypper | 🟠 Vorschau | gleiche Kernlogik; Bootstrap mit nativen Paketen und geprüftem PowerShell-Archiv, Browser-Smoke zunächst zeitgesteuert/manuell |
+| Linux x86_64 + Python 3.9+ + APT/DNF/YUM/Pacman/Zypper | 🟠 Vorschau | eigenständiger Standardbibliothekskern mit denselben CLI- und Artefaktverträgen; Browser-Smoke zunächst zeitgesteuert/manuell |
 | macOS | 🔴 nicht unterstützt | kein Setup, keine automatische Paketinstallation und kein technischer Plattformvertrag |
-| PowerShell-Werkzeuge unter `Tools/` | 🟢 kanonischer Kern | Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Freigabeprüfungen |
+| PowerShell-Werkzeuge unter `Tools/` | 🟢 Windows-Kern | Stammdaten-, Inhalts-, Layout-, PDF-, ATS- und Freigabeprüfungen unter Windows |
+| `Tools/bewerbung.py` und `Tools/linux_py/` | 🟠 Linux-Kern | vertragsgleiche Prüfungen unter Linux ohne PowerShell- oder PyPI-Abhängigkeit |
+| direkter `pwsh ... Tools/bewerbung.ps1`-Aufruf unter Linux | ⚪ Legacy-Fallback | nur bei bereits vorhandenem PowerShell 7.6 für Migrationsdiagnosen; kein Alias und keine Linux-CI-Voraussetzung |
 | Chrome, Edge oder Chromium | 🔵 für HTML-Finalisierung erforderlich | Layoutcheck, automatischer PDF-Export und ATS-Prüfung für ausgewählte HTML-Dokumente; nicht für E-Mail-only |
 | Firefox | 🟡 Diagnose | ausschließlich Layoutdiagnose; unzulässig für PDF und Finalisierung |
-| Bash | 🟢 dünner Linux-Einstieg | löst nur den Skriptpfad auf, prüft PowerShell 7.6 und delegiert unveränderte Argumente |
+| Bash | 🟢 Linux-Kompatibilität | Bewerbungslauncher delegieren an Python; nur `setup-linux.sh` darf ein fehlendes System-Python minimal bootstrappen |
 | Agent mit PNG-Auswertung | 🟡 optional | kann Screenshots zusätzlich beurteilen; persönliche Sichtprüfung bleibt Pflicht |
 
-Für die normale Nutzung brauchst du dieses Repository, gepflegte Daten unter `Private/Daten/`, einen Agenten mit Datei- und Terminalzugriff und eine konkrete Stellenbeschreibung. Die Kernwerkzeuge verlangen [PowerShell 7.6 Core](https://learn.microsoft.com/powershell/scripting/install/powershell-support-lifecycle?view=powershell-7.6). Die Distributions- und Archiventscheidung folgt Microsofts [Linux-Installationsübersicht](https://learn.microsoft.com/en-us/powershell/scripting/install/linux-overview?view=powershell-7.6); die konkrete Archivversion und ihr SHA-256 stehen in `Tools/PowerShell-runtime.json`. Der Linux-Launcher hat keine Abhängigkeiten auf `jq`, Python oder Node. `Tools/bewerbung.ps1 diagnose` prüft die Umgebung read-only. Fehlende PowerShell-, Chromium-, Font- oder ShellCheck-Komponenten können über `setup-linux.sh` beziehungsweise `setup-windows.ps1` geplant und nach Zustimmung installiert werden. Arch und openSUSE verwenden für PowerShell den gepinnten, SHA-256-geprüften offiziellen Archiv-Fallback; unbekannte Paketmanager erhalten nur eine Anleitung. Die agentenspezifischen Start- und Teststände stehen in der [Kompatibilitätsübersicht](#agentenkompatibilitaet).
+Für die normale Nutzung brauchst du dieses Repository, gepflegte Daten unter `Private/Daten/`, einen Agenten mit Datei- und Terminalzugriff und eine konkrete Stellenbeschreibung. Unter Windows verlangen die Kernwerkzeuge [PowerShell 7.6 Core](https://learn.microsoft.com/powershell/scripting/install/powershell-support-lifecycle?view=powershell-7.6), unter Linux ausschließlich System-Python 3.9 oder neuer. Beide Dispatcher bieten dieselben 23 Subcommands, GNU-Langoptionen, Exitcodes `0/1/2` und privaten Artefaktschemata. `diagnose` prüft die Umgebung read-only und beschreibt die Kernruntime in Schema 3 im generischen Feld `coreRuntime`; Linux-Setup-Pläne verwenden Schema 2. Fehlende deklarierte Komponenten können über `setup-linux.py` beziehungsweise `setup-windows.ps1` geplant und nach Zustimmung installiert werden. Linux bezieht Python, Chromium, Liberation Sans und ShellCheck ausschließlich aus der Distribution; PyPI, virtuelle Umgebungen, Snap und AUR werden nicht verwendet. Unbekannte Paketmanager erhalten nur eine Anleitung. Die agentenspezifischen Start- und Teststände stehen in der [Kompatibilitätsübersicht](#agentenkompatibilitaet).
 
 `auto` sucht unter Windows Chrome → Edge → Chromium und unter Linux Chrome → Chromium → Edge. Mit `--browser-executable-path` kann ein anderer lokaler Pfad ausdrücklich gewählt werden; er muss existieren, eine Version liefern und eine Chromium-Engine verwenden. Firefox bleibt ausschließlich eine Layoutdiagnose. Die Designvorlagen nutzen `Arial, "Liberation Sans", Helvetica, sans-serif`; das Setup wählt je Paketmanager das passende Liberation-Sans-Paket. Ubuntu liefert Chromium teilweise nur als Snap-Transition; diese wird gemäß Projektvertrag nicht automatisch installiert und im Setup-Plan als manuelle Voraussetzung ausgewiesen.
+
+Bei Pacman weist der Setup-Plan ausdrücklich die vollständige Systemaktualisierung des ersten Installationsschritts mit `-Syu` aus; sie wird nicht außerhalb der bestätigten Plananwendung gestartet. Blockierte Browserwege unter Ubuntu und RHEL-kompatiblen Basis-Repositories enthalten in `manualInstruction` die zulässige manuelle Voraussetzung und den exakten `verificationCommand`. Liberation Sans gilt nur dann als vorhanden, wenn eine tatsächliche reguläre Fontdatei validiert wurde; dieser Dateifallback funktioniert auch ohne `fc-match`.
 
 <details>
 <summary><strong>Bewerbungsordner manuell anlegen</strong></summary>
@@ -936,17 +955,17 @@ pwsh -NoProfile -File Tools/bewerbung.ps1 neu `
   --umfang-quelle direkter_auftrag
 ```
 
-Linux / Bash (Vorschau):
+Linux / Python 3.9+ (Vorschau):
 
 ```bash
-./Tools/bewerbung.sh neu \
+python3 Tools/bewerbung.py neu \
   --firma "Muster GmbH" \
   --rolle "Junior Webentwickler" \
   --umfang A \
   --umfang-quelle direkter_auftrag
 ```
 
-Beide öffentlichen Einstiege verwenden GNU-Langoptionen. Für Auswahl E lautet die zentrale Übergabe `--dokumente lebenslauf,anschreiben`; eine reine E-Mail verwendet zusätzlich `--email-allein-bestaetigt`, aber nur nach der ausdrücklichen Nutzerbestätigung. Der Dispatcher erzeugt einen leeren Zielordner, einen Arbeitsordner, einen Kandidatenordner und den portablen Schema-5-Auftrag. Eine vorhandene Kombination aus Firma, Datum und Rolle wird nicht überschrieben; `--fortsetzen` ist nur für denselben Umfang und dieselbe, über Auftrag und Arbeitsnotizen nachweisbare Bewerbung vorgesehen. Direkte `.ps1`-Aufrufe bleiben rückwärtskompatibel unterstützt.
+`./Tools/bewerbung.sh neu ...` und `./Tools/neue-bewerbung.sh ...` bleiben kompatible Aliase. Beide Plattform-Dispatcher verwenden GNU-Langoptionen. Für Auswahl E lautet die zentrale Übergabe `--dokumente lebenslauf,anschreiben`; eine reine E-Mail verwendet zusätzlich `--email-allein-bestaetigt`, aber nur nach der ausdrücklichen Nutzerbestätigung. Der Dispatcher erzeugt einen leeren Zielordner, einen Arbeitsordner, einen Kandidatenordner und den portablen Schema-5-Auftrag. Eine vorhandene Kombination aus Firma, Datum und Rolle wird nicht überschrieben; `--fortsetzen` ist nur für denselben Umfang und dieselbe, über Auftrag und Arbeitsnotizen nachweisbare Bewerbung vorgesehen. Direkte `.ps1`-Aufrufe bleiben unter Windows rückwärtskompatibel unterstützt.
 
 </details>
 
@@ -979,7 +998,7 @@ Wenn du tiefer diagnostizieren möchtest, findest du die Einzelwerkzeuge im Absc
 
 ### ⚠️ Bekannte Grenzen
 
-- Der stabil bezeichnete Workflow ist derzeit Windows mit PowerShell 7.6; Linux nutzt dieselbe Kernimplementierung, bleibt aber bis zum belegten Browser-Rollout je Zielprofil im Vorschau-Status.
+- Der stabil bezeichnete Workflow ist derzeit Windows mit PowerShell 7.6; Linux besitzt einen eigenständigen, vertragsgleichen Python-Kern und bleibt bis zum belegten Browser-Rollout je Zielprofil im Vorschau-Status.
 - Automatischer PDF-Export unterstützt Chrome, Edge und Chromium, nicht Firefox.
 - Der Windows-Browser-Smoke läuft auf Pull Requests und ist als verpflichtender Ruleset-Check vorbereitet; Linux bleibt bis zu drei dokumentierten Paritätsläufen je Zielprofil außerhalb des Pull-Request-Gates.
 - OpenCode, Codex, Claude Code und Gemini CLI sind über die maschinenlesbare Modellmatrix vorbereitet; echte Läufe benötigen die jeweils dokumentierten Secrets und exakten CLI-Versionen.
@@ -1030,7 +1049,7 @@ apply-foundry/
 ├─ README.md
 ├─ Prompts/                  # Agenten- und Qualitätsregeln
 ├─ Private.example/          # ausschließlich fiktive Beispieldaten
-├─ Tests/                    # PowerShell- und Bash-Regressionstests
+├─ Tests/                    # PowerShell-, Python- und Bash-Regressionstests
 ├─ Tools/                    # Ordner-, Prüf-, Layout- und Exporttools
 └─ Vorlagen/                 # HTML-Designreferenzen und Matrixbeispiel
 ```
@@ -1118,14 +1137,18 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die sechs Einstiege, verlangt eine
 
 ### Tools im Überblick
 
+Die `.ps1`-Fachwerkzeuge in der folgenden Übersicht sind direkte Windows-Schnittstellen. Unter Linux stellt `bewerbung.py` dieselben Funktionen über die gleichnamigen Subcommands bereit; ein direkter PowerShell-Aufruf ist dort weder nötig noch Teil des produktiven Kerns.
+
 | Tool | Aufgabe | Typischer Einstieg |
 | --- | --- | --- |
-| `bewerbung.ps1` | gemeinsamer Dispatcher für alle Subcommands und GNU-Langoptionen | `neu --firma "..." --rolle "..." --umfang A` |
-| `bewerbung.sh` | dünner Linux-Launcher für denselben Dispatcher | `neu --firma "..." --rolle "..." --umfang A` |
+| `bewerbung.ps1` | Windows-Dispatcher für alle Subcommands und GNU-Langoptionen | `neu --firma "..." --rolle "..." --umfang A` |
+| `bewerbung.py` | eigenständiger Linux-Dispatcher mit demselben CLI- und Artefaktvertrag | `neu --firma "..." --rolle "..." --umfang A` |
+| `bewerbung.sh` | kompatibler Linux-Alias für `bewerbung.py` | `neu --firma "..." --rolle "..." --umfang A` |
 | `Neue-Bewerbung.ps1` | direkte kompatible Fachschnittstelle für Schema-5-Aufträge | `-Firma "..." -Rolle "..." -UmfangAuswahl A` |
-| `neue-bewerbung.sh` | kompatibler Alias für `bewerbung.sh neu` | `--firma "..." --rolle "..." --umfang A` |
-| `Pruefe-Umgebung.ps1` | read-only Preflight für Runtime, OS, Architektur, Browser, Temp, Schreibzugriff und Fonts | über `bewerbung.ps1 diagnose` |
-| `setup-linux.sh` | opt-in, distributionsneutraler Abhängigkeitsplan und Bootstrap | `--dry-run --all --format json` |
+| `neue-bewerbung.py` / `neue-bewerbung.sh` | kompatible Linux-Aliase für `bewerbung.py neu` | `--firma "..." --rolle "..." --umfang A` |
+| `diagnose` | read-only Preflight für Kernruntime, OS, Architektur, Browser, Temp, Schreibzugriff und Fonts | über den jeweiligen Plattform-Dispatcher |
+| `setup-linux.py` | kanonischer distributionsneutraler Linux-Abhängigkeitsplan und Bootstrap | `--dry-run --all --format json` |
+| `setup-linux.sh` | minimale Python-Erkennung/-Installation und anschließende Delegation | `--runtime --dry-run` |
 | `setup-windows.ps1` | opt-in Windows-Bootstrap über winget | `-DryRun -All -Format json` |
 | `Ermittle-Bewerbungsstatus.ps1` | letzten oder angegebenen Arbeitsstand read-only aus Dateien und Hashnachweisen rekonstruieren | `-AlsJson` oder `-Arbeitsordner "..." -AlsJson` |
 | `Aktualisiere-WorkflowCheckpoint.ps1` | kompakten, hashgebundenen Fortsetzungsnachweis ohne Quellkopien schreiben | `-Arbeitsordner "..." -Schritt analyse_abgeschlossen` |
@@ -1144,12 +1167,14 @@ Die zentrale [`AGENTS.md`](AGENTS.md) erkennt die sechs Einstiege, verlangt eine
 | `Tools/Common/*.psm1` | gemeinsame Atomik-, Sperr-, JSON-, Umfangs-, Matrix-, Evidenz-, Slug-, Text-, Freigabe-, Cache- und Druckverträge | werden von den Fachwerkzeugen verwendet |
 | `Aktualisiere-Tokenbericht.ps1` | exakte Laufzeitwerte oder eindeutige Nichtverfügbarkeit standardisiert speichern | `-Arbeitsordner "..." -Messbereich lebenslauf` |
 
-Der Dispatcher bietet `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Einzelne Pfadoptionen werden gegen das ursprüngliche Aufrufverzeichnis absolut normalisiert; `--dokumente` und `--bericht-path` werden als typgeprüfte, kommaseparierte Listen behandelt. Werte mit Leerzeichen, Umlauten oder führendem Bindestrich bleiben einzelne Argumente. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime.
+Beide Plattform-Dispatcher bieten dieselben 23 Subcommands: `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Einzelne Pfadoptionen werden gegen das ursprüngliche Aufrufverzeichnis absolut normalisiert; `--dokumente` und `--bericht-path` werden als typgeprüfte, kommaseparierte Listen behandelt. Werte mit Leerzeichen, Umlauten oder führendem Bindestrich bleiben einzelne Argumente. `-Dokumentmodus` beziehungsweise `--dokumentmodus` bleibt als Windows-Legacy-Direktwahl vorhanden, ist ab Schema 4 aber nicht die fachliche Umfangsquelle. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime.
+
+Der direkte Linux-Aufruf des PowerShell-Dispatchers bleibt bei bereits installiertem PowerShell 7.6 ein vorübergehender Legacy-Fallback. Die `.sh`-Aliase, die kanonischen Befehle und alle Linux-CI-Jobs verwenden Python.
 
 Nach dem Erstellen eines individuellen Lebenslauf-HTMLs verarbeitet der Agent den optionalen markierten Fotoblock ohne Ausgabe der Bilddaten:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 passfoto `
+```bash
+python3 Tools/bewerbung.py passfoto \
   --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME"
 ```
 
@@ -1157,9 +1182,9 @@ Fehlt `Private/Daten/Passfoto.png`, ist der Befehl ein gültiger Lauf ohne Foto.
 
 Nach jeder sinnvollen Workflow-Grenze aktualisiert der Agent einen kompakten Fortsetzungsnachweis. Er enthält keine Kopien von Stellenbeschreibung, Profil oder Rohchat, sondern nur den letzten Schritt sowie relative Arbeitsartefaktpfade, Größen und SHA-256-Werte:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 checkpoint `
-  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" `
+```bash
+python3 Tools/bewerbung.py checkpoint \
+  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" \
   --schritt analyse_abgeschlossen
 ```
 
@@ -1179,7 +1204,7 @@ Die Nutzungsdokumentation beschreibt, wofür Menschen die Dateien verwenden. Fü
 | `Anforderungsmatrix.json` | Agent aus dem Entwurfsgerüst | Pflicht vor Dokumenterstellung und Finalisierung | Inhaltsprüfer und fachlicher Abschlusstest |
 | `Workflow-Checkpoint.json` | Agent über `checkpoint`; bei Anlage und Finalisierung automatisch | kompakter Fortsetzungsindex mit Schritten und Hashreferenzen, nie fachliche Quelle | Statusanzeige und Agentenfortsetzung |
 | `Kandidat/*` | Agent; PDFs durch Exporttool | gemäß Umfang vollständiger Release Candidate mit späteren Dateinamen | statischer Prüfer, Inhaltsprüfer, gegebenenfalls Layout, PDF und ATS sowie Publisher |
-| Prüfberichte und Screenshots | jeweiliges Prüfwerkzeug | umfangsabhängige Nachweise; nicht benötigte Browserprüfungen werden als `nicht_erforderlich` dokumentiert | `Finalisiere-Bewerbung.ps1` und persönliche Sicht- oder Textprüfung |
+| Prüfberichte und Screenshots | jeweiliger Plattform-Dispatcher | umfangsabhängige Nachweise; nicht benötigte Browserprüfungen werden als `nicht_erforderlich` dokumentiert | Finalisierung und persönliche Sicht- oder Textprüfung |
 | `Versand/`, `Intern/`, `Manifest.json` | Finalisierungswerkzeug über privates Staging | einziger veröffentlichter Vertrag | Nutzer, Archivierung und nachträglicher statischer Check |
 
 #### Schema 5: portable Pfade; ab Schema 4: Dokumentumfang und Dialogzustand
@@ -1196,19 +1221,19 @@ Jede normalisierte Angabe verwendet `speicherentscheidung = ausstehend`, `nur_au
 
 | Bericht | Zuständiges Tool | Wesentliche Inhalte |
 | --- | --- | --- |
-| `Stammdaten-Pruefbericht.json` | `Pruefe-Stammdaten.ps1` | Status, Fehler/Warnungen, Feldzustände sowie aufgelöste Bewerbungslogistik und deren Quelle |
-| `Inhalts-Pruefbericht.json` | `Pruefe-Bewerbungsinhalt.ps1` | formale Zeiträume, Darstellungsmodi, Profil-Links, optionaler Passfoto-Status, gewichtete Eignung sowie Fehler/Warnungen |
-| `Layoutcheck/Layoutcheck-Bericht.json` | `Layoutcheck-Bewerbung.ps1` beziehungsweise Finalisierung | Schema 3: Runtime-Fingerprint, Browser, Abmessungen, HTML-/Screenshot-Hashes, isolierte DOM-/Dichteprüfung und vollständige Druckvorprüfung mit erwarteter/tatsächlicher Seitenzahl und A4-Ergebnis oder Status `nicht_erforderlich` |
-| `PDF-Export/PDF-Export-Bericht.json` | `Exportiere-PDF.ps1` beziehungsweise Finalisierung | Runtime-Fingerprint, HTML-/PDF-Hashes, PDF-Größe, Seitenzahl und A4-MediaBox aus derselben vollständigen Druckvorprüfung oder Status `nicht_erforderlich` |
-| `ATS-Pruefbericht.json` | `Pruefe-ATS.ps1` beziehungsweise Finalisierung | Schema 2: Runtime-Fingerprint, extrahierbare Zeichen, Unicode-normalisierte Token-/N-Gramm-Abdeckung, Pflichttexte, Lesereihenfolge, Artefakt-Hashes und Ergebnis je PDF oder Status `nicht_erforderlich` |
-| `Tokenverbrauch.json` | Agent beziehungsweise `Aktualisiere-Tokenbericht.ps1` | Anbieter, Modell, optionale nicht sensible Vorgangs-ID, Messquelle, Messzeiten und ausschließlich exakt bereitgestellte Tokenfelder je Messbereich; andernfalls `unavailable` und `null` |
-| `Pruefstand.json` | `Finalisiere-Bewerbung.ps1` und `Tools/Common/FinalizationCache.psm1` | Schema 2: Stufenstatus `running`, `passed` oder `failed`, Fingerprint, Ausgaben, Dauer und bereinigte Fehlerdaten; fehlgeschlagene oder unterbrochene Stufen werden nie aus dem Cache wiederverwendet |
-| `Finalisierungsbericht.json` | `Finalisiere-Bewerbung.ps1` | Schema-7-Vorbereitungsstatus, Runtime-Fingerprint, Dokumentumfang, persönliche Prüfart, `technicalAttempt`, Freigabe-ID-Anforderung, Pfade, erwartete Screenshots, Warnungen, optionale Tokenbericht-Referenz sowie Hashes der vier Pflichtquellen, des nur bei Verwendung ergänzten Passfotos, der drei technischen Prüfberichte und der tatsächlich erwarteten Kandidatenartefakte |
-| `Sichtfreigabe.json` | `bewerbung.ps1 freigabe` | Schema-1-Nachweis der Chat-Bestätigung mit Freigabe-ID, vorbereitetem Bericht, Artefaktsatz und SHA-256-Werten; Voraussetzung für die lokale Veröffentlichung |
+| `Stammdaten-Pruefbericht.json` | Plattform-Dispatcher, Subcommand `stammdaten` | Status, Fehler/Warnungen, Feldzustände sowie aufgelöste Bewerbungslogistik und deren Quelle |
+| `Inhalts-Pruefbericht.json` | Plattform-Dispatcher, Subcommand `inhalt` | formale Zeiträume, Darstellungsmodi, Profil-Links, optionaler Passfoto-Status, gewichtete Eignung sowie Fehler/Warnungen |
+| `Layoutcheck/Layoutcheck-Bericht.json` | Plattform-Dispatcher, Subcommand `layout` beziehungsweise `finalisieren` | Schema 3: Runtime-Fingerprint, Browser, Abmessungen, HTML-/Screenshot-Hashes, isolierte DOM-/Dichteprüfung und vollständige Druckvorprüfung mit erwarteter/tatsächlicher Seitenzahl und A4-Ergebnis oder Status `nicht_erforderlich` |
+| `PDF-Export/PDF-Export-Bericht.json` | Plattform-Dispatcher, Subcommand `pdf` beziehungsweise `finalisieren` | Runtime-Fingerprint, HTML-/PDF-Hashes, PDF-Größe, Seitenzahl und A4-MediaBox aus derselben vollständigen Druckvorprüfung oder Status `nicht_erforderlich` |
+| `ATS-Pruefbericht.json` | Plattform-Dispatcher, Subcommand `ats` beziehungsweise `finalisieren` | Schema 2: Runtime-Fingerprint, extrahierbare Zeichen, Unicode-normalisierte Token-/N-Gramm-Abdeckung, Pflichttexte, Lesereihenfolge, Artefakt-Hashes und Ergebnis je PDF oder Status `nicht_erforderlich` |
+| `Tokenverbrauch.json` | Agent beziehungsweise Plattform-Dispatcher, Subcommand `tokenbericht` | Anbieter, Modell, optionale nicht sensible Vorgangs-ID, Messquelle, Messzeiten und ausschließlich exakt bereitgestellte Tokenfelder je Messbereich; andernfalls `unavailable` und `null` |
+| `Pruefstand.json` | Plattform-Dispatcher, Subcommand `finalisieren` | Schema 2: Stufenstatus `running`, `passed` oder `failed`, Fingerprint, Ausgaben, Dauer und bereinigte Fehlerdaten; fehlgeschlagene oder unterbrochene Stufen werden nie aus dem Cache wiederverwendet |
+| `Finalisierungsbericht.json` | Plattform-Dispatcher, Subcommand `finalisieren` | Schema-7-Vorbereitungsstatus, Runtime-Fingerprint, Dokumentumfang, persönliche Prüfart, `technicalAttempt`, Freigabe-ID-Anforderung, Pfade, erwartete Screenshots, Warnungen, optionale Tokenbericht-Referenz sowie Hashes der vier Pflichtquellen, des nur bei Verwendung ergänzten Passfotos, der drei technischen Prüfberichte und der tatsächlich erwarteten Kandidatenartefakte |
+| `Sichtfreigabe.json` | Plattform-Dispatcher, Subcommand `freigabe` | Schema-1-Nachweis der Chat-Bestätigung mit Freigabe-ID, vorbereitetem Bericht, Artefaktsatz und SHA-256-Werten; Voraussetzung für die lokale Veröffentlichung |
 
-`Pruefe-Bewerbung.ps1` schreibt bewusst keinen eigenen JSON-Bericht; sein Vertrag sind Konsolenausgabe und Exitcode.
+Das Subcommand `pruefen` schreibt bewusst keinen eigenen JSON-Bericht; sein Vertrag sind Konsolenausgabe und Exitcode.
 
-Die Runtime-Fingerprints enthalten Betriebssystem, Architektur und PowerShell-Version sowie bei Browserläufen Browsername, -version und ausführbare Datei. Nach einem Betriebssystemwechsel gelten Layout-, PDF-, ATS- und Finalisierungsnachweis als veraltet. Auftrag und Kandidatenbestand bleiben bestehen, die technische Vorbereitung muss aber vollständig neu laufen.
+Die Runtime-Fingerprints enthalten Betriebssystem, Architektur, Sprache und Version der Kernruntime sowie bei Browserläufen Browsername, -version und ausführbare Datei. Nach einem Wechsel zwischen Windows und Linux oder umgekehrt gelten Layout-, PDF-, ATS-, Finalisierungs- und Sichtnachweis als veraltet. Auftrag und Kandidatenbestand bleiben bestehen, die technische Vorbereitung muss aber vollständig neu laufen.
 
 #### `Manifest.json` und `Finalisierungsbericht.json` sind nicht dasselbe
 
@@ -1219,7 +1244,7 @@ Die Runtime-Fingerprints enthalten Betriebssystem, Architektur und PowerShell-Ve
 | Dateiumfang | gespeicherter `dokumentumfang` und nur die dazu veröffentlichten Dateien in `Versand/` und `Intern/`, ohne das Manifest selbst | vier Pflichtquellartefakte, optional `passfoto`, sowie alle laut Umfang bei der Vorbereitung erwarteten Kandidatendateien, PDFs und Layout-PNGs |
 | Nachweise | relativer Pfad, Bytezahl und SHA-256 je veröffentlichter Datei; Namen und Hashes der Pflichtquellen sowie bei Verwendung `Passfoto.png` als Provenienz | absolute Prüfpfade, vorbereitete Artefakte und SHA-256-Werte, persönliche Prüfart, Layoutwarnungen und Freigabenotiz |
 | Statusfunktion | Integrität des veröffentlichten Satzes | Gate `bereit_zur_sichtpruefung` beziehungsweise `veroeffentlicht` |
-| Prüfung | `Pruefe-Bewerbung.ps1` validiert Pfade, Größen und Hashes aus `files[]`, die exakte HTML-/PDF-Namensbindung sowie Aufbau, Namen und Hashformat der vier Pflicht-`sourceInputs` und des optionalen `passfoto`; deren Hashes werden nicht erneut gegen die privaten Quelldateien geprüft | vor dem Zieltausch verweigert der Veröffentlichungslauf geänderte oder neue Quellen einschließlich eines hinzugefügten, geänderten oder gelöschten Passfotos sowie technische Berichts-, Kandidaten- und Screenshot-Artefakte und prüft zusätzlich deren semantische Pfad-, Hash-, Seiten- und Ergebnisbindungen |
+| Prüfung | Das Subcommand `pruefen` validiert Pfade, Größen und Hashes aus `files[]`, die exakte HTML-/PDF-Namensbindung sowie Aufbau, Namen und Hashformat der vier Pflicht-`sourceInputs` und des optionalen `passfoto`; deren Hashes werden nicht erneut gegen die privaten Quelldateien geprüft | vor dem Zieltausch verweigert der Veröffentlichungslauf geänderte oder neue Quellen einschließlich eines hinzugefügten, geänderten oder gelöschten Passfotos sowie technische Berichts-, Kandidaten- und Screenshot-Artefakte und prüft zusätzlich deren semantische Pfad-, Hash-, Seiten- und Ergebnisbindungen |
 
 Nach erfolgreicher Veröffentlichung ergänzt der Finalisierungsbericht Pfad und SHA-256 des veröffentlichten Manifests. Während derselben Transaktion setzt die Finalisierung `Qualitaetscheck.md` auf `bestaetigt`, wiederholt die abschließenden Prüfungen und berechnet danach die Kandidatenartefakte neu. Seine Kandidatenhashes passen deshalb auch nach der Freigabe zum aktuellen Arbeitsstand. Das Manifest bindet unabhängig davon den tatsächlich veröffentlichten Satz unter `Versand/` und `Intern/`. Arbeitsberichte oder Screenshots werden nicht Bestandteil des Manifests.
 
@@ -1243,7 +1268,7 @@ Diese Hilfsdateien und Ordner werden bei einem normalen Lauf bereinigt und sind 
 <summary><strong>Datenfluss und Qualitätsprüfungen im Detail</strong></summary>
 
 1. Die Stellenbeschreibung wird als nicht vertrauenswürdige Datenquelle übernommen und der Dokumentumfang eindeutig geklärt.
-2. `Pruefe-Stammdaten.ps1` kontrolliert Identität, Kontakt und Bewerbungslogistik.
+2. Das Subcommand `stammdaten` kontrolliert Identität, Kontakt und Bewerbungslogistik.
 3. Der Agent gleicht nur relevante Anforderungen ab, bündelt notwendige Rückfragen und speichert normalisierte Antworten im Schema-5-Auftrag.
 4. Dauerhafte Profiländerungen benötigen eine getrennte ausdrückliche Zustimmung und werden mit Ziel- und Hashnachweis protokolliert.
 5. Der Ordnerhelfer erzeugt Ziel-, Arbeits- und Kandidatenordner, `Bewerbungsauftrag.json`, Arbeitsnotizen und nur passende Entwurfsgerüste.
@@ -1261,7 +1286,17 @@ Die Eignung wird maschinenlesbar als `stark`, `vertretbar_mit_risiken` oder `str
 
 ### Tests & CI
 
-Die browserfreie Regressionstestsuite prüft unter anderem Agenteneinstieg, Adapter, Pfad- und Fortsetzungsverträge, Fremdanweisungen, README-Verweise, Tokenbericht, Schema-5-Portabilität, Legacy-Lesen, Dialogstatus, Profilhash, Artefaktbindungen, Staging, Veröffentlichung und Fehlerszenarien:
+Die plattformübergreifende Gesamtheit der browserfreien Regressionen prüft Agenteneinstieg, Adapter, Pfad- und Fortsetzungsverträge, Fremdanweisungen, README-Verweise, Tokenbericht, Schema-5-Portabilität, Legacy-Lesen, Dialogstatus, Profilhash, Artefaktbindungen, Staging, Veröffentlichung und Fehlerszenarien. Die Windows-Suite behält ihre bestehenden PowerShell-Fixtures; die Linux-Suite führt die eigenständigen Python-Unit- und Vertragstests aus:
+
+Linux:
+
+```bash
+python3 Tools/bewerbung.py tests --suite schnell
+python3 Tools/bewerbung.py tests --suite vollstaendig
+python3 -m unittest discover -s Tests/Python -p 'test_*.py'
+```
+
+Windows:
 
 ```powershell
 pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite schnell
@@ -1270,22 +1305,26 @@ pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite vollstaendig
 
 Mit lokaler Browsermatrix:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite browser
+```bash
+python3 Tools/bewerbung.py tests --suite browser
 # Kompatibilitätsalias:
-pwsh -NoProfile -File Tools/bewerbung.ps1 tests --mit-browser
+python3 Tools/bewerbung.py tests --mit-browser
 ```
 
-Die Prompt-Regressionen werden isoliert und fail-closed ausgeführt:
+Die Prompt-Regressionen werden in den sauberen ephemeren Linux-CI-Runnern nativ und fail-closed über den Python-Dispatcher ausgeführt:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite prompt-pr
-pwsh -NoProfile -File Tools/bewerbung.ps1 tests --suite prompt-vollstaendig
+```bash
+python3 Tools/bewerbung.py tests --suite prompt-pr
+python3 Tools/bewerbung.py tests --suite prompt-vollstaendig
 ```
 
-`schnell` ist die kurze Parser-/Vertrags- und Canary-Teilmenge, `vollstaendig` umfasst alle browserfreien Regressionen einschließlich der vier Rollen-Fixtures und `browser` ergänzt Chromium. Jeder Lauf kann mit `--bericht-path` einen bereinigten Schema-1-Bericht mit Median, p95, Kategorien und den langsamsten Tests schreiben. Aus drei erfolgreichen ungefilterten Berichten derselben Plattform erzeugt `bewerbung.ps1 test-baseline --bericht-path "eins.json,zwei.json,drei.json"` eine öffentliche Laufzeitreferenz; Abweichungen über 25 Prozent und mindestens einer Sekunde bleiben zunächst Warnungen. Die Rollen-Fixtures liegen unter [`Tests/Fixtures/Rollen`](Tests/Fixtures/Rollen); echte `Private/`-Daten werden nie kopiert.
+Dieser Runner verlangt eine nutzbare `bubblewrap`-Mount-/PID-/User-Namespace-Isolation. Versionsprobe und Agentlauf sehen nur die synthetische Arbeitskopie und read-only Systemruntimes; das Host-Home bleibt unsichtbar, während das Netz für die Provider-API geteilt wird. Fehlendes oder nicht nutzbares `bwrap` schlägt mit einem Schema-1-Fehlerbericht fail-closed fehl. Bubblewrap ist ausschließlich eine Testvoraussetzung der Prompt-CI und kein Bestandteil des Benutzer-Bootstraps. Lokale User-Namespaces müssen ausdrücklich funktionieren.
 
-Der gezielte Rollenlauf durch Anlage, Dialogprüfung, Inhaltsprüfung, Finalisierung, synthetische Freigabe und Veröffentlichung lautet:
+Das Zielmodell ist fest im kataloggebundenen Argumentvektor enthalten; meldet die CLI das tatsächlich verwendete Modell maschinenlesbar, muss es exakt übereinstimmen. Rollenfixtures starten ohne Matrix und Evidenzindex, verlangen beide als neue validierte Mutationen und prüfen Schema, Quellhashes, Evidenzreferenzen und Strategie; der direkte Rollenfall prüft zusätzlich ausgewählte Dokumente, A4-Grundstruktur und Platzhalterfreiheit. Das bleibt ein definierter Vertragslauf und keine Garantie für jedes fachliche Verhalten beliebiger Modelle.
+
+`schnell` ist auf jeder Plattform die kurze Parser-/Vertrags- und Canary-Teilmenge, `vollstaendig` umfasst die jeweils vorhandenen browserfreien Regressionen und `browser` ergänzt den echten Chromium-Smoke. Die vier Rollen-Fixtures sind weiterhin Bestandteil der Windows-PowerShell-Suite; ihre gemeinsame plattformübergreifende Ausführung wird nicht aus der reinen Python-Unit-Suite abgeleitet. Jeder Lauf kann mit `--bericht-path` einen bereinigten Schema-1-Bericht mit Median, p95, Kategorien und den langsamsten Tests schreiben. Aus drei erfolgreichen ungefilterten Berichten derselben Plattform erzeugt das Subcommand `test-baseline --bericht-path "eins.json,zwei.json,drei.json"` eine öffentliche Laufzeitreferenz; Abweichungen über 25 Prozent und mindestens einer Sekunde bleiben zunächst Warnungen. Die Rollen-Fixtures liegen unter [`Tests/Fixtures/Rollen`](Tests/Fixtures/Rollen); echte `Private/`-Daten werden nie kopiert.
+
+Der gezielte direkte Windows-Rollenlauf durch Anlage, Dialogprüfung, Inhaltsprüfung, Finalisierung, synthetische Freigabe und Veröffentlichung lautet:
 
 ```powershell
 pwsh -NoProfile -File Tests/Fixtures/Rollen/Invoke-RoleFixtures.ps1
@@ -1297,11 +1336,15 @@ Bash separat:
 bash Tests/Bash/test-bewerbung-cli.sh
 ```
 
-Die feste CI-Matrix in [`.github/workflows/tests.yml`](.github/workflows/tests.yml) trennt schnelle und vollständige browserfreie PowerShell-Suiten mit `fail-fast: false` auf `windows-2025` und `ubuntu-24.04`. Linux prüft zusätzlich Bash-Syntax, ShellCheck, Dispatcher und Kompatibilitätswrapper. [`linux-compatibility.yml`](.github/workflows/linux-compatibility.yml) führt die Installations- und Vollsuite zeitgesteuert/manuell in Ubuntu-, Debian-, Fedora-, Rocky-, Arch- und openSUSE-Containern aus. Ubuntu installiert wegen der Snap-Transition nur Runtime, Fonts und ShellCheck; der Chromium-Smoke läuft dort nur, wenn bereits ein nativer Browser vorhanden ist. [`.github/workflows/browser-smoke.yml`](.github/workflows/browser-smoke.yml) führt den Windows-Smoke bei jedem Pull Request sowie zeitgesteuert/manuell aus; Linux bleibt bis zum Nachweis je Zielprofil auf zeitgesteuerte und manuelle Läufe begrenzt.
+Die feste CI-Matrix in [`.github/workflows/tests.yml`](.github/workflows/tests.yml) behält die schnellen und vollständigen PowerShell-Suiten auf `windows-2025` und führt die entsprechenden Linux-Suiten auf `ubuntu-24.04` ausschließlich mit Python aus. Linux prüft zusätzlich Standardbibliotheks-Unit-Tests, Bash-Syntax, ShellCheck, Dispatcher und Kompatibilitätswrapper; kein Linux-Job installiert oder startet `pwsh`. [`linux-compatibility.yml`](.github/workflows/linux-compatibility.yml) führt die Installations- und Vollsuite zeitgesteuert/manuell auf Ubuntu 24.04/26.04, Debian 13, Fedora, Rocky 9, Arch und openSUSE aus. Ubuntu installiert wegen der Snap-Transition nur Runtime, Fonts und ShellCheck; Rocky 9 installiert aus den Base-Repositories nur Runtime und Fonts und prüft Chromium sowie ShellCheck als bewusst blockierte Voraussetzungen, weil EPEL nicht registriert werden darf. Browser-Smokes laufen nur, wenn ein nativer Chromium-Pfad vorhanden ist. [`.github/workflows/browser-smoke.yml`](.github/workflows/browser-smoke.yml) führt den Windows-Smoke bei jedem Pull Request sowie zeitgesteuert/manuell aus; Linux bleibt bis zum Nachweis je Zielprofil auf zeitgesteuerte und manuelle Läufe begrenzt.
+
+Die Cross-Core-CI erzeugt aus den rein synthetischen Quelldateien unter `Tests/Fixtures/CrossPlatform/` auf Windows/PowerShell und Linux/Python denselben Schema-5-Auftrag. Beide Ursprungsjobs laden den vollständigen synthetischen `Private`-Zustand, einen echten Runtime-Fingerprint und die normalisierten plattformneutralen Vertragsfelder getrennt hoch. Zwei Gegenkernjobs setzen den jeweiligen Auftrag über `status` und `checkpoint` fort und prüfen mit dem produktiven Runtime-Validator, dass der fremde technische Schema-1-Fingerprint nicht aktuell ist; erst danach vergleicht ein Ubuntu-Job `normalized-order.json` bytegenau. Das belegt Auftragsanlage, Status-/Checkpoint-Fortsetzung und Runtime-Entwertung, ersetzt aber noch nicht den gemeinsamen vollständigen Rollenfixture- und Browsernachweis.
 
 Die PR-Canary [`prompt-regression-pr.yml`](.github/workflows/prompt-regression-pr.yml) vergleicht Codex und OpenCode mit derselben Modell-ID `gpt-5.6-terra`; die vollständige Matrix [`prompt-regression-full.yml`](.github/workflows/prompt-regression-full.yml) läuft wöchentlich und manuell mit Claude Code und Gemini CLI. Fehlende Secrets schlagen geschlossen fehl.
 
-Der read-only Workflow [`browser-stability-evidence.yml`](.github/workflows/browser-stability-evidence.yml) erstellt aus der Actions-API nur einen Nachweisentwurf. Erst ein separater Promotion-PR darf drei vollständige Läufe je Linux-Zielprofil in den Stabilitätsnachweis übernehmen und Linux für Pull Requests beziehungsweise Rulesets hochstufen.
+Die Prompt-CI verwendet den nativen Python-Runner auf einem sauberen ephemeren `ubuntu-24.04`-Runner. Sie installiert und prüft `bubblewrap` als reine Testabhängigkeit; Version und Agentenlauf werden fail-closed im Mount-/PID-/User-Namespace mit unsichtbarem Host-Home, read-only Systemruntimes und nur für die Provider-API geteiltem Netz gestartet. Der Runner prüft außerdem gepinnte CLI-Versionen, getrennte Arbeitskopien und Profile, die gezielte Credential-Weitergabe, Mutationsgrenzen, Ausgabesignale und die kataloggebundene Modellwahl. Nur der read-only Evidence-Sammler bleibt ein PowerShell-Hilfswerkzeug auf `windows-2025` und führt keine PowerShell-Abhängigkeit in den Linux-Kern ein.
+
+Der read-only Workflow [`browser-stability-evidence.yml`](.github/workflows/browser-stability-evidence.yml) erstellt aus der Actions-API derzeit nur einen Ubuntu-24.04-Nachweisentwurf. Die Distributionsmatrix lädt bereinigte Vollsuite- und, sofern ein nativer Browser vorhanden ist, Browserberichte je Zielprofil als getrennte Artefakte hoch. Der bestehende Ubuntu-Entwurf allein erfüllt das neue Profil-Gate nicht; Collector, Validator und öffentlicher Stabilitätsnachweis müssen vor einer Promotion auf alle Zielprofile erweitert werden. Erst ein separater Promotion-PR darf danach drei vollständige Läufe je Linux-Zielprofil übernehmen und Linux für Pull Requests beziehungsweise Rulesets hochstufen.
 
 Die dokumentierten Frischsitzungs-, CLI- und Modelltests stehen in [`Tests/Agenten-Kompatibilitaet.md`](Tests/Agenten-Kompatibilitaet.md). Die neun Dialogfälle mit Eingabe, erwartetem Datei-/Dialogzustand und getrenntem Automatisierungsstatus stehen in [`Tests/Interaktiver-Bewerbungsdialog.md`](Tests/Interaktiver-Bewerbungsdialog.md). Beide Kataloge verwenden ausschließlich öffentliche Regeln beziehungsweise temporäre fiktive Fixtures und nennen nicht ausgeführte Umgebungen ausdrücklich. Die deterministischen Dialogverträge sind kein Beleg für natürliches Sprachverständnis eines konkreten Modells; ein neuer realer Ollama-Dialogtest wurde für den aktuellen Stand nicht ausgeführt.
 
@@ -1320,7 +1363,9 @@ Jede laut Dokumentumfang vorhandene finale HTML-Datei muss eigenständig funktio
 - Vorschauabstände, Schatten und Seitenhintergründe stehen ausschließlich unter `@media screen`; ein Selektor wie `.page + .page` wird im Druckmodus mit gleicher Spezifität ausdrücklich auf `margin-top: 0` gesetzt.
 - Ein ausgewählter Lebenslauf nutzt bewusst eine oder zwei explizite A4-Seiten; ein Anschreiben genau eine.
 
-Der Browserlauf gilt nur als erfolgreich, wenn er rechtzeitig mit Exitcode `0` endet und alle erwarteten Dateien frisch erzeugt. Native Prozesse erhalten getrennte Argumentlisten, begrenzte Ausgaben und einen Timeout; bei Überschreitung wird der gesamte Prozessbaum beendet. PNGs benötigen gültige Signatur und Abmessungen. Der plattformneutrale .NET-PNG-Leser verarbeitet die erwarteten nicht-interlaced 8-Bit-Grau-, RGB- und RGBA-Dateien mit Filtern 0 bis 4; ein nicht auswertbares PNG lässt die erforderliche Dichteprüfung fehlschlagen. Die gemeinsame Druckvorprüfung rendert zusätzlich das vollständige Original-HTML mit denselben Chromium-Parametern, prüft PDF-Frische, Header, EOF-Marker, DIN-A4-MediaBox und verlangt exakt so viele PDF-Seiten wie explizite `.page`-Container. PDFs benötigen außerdem eine ATS-lesbare Unicode-Textschicht.
+Der Browserlauf gilt nur als erfolgreich, wenn er rechtzeitig mit Exitcode `0` endet und alle erwarteten Dateien frisch erzeugt. Native Prozesse erhalten getrennte Argumentlisten, begrenzte Ausgaben und einen Timeout; bei Überschreitung wird der gesamte Prozessbaum beendet. PNGs benötigen gültige Signatur und Abmessungen. Der dependency-freie PNG-Leser des jeweiligen Plattformkerns verarbeitet die erwarteten nicht-interlaced 8-Bit-Grau-, RGB- und RGBA-Dateien mit Filtern 0 bis 4; ein nicht auswertbares PNG lässt die erforderliche Dichteprüfung fehlschlagen. Die gemeinsame Druckvorprüfung rendert zusätzlich das vollständige Original-HTML mit denselben Chromium-Parametern, prüft PDF-Frische, Header, EOF-Marker, DIN-A4-MediaBox und verlangt exakt so viele PDF-Seiten wie explizite `.page`-Container. PDFs benötigen außerdem eine ATS-lesbare Unicode-Textschicht.
+
+Auf normalen Windows- und Linux-Hosts bleibt die Chromium-Sandbox aktiv; die Werkzeuge übergeben dort weder `--no-sandbox` noch `--disable-gpu-sandbox`. Ein Browserlauf als Linux-Root wird fail-closed abgelehnt. Ausschließlich die ephemeren Root-Container der Distributions-CI setzen ausdrücklich `APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER=1`; diese eng begrenzte Testausnahme ist kein zulässiger Benutzer- oder Agentenstandard.
 
 Chrome, Edge oder Chromium übernimmt den automatischen PDF-Export. Firefox ist für manuelle Druckvorschau und manuellen Export geeignet, aber nicht Teil des verbindlichen CLI-PDF-Exports. PNGs und PDFs müssen zwischen Windows und Linux nicht binär oder pixelidentisch sein; dieselbe Seitenzahl, A4-Geometrie, Dichte-, Hash- und ATS-Prüfung ist das Paritätskriterium.
 
@@ -1366,16 +1411,16 @@ Die verbindlichen Regeln stehen in `Prompts/10_DATEI_UND_ORDNER_REGELN.md` und s
 | HTML/CSS | `Prompts/08_HTML_CSS_DESIGNREGELN.md` |
 | Qualität und Dateiregeln | `Prompts/09_QUALITAETSCHECK.md`, `Prompts/10_DATEI_UND_ORDNER_REGELN.md` |
 | technischer Workflow | `Prompts/11_TECHNISCHER_CHECK_WORKFLOW.md` |
-| gemeinsamer CLI-Einstieg und Schema-5-Ordnererstellung | `Tools/bewerbung.ps1`, `Tools/bewerbung.sh`, `Tools/Neue-Bewerbung.ps1` |
-| dateibasierte Statusrekonstruktion | `Tools/Ermittle-Bewerbungsstatus.ps1` |
-| kompakter, hashgebundener Fortsetzungscheckpoint | `Tools/Aktualisiere-WorkflowCheckpoint.ps1`, `Tools/Common/WorkflowCheckpoint.psm1` |
-| Dialogzustand und kontrollierte Profilübernahme | `Tools/Pruefe-Dialogstatus.ps1`, `Tools/Uebernehme-Dialogangabe.ps1` |
-| Stammdaten und Inhalt | `Tools/Pruefe-Stammdaten.ps1`, `Tools/Pruefe-Bewerbungsinhalt.ps1` |
-| Finalisierung und Sichtfreigabe | `Tools/Finalisiere-Bewerbung.ps1`, `Tools/Erzeuge-Sichtfreigabe.ps1`, `Tools/Common/ApprovalContract.psm1` |
-| Tokenbericht | `Tools/Aktualisiere-Tokenbericht.ps1` |
-| statischer Check | `Tools/Pruefe-Bewerbung.ps1` |
-| Layout und PDF | `Tools/Layoutcheck-Bewerbung.ps1`, `Tools/Exportiere-PDF.ps1` |
-| Regressionstests, Dialogkatalog und Agenten-Smoketests | `Tests/Run-RegressionTests.ps1`, `Tests/Bash/test-bewerbung-cli.sh`, `Tests/Interaktiver-Bewerbungsdialog.md`, `Tests/Agenten-Kompatibilitaet.md` |
+| gemeinsame CLI-Verträge und Schema-5-Ordnererstellung | `Tools/bewerbung.ps1` unter Windows sowie `Tools/bewerbung.py` und `Tools/linux_py/` unter Linux |
+| dateibasierte Statusrekonstruktion | Subcommand `status`; Windows-Module unter `Tools/`, Linux-Kern unter `Tools/linux_py/` |
+| kompakter, hashgebundener Fortsetzungscheckpoint | Subcommand `checkpoint`; Windows-Module unter `Tools/`, Linux-Kern unter `Tools/linux_py/` |
+| Dialogzustand und kontrollierte Profilübernahme | Subcommands `dialog-pruefen`, `dialog-uebernehmen`; Windows-Module unter `Tools/`, Linux-Kern unter `Tools/linux_py/` |
+| Stammdaten und Inhalt | Subcommands `stammdaten`, `inhalt`; Windows-Module unter `Tools/`, Linux-Kern unter `Tools/linux_py/` |
+| Finalisierung und Sichtfreigabe | Subcommands `finalisieren`, `freigabe`; Windows-Module unter `Tools/`, Linux-Kern unter `Tools/linux_py/` |
+| Tokenbericht | Subcommand `tokenbericht`; Windows-Module unter `Tools/`, Linux-Kern unter `Tools/linux_py/` |
+| statischer Check | Subcommand `pruefen`; Windows-Module unter `Tools/`, Linux-Kern unter `Tools/linux_py/` |
+| Layout und PDF | Subcommands `layout`, `pdf`; Windows-Module unter `Tools/`, Linux-Kern unter `Tools/linux_py/` |
+| Regressionstests, Dialogkatalog und Agenten-Smoketests | `Tests/Run-RegressionTests.ps1`, `Tests/Python/`, `Tests/Bash/`, `Tests/Interaktiver-Bewerbungsdialog.md`, `Tests/Agenten-Kompatibilitaet.md` |
 | Designreferenzen | `Vorlagen/Designreferenz-Lebenslauf.html`, `Vorlagen/Designreferenz-Anschreiben.html` |
 
 </details>

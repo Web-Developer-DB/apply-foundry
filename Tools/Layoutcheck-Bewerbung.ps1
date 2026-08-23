@@ -437,8 +437,6 @@ function Invoke-BrowserScreenshot {
       $arguments = @(
         "--headless=new",
         "--disable-gpu",
-        "--disable-gpu-sandbox",
-        "--no-sandbox",
         "--disable-dev-shm-usage",
         "--no-first-run",
         "--disable-background-networking",
@@ -558,7 +556,7 @@ function Invoke-BrowserGeometryAudit {
     Copy-Item -LiteralPath $CaptureHtmlFile.FullName -Destination $browserHtmlPath
     $uri = [System.Uri]::new($browserHtmlPath).AbsoluteUri
     $arguments = @(
-      '--headless=new', '--disable-gpu', '--disable-gpu-sandbox', '--no-sandbox', '--disable-dev-shm-usage',
+      '--headless=new', '--disable-gpu', '--disable-dev-shm-usage',
       '--no-first-run', '--disable-background-networking', '--disable-extensions', '--hide-scrollbars',
       "--user-data-dir=$profilePath", "--window-size=$Width,$Height", '--dump-dom', $uri
     )

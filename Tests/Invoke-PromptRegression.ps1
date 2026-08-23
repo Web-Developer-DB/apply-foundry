@@ -29,10 +29,27 @@ function Get-JsonFile {
   return Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
 }
 
+function Resolve-AgentCommand {
+  param([Parameter(Mandatory)][object]$CommandInfo)
+  $source = [string]$CommandInfo.Source
+  if ($IsWindows -and [IO.Path]::GetExtension($source) -in @('.cmd', '.bat')) {
+    $powerShellShim = [IO.Path]::ChangeExtension($source, '.ps1')
+    if (-not (Test-Path -LiteralPath $powerShellShim -PathType Leaf)) {
+      throw "Windows-Agentenshim besitzt keinen sicher aufrufbaren PowerShell-Partner: $source"
+    }
+    return [pscustomobject][ordered]@{
+      FilePath = (Get-Process -Id $PID).Path
+      PrefixArguments = @('-NoLogo', '-NoProfile', '-NonInteractive', '-File', (Resolve-Path -LiteralPath $powerShellShim).Path)
+      DisplayName = $source
+    }
+  }
+  return [pscustomobject][ordered]@{ FilePath = $source; PrefixArguments = @(); DisplayName = $source }
+}
+
 function Get-CommandVersion {
-  param([Parameter(Mandatory)][string]$Command)
-  $probe = Invoke-NativeProcess -FilePath $Command -ArgumentList @('--version') -TimeoutSeconds 15 -MaxStdoutChars 4096 -MaxStderrChars 4096
-  if ($probe.TimedOut -or $probe.ExitCode -ne 0) { throw "CLI '$Command' meldet keine gültige Version: $($probe.StandardError)" }
+  param([Parameter(Mandatory)][object]$Command)
+  $probe = Invoke-NativeProcess -FilePath $Command.FilePath -ArgumentList @($Command.PrefixArguments + '--version') -TimeoutSeconds 15 -MaxStdoutChars 4096 -MaxStderrChars 4096
+  if ($probe.TimedOut -or $probe.ExitCode -ne 0) { throw "CLI '$($Command.DisplayName)' meldet keine gültige Version: $($probe.StandardError)" }
   return (($probe.StandardOutput + "`n" + $probe.StandardError).Trim())
 }
 
@@ -221,7 +238,8 @@ try {
   foreach ($model in $models) {
     $commandInfo = Get-Command -Name ([string]$model.command) -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($null -eq $commandInfo) { throw "Agenten-CLI fehlt: $($model.command)" }
-    $versionText = Get-CommandVersion -Command $commandInfo.Source
+    $agentCommand = Resolve-AgentCommand -CommandInfo $commandInfo
+    $versionText = Get-CommandVersion -Command $agentCommand
     if ($versionText -notmatch [regex]::Escape([string]$model.cliVersion)) { throw "CLI-Version für $($model.id) weicht ab. Erwartet $($model.cliVersion), erhalten: $versionText" }
 
     foreach ($scenario in $scenarios) {
@@ -241,7 +259,7 @@ try {
       $attempt = 0
       do {
         $attempt++
-        $process = Invoke-NativeProcess -FilePath $commandInfo.Source -ArgumentList $arguments -WorkingDirectory $scenarioRoot -Environment $environment -TimeoutSeconds ([int]$modelCatalog.defaultTimeoutSeconds) -MaxStdoutChars 262144 -MaxStderrChars 16384
+        $process = Invoke-NativeProcess -FilePath $agentCommand.FilePath -ArgumentList @($agentCommand.PrefixArguments + $arguments) -WorkingDirectory $scenarioRoot -Environment $environment -TimeoutSeconds ([int]$modelCatalog.defaultTimeoutSeconds) -MaxStdoutChars 262144 -MaxStderrChars 16384
         $combinedOutput = [string]$process.StandardOutput + "`n" + [string]$process.StandardError
         $transient = $combinedOutput -match '(?i)(rate.?limit|quota|temporar|timeout|transport|connection reset|503|429)'
         if ($process.TimedOut -or -not $transient -or $attempt -ge 3) { break }
