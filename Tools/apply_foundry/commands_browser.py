@@ -138,11 +138,15 @@ def _browser_temp(root: Path) -> Path:
 
 def _css_diagnostics(text: str) -> List[str]:
     values: List[str] = []
+    print_rule = re.search(r"(?is)@media\s+print\s*\{.*?\.page\s*\+\s*\.page\s*\{(?P<rules>[^}]*)\}", text)
+    print_reset = bool(print_rule and re.search(
+        r"(?i)\bmargin(?:-top)?\s*:\s*0(?:[a-z%]+)?\s*(?:!important\s*)?;", print_rule.group("rules")
+    ))
     for match in re.finditer(r"(?is)\.page\s*\+\s*\.page\s*\{(?P<rules>[^}]*)\}", text):
         rules = match.group("rules")
         margin = re.search(r"(?i)margin(?:-top)?\s*:\s*(?!0(?:[a-z%]+)?\s*(?:;|$))[^;}]+", rules)
         padding = re.search(r"(?i)padding-top\s*:\s*(?!0(?:[a-z%]+)?\s*(?:;|$))[^;}]+", rules)
-        if margin or padding:
+        if (margin or padding) and not print_reset:
             values.append("Seitenabstand über `.page + .page` gefunden. Vertikale Vorschauabstände müssen im Druckmodus auf 0 zurückgesetzt werden.")
     return list(dict.fromkeys(values))
 
@@ -220,7 +224,7 @@ def layout(ctx: Any, args: Mapping[str, Any]) -> int:
                             page_pdf = output / f"{safe_name(document.stem)}--seite-{index + 1}-von-{len(pages)}--{browser.name}.pdf"
                             print_html(browser, capture, page_pdf, timeout, temp_root)
                             produced.append(page_pdf)
-                        footer = bool(re.search(r"(?is)<footer\b[^>]*class\s*=\s*[\"'][^\"']*\bpage-footer\b", bodies[index]))
+                        footer = bool(re.search(r"(?is)<footer\b[^>]*>", bodies[index]))
                         reserve = 17.0 if footer else 3.0
                         density = ({"available": False, "bottomWhitespacePx": None, "bottomWhitespaceMm": None, "scanBottomReserveMm": reserve, "warning": None}
                                    if bool(_arg(args, "dichtepruefung_deaktivieren", False))
@@ -746,6 +750,36 @@ def _candidate_groups(candidate: Path, layout_folder: Path, work: Path) -> Dict[
     }
 
 
+def _density_gate(layout_data: Mapping[str, Any], exception_reason: Any) -> Dict[str, Any]:
+    findings = []
+    for value in layout_data.get("results", []) if isinstance(layout_data, Mapping) else []:
+        if not isinstance(value, Mapping) or not str(value.get("htmlFile", "")).startswith("Lebenslauf -"):
+            continue
+        if value.get("pageCount") != 2:
+            continue
+        whitespace = value.get("bottomWhitespaceMm")
+        if isinstance(whitespace, (int, float)) and whitespace > 55.0:
+            findings.append({
+                "htmlFile": value.get("htmlFile"), "pageNumber": value.get("pageNumber"), "pageCount": value.get("pageCount"),
+                "bottomWhitespaceMm": whitespace, "thresholdMm": 55.0,
+                "warning": value.get("densityWarning") or "Ungewöhnlich viel freie Fläche im nutzbaren Inhaltsbereich.",
+            })
+    reason = re.sub(r"\s+", " ", str(exception_reason or "").strip())
+    if not findings:
+        if reason:
+            raise CliUsageError("--dichteausnahme-begruendung ist nur bei einer tatsächlichen Dichteblockade zulässig.")
+        return {"status": "nicht_ausgeloest", "findings": [], "exceptionReason": None}
+    if not reason:
+        return {"status": "ueberarbeitung_erforderlich", "findings": findings, "exceptionReason": None}
+    required_labels = ("seite:", "beleglage:", "einseiter:")
+    if len(reason) < 120 or any(label not in reason.lower() for label in required_labels):
+        raise CliUsageError(
+            "--dichteausnahme-begruendung benötigt mindestens 120 Zeichen und die Abschnitte "
+            "'Seite:', 'Beleglage:' und 'Einseiter:'."
+        )
+    return {"status": "ausnahme_bestaetigt", "findings": findings, "exceptionReason": reason}
+
+
 def _quality_evidence(candidate: Path) -> None:
     for name in ("Stellenbeschreibung.md", "Analyse.md", "Qualitaetscheck.md", "Druck-Hinweis.md"):
         path = safe_path(candidate / name, candidate, must_exist=True, kind="file")
@@ -898,6 +932,7 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
         f"{value.get('htmlFile')}, Seite {value.get('pageNumber')} von {value.get('pageCount')}: {value.get('densityWarning')}"
         for value in layout_data.get("results", []) if isinstance(value, dict) and value.get("densityWarning")
     ]
+    density_gate = _density_gate(layout_data, _arg(args, "dichteausnahme_begruendung", None))
     runtime = layout_data.get("runtime") if isinstance(layout_data, dict) else runtime_fingerprint()
     source_inputs: Dict[str, Any] = {
         "stammdaten": _source_record(paths["stammdaten"]),
@@ -908,7 +943,9 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
     if evidence.is_file():
         source_inputs["evidenzindex"] = _source_record(evidence, work)
     report: Dict[str, Any] = {
-        "schemaVersion": 7, "status": "bereit_zur_sichtpruefung", "preparedAtUtc": utc_now(),
+        "schemaVersion": 8,
+        "status": "layout_ueberarbeitung_erforderlich" if density_gate["status"] == "ueberarbeitung_erforderlich" else "bereit_zur_sichtpruefung",
+        "preparedAtUtc": utc_now(),
         "runtime": runtime, "workFolder": str(work), "candidateFolder": str(candidate), "targetFolder": str(paths["target"]),
         "layoutReport": str(paths["layout_report"]), "layoutReportArtifact": _record(paths["layout_report"], work),
         "pdfReport": str(paths["pdf_report"]), "pdfReportArtifact": _record(paths["pdf_report"], work),
@@ -916,20 +953,32 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
         "expectedScreenshots": expected_screenshots, "documentScope": scope,
         "personalReview": "png_sichtpruefung" if expected_screenshots else "textpruefung",
         "layoutWarnings": warnings,
+        "layoutGate": density_gate,
         "tokenUsageReport": {"available": False, "reason": "Agentenlaufzeit stellte keine maschinenlesbaren Nutzungsdaten bereit."},
         "stageOrder": list(STAGE_ORDER),
         "stageRuns": stage_runs, "sourceInputs": source_inputs, "artifacts": groups,
     }
-    records = approval_records(report)
-    report["approvalRequest"] = {
-        "approvalId": new_approval_id(), "reviewKind": report["personalReview"],
-        "artifactSetSha256": artifact_set_hash(records, work), "artifactCount": len(records), "createdAtUtc": utc_now(),
-    }
+    if report["status"] == "bereit_zur_sichtpruefung":
+        records = approval_records(report)
+        report["approvalRequest"] = {
+            "approvalId": new_approval_id(), "reviewKind": report["personalReview"],
+            "artifactSetSha256": artifact_set_hash(records, work), "artifactCount": len(records), "createdAtUtc": utc_now(),
+        }
     write_atomic_json(paths["final_report"], report)
+    if report["status"] == "layout_ueberarbeitung_erforderlich":
+        _emit(ctx, "[FEHLER] Technische Vorbereitung gesperrt: Der zweiseitige Lebenslauf enthält ungewöhnlich viel freie Fläche.")
+        for finding in density_gate["findings"]:
+            _emit(ctx, "- %s, Seite %s: %s mm freie Fläche (Grenze %s mm)" % (
+                finding["htmlFile"], finding["pageNumber"], finding["bottomWhitespaceMm"], finding["thresholdMm"]
+            ))
+        _emit(ctx, "Überarbeite die recruiterrelevante Seitenverteilung oder verwende eine konkrete --dichteausnahme-begruendung.")
+        return 1
     try:
         _run_core(ctx, "checkpoint", {"arbeitsordner": work, "schritt": "technische_vorbereitung_abgeschlossen"})
     except WorkflowError as exc:
         _emit(ctx, f"[WARNUNG] Checkpoint konnte nicht aktualisiert werden: {exc}")
+    if density_gate["status"] == "ausnahme_bestaetigt":
+        _emit(ctx, "[WARNUNG] Dichteausnahme ist für die persönliche Sichtprüfung dokumentiert.")
     _emit(ctx, "[OK] Technische Vorbereitung erfolgreich.")
     if expected_screenshots:
         for screenshot in _regular_files(paths["layout"], "*.png"):
@@ -1011,7 +1060,7 @@ def _install_directory(stage: Path, target: Path, replace: bool) -> None:
 def _normal_publish(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any]) -> int:
     work: Path = paths["work"]
     report = read_json(paths["final_report"])
-    if not isinstance(report, dict) or report.get("schemaVersion") != 7 or report.get("status") != "bereit_zur_sichtpruefung":
+    if not isinstance(report, dict) or report.get("schemaVersion") not in (7, 8) or report.get("status") != "bereit_zur_sichtpruefung":
         raise ContractError("Finalisierungsbericht besitzt keinen aktuellen veröffentlichbaren Freigabestatus.")
     if report.get("workFolder") != str(work) or report.get("candidateFolder") != str(paths["candidate"]) or report.get("targetFolder") != str(paths["target"]):
         raise ContractError("Finalisierungsbericht gehört nicht zum aktuellen Arbeits- oder Zielordner.")
@@ -1111,6 +1160,8 @@ def finalisieren(ctx: Any, args: Mapping[str, Any]) -> int:
     paths = _normal_final_paths(safe_path(work, _applications_root_from(work), must_exist=True, kind="dir"), args)
     if bool(_arg(args, "visuell_geprueft", False)) or _arg(args, "visuelle_freigabe_notiz", None):
         raise CliUsageError("Legacy-Sichtschalter ersetzen keine gebundene Chat-Freigabe. Verwende den Befehl 'freigabe'.")
+    if bool(_arg(args, "veroeffentlichen", False)) and _arg(args, "dichteausnahme_begruendung", None):
+        raise CliUsageError("--dichteausnahme-begruendung ist nur bei der technischen Vorbereitung ohne --veroeffentlichen zulässig.")
     return _normal_publish(ctx, paths, args) if bool(_arg(args, "veroeffentlichen", False)) else _normal_prepare(ctx, paths, args)
 
 

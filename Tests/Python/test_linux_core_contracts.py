@@ -19,6 +19,7 @@ if str(REPO_ROOT) not in os.sys.path:
 from Tools.apply_foundry import load_handlers  # noqa: E402
 from Tools.apply_foundry.cli import CommandContext, parse, run  # noqa: E402
 from Tools.apply_foundry.commands_core import (  # noqa: E402
+    _static_html_errors,
     handle_checkpoint,
     handle_dialog_pruefen,
     handle_dialog_uebernehmen,
@@ -422,10 +423,26 @@ class WorkflowCoreTests(unittest.TestCase):
         for name in ("Stellenbeschreibung.md", "Analyse.md", "Qualitaetscheck.md", "Druck-Hinweis.md"):
             (candidate / name).write_text("# Nachweis\n\n" + support, encoding="utf-8")
         (candidate / "Lebenslauf - Person.Test.html").write_text(
-            '<!doctype html><html lang="de"><head><style>@page { size: A4; margin: 0; }.page { width: 210mm; height: 297mm; }</style></head><body><main class="page">Seite 1</main><main class="page">Seite 2</main></body></html>',
+            '<!doctype html><html lang="de"><head><style>@page { size: A4; margin: 0; }.page { width: 210mm; height: 297mm; }</style></head><body>'
+            '<main class="page"><header data-cv-page-header>Seite 1</header><section data-cv-section="profil">Profil</section><footer class="page-footer">Seite 1 von 2</footer></main>'
+            '<main class="page"><header data-cv-page-header>Seite 2</header><section data-cv-section="chronologie">Chronologie</section><footer class="page-footer">Seite 2 von 2</footer></main></body></html>',
             encoding="utf-8",
         )
         self.assertEqual(0, handle_pruefen(self.project.context, {"ordner": candidate, "auftrag_path": work / "Universalauftrag.json"}))
+
+    def test_two_page_cv_requires_structured_headers_sections_and_footer(self):
+        path = self.project.root / "Lebenslauf - Person.Test.html"
+        path.write_text(
+            '<!doctype html><html lang="de"><head><style>@page { size: A4; margin: 0; }.page { width: 210mm; height: 297mm; }</style></head><body>'
+            '<main class="page"><section data-cv-section="profil">Profil</section><section>Unmarkiert</section><footer class="footer">Seite 1</footer></main>'
+            '<main class="page"><section data-cv-section="profil">Chronologie</section><footer class="page-footer">Seite 2</footer></main></body></html>',
+            encoding="utf-8",
+        )
+        errors = _static_html_errors(path, "lebenslauf")
+        self.assertTrue(any("data-cv-page-header" in item for item in errors))
+        self.assertTrue(any("page-footer" in item for item in errors))
+        self.assertTrue(any("data-cv-section" in item for item in errors))
+        self.assertTrue(any("dokumentweit eindeutig" in item for item in errors))
 
 
 class ApprovalTokenAndBaselineTests(unittest.TestCase):

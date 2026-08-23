@@ -4,6 +4,8 @@
 
 ### Python-3.11+-Major
 
+- Der Layout-Gate für zweiseitige Lebensläufe prüft nun verpflichtend Seitenköpfe, eindeutige Abschnittskennungen und `page-footer`-Fußzeilen. Die Dichtemessung schließt Fußzeilen aus und sperrt bei mehr als 55 mm ungewöhnlicher freier Fläche die Sichtfreigabe. Eine agentenseitig begründete Ausnahme ist ausschließlich über `finalisieren --dichteausnahme-begruendung` mit hashgebundenem Nachweis möglich.
+
 - Ein einziger Standardbibliothekskern unter `Tools/apply_foundry/` unterstützt
   Windows, Linux und macOS auf x64 und ARM64.
 - `Tools/bewerbung.py`, `Tools/neue-bewerbung.py` und `Tools/setup.py` sind die
@@ -29,4 +31,8 @@
 - README, Agentenregeln, Prompts, Kompatibilitätsübersicht, Beispiele und
   Roadmap dokumentieren ausschließlich den Python-Kern und die aktuellen
   Setup-/Freigabeverträge.
+- Die README ist wieder ein vollständiger deutschsprachiger Leitfaden für
+  Nutzung und Entwicklung: Schnellstart, Dialog, Artefakte, lokale Freigabe,
+  Dichtesperre, Architektur, Python-Tests und die aktuelle CI sind auf den
+  gemeinsamen Python-Kern ausgerichtet.
 - Veraltete Runtime- und Legacy-Verweise wurden vollständig entfernt.

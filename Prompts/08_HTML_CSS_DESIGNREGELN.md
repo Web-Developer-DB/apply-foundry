@@ -150,6 +150,8 @@ Empfohlene Geometrie für einen bewusst zweiseitigen Lebenslauf:
 }
 ```
 
+Bei zwei Lebenslaufseiten sind `data-cv-page-header`, jede eindeutige `data-cv-section`-Kennung und `<footer class="page-footer">` nicht nur Designempfehlungen, sondern ein statischer Vertragsbestandteil. Eine andere Footer-Klasse, fehlende Markierungen oder doppelte Abschnittskennungen blockieren die technische Vorbereitung. Der Layoutcheck lässt den gesamten Footerbereich bei der Dichtemessung außer Betracht.
+
 Für mehrseitige Lebensläufe ist dieser Footer Pflicht. Die Maße für `left`, `right` und `bottom` müssen zur jeweiligen Seitenpolsterung passen. Der Inhalt braucht genügend unteren Abstand, damit er die Trennlinie und Seitenangabe nicht berührt. Seitenzahlen dürfen nicht als normales `<p>` am Ende des Inhaltsflusses stehen.
 
 Abstände, Schatten und Hintergründe zwischen zwei A4-Seiten sind reine Bildschirmvorschau und gehören in `@media screen`. Eine globale Regel wie `.page + .page { margin-top: 8mm; }` kann wegen ihrer höheren CSS-Spezifität im Druck weitergelten und eine Fußzeile auf eine zusätzliche PDF-Seite verschieben. Im Druckmodus muss derselbe Selektor ausdrücklich auf `0` zurückgesetzt werden. Nach jeder Änderung eines mehrseitigen HTML-Dokuments ist vor Dichte- oder Typografiearbeit die vollständige Druckvorprüfung auszuführen: Die Zahl der PDF-Seiten muss exakt der Zahl der expliziten `.page`-Container entsprechen.

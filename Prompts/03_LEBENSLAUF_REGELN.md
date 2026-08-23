@@ -272,12 +272,14 @@ Nur die Detailtiefe innerhalb dieser Stationen ist kürzbar. Die Station selbst 
 
 Wenn zwei Seiten fachlich sinnvoll sind:
 
+- Vor dem Layout dokumentiere in `Analyse.md` und `Qualitaetscheck.md`, warum ein Einseiter recruiterrelevante, belegte Substanz verlieren würde und welchen eigenständigen Mehrwert Seite 2 enthält. Die Seitenzahl folgt nie einer Flächenquote oder einer bloßen Inhaltsmenge.
 - Es werden zwei explizite A4-Seitencontainer erstellt.
 - Die Verteilung folgt fachlichen, recruiterfreundlichen Abschnitten und niemals einem technischen Umbruch: Jeder Abschnitt liegt vollständig auf genau einer Seite und trägt eine stabile `data-cv-section`-Kennung; jede Seite besitzt einen mit `data-cv-page-header` markierten Kopf.
 - Seite 1 bündelt die stärksten Recruiter-Signale für die konkrete Profilrichtung. Seite 2 bildet einen eigenständigen, logisch lesbaren Block und beginnt nicht mitten in Berufserfahrung, Projekten, Ausbildung oder einer anderen Rubrik.
 - Für den eigenständigen universellen Softwareentwicklungs-Lebenslauf gilt verbindlich: Seite 1 enthält vollständig Kurzprofil, Technologien und sämtliche ausgewählten Entwicklungsprojekte; Seite 2 enthält vollständig Berufserfahrung, Weiterbildung, Ausbildung und Schulbildung. Dadurch bleiben Entwicklungsbelege vorne scanbar und die gesamte formale Chronologie geschlossen zusammen.
 - Seite 2 darf nicht wie ein zufälliger Rest wirken.
 - Seite 1 darf nicht halb leer wirken; Seite 2 darf kein ausgelagerter Rest mit unten abgeschnittenen formalen Stationen sein.
+- Große freie Fläche auf einer Seite ist ein Überarbeitungsbefund. Prüfe zuerst, ob weitere belegte und rollenrelevante Anwendungskontexte, Beiträge oder formale Informationen fehlen; nur bei nachweislich schmalem Profil ist eine Ausnahme mit konkreter Begründung zulässig. Irrelevante Inhalte, künstlich vergrößerte Abstände und aufgeblähte Aussagen sind kein Ausgleich.
 - Wenn Seite 1 deutlich zu wenig Inhalt trägt oder Seite 2 nur durch einzelne verschobene Rubriken entsteht, muss neu verteilt, fachlich gekürzt oder wieder ein kompakter Einseiten-Lebenslauf erstellt werden.
 - Schulbildung und berufliche Bildung dürfen bei einer zweiseitigen Fassung nicht erst so spät stehen, dass sie am Seitenende gefährdet oder abgeschnitten wirken.
 - Es gibt keinen zufälligen Browserumbruch und keinen abgeschnittenen Inhalt.

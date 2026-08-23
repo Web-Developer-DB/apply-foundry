@@ -113,7 +113,8 @@ COMMANDS = {
         "--browser-executable-path": P("browser_executable_path"), "--stammdaten-path": P("stammdaten_path"), "--profil-path": P("profil_path"),
         "--veroeffentlichen": S("veroeffentlichen"), "--visuell-geprueft": S("visuell_geprueft"),
         "--visuelle-freigabe-notiz": O("visuelle_freigabe_notiz", placeholder="TEXT"), "--ersetzen": S("ersetzen"),
-        "--neu-pruefen": S("neu_pruefen"), "--timeout-seconds": I("timeout_seconds", 1, 600, "SEKUNDEN"),
+        "--neu-pruefen": S("neu_pruefen"), "--dichteausnahme-begruendung": O("dichteausnahme_begruendung", placeholder="TEXT"),
+        "--timeout-seconds": I("timeout_seconds", 1, 600, "SEKUNDEN"),
     }, ("--arbeitsordner",)),
     "freigabe": CommandSpec("Chat-bestätigte Sichtfreigabe an den aktuellen Artefaktsatz binden", {
         "--arbeitsordner": P("arbeitsordner"), "--freigabe-id": O("freigabe_id", placeholder="ID"),

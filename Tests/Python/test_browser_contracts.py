@@ -35,7 +35,7 @@ from Tools.apply_foundry.browser_tools import (  # noqa: E402
     sha256,
 )
 from Tools.apply_foundry.cli import CommandContext  # noqa: E402
-from Tools.apply_foundry.commands_browser import _similarity, ats, layout  # noqa: E402
+from Tools.apply_foundry.commands_browser import _css_diagnostics, _density_gate, _similarity, ats, layout  # noqa: E402
 from Tools.apply_foundry.errors import CliUsageError  # noqa: E402
 
 
@@ -58,6 +58,35 @@ def synthetic_png(width=40, height=60):
 
 
 class BrowserPrimitiveTests(unittest.TestCase):
+
+    def test_css_diagnostics_accepts_screen_spacing_with_print_reset(self):
+        css = ".page + .page { margin-top: 8mm; } @media print { .page + .page { margin-top: 0; } }"
+        self.assertEqual([], _css_diagnostics(css))
+        self.assertTrue(_css_diagnostics(".page + .page { margin-top: 8mm; }"))
+
+    def test_density_gate_blocks_sparse_two_page_cv_and_accepts_structured_exception(self):
+        layout_report = {"results": [{
+            "htmlFile": "Lebenslauf - Muster.Max.html", "pageNumber": 2, "pageCount": 2,
+            "bottomWhitespaceMm": 74.2, "densityWarning": "Ungewöhnlich viel freie Fläche.",
+        }]}
+        blocked = _density_gate(layout_report, None)
+        self.assertEqual("ueberarbeitung_erforderlich", blocked["status"])
+        reason = (
+            "Seite: Die zweite Seite enthält 74,2 mm freie Fläche. Beleglage: Die vorhandenen Quellen enthalten "
+            "keine weitere recruiterrelevante, belegte Information. Einseiter: Ein Einseiter würde die vollständige "
+            "formale Chronologie und die relevanten Projektbelege unlesbar verdichten."
+        )
+        exception = _density_gate(layout_report, reason)
+        self.assertEqual("ausnahme_bestaetigt", exception["status"])
+        self.assertEqual(reason, exception["exceptionReason"])
+
+    def test_density_gate_rejects_unstructured_exception(self):
+        layout_report = {"results": [{
+            "htmlFile": "Lebenslauf - Muster.Max.html", "pageNumber": 2, "pageCount": 2,
+            "bottomWhitespaceMm": 74.2,
+        }]}
+        with self.assertRaisesRegex(CliUsageError, "Seite:"):
+            _density_gate(layout_report, "Bitte ausnahmsweise zulassen.")
     def test_pdf_stream_length_beats_embedded_endstream_bytes(self):
         """A stream payload may legally contain that byte sequence in comments."""
         cmap = b"/CIDInit /ProcSet findresource begin\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfchar\n<0001> <004D>\nendstream\n<0002> <0061>\nendbfchar\nendcmap\n"
@@ -433,17 +462,18 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
                 ".page:last-child{page-break-after:auto}"
             )
             page_one = (
-                "<h1>Max Muster</h1><h2>Softwareentwicklung</h2>"
-                "<h3>Kurzprofil</h3><p>Synthetische Fullstack-Entwicklung mit wartbaren Schnittstellen, "
-                "automatisierten Tests und verständlicher technischer Dokumentation.</p>"
-                "<h3>Technologien und Projekte</h3><p>Python, PHP, HTML, CSS, JavaScript und API-Integration "
-                "in vollständig fiktiven Projektbeispielen für sichere lokale Vertragstests.</p>"
+                "<header data-cv-page-header><h1>Max Muster</h1><p>Softwareentwicklung · Seite 1 von 2</p></header>"
+                "<section data-cv-section=\"profil\"><h2>Kurzprofil</h2><p>Synthetische Fullstack-Entwicklung mit wartbaren Schnittstellen, "
+                "automatisierten Tests und verständlicher technischer Dokumentation.</p></section>"
+                "<section data-cv-section=\"technologien-projekte\"><h2>Technologien und Projekte</h2><p>Python, PHP, HTML, CSS, JavaScript und API-Integration "
+                "in vollständig fiktiven Projektbeispielen für sichere lokale Vertragstests.</p></section>"
             )
             page_two = (
-                "<h2>Berufserfahrung</h2><p>01/2020 - 12/2024 · Synthetische Softwareentwicklung mit "
-                "nachvollziehbarem eigenem Beitrag.</p><h3>Weiterbildung</h3><p>Kontinuierliche fiktive "
-                "Vertiefung in Qualitätssicherung.</p><h3>Ausbildung und Schulbildung</h3>"
-                "<p>Vollständig synthetische Angaben ausschließlich für diesen Regressionstest.</p>"
+                "<header data-cv-page-header><h1>Max Muster</h1><p>Softwareentwicklung · Seite 2 von 2</p></header>"
+                "<section data-cv-section=\"berufserfahrung\"><h2>Berufserfahrung</h2><p>01/2020 - 12/2024 · Synthetische Softwareentwicklung mit "
+                "nachvollziehbarem eigenem Beitrag.</p></section><section data-cv-section=\"weiterbildung\"><h2>Weiterbildung</h2><p>Kontinuierliche fiktive "
+                "Vertiefung in Qualitätssicherung.</p></section><section data-cv-section=\"ausbildung-schulbildung\"><h2>Ausbildung und Schulbildung</h2>"
+                "<p>Vollständig synthetische Angaben ausschließlich für diesen Regressionstest.</p></section>"
             )
             (candidate / "Lebenslauf - Muster.Max.html").write_text(
                 '<!doctype html><html lang="de"><head><meta charset="utf-8"><style>%s</style></head>'
