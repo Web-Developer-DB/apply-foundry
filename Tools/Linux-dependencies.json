@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "kind": "apply-foundry-linux-dependencies",
+  "minimumPythonVersion": "3.9",
+  "supportedArchitectures": [
+    "x86_64"
+  ],
+  "managerPrecedence": [
+    "apt",
+    "dnf",
+    "yum",
+    "pacman",
+    "zypper"
+  ],
+  "packageManagers": {
+    "apt": {
+      "executable": "apt-get",
+      "components": {
+        "coreRuntime": {
+          "packages": ["python3"],
+          "source": "APT-Distribution"
+        },
+        "browser": {
+          "packages": ["chromium"],
+          "source": "APT-Distribution"
+        },
+        "fonts": {
+          "packages": ["fonts-liberation2"],
+          "source": "APT-Distribution"
+        },
+        "shellcheck": {
+          "packages": ["shellcheck"],
+          "source": "APT-Distribution"
+        }
+      }
+    },
+    "dnf": {
+      "executable": "dnf",
+      "components": {
+        "coreRuntime": {
+          "packages": ["python3"],
+          "source": "DNF-Distribution"
+        },
+        "browser": {
+          "packages": ["chromium"],
+          "source": "DNF-Distribution"
+        },
+        "fonts": {
+          "packages": ["liberation-sans-fonts"],
+          "source": "DNF-Distribution"
+        },
+        "shellcheck": {
+          "packages": ["ShellCheck"],
+          "source": "DNF-Distribution"
+        }
+      }
+    },
+    "yum": {
+      "executable": "yum",
+      "components": {
+        "coreRuntime": {
+          "packages": ["python3"],
+          "source": "YUM-Distribution"
+        },
+        "browser": {
+          "packages": ["chromium"],
+          "source": "YUM-Distribution"
+        },
+        "fonts": {
+          "packages": ["liberation-sans-fonts"],
+          "source": "YUM-Distribution"
+        },
+        "shellcheck": {
+          "packages": ["ShellCheck"],
+          "source": "YUM-Distribution"
+        }
+      }
+    },
+    "pacman": {
+      "executable": "pacman",
+      "components": {
+        "coreRuntime": {
+          "packages": ["python"],
+          "source": "Pacman-Distribution"
+        },
+        "browser": {
+          "packages": ["chromium"],
+          "source": "Pacman-Distribution"
+        },
+        "fonts": {
+          "packages": ["ttf-liberation"],
+          "source": "Pacman-Distribution"
+        },
+        "shellcheck": {
+          "packages": ["shellcheck"],
+          "source": "Pacman-Distribution"
+        }
+      }
+    },
+    "zypper": {
+      "executable": "zypper",
+      "components": {
+        "coreRuntime": {
+          "packages": ["python3"],
+          "source": "Zypper-Distribution"
+        },
+        "browser": {
+          "packages": ["chromium"],
+          "source": "Zypper-Distribution"
+        },
+        "fonts": {
+          "packages": ["liberation-fonts"],
+          "source": "Zypper-Distribution"
+        },
+        "shellcheck": {
+          "packages": ["ShellCheck"],
+          "source": "Zypper-Distribution"
+        }
+      }
+    }
+  }
+}

@@ -657,6 +657,9 @@ function Assert-CurrentRuntimeFingerprint {
   if (($fingerprintSchema -isnot [int] -and $fingerprintSchema -isnot [long]) -or [int]$fingerprintSchema -ne 1) {
     Stop-Finalization -Message "$Context enthält keinen unterstützten Runtime-Fingerprint. Erneute Vorbereitung erforderlich."
   }
+  if (-not (Test-RuntimeFingerprintCurrent -Fingerprint $Fingerprint -RequireBrowser:$RequireBrowser)) {
+    Stop-Finalization -Message "$Context wurde auf einer anderen Plattform oder Kernruntime erzeugt oder ist unvollständig. Erneute Vorbereitung erforderlich."
+  }
   $current = Get-RuntimeFingerprint
   foreach ($field in @("os", "architecture")) {
     $actual = [string](Get-JsonProperty -Object $Fingerprint -Name $field)

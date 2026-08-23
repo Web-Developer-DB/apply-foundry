@@ -653,6 +653,19 @@ function Get-RuntimeFingerprint {
   param([object]$BrowserInfo)
 
   $platform = Get-PlatformInfo
+  $runtimePath = $null
+  $runtimeCandidates = [System.Collections.Generic.List[string]]::new()
+  $runtimeCommand = Get-Command -Name 'pwsh' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($runtimeCommand -and -not [string]::IsNullOrWhiteSpace([string]$runtimeCommand.Source)) {
+    $runtimeCandidates.Add([string]$runtimeCommand.Source)
+  }
+  $runtimeCandidates.Add((Join-Path -Path $PSHOME -ChildPath $(if ($platform.IsWindows) { 'pwsh.exe' } else { 'pwsh' })))
+  foreach ($candidate in $runtimeCandidates) {
+    if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+      $runtimePath = (Resolve-Path -LiteralPath $candidate).Path
+      break
+    }
+  }
   $browser = $null
   if ($null -ne $BrowserInfo) {
     $browser = [ordered]@{
@@ -672,8 +685,93 @@ function Get-RuntimeFingerprint {
     architecture = $platform.Architecture
     powerShellVersion = $platform.PowerShellVersion
     psEdition = $platform.PSEdition
+    pythonVersion = $null
+    # Die generischen Felder werden zusätzlich zu den alten PowerShell-Feldern
+    # geschrieben. Dadurch bleiben vorhandene technische Berichte lesbar,
+    # während Gegenkerne die Runtime eindeutig als PowerShell erkennen können.
+    coreRuntime = [ordered]@{
+      platform = $platform.Name
+      language = 'powershell'
+      kind = 'powershell'
+      version = $platform.PowerShellVersion
+      minimumVersion = '7.6'
+      path = $runtimePath
+      executable = $runtimePath
+    }
     browser = $browser
   }
+}
+
+function Get-RuntimePropertyValue {
+  param([object]$Object, [Parameter(Mandatory)][string]$Name)
+  if ($null -eq $Object) { return $null }
+  if ($Object -is [System.Collections.IDictionary]) {
+    if ($Object.Contains($Name)) { return $Object[$Name] }
+    return $null
+  }
+  $property = $Object.PSObject.Properties[$Name]
+  if ($null -eq $property) { return $null }
+  return $property.Value
+}
+
+function Test-RuntimeFingerprintCurrent {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory)][object]$Fingerprint,
+    [switch]$RequireBrowser,
+    [object]$BrowserInfo
+  )
+
+  $schema = Get-RuntimePropertyValue -Object $Fingerprint -Name 'schemaVersion'
+  if (($schema -isnot [int] -and $schema -isnot [long]) -or [int]$schema -ne 1) { return $false }
+  $current = Get-RuntimeFingerprint -BrowserInfo $BrowserInfo
+  foreach ($field in @('os', 'architecture')) {
+    $actual = [string](Get-RuntimePropertyValue -Object $Fingerprint -Name $field)
+    $expected = [string](Get-RuntimePropertyValue -Object $current -Name $field)
+    if ([string]::IsNullOrWhiteSpace($actual) -or $actual -cne $expected) { return $false }
+  }
+  if ([string](Get-RuntimePropertyValue -Object $current -Name 'os') -ceq 'linux') {
+    foreach ($field in @('distributionId', 'distributionVersion', 'wsl')) {
+      if ([string](Get-RuntimePropertyValue -Object $Fingerprint -Name $field) -cne [string](Get-RuntimePropertyValue -Object $current -Name $field)) { return $false }
+    }
+  }
+  if ([string](Get-RuntimePropertyValue -Object $Fingerprint -Name 'psEdition') -cne 'Core' -or
+      [string]::IsNullOrWhiteSpace([string](Get-RuntimePropertyValue -Object $Fingerprint -Name 'powerShellVersion'))) { return $false }
+  $boundCore = Get-RuntimePropertyValue -Object $Fingerprint -Name 'coreRuntime'
+  if ($null -ne $boundCore) {
+    $currentCore = Get-RuntimePropertyValue -Object $current -Name 'coreRuntime'
+    if ($null -eq $currentCore) { return $false }
+    foreach ($field in @('language', 'kind', 'version')) {
+      $actual = [string](Get-RuntimePropertyValue -Object $boundCore -Name $field)
+      $expected = [string](Get-RuntimePropertyValue -Object $currentCore -Name $field)
+      if ([string]::IsNullOrWhiteSpace($actual) -or $actual -cne $expected) { return $false }
+    }
+    $actualPath = Get-RuntimePropertyValue -Object $boundCore -Name 'path'
+    if ([string]::IsNullOrWhiteSpace([string]$actualPath)) {
+      # Fruehe Python-/PowerShell-Prototypen nannten das Feld noch executable.
+      $actualPath = Get-RuntimePropertyValue -Object $boundCore -Name 'executable'
+    }
+    $expectedPath = Get-RuntimePropertyValue -Object $currentCore -Name 'path'
+    if ([string]::IsNullOrWhiteSpace([string]$expectedPath)) {
+      $expectedPath = Get-RuntimePropertyValue -Object $currentCore -Name 'executable'
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$actualPath) -or
+        [string]::IsNullOrWhiteSpace([string]$expectedPath) -or
+        [string]$actualPath -cne [string]$expectedPath) { return $false }
+  }
+  if ($RequireBrowser) {
+    $boundBrowser = Get-RuntimePropertyValue -Object $Fingerprint -Name 'browser'
+    foreach ($field in @('name', 'version', 'executable')) {
+      if ([string]::IsNullOrWhiteSpace([string](Get-RuntimePropertyValue -Object $boundBrowser -Name $field))) { return $false }
+    }
+    if ($null -ne $BrowserInfo) {
+      $currentBrowser = Get-RuntimePropertyValue -Object $current -Name 'browser'
+      foreach ($field in @('name', 'version', 'executable')) {
+        if ([string](Get-RuntimePropertyValue -Object $boundBrowser -Name $field) -cne [string](Get-RuntimePropertyValue -Object $currentBrowser -Name $field)) { return $false }
+      }
+    }
+  }
+  return $true
 }
 
 Export-ModuleMember -Function @(
@@ -687,5 +785,6 @@ Export-ModuleMember -Function @(
   'Invoke-NativeProcess',
   'Get-BrowserCandidates',
   'Resolve-BrowserExecutable',
-  'Get-RuntimeFingerprint'
+  'Get-RuntimeFingerprint',
+  'Test-RuntimeFingerprintCurrent'
 )

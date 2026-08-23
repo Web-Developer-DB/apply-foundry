@@ -1,0 +1,24 @@
+# Persönliche Daten
+- Vollständiger Name: Parity Person
+- Vorname: Parity
+- Nachname: Person
+- Dateiname-Name: PARITY.PERSON
+- Adresse: Teststraße 1, 12345 Teststadt
+- Telefon: +49 151 00000000
+- E-Mail: parity.person@example.invalid
+- Verfügbarkeit: nach Vereinbarung
+- Frühester Eintrittstermin: nach Vereinbarung
+- Gewünschte Stellenart: Vollzeit
+- Gewünschter Stundenumfang: 40 Std./Woche
+- Gewünschtes Arbeitsmodell: hybrid
+- Gewünschte Region: Deutschland
+- Maximale Pendeldistanz: 60 Minuten
+- Reisebereitschaft: gelegentlich
+- Schicht- oder Wochenendbereitschaft: nein
+- Befristung: unbefristet bevorzugt
+- Umzugsbereitschaft: nein
+- Wunschgehalt verwenden: nein
+- Wunschgehalt manuell: nicht angegeben
+- Gehaltsmodell: Jahresbrutto
+- Gehaltsregion: Deutschland
+- Gehaltslogik: manuelle Angabe bevorzugen

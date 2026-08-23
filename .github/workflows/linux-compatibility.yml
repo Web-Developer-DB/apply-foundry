@@ -12,7 +12,7 @@ jobs:
   distro:
     name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -36,32 +36,53 @@ jobs:
       - name: Installieren, diagnostizieren und regressionsprüfen
         env:
           IMAGE: ${{ matrix.image }}
+          TARGET_PROFILE: ${{ matrix.name }}
         run: |
           docker run --rm \
             --volume "$GITHUB_WORKSPACE:/repo" \
             --workdir /repo \
+            --env TARGET_PROFILE="$TARGET_PROFILE" \
+            --env APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER=1 \
             "$IMAGE" \
             bash -lc '
+              set -euo pipefail
               export DEBIAN_FRONTEND=noninteractive
+              export APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER=1
               . /etc/os-release
+              mkdir -p Tests/Artifacts
+              bash Tools/setup-linux.sh --runtime --dry-run --format json > "Tests/Artifacts/bootstrap-plan-${TARGET_PROFILE}.json"
+              bash Tools/setup-linux.sh --runtime --yes --format json > "Tests/Artifacts/bootstrap-result-${TARGET_PROFILE}.json"
               if [ "${ID:-}" = ubuntu ]; then
-                bash Tools/setup-linux.sh --runtime --fonts --shellcheck --dry-run --format json
-                bash Tools/setup-linux.sh --runtime --fonts --shellcheck --yes
+                python3 Tools/setup-linux.py --all --dry-run --format json > "Tests/Artifacts/setup-plan-${TARGET_PROFILE}.json"
+                python3 Tools/setup-linux.py --runtime --fonts --shellcheck --yes --format json > "Tests/Artifacts/setup-result-${TARGET_PROFILE}.json"
+              elif [ "${ID:-}" = rocky ]; then
+                python3 Tools/setup-linux.py --all --dry-run --format json > "Tests/Artifacts/setup-plan-${TARGET_PROFILE}.json"
+                python3 Tools/setup-linux.py --runtime --fonts --yes --format json > "Tests/Artifacts/setup-result-${TARGET_PROFILE}.json"
+                python3 -c "import json, sys; d=json.load(open(sys.argv[1], encoding=\"utf-8\")); assert d[\"dependencies\"][\"browser\"][\"blocked\"] and d[\"dependencies\"][\"shellcheck\"][\"blocked\"]" "Tests/Artifacts/setup-plan-${TARGET_PROFILE}.json"
               else
-                bash Tools/setup-linux.sh --all --dry-run --format json
-                bash Tools/setup-linux.sh --all --yes
+                python3 Tools/setup-linux.py --all --dry-run --format json > "Tests/Artifacts/setup-plan-${TARGET_PROFILE}.json"
+                python3 Tools/setup-linux.py --all --yes --format json > "Tests/Artifacts/setup-result-${TARGET_PROFILE}.json"
               fi
-              PWSH="$(command -v pwsh || true)"
-              if [ -z "$PWSH" ]; then PWSH="${XDG_DATA_HOME:-$HOME/.local/share}/apply-foundry/runtime/powershell/7.6.4/pwsh"; fi
-              if command -v chromium >/dev/null 2>&1 || [ -x /usr/bin/chromium ]; then
-                "$PWSH" -NoLogo -NoProfile -NonInteractive -File Tools/bewerbung.ps1 diagnose --browser chromium --browser-erforderlich
+              if command -v chromium >/dev/null 2>&1 || command -v chromium-browser >/dev/null 2>&1; then
+                python3 Tools/bewerbung.py diagnose --browser chromium --browser-erforderlich --als-json > "Tests/Artifacts/diagnose-${TARGET_PROFILE}.json"
               else
                 echo "Chromium-Smoke übersprungen: Distribution stellt unter dem No-Snap-Vertrag keinen nativen Chromium-Pfad bereit."
-                "$PWSH" -NoLogo -NoProfile -NonInteractive -File Tools/bewerbung.ps1 diagnose
+                python3 Tools/bewerbung.py diagnose --als-json > "Tests/Artifacts/diagnose-${TARGET_PROFILE}.json"
               fi
-              "$PWSH" -NoLogo -NoProfile -NonInteractive -File Tools/bewerbung.ps1 tests --suite vollstaendig
-              if command -v chromium >/dev/null 2>&1 || [ -x /usr/bin/chromium ]; then
-                "$PWSH" -NoLogo -NoProfile -NonInteractive -File Tools/bewerbung.ps1 tests --suite browser
+              python3 -m unittest discover -s Tests/Python -p "test_*.py"
+              python3 Tools/bewerbung.py tests --suite vollstaendig --bericht-path "Tests/Artifacts/full-${TARGET_PROFILE}.json"
+              if command -v chromium >/dev/null 2>&1 || command -v chromium-browser >/dev/null 2>&1; then
+                python3 Tools/bewerbung.py tests --suite browser --bericht-path "Tests/Artifacts/browser-${TARGET_PROFILE}.json"
               fi
+              bash Tests/Bash/test-bewerbung-cli.sh
               bash Tests/Bash/test-setup-linux.sh
+              bash Tests/Bash/test-setup-ubuntu.sh
             '
+      - name: Bereinigte Profilberichte hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-compatibility-${{ matrix.name }}
+          path: Tests/Artifacts
+          if-no-files-found: ignore
+          retention-days: 30

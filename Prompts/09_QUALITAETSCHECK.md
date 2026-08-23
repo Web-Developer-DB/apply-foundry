@@ -65,7 +65,7 @@ Vor der technischen Vorbereitung prüft der Agent den fachlichen Kandidatenstand
 
 ## Technischer Nachweis
 
-Vor `Tools/Finalisiere-Bewerbung.ps1` werden technische Ergebnisse als `ausstehend` behandelt. Der Agent darf keine Browser-, Screenshot-, PDF-, ATS- oder Sichtprüfung als bestanden beschreiben, die nicht tatsächlich im aktuellen Lauf stattgefunden hat.
+Vor dem Subcommand `finalisieren` des Plattform-Dispatchers (`pwsh -NoProfile -File Tools/bewerbung.ps1` unter Windows, `python3 Tools/bewerbung.py` unter Linux) werden technische Ergebnisse als `ausstehend` behandelt. Der Agent darf keine Browser-, Screenshot-, PDF-, ATS- oder Sichtprüfung als bestanden beschreiben, die nicht tatsächlich im aktuellen Lauf stattgefunden hat.
 
 Der verbindliche Vorbereitungslauf muss anschließend bestätigen:
 

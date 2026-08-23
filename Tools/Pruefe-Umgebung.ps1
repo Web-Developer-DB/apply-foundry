@@ -141,8 +141,13 @@ function Get-ExecutableDetails {
 
 $platform = Get-PlatformInfo
 $powerShellOk = $PSVersionTable.PSEdition -eq 'Core' -and $PSVersionTable.PSVersion -ge [version]'7.6'
+$powerShellDetail = if ($platform.IsLinux) {
+  "PowerShell $($PSVersionTable.PSVersion) ($($PSVersionTable.PSEdition)) ist als Legacy-Fallback verfügbar. Der produktive Linux-Kern ist System-Python 3.9+; prüfen Sie ihn mit python3 Tools/setup-linux.py --runtime --dry-run --format json."
+} else {
+  "PowerShell $($PSVersionTable.PSVersion) ($($PSVersionTable.PSEdition)); erforderlich: Core 7.6 oder neuer. Bei fehlender Runtime: Tools/setup-windows.ps1 -Runtime -DryRun -Format json."
+}
 Add-DiagnosticCheck -Name 'powershell' -Status $(if ($powerShellOk) { 'ok' } else { 'error' }) -Required $true `
-  -Detail "PowerShell $($PSVersionTable.PSVersion) ($($PSVersionTable.PSEdition)); erforderlich: Core 7.6 oder neuer. Bei fehlender Runtime: Tools/setup-linux.sh --runtime --dry-run beziehungsweise Tools/setup-windows.ps1 -Runtime -DryRun." -FailureExitCode 2
+  -Detail $powerShellDetail -FailureExitCode 2
 
 $platformDetail = if ($platform.IsLinux) {
   "$($platform.OSDescription); Distribution $($platform.DistributionId) $($platform.DistributionVersion); Architektur $($platform.Architecture)."
@@ -154,7 +159,7 @@ Add-DiagnosticCheck -Name 'plattform' -Status $(if ($platform.Supported) { 'ok' 
 
 if ($platform.IsLinux) {
   Add-DiagnosticCheck -Name 'paketmanager' -Status $(if ($platform.PackageManager) { 'ok' } else { 'error' }) -Required $true `
-    -Detail $(if ($platform.PackageManager) { "Erkannt: $($platform.PackageManager)." } else { 'Kein unterstützter Paketmanager erkannt; setup-linux.sh kann nur einen manuellen Installationsplan ausgeben.' }) -FailureExitCode 2
+    -Detail $(if ($platform.PackageManager) { "Erkannt: $($platform.PackageManager)." } else { 'Kein unterstützter Paketmanager erkannt; python3 Tools/setup-linux.py gibt nur eine manuelle Anleitung aus.' }) -FailureExitCode 2
 }
 
 try {
@@ -190,7 +195,7 @@ try {
 
 $shellCheck = Get-ExecutableDetails -Names @('shellcheck', 'shellcheck.exe')
 Add-DiagnosticCheck -Name 'shellcheck' -Status $(if ($shellCheck.Available) { 'ok' } else { 'warning' }) -Required $false `
-  -Detail $(if ($shellCheck.Available) { $shellCheck.Detail } else { 'ShellCheck fehlt; für die vollständige Bash-/CI-Prüfung Tools/setup-linux.sh --shellcheck beziehungsweise Tools/setup-windows.ps1 -ShellCheck verwenden.' })
+  -Detail $(if ($shellCheck.Available) { $shellCheck.Detail } else { if ($platform.IsLinux) { 'ShellCheck fehlt; für die vollständige Bash-/CI-Prüfung python3 Tools/setup-linux.py --shellcheck --dry-run verwenden.' } else { 'ShellCheck fehlt; für die vollständige Bash-/CI-Prüfung Tools/setup-windows.ps1 -ShellCheck verwenden.' } })
 
 $browserInfo = $null
 $browserSelectionIsRequired = [bool]($BrowserErforderlich -or $Browser -ne 'auto' -or -not [string]::IsNullOrWhiteSpace($BrowserExecutablePath))
@@ -217,15 +222,15 @@ if ($powerShellCommand -and $powerShellCommand.Source) {
   if (Test-Path -LiteralPath $powerShellCandidate -PathType Leaf) { $powerShellPath = $powerShellCandidate }
 }
 
-$setupBase = if ($platform.IsWindows) { 'Tools/setup-windows.ps1' } else { 'Tools/setup-linux.sh' }
+$setupBase = if ($platform.IsWindows) { 'Tools/setup-windows.ps1' } else { 'python3 Tools/setup-linux.py' }
+$runtimeSetupOption = if ($platform.IsWindows) { '-Runtime' } else { '--runtime' }
+$browserSetupOption = if ($platform.IsWindows) { '-Browser chromium' } else { '--browser chromium' }
+$fontSetupOption = if ($platform.IsWindows) { '-Fonts' } else { '--fonts' }
+$shellCheckSetupOption = if ($platform.IsWindows) { '-ShellCheck' } else { '--shellcheck' }
 $runtimeSolution = if ($platform.IsWindows) {
   'Microsoft.PowerShell über winget'
-} elseif ($platform.PackageManager -in @('pacman', 'zypper')) {
-  'Verifiziertes offizielles PowerShell-Archiv im Benutzer-Runtimepfad'
-} elseif ($platform.DistributionId -in @('ubuntu', 'debian')) {
-  'Microsoft-Paketquelle, bei nicht verfügbarer Distribution offizielles Archiv'
 } else {
-  'Offizielles PowerShell-Archiv; keine unbekannte Paketquelle'
+  'Bereits installierter PowerShell-Legacy-Fallback; kein Linux-Installationsziel'
 }
 $browserSolution = if ($platform.IsWindows) { 'Chromium-fähiger Browser über winget (Chrome)' } else { 'Chromium aus der Distribution' }
 $fontSolution = if ($platform.IsWindows) { 'Arial als geprüfte Windows-Systemvoraussetzung; nicht automatisch ersetzen' } else { 'Liberation Sans aus der Distribution' }
@@ -234,23 +239,23 @@ $setupSuffix = if ($platform.IsWindows) { ' -DryRun -Format json' } else { ' --d
 $dependencyDetails = @(
   [pscustomobject][ordered]@{
     name = 'powershell'; status = if ($powerShellOk) { 'present' } else { 'missing' }; version = $PSVersionTable.PSVersion.ToString(); path = $powerShellPath
-    package = if ($platform.IsWindows) { 'Microsoft.PowerShell' } else { 'powershell' }; source = $runtimeSolution; solution = $runtimeSolution; installable = [bool]$platform.Supported
-    setupCommand = "$setupBase -Runtime$setupSuffix"; permission = if ($platform.IsWindows) { 'winget-Berechtigung, ggf. Administrator' } else { 'Root/sudo für Paketquelle; Archiv selbst benutzerweit' }
+    package = if ($platform.IsWindows) { 'Microsoft.PowerShell' } else { $null }; source = $runtimeSolution; solution = $runtimeSolution; installable = [bool]$platform.IsWindows
+    setupCommand = if ($platform.IsWindows) { "$setupBase $runtimeSetupOption$setupSuffix" } else { $null }; permission = if ($platform.IsWindows) { 'winget-Berechtigung, ggf. Administrator' } else { 'Keine Installation: Linux verwendet Python als produktiven Kern.' }
   },
   [pscustomobject][ordered]@{
     name = 'chromium'; status = if ($null -ne $browserInfo -and $browserInfo.Engine -eq 'chromium') { 'present' } else { 'missing' }; version = if ($null -ne $browserInfo -and $browserInfo.Engine -eq 'chromium') { $browserInfo.Version } else { $null }; path = if ($null -ne $browserInfo -and $browserInfo.Engine -eq 'chromium') { $browserInfo.Path } else { $null }
     package = if ($platform.IsWindows) { 'Google.Chrome' } else { 'chromium' }; source = $browserSolution; solution = $browserSolution; installable = [bool]($platform.Supported -and -not ($platform.IsLinux -and $platform.DistributionId -eq 'ubuntu' -and (Get-Command apt-cache -ErrorAction SilentlyContinue) -and ((apt-cache show chromium chromium-browser 2>$null) -match '(?i)snap')))
-    setupCommand = "$setupBase -Browser chromium$setupSuffix"; permission = if ($platform.IsWindows) { 'winget-Berechtigung, ggf. Administrator' } else { 'Root/sudo für Distributionspaket' }
+    setupCommand = "$setupBase $browserSetupOption$setupSuffix"; permission = if ($platform.IsWindows) { 'winget-Berechtigung, ggf. Administrator' } else { 'Root/sudo für Distributionspaket' }
   },
   [pscustomobject][ordered]@{
     name = 'fonts'; status = if ($font.Available) { 'present' } else { 'missing' }; version = $font.Version; path = $font.Path
     package = if ($platform.IsWindows) { $null } else { 'fonts-liberation2 beziehungsweise distributionsspezifisches Liberation-Paket' }; source = $fontSolution; solution = $fontSolution; installable = [bool]($platform.IsLinux -and $platform.Supported)
-    setupCommand = "$setupBase -Fonts$setupSuffix"; permission = if ($platform.IsWindows) { 'Keine Installation; Windows-Systemvoraussetzung' } else { 'Root/sudo für Distributionspaket' }
+    setupCommand = "$setupBase $fontSetupOption$setupSuffix"; permission = if ($platform.IsWindows) { 'Keine Installation; Windows-Systemvoraussetzung' } else { 'Root/sudo für Distributionspaket' }
   },
   [pscustomobject][ordered]@{
     name = 'shellcheck'; status = if ($shellCheck.Available) { 'present' } else { 'missing' }; version = $shellCheck.Version; path = $shellCheck.Path
     package = if ($platform.IsWindows) { 'koalaman.shellcheck' } else { 'shellcheck' }; source = $shellCheckSolution; solution = $shellCheckSolution; installable = [bool]$platform.Supported
-    setupCommand = "$setupBase -ShellCheck$setupSuffix"; permission = if ($platform.IsWindows) { 'winget-Berechtigung, ggf. Administrator' } else { 'Root/sudo für Distributionspaket' }
+    setupCommand = "$setupBase $shellCheckSetupOption$setupSuffix"; permission = if ($platform.IsWindows) { 'winget-Berechtigung, ggf. Administrator' } else { 'Root/sudo für Distributionspaket' }
   }
 )
 
@@ -266,7 +271,7 @@ $status = if ($exitCode -eq 2) {
 }
 
 $report = [pscustomobject][ordered]@{
-  schemaVersion = 2
+  schemaVersion = 3
   checkedAtUtc = [datetime]::UtcNow.ToString('o')
   status = $status
   exitCode = $exitCode
@@ -278,8 +283,21 @@ $report = [pscustomobject][ordered]@{
     architecture = $platform.Architecture
     packageManager = $platform.PackageManager
   }
+  coreRuntime = [pscustomobject][ordered]@{
+    platform = if ($platform.IsWindows) { 'windows' } elseif ($platform.IsLinux) { 'linux' } else { [string]$platform.Name }
+    name = 'powershell'
+    language = 'powershell'
+    status = if ($powerShellOk) { 'present' } else { 'missing' }
+    version = $PSVersionTable.PSVersion.ToString()
+    minimumVersion = '7.6'
+    path = $powerShellPath
+    source = $runtimeSolution
+    installable = [bool]$platform.Supported
+    setupCommand = if ($platform.IsWindows) { "$setupBase $runtimeSetupOption$setupSuffix" } else { 'python3 Tools/setup-linux.py --runtime --dry-run --format json' }
+    permission = if ($platform.IsWindows) { 'winget-Berechtigung, ggf. Administrator' } else { 'Legacy-Fallback; Linux verwendet primär System-Python 3.9+' }
+  }
   setup = [pscustomobject][ordered]@{
-    linux = if ($platform.IsLinux) { 'Tools/setup-linux.sh --all --dry-run --format json' } else { $null }
+    linux = if ($platform.IsLinux) { 'python3 Tools/setup-linux.py --all --dry-run --format json' } else { $null }
     windows = if ($platform.IsWindows) { 'Tools/setup-windows.ps1 -All -DryRun -Format json' } else { $null }
   }
   dependencies = $dependencyDetails

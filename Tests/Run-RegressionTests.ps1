@@ -49,7 +49,7 @@ function Test-FastTestName {
 
   # Fast is intentionally an explicit canary set. Full contract coverage stays in
   # the complete suite; this set must remain short enough for local and PR feedback.
-  return $Name -match '^(?:PowerShell-Dateien sind syntaktisch gültig|Native Prozesse begrenzen Ausgaben und beenden den Prozessbaum bei Timeout|Portabler PNG-Leser dekodiert Farbtypen und Filter und lehnt defekte Header ab|Passfoto-Modul entfernt optionale Blöcke und bindet gültige PNG-Bytes idempotent|Universeller Agenteneinstieg routet alle Betriebsmodi sicher|Agentenpfade besitzen plattformübergreifend die exakte Schreibweise|Kanonischer Prompt definiert Fähigkeiten und Fortsetzung aus Dateinachweisen|Promptaudit hält Routing, Autonomie und Qualitätsverträge widerspruchsfrei|Prompt-Regression-Konfiguration bindet vier Agenten und feste Modelle|Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben|Tokenbericht übernimmt Nichtverfügbarkeit ohne Schätzwerte oder sensible Felder|Tokenbericht übernimmt nur ausdrücklich bereitgestellte exakte Laufzeitwerte|README verweist nur auf vorhandene lokale Ziele und definierte Anker|README dokumentiert neutrale Agentenstarts und tatsächliche Grenzen|Phase-[56]-Vertragstests|Matrix- und Evidenzverträge.*|Migrations.*|Console-App-Roadmap.*|Schema-5-.*|Prompt-Regression-.*)$'
+  return $Name -match '^(?:PowerShell-Dateien sind syntaktisch gültig|Windows-Diagnose und Bootstrap liefern den generischen Kernruntimevertrag|Native Prozesse begrenzen Ausgaben und beenden den Prozessbaum bei Timeout|Portabler PNG-Leser dekodiert Farbtypen und Filter und lehnt defekte Header ab|Passfoto-Modul entfernt optionale Blöcke und bindet gültige PNG-Bytes idempotent|Universeller Agenteneinstieg routet alle Betriebsmodi sicher|Agentenpfade besitzen plattformübergreifend die exakte Schreibweise|Kanonischer Prompt definiert Fähigkeiten und Fortsetzung aus Dateinachweisen|Promptaudit hält Routing, Autonomie und Qualitätsverträge widerspruchsfrei|Prompt-Regression-Konfiguration bindet vier Agenten und feste Modelle|Fremdanweisungen in Stellenanzeigen können Projektregeln nicht überschreiben|Tokenbericht übernimmt Nichtverfügbarkeit ohne Schätzwerte oder sensible Felder|Tokenbericht übernimmt nur ausdrücklich bereitgestellte exakte Laufzeitwerte|README verweist nur auf vorhandene lokale Ziele und definierte Anker|README dokumentiert neutrale Agentenstarts und tatsächliche Grenzen|Phase-[56]-Vertragstests|Matrix- und Evidenzverträge.*|Migrations.*|Console-App-Roadmap.*|Schema-5-.*|Prompt-Regression-.*)$'
 }
 
 function Get-TimingSummary {
@@ -1131,11 +1131,48 @@ try {
       [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
       Assert-True -Condition ($parseErrors.Count -eq 0) -Message "$($file.Name) enthält Parserfehler."
     }
-    foreach ($file in Get-ChildItem -LiteralPath $toolsRoot -Filter "*.ps1" -File) {
+    foreach ($file in Get-ChildItem -LiteralPath $toolsRoot -Filter "*.ps1" -File | Where-Object { $_.Name -ne 'setup-windows.ps1' }) {
       $head = @(Get-Content -LiteralPath $file.FullName -TotalCount 3 -Encoding UTF8)
       Assert-True -Condition ($head -contains "#requires -Version 7.6") -Message "$($file.Name) verlangt PowerShell 7.6 nicht ausdrücklich."
       Assert-True -Condition ($head -contains "#requires -PSEdition Core") -Message "$($file.Name) verlangt die Core-Edition nicht ausdrücklich."
     }
+  }
+
+  Invoke-Test -Name "Windows-Diagnose und Bootstrap liefern den generischen Kernruntimevertrag" -Body {
+    $diagnose = Invoke-ChildScript -ScriptPath (Join-Path $toolsRoot 'bewerbung.ps1') -Arguments @('diagnose', '--als-json')
+    Assert-True -Condition ($diagnose.ExitCode -in @(0, 1)) -Message 'Windows-Diagnose schlug mit einem ungültigen Plattform-/CLI-Exitcode fehl.'
+    $diagnoseReport = ($diagnose.Output -join [Environment]::NewLine) | ConvertFrom-Json
+    Assert-True -Condition ($diagnoseReport.schemaVersion -eq 3 -and $diagnoseReport.coreRuntime.language -eq 'powershell' -and $diagnoseReport.coreRuntime.minimumVersion -eq '7.6' -and -not [string]::IsNullOrWhiteSpace([string]$diagnoseReport.coreRuntime.path)) -Message 'Diagnose liefert nicht das generische Schema 3 mit gebundener PowerShell-Kernruntime.'
+    if ($IsWindows) {
+      $setup = & $powerShellExe -NoProfile -File (Join-Path $toolsRoot 'setup-windows.ps1') -Runtime -DryRun -Format json 2>&1
+      $setupExit = $LASTEXITCODE
+      Assert-True -Condition ($setupExit -eq 0) -Message 'Windows-Bootstrap-Dry-run schlug fehl.'
+      $setupReport = ($setup -join [Environment]::NewLine) | ConvertFrom-Json
+      Assert-True -Condition ($setupReport.schemaVersion -eq 2 -and $setupReport.kind -eq 'windows_setup_plan' -and $setupReport.coreRuntime.language -eq 'powershell' -and $setupReport.coreRuntime.minimumVersion -eq '7.6') -Message 'Windows-Bootstrap liefert nicht das generische Setup-Schema 2.'
+    }
+    $setupSource = Get-Content -LiteralPath (Join-Path $toolsRoot 'setup-windows.ps1') -Raw -Encoding UTF8
+    Assert-True -Condition ($setupSource -notmatch '(?m)\bWrite-Error\b') -Message 'Windows-Bootstrap darf explizite Exitcodes nicht durch ErrorActionPreference/Write-Error übersteuern.'
+    Assert-True -Condition ($setupSource -match [regex]::Escape('${env:ProgramFiles(x86)}') -and $setupSource -match 'Microsoft\\Edge\\Application\\msedge\.exe') -Message 'Windows-Bootstrap erkennt den üblichen 64-bit-Edge-Pfad unter Program Files (x86) nicht.'
+  }
+
+  Invoke-Test -Name "Technische Runtime-Fingerprints werden produktiv an Plattform und Kern gebunden" -Body {
+    $currentFingerprint = Get-RuntimeFingerprint
+    Assert-True -Condition (Test-RuntimeFingerprintCurrent -Fingerprint $currentFingerprint) -Message 'Aktueller PowerShell-Runtime-Fingerprint wurde unerwartet als veraltet abgelehnt.'
+    Assert-True -Condition ($currentFingerprint.coreRuntime.platform -eq 'windows' -and $currentFingerprint.coreRuntime.language -eq 'powershell' -and $currentFingerprint.coreRuntime.kind -eq 'powershell' -and $currentFingerprint.coreRuntime.minimumVersion -eq '7.6' -and -not [string]::IsNullOrWhiteSpace([string]$currentFingerprint.coreRuntime.path)) -Message 'PowerShell-Runtime-Fingerprint enthält nicht den generischen Kernruntimevertrag.'
+    $foreignCore = [pscustomobject][ordered]@{
+      schemaVersion = 1
+      os = $currentFingerprint.os
+      distributionId = $currentFingerprint.distributionId
+      distributionVersion = $currentFingerprint.distributionVersion
+      wsl = $currentFingerprint.wsl
+      architecture = $currentFingerprint.architecture
+      powerShellVersion = $null
+      psEdition = $null
+      pythonVersion = '3.11.0'
+      coreRuntime = [pscustomobject]@{ platform = 'linux'; language = 'python'; kind = 'python'; version = '3.11.0'; minimumVersion = '3.9'; path = '/usr/bin/python3'; executable = '/usr/bin/python3' }
+      browser = $null
+    }
+    Assert-True -Condition (-not (Test-RuntimeFingerprintCurrent -Fingerprint $foreignCore)) -Message 'Fremder Python-Kern wurde als aktueller PowerShell-Nachweis akzeptiert.'
   }
 
   Invoke-Test -Name "Native Prozesse begrenzen Ausgaben und beenden den Prozessbaum bei Timeout" -Body {

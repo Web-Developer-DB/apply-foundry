@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "version": "7.6.4",
-  "linuxX64": {
-    "url": "https://github.com/PowerShell/PowerShell/releases/download/v7.6.4/powershell-7.6.4-linux-x64.tar.gz",
-    "sha256": "4471B5A36BFE86EC7AF8525D36BB1CACBA0128E7AAC22D05CC064BC00E604721"
-  }
-}

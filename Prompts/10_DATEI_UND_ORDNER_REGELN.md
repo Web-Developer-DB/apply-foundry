@@ -170,11 +170,11 @@ Der kompakte Fortsetzungsnachweis liegt daneben im selben Arbeitsordner:
 Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Workflow-Checkpoint.json
 ```
 
-Er wird über `bewerbung.ps1 checkpoint` aktualisiert, enthält nur Schrittstatus sowie relative Pfade, Größen und SHA-256-Werte der vorhandenen Arbeitsartefakte und ist auf 24 Historieneinträge begrenzt. Rohchat, vollständige Quellen und Bewerberprofilkopien sind verboten. Der Checkpoint ist keine neue fachliche Stammquelle, kein Freigabenachweis und gehört weder nach `Versand/` noch standardmäßig in `Manifest.json`.
+Er wird über das Subcommand `checkpoint` des jeweiligen Plattform-Dispatchers aktualisiert, enthält nur Schrittstatus sowie relative Pfade, Größen und SHA-256-Werte der vorhandenen Arbeitsartefakte und ist auf 24 Historieneinträge begrenzt. Rohchat, vollständige Quellen und Bewerberprofilkopien sind verboten. Der Checkpoint ist keine neue fachliche Stammquelle, kein Freigabenachweis und gehört weder nach `Versand/` noch standardmäßig in `Manifest.json`.
 
 Regel:
 - Entwürfe und Kandidatendateien in `_Arbeitsdateien`
-- finale Dateien ausschließlich durch `Tools/Finalisiere-Bewerbung.ps1` veröffentlichen
+- finale Dateien ausschließlich durch das Subcommand `finalisieren` des Plattform-Dispatchers veröffentlichen
 - keine losen temporären Dateien direkt unter `Private/Bewerbungen/`
 - keine generierten Bewerbungsdateien in öffentlichen Projektordnern
 
@@ -186,13 +186,13 @@ Ein neuer Bewerbungsordner wird unter Windows mit dem gemeinsamen PowerShell-Dis
 pwsh -NoProfile -File Tools/bewerbung.ps1 neu --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A
 ```
 
-Unter Linux mit Bash:
+Unter Linux mit Python:
 
 ```bash
-./Tools/bewerbung.sh neu --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A
+python3 Tools/bewerbung.py neu --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A
 ```
 
-Beide Einstiege führen dieselbe PowerShell-7.6-Implementierung aus. Sie erstellen den Firmenordner, einen zunächst leeren finalen Bewerbungsordner, einen Arbeitsordner unter `_Arbeitsdateien`, den Unterordner `Kandidat/`, einen portablen Schema-5-`Bewerbungsauftrag.json` und einen Entwurf der Anforderungsmatrix. `Tools/neue-bewerbung.sh` bleibt nur als kompatibler Alias für `bewerbung.sh neu` erhalten.
+Windows führt den PowerShell-7.6-Kern aus, Linux den eigenständigen Python-3.9+-Kern. Beide Dispatcher erstellen nach denselben Verträgen den Firmenordner, einen zunächst leeren finalen Bewerbungsordner, einen Arbeitsordner unter `_Arbeitsdateien`, den Unterordner `Kandidat/`, einen portablen Schema-5-`Bewerbungsauftrag.json` und einen Entwurf der Anforderungsmatrix. `Tools/bewerbung.sh` und `Tools/neue-bewerbung.sh` bleiben unter Linux kompatible Python-Aliase.
 
 Die Skripte benötigen einen ausdrücklich geklärten Umfang A–E. Bei E werden die ausgewählten Bestandteile zusätzlich übergeben. Ein universeller Lebenslauf benötigt seine freigegebene HTML-Quelle; sie wird hashgleich übernommen. Für abgewählte Dokumente entstehen keine Entwürfe.
 
@@ -205,11 +205,11 @@ Browserprofile, isolierte Capture-HTMLs, Staging- und Backup-Verzeichnisse sind 
 ## Plattformregeln
 
 - Projektinterne Pfade werden in der Dokumentation mit `/` geschrieben.
-- PowerShell darf intern native Trennzeichen verwenden; Schema-5-Pfade werden immer mit `/` relativ zu `BewerbungenRoot` gespeichert.
-- Bash löst ausschließlich Skript- und Runtimepfad auf und reicht Argumente unverändert weiter.
+- PowerShell und Python dürfen intern native Trennzeichen verwenden; Schema-5-Pfade werden immer mit `/` relativ zu `BewerbungenRoot` gespeichert.
+- Die Linux-Bash-Aliase lösen ausschließlich Skript- und Runtimepfad auf und reichen Argumente unverändert an Python weiter; nur `setup-linux.sh` darf ein fehlendes System-Python minimal bootstrappen.
 - Keine absoluten Betriebssystempfade fest in Prompts, Vorlagen oder finale Bewerbungsdateien schreiben.
 - Wenn ein Ausgabeordner abweichend gewählt wird, muss er vom Nutzer oder Agenten bewusst angegeben werden.
-- Windows- und Linux-Einstieg müssen durch dieselbe Kernimplementierung dieselbe Struktur und Semantik erzeugen.
+- Die eigenständigen Windows-PowerShell- und Linux-Python-Kerne müssen dieselbe Struktur und Semantik erzeugen.
 - Pfadvergleiche sind unter Windows case-insensitiv und unter Linux case-sensitiv; Slug-/Case-Kollisionen müssen fehlergeschlossen enden.
 - Layout-, PDF-, ATS- und Finalisierungsberichte binden den Lauf mit einem Runtime-Fingerprint. Nach einem Betriebssystemwechsel bleiben Auftrag und Kandidaten erhalten, die technischen Nachweise gelten jedoch als veraltet und müssen neu erzeugt werden.
 

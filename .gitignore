@@ -16,6 +16,10 @@
 *.log
 /Tests/Artifacts/
 
+# Python bytecode/cache files
+__pycache__/
+*.py[cod]
+
 # OS/editor noise
 .DS_Store
 Thumbs.db

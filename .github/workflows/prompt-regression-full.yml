@@ -19,6 +19,12 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - uses: actions/checkout@v4
+      - name: Bubblewrap-Sandbox installieren und prüfen
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends bubblewrap
+          mkdir -p "$RUNNER_TEMP/apply-foundry-bwrap-probe"
+          python3 -c 'import sys; from pathlib import Path; from Tools.linux_py.prompt_regression import _require_sandbox; _require_sandbox(Path(sys.argv[1]))' "$RUNNER_TEMP/apply-foundry-bwrap-probe"
       - name: Exakte Prompt-CLI-Versionen installieren
         run: npm install --global @openai/codex@0.148.0-alpha.15 opencode-ai@1.18.18 @anthropic-ai/claude-code@2.1.235 @google/gemini-cli@0.55.1
       - name: Fehlende Secrets fail-closed melden
@@ -28,8 +34,7 @@ jobs:
           test -n "$ANTHROPIC_API_KEY" || { echo "ANTHROPIC_API_KEY fehlt"; exit 1; }
           test -n "$GEMINI_API_KEY" || { echo "GEMINI_API_KEY fehlt"; exit 1; }
       - name: Vollständige Prompt-Matrix
-        shell: pwsh
-        run: ./Tests/Invoke-PromptRegression.ps1 -Matrix vollstaendig -BerichtPath Tests/Artifacts/prompt-vollstaendig.json
+        run: python3 Tools/bewerbung.py tests --suite prompt-vollstaendig --bericht-path Tests/Artifacts/prompt-vollstaendig.json
       - name: Bereinigten Matrixbericht hochladen
         if: always()
         uses: actions/upload-artifact@v4
