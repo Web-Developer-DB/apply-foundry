@@ -180,10 +180,10 @@ Regel:
 
 ## Optionales Hilfsskript
 
-Ein neuer Bewerbungsordner wird unter Windows mit dem gemeinsamen PowerShell-Dispatcher vorbereitet:
+Ein neuer Bewerbungsordner wird mit dem gemeinsamen Python-Dispatcher vorbereitet:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 neu --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A
+```bash
+python3 Tools/bewerbung.py neu --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A
 ```
 
 Unter Linux mit Python:
@@ -192,11 +192,11 @@ Unter Linux mit Python:
 python3 Tools/bewerbung.py neu --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A
 ```
 
-Windows führt den PowerShell-7.6-Kern aus, Linux den eigenständigen Python-3.9+-Kern. Beide Dispatcher erstellen nach denselben Verträgen den Firmenordner, einen zunächst leeren finalen Bewerbungsordner, einen Arbeitsordner unter `_Arbeitsdateien`, den Unterordner `Kandidat/`, einen portablen Schema-5-`Bewerbungsauftrag.json` und einen Entwurf der Anforderungsmatrix. `Tools/bewerbung.sh` und `Tools/neue-bewerbung.sh` bleiben unter Linux kompatible Python-Aliase.
+Windows, Linux und macOS verwenden denselben Python-3.11+-Kern. Der Dispatcher erstellt nach denselben Verträgen den Firmenordner, einen zunächst leeren finalen Bewerbungsordner, einen Arbeitsordner unter `_Arbeitsdateien`, den Unterordner `Kandidat/`, einen portablen Schema-5-`Bewerbungsauftrag.json` und einen Entwurf der Anforderungsmatrix. POSIX- und CMD-Starter bleiben reine kompatible Python-Aliase.
 
 Die Skripte benötigen einen ausdrücklich geklärten Umfang A–E. Bei E werden die ausgewählten Bestandteile zusätzlich übergeben. Ein universeller Lebenslauf benötigt seine freigegebene HTML-Quelle; sie wird hashgleich übernommen. Für abgewählte Dokumente entstehen keine Entwürfe.
 
-Existiert die bereinigte Kombination aus Firma, Datum und Rolle bereits, muss der Dispatcher standardmäßig abbrechen. Eine vorhandene Bewerbung darf nur mit `--fortsetzen` ergänzt werden, wenn Ziel- und Arbeitsordner vollständig vorhanden sind und `Arbeitsnotizen.md` exakt dieselbe Firma und Zielrolle bestätigt. Direkte Legacy-Aufrufe von `Neue-Bewerbung.ps1` mit `-Fortsetzen` bleiben unterstützt. Eine abweichende vorhandene `Stellenbeschreibung.md` darf nie überschrieben werden.
+Existiert die bereinigte Kombination aus Firma, Datum und Rolle bereits, muss der Dispatcher standardmäßig abbrechen. Eine vorhandene Bewerbung darf nur mit `--fortsetzen` ergänzt werden, wenn Ziel- und Arbeitsordner vollständig vorhanden sind und `Arbeitsnotizen.md` exakt dieselbe Firma und Zielrolle bestätigt. Eine abweichende vorhandene `Stellenbeschreibung.md` darf nie überschrieben werden.
 
 Platzhalter, Warnhinweise und Entwürfe der Hilfsskripte gehören ausschließlich in `_Arbeitsdateien`. Stellenbeschreibung und Druckhinweis dürfen bereits im Kandidatenordner liegen. Der finale Bewerbungsordner bleibt durch das Hilfsskript vollständig leer.
 
@@ -205,11 +205,11 @@ Browserprofile, isolierte Capture-HTMLs, Staging- und Backup-Verzeichnisse sind 
 ## Plattformregeln
 
 - Projektinterne Pfade werden in der Dokumentation mit `/` geschrieben.
-- PowerShell und Python dürfen intern native Trennzeichen verwenden; Schema-5-Pfade werden immer mit `/` relativ zu `BewerbungenRoot` gespeichert.
+- Der Python-Kern darf intern native Trennzeichen verwenden; Schema-5-Pfade werden immer mit `/` relativ zu `BewerbungenRoot` gespeichert.
 - Die Linux-Bash-Aliase lösen ausschließlich Skript- und Runtimepfad auf und reichen Argumente unverändert an Python weiter; nur `setup-linux.sh` darf ein fehlendes System-Python minimal bootstrappen.
 - Keine absoluten Betriebssystempfade fest in Prompts, Vorlagen oder finale Bewerbungsdateien schreiben.
 - Wenn ein Ausgabeordner abweichend gewählt wird, muss er vom Nutzer oder Agenten bewusst angegeben werden.
-- Die eigenständigen Windows-PowerShell- und Linux-Python-Kerne müssen dieselbe Struktur und Semantik erzeugen.
+- Der gemeinsame Python-Kern muss auf allen unterstützten Plattformen dieselbe Struktur und Semantik erzeugen.
 - Pfadvergleiche sind unter Windows case-insensitiv und unter Linux case-sensitiv; Slug-/Case-Kollisionen müssen fehlergeschlossen enden.
 - Layout-, PDF-, ATS- und Finalisierungsberichte binden den Lauf mit einem Runtime-Fingerprint. Nach einem Betriebssystemwechsel bleiben Auftrag und Kandidaten erhalten, die technischen Nachweise gelten jedoch als veraltet und müssen neu erzeugt werden.
 

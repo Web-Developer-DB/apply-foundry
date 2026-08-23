@@ -6,7 +6,7 @@ Dieses Dokument beschreibt die neun verbindlichen Nutzerfälle für Umfangsauswa
 
 Automatisierte Vertrags- und Fixturetests werden mit folgendem Befehl ausgeführt:
 
-```powershell
+```bash
 python3 Tools/bewerbung.py tests --suite vollstaendig
 ```
 

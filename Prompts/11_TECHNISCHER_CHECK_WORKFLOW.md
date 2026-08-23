@@ -44,7 +44,7 @@ Windows, Linux und macOS verwenden denselben Standardbibliothekskern mit System-
 python3 Tools/bewerbung.py <subcommand> ...
 ```
 
-Die gemeinsamen 23 Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Sie verwenden dieselben GNU-Langoptionen, Pfadnormalisierung und privaten Artefaktschemata. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. POSIX- und CMD-Dateien sind ausschließlich Bootstrap-Aliase vor dem ersten Python-Start; direkte PowerShell-Aufrufe sind im Major-Release nicht kompatibel.
+Die gemeinsamen 23 Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Sie verwenden dieselben GNU-Langoptionen, Pfadnormalisierung und privaten Artefaktschemata. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. POSIX- und CMD-Dateien sind ausschließlich Bootstrap-Aliase vor dem ersten Python-Start.
 
 Das Subcommand `checkpoint --arbeitsordner "..." --schritt NAME` schreibt einen kompakten, hashgebundenen Fortsetzungsnachweis in den privaten Arbeitsordner. Es ist nach jeder sinnvollen Workflow-Grenze aufzurufen, speichert keine Quellinhalte oder Rohchatdaten und ersetzt keine fachliche Prüfung. Der Statusbefehl verwendet ihn nur bei vollständig übereinstimmenden Arbeitsartefakten als Hinweis; bei Abweichungen bleiben Auftrag, Matrix, Kandidaten und Prüfberichte maßgeblich.
 
@@ -106,7 +106,7 @@ Layout- und PDF-Einzelwerkzeuge lösen relative Berichtspfade gegen das Aufrufve
 
 Die nachfolgenden Einzelwerkzeuge bleiben für Diagnose, Entwicklung und gezielte Wiederholungen verfügbar. Für neue Bewerbungen ersetzt ihre manuelle Verkettung nicht den verbindlichen Finalisierungsworkflow.
 
-Insbesondere ist ein Einzelwerkzeug wie `Exportiere-PDF.ps1` kein allgemeiner Konverter für lose Dokumentordner. Verwende es nur unter Windows zur Fehlerdiagnose eines bereits korrekt angelegten Kandidatenstands; für den normalen Ablauf ist auf beiden Plattformen ausschließlich das Subcommand `finalisieren` vorgesehen.
+Einzelne Diagnosebefehle sind keine allgemeinen Konverter für lose Dokumentordner. Für den normalen Ablauf ist ausschließlich das Subcommand `finalisieren` auf einem korrekt angelegten Kandidatenstand vorgesehen.
 
 ## Tokenverbrauch und Laufzeitmessung
 
@@ -300,9 +300,9 @@ Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versand
 
 ## CI und gestufter Plattform-Rollout
 
-Die schnellen und vollständigen Windows-PowerShell-Suiten laufen als getrennte Jobs auf `windows-2025` weiter. Linux führt `schnell` und `vollstaendig` ausschließlich über `python3 Tools/bewerbung.py tests` aus und prüft zusätzlich `python3 -m unittest`, `bash -n`, ShellCheck sowie die reinen Launcher- und Bootstrap-Verträge; in keinem Linux-Job wird `pwsh` installiert oder aufgerufen. Der zeitgesteuerte `linux-compatibility.yml`-Workflow installiert und prüft Ubuntu 24.04/26.04, Debian 13, Fedora, Rocky 9, Arch und openSUSE in ephemeren Containern. Ubuntu bleibt wegen der Snap-Transition ohne automatisch installierten Browser; Rocky 9 installiert aus den Base-Repositories nur Runtime und Fonts und muss Browser sowie ShellCheck ohne EPEL als blockiert melden. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
+Die browserfreien Verträge laufen über `python3 Tools/bewerbung.py tests` und `python3 -m unittest` auf Windows, Linux und macOS in x64/ARM64. Die CI enthält einen Python-3.11-Mindestversionsjob sowie Browser-Smokes für Chromium-Druck, A4-Geometrie und ATS. `linux-compatibility.yml` prüft zusätzlich Ubuntu 24.04/26.04, Debian 13, Fedora, Rocky 9, Arch und openSUSE in ephemeren Containern. Die Tests verwenden ausschließlich synthetische Fixtures und lesen `Private/` nicht.
 
-Die Cross-Core-Auftragsparität wird in fünf zusätzlichen Jobs geprüft: Windows/PowerShell und Linux/Python erzeugen aus denselben öffentlichen synthetischen Quellen einen Schema-5-Auftrag, einen echten Ursprungs-Runtime-Fingerprint sowie je ein vollständiges synthetisches `Private`-Artefakt. Zwei Gegenkernjobs rekonstruieren den Status, schreiben einen portablen Checkpoint fort und verlangen über den jeweiligen produktiven Runtime-Validator, dass der fremde technische Schema-1-Fingerprint veraltet ist. Erst danach vergleicht ein Ubuntu-Job die getrennt hochgeladenen `normalized-order.json` bytegenau. Das belegt Auftragsanlage, Status-/Checkpoint-Fortsetzung und Runtime-Entwertung, nicht bereits die vollständige Rollenfixture- oder Browserparität.
+Plattformübergreifende Fixtures erzeugen aus denselben öffentlichen synthetischen Quellen portable Schema-5-Aufträge. Ein Plattformwechsel muss Status und Checkpoint fortsetzen können, während ein fremder technischer Runtime-Fingerprint als erneuerungspflichtig erkannt wird. Dies belegt die Portabilität der Auftragsdaten, nicht binär identische Browserartefakte.
 
 Der Windows-Browser-Smoke läuft bei jedem Pull Request sowie zeitgesteuert/manuell unter einem stabilen Checknamen. Linux läuft zunächst nur zeitgesteuert/manuell und führt die native Python-Browsersuite mit synthetischen Layout-, PDF-, ATS-, Finalisierungs- und Freigabefällen aus. Das Linux-Promotion-Gate ist damit noch nicht erfüllt: Erst wenn Collector, Validator und öffentlicher Nachweis je Zielprofil drei aufeinanderfolgende vollständige Läufe mit Screenshot, A4-PDF, Seitenzahl, ATS-Textschicht, Hashbindung, Timeout-Cleanup und ohne Restprozesse belegen, darf ein dokumentierter Promotion-PR Linux als stabil und PR-verbindlich einstufen. Ein administrativer Ruleset-Eintrag ist zusätzlich erforderlich; ohne Adminzugriff bleibt er nur vorbereitet.
 
@@ -312,7 +312,7 @@ Echte Prompt-Regressionen verwenden `Tests/PromptRegression/models.json` und `sc
 
 Der Runner reicht nur das deklarierte Credential weiter, lädt `AGENTS.md` über die jeweilige Umgebung und prüft Mutationsgrenzen sowie Ausgabesignale. Das Zielmodell muss im kataloggebundenen Argumentvektor stehen; weist die CLI ein tatsächlich verwendetes Modell maschinenlesbar aus, muss es exakt passen. Die Rollenfixtures beginnen ohne Matrix und Evidenzindex und müssen beide neu, schema-, SHA-, Evidenz- und strategievalidiert erzeugen; der direkte Rollenfall prüft zusätzlich ausgewählte Dokumente, A4-Grundstruktur und Platzhalterfreiheit. Fehlende Secrets und CLI-Versionsdrift schlagen fehl. Ein grüner Lauf belegt diese definierten Verträge, nicht jedes fachliche Verhalten beliebiger Modelle. Reports speichern keine Zugangsdaten oder privaten Inhalte.
 
-Nur der Actions-Evidence-Sammler bleibt vorerst ein PowerShell-Hilfswerkzeug auf `windows-2025`. Prompt-, Kern- und Distributionsjobs unter Linux installieren oder starten kein `pwsh`.
+Prompt-, Kern-, Browser- und Distributionsjobs verwenden den gemeinsamen Python-Kern; CI installiert keine zusätzlichen Bewerbungsruntime-Implementierungen.
 
 ## Keine stillen Erfolge
 

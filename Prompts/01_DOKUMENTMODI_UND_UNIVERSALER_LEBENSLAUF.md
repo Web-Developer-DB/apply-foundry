@@ -308,7 +308,7 @@ Bei eindeutiger Zustimmung:
 2. Prüfe, ob die Angabe bereits sinngemäß vorhanden ist.
 3. Vermeide Dubletten und erhalte vorhandene, nicht betroffene Angaben unverändert.
 4. Ergänze oder ersetze nur an der fachlich passenden Stelle.
-5. Übergebe an `Tools/Uebernehme-Dialogangabe.ps1` exakt die bereits im Vorschlagssnapshot gespeicherte Datei, den Abschnitt, die Formulierung und den Ausgangshash; Abweichungen oder ein zwischenzeitlich veränderter Profilhash werden abgelehnt.
+5. Übergebe an `python3 Tools/bewerbung.py dialog-uebernehmen` exakt die bereits im Vorschlagssnapshot gespeicherte Datei, den Abschnitt, die Formulierung und den Ausgangshash; Abweichungen oder ein zwischenzeitlich veränderter Profilhash werden abgelehnt.
 6. Protokolliere Entscheidung, vorgeschlagene und bestätigte Formulierung, fachlichen Zieltyp, Datei, Abschnitt, Zustimmungs- und Aktualisierungszeit sowie den SHA-256-Wert vor und nach der Änderung unter `profilaktualisierung`.
 7. Setze `speicherentscheidung = dauerhaft` und `profilaktualisierung.status = aktualisiert` erst nach erfolgreichem Schreiben und Prüfen. War die bestätigte Angabe bereits sinngemäß vorhanden und war kein Schreiben nötig, verwende stattdessen `bereits_vorhanden`.
 8. Bestätige die konkrete Änderung kurz.
@@ -373,7 +373,7 @@ Bei `lebenslauf = universal_unveraendert` wird ein bereits freigegebener univers
 - Der Lebenslauf-zu-Anschreiben-Abgleich verwendet den Snapshot als Referenz.
 - Eine belegte Anforderung, die im universellen Lebenslauf fehlt, darf im Anschreiben erklärt werden. Ist dies für Glaubwürdigkeit oder formale Eignung nicht ausreichend, wird ein individueller Lebenslauf empfohlen; der Umfang wird nicht stillschweigend gewechselt.
 
-Fehlt bei Auswahl B eine gültige freigegebene Universalquelle, bleibt der Umfang bekannt, aber die Dokumenterstellung blockiert. Frage nach einer vorhandenen ausdrücklich angegebenen Legacy-/externen Quelle oder biete den getrennten Erstellungs- und Freigabeprozess mit `bewerbung.ps1 universal-neu`, `universal-status` und `universal-finalisieren` an. Neue lokale Fassungen entstehen ausschließlich unter `Private/Bewerbungen/_Universal-Lebenslauf/`; `Private/LebenslaufUniversal/` bleibt höchstens eine explizit angegebene, unverändert lesbare Legacy-Quelle. Improvisiere keinen Ersatz und ändere eine Universalquelle nur nach einem neuen ausdrücklichen Auftrag mit eigener Prüfung und Freigabe.
+Fehlt bei Auswahl B eine gültige freigegebene Universalquelle, bleibt der Umfang bekannt, aber die Dokumenterstellung blockiert. Frage nach einer vorhandenen ausdrücklich angegebenen Legacy-/externen Quelle oder biete den getrennten Erstellungs- und Freigabeprozess mit `python3 Tools/bewerbung.py universal-neu`, `universal-status` und `universal-finalisieren` an. Neue lokale Fassungen entstehen ausschließlich unter `Private/Bewerbungen/_Universal-Lebenslauf/`; `Private/LebenslaufUniversal/` bleibt höchstens eine explizit angegebene, unverändert lesbare Legacy-Quelle. Improvisiere keinen Ersatz und ändere eine Universalquelle nur nach einem neuen ausdrücklichen Auftrag mit eigener Prüfung und Freigabe.
 
 ## Umfangsabhängige Ausgabe
 
