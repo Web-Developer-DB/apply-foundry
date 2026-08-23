@@ -709,7 +709,7 @@ def handle_status(ctx: CommandContext, args: Mapping[str, Any]) -> int:
                 report.get("runtime"), {},
                 scope["lebenslauf"] != "nicht_enthalten" or bool(scope["anschreiben"]),
             )
-            final_valid = report.get("schemaVersion") in (6, 7) and bool(records)
+            final_valid = report.get("schemaVersion") in (6, 7, 8) and bool(records)
         except WorkflowError:
             final_valid = False
     dialog_status = str(dialog.get("status", ""))
@@ -1486,6 +1486,36 @@ def _html_page_count(value: str) -> int:
     return len(re.findall(r"(?is)<(?:main|section|div)\b[^>]*\bclass\s*=\s*(['\"])[^'\"]*\bpage\b[^'\"]*\1", value))
 
 
+def _two_page_cv_structure_errors(value: str, path: Path) -> List[str]:
+    page_pattern = re.compile(
+        r"(?is)<main\b(?=[^>]*\bclass\s*=\s*['\"][^'\"]*\bpage\b[^'\"]*['\"])[^>]*>(?P<body>.*?)</main\s*>"
+    )
+    pages = list(page_pattern.finditer(value))
+    if len(pages) != 2:
+        return []
+    errors: List[str] = []
+    section_ids: List[str] = []
+    for number, page in enumerate(pages, 1):
+        body = page.group("body")
+        headers = re.findall(r"(?is)<header\b(?=[^>]*\bdata-cv-page-header(?:\s|=|>))[^>]*>", body)
+        if len(headers) != 1:
+            errors.append("%s: Lebenslaufseite %d benötigt genau einen mit data-cv-page-header markierten Kopf." % (path.name, number))
+        footers = re.findall(r"(?is)<footer\b(?P<attributes>[^>]*)>", body)
+        valid_footers = [item for item in footers if re.search(r"(?is)\bclass\s*=\s*(['\"])[^'\"]*\bpage-footer\b[^'\"]*\1", item)]
+        if len(footers) != 1 or len(valid_footers) != 1:
+            errors.append("%s: Lebenslaufseite %d benötigt genau einen <footer class=\"page-footer\">." % (path.name, number))
+        for section in re.finditer(r"(?is)<section\b(?P<attributes>[^>]*)>", body):
+            identifier = re.search(r"(?is)\bdata-cv-section\s*=\s*(['\"])(?P<value>[a-z0-9]+(?:-[a-z0-9]+)*)\1", section.group("attributes"))
+            if identifier is None:
+                errors.append("%s: Jeder fachliche section-Block eines zweiseitigen Lebenslaufs benötigt data-cv-section mit einer slugförmigen Kennung." % path.name)
+            else:
+                section_ids.append(identifier.group("value"))
+    duplicates = sorted({item for item in section_ids if section_ids.count(item) > 1})
+    if duplicates:
+        errors.append("%s: data-cv-section muss dokumentweit eindeutig sein: %s." % (path.name, ", ".join(duplicates)))
+    return errors
+
+
 def _static_html_errors(path: Path, kind: str) -> List[str]:
     value = read_text(path)
     errors = []
@@ -1505,6 +1535,8 @@ def _static_html_errors(path: Path, kind: str) -> List[str]:
         errors.append("Anschreiben muss genau eine explizite A4-Seite enthalten; gefunden: %d." % pages)
     if kind == "lebenslauf" and pages not in (1, 2):
         errors.append("Lebenslauf muss ein oder zwei explizite A4-Seiten enthalten; gefunden: %d." % pages)
+    if kind == "lebenslauf" and pages == 2:
+        errors.extend(_two_page_cv_structure_errors(value, path))
     return errors
 
 
