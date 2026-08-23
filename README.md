@@ -114,33 +114,15 @@ Dieser Abschnitt ist für Menschen, die mit einem Coding-Agenten deutsche Bewerb
 > [!IMPORTANT]
 > Folge bei deiner ersten Bewerbung den Schritten 0 bis 8. Der Agent führt technische Arbeiten aus und nennt fehlende Voraussetzungen; du kontrollierst die inhaltlichen Angaben und prüfst später jede erzeugte Seite persönlich.
 
-#### 0. Das brauchst du vor dem Start
+#### 0. Das solltest du bereithalten
 
 | Benötigt | Wofür? |
 | --- | --- |
-| Windows, Linux oder macOS auf x64 oder ARM64 | unterstützte Desktop-Plattformen |
-| System-Python 3.11 oder neuer | einheitlicher Projektkern |
-| Chrome, Edge oder Chromium | verbindliche Layoutbilder und PDF-Export für HTML-Unterlagen |
-| passende Systemschrift | Arial auf Windows; Liberation Sans auf Linux; Arial oder Liberation Sans auf macOS |
-| eine eingerichtete Agentenumgebung | Projektregeln lesen, Dateien bearbeiten und Befehle ausführen |
+| eine eingerichtete Agentenumgebung, zum Beispiel die Codex-App | das Projekt öffnen und den Workflow ausführen |
 | Lebenslauf, Zeugnisse oder eigene Notizen | nur wahre persönliche und fachliche Angaben übernehmen |
 | vollständiger Text der Stellenanzeige | Unterlagen gezielt auf die Stelle ausrichten |
 
-Der verpflichtende read-only Vorabcheck erzeugt keinen Installationsvorgang:
-
-```bash
-python3 Tools/setup.py --all --dry-run --format json
-python3 Tools/bewerbung.py diagnose --als-json
-```
-
-Der Plan darf nur System-Python, Browser, Systemschrift und optional ShellCheck betreffen. Fehlt etwas, zeigt der Befehl die erlaubte Installation an. Erst nach Prüfung des Plans und ausdrücklicher Berechtigung wird installiert:
-
-```bash
-python3 Tools/setup.py --all --yes
-```
-
-> [!WARNING]
-> Installationen sind keine Voraussetzung, um das Repository anzusehen. Der Agent darf sie nicht stillschweigend starten. Zusätzliche Paketquellen, virtuelle Umgebungen, PyPI, Snap, AUR, Editor-Erweiterungen und Agenten-Plugins gehören nicht zum unterstützten Setup.
+Für den normalen Start musst du weder Python noch Browser oder Systemschrift einzeln prüfen. Der Agent klärt technische Voraussetzungen erst dann, wenn sie für den konkreten Arbeitsschritt relevant sind. Falls etwas fehlt, steht die Lösung unter [Häufige Probleme](#hilfe).
 
 #### 1. Projekt herunterladen und öffnen
 
@@ -153,17 +135,19 @@ cd apply-foundry
 
 Öffne den Projektstamm, nicht nur den übergeordneten Ordner. Dort müssen mindestens `AGENTS.md`, `README.md`, `Prompts/`, `Tools/` und `Private.example/` sichtbar sein. Git ist für das Klonen und Aktualisieren nützlich, aber nicht Teil der Bewerbungsprüfung selbst.
 
-#### 2. Agentenumgebung im Projektstamm starten
+#### 2. Codex-App oder andere Agentenumgebung im Projektstamm starten
 
-Verwende eine bereits eingerichtete Coding-Agentenumgebung und starte sie im Projektordner. Der konkrete Startbefehl hängt von deiner Umgebung ab. Entscheidend ist: Der Agent muss `AGENTS.md` lesen können und darf den Workflow nur auf deinen eindeutigen Auftrag hin ausführen.
+**Codex-App unter Windows oder Linux:** Öffne den Ordner `apply-foundry` als lokalen Arbeitsbereich und starte darin einen neuen Codex-Task. Gib dem Agenten anschließend deinen konkreten Auftrag, etwa das Einrichten deiner Daten oder das Erstellen einer Bewerbung. Der Agent liest die Projektregeln aus `AGENTS.md` im geöffneten Ordner.
 
-Für einen technischen Überblick steht jederzeit der Dispatcher zur Verfügung:
+Für andere eingerichtete Coding-Agenten gilt derselbe Grundsatz: Starte die Agentensitzung im Projektordner. Entscheidend ist nicht der Name der App, sondern dass der Agent `AGENTS.md` lesen sowie Dateien und Terminalbefehle im lokalen Arbeitsbereich verwenden kann.
+
+Du musst keine Befehle ausführen, um eine Bewerbung zu starten. Der folgende Befehl ist nur für Nutzer gedacht, die den technischen Überblick selbst ansehen möchten:
 
 ```bash
 python3 Tools/bewerbung.py --help
 ```
 
-Die gemeinsamen Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`.
+Die gemeinsamen Subcommands sind für Agenten und fortgeschrittene Nutzer verfügbar; der normale Bewerbungsdialog benötigt sie nicht als manuellen Zwischenschritt.
 
 #### 3. Private Daten mit dem Agenten einrichten
 
@@ -391,13 +375,13 @@ Die Freigabe-ID und alle geprüften Artefakthashes müssen beim späteren Veröf
 
 Der Python-Kern ist für Desktop-Windows, -Linux und -macOS auf x64 und ARM64 ausgelegt. Die öffentliche CI prüft Python-Verträge auf diesen Plattformfamilien und enthält eine separate Browser-Smoke-Matrix für Chromium-Druck, A4-Geometrie und ATS. Zusätzlich deckt die Linux-Kompatibilitätsprüfung mehrere Distributionen ab.
 
-| Plattform | erlaubter Paketweg | erforderliche Schrift |
+| Plattform | erlaubter Paketweg bei fehlender Voraussetzung | Referenzschrift für den vollständigen Layout-/PDF-Workflow |
 | --- | --- | --- |
 | Windows | `winget` | Arial |
 | Linux | APT, DNF/YUM, Pacman oder Zypper | Liberation Sans |
 | macOS | Homebrew | Arial oder Liberation Sans |
 
-Der Setupplan zeigt ausschließlich diese Wege. Ein unbekannter Paketmanager, Ubuntu ohne zulässigen nativen Browserweg oder macOS ohne Homebrew führt zu einer klaren manuellen Voraussetzung statt zu einer Umgehung.
+Diese Angaben sind keine Checkliste für den ersten Start. Sie betreffen den vollständigen technisch geprüften HTML-/PDF-Workflow. Der Setupplan zeigt ausschließlich diese Wege, wenn eine tatsächlich benötigte Voraussetzung fehlt. Ein unbekannter Paketmanager, Ubuntu ohne zulässigen nativen Browserweg oder macOS ohne Homebrew führt zu einer klaren manuellen Voraussetzung statt zu einer Umgehung.
 
 <a id="hilfe"></a>
 
@@ -405,8 +389,10 @@ Der Setupplan zeigt ausschließlich diese Wege. Ein unbekannter Paketmanager, Ub
 
 | Beobachtung | Was tun? |
 | --- | --- |
+| Ich möchte nur starten und kenne die technischen Voraussetzungen nicht | Repository klonen, in der Codex-App als lokalen Arbeitsbereich öffnen und einen konkreten Auftrag geben. Der Agent prüft fehlende Voraussetzungen erst bei Bedarf. |
 | `python3` fehlt oder ist zu alt | Den read-only Setupplan ausführen und die angezeigte System-Python-Voraussetzung installieren. |
 | Browserlauf schlägt fehl | Prüfen, ob Chrome, Edge oder Chromium verfügbar ist; keinen anderen Browser als verbindlichen PDF-Ersatz verwenden. |
+| Die Referenzschrift fehlt | Nur für den vollständigen HTML-/PDF-Workflow relevant. Zuerst den read-only Plan `python3 Tools/setup.py --all --dry-run --format json` ausführen; der Agent soll keine Installation ohne deine Zustimmung starten. |
 | Screenshots sind vorhanden, aber die Sichtprüfung fehlt | Nicht veröffentlichen. Jede genannte Seite selbst öffnen und eindeutig bestätigen. |
 | Layout-Gate sperrt den Lebenslauf | Zuerst die fachliche Seitenverteilung prüfen; keine irrelevanten Inhalte ergänzen oder Schrift künstlich verkleinern. |
 | Nach einer Änderung verweigert die Freigabe das Veröffentlichen | Erwartetes Verhalten: vollständige technische Vorbereitung und neue Sichtprüfung ausführen. |
