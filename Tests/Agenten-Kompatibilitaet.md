@@ -27,4 +27,4 @@ Editor-Erweiterungen und Agenten-Plugins sind ausgeschlossen.
 Die CI führt die browserfreien Python-Verträge auf Windows, Linux und macOS in
 jeweils x64/ARM64 aus; ein separater Python-3.11-Job schützt das Minimum. Die
 Browsermatrix prüft Chromium-Druck, A4-Geometrie und ATS mit synthetischen
-Fixtures. Direkte PowerShell-Aufrufe sind im Major-Release nicht kompatibel.
+Fixtures. Direkte Aufrufe entfernter Legacy-Skripte sind im Major-Release nicht kompatibel.

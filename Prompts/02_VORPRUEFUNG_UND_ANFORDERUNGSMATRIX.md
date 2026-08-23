@@ -8,8 +8,8 @@ Vor dem Schreiben einer Bewerbung müssen Stammdaten, Bewerbungslogistik und Ste
 
 Zuerst über den Plattform-Dispatcher ausführen:
 
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 stammdaten
+```bash
+python3 Tools/bewerbung.py stammdaten
 ```
 
 ```bash
@@ -24,7 +24,7 @@ Ungeklärte zentrale Bewerbungslogistik im Bewerbungsauftrag wird bei der Finali
 
 ## Bewerbungsauftrag
 
-Das Subcommand `neu` des Plattform-Dispatchers (`pwsh -NoProfile -File Tools/bewerbung.ps1` unter Windows, `python3 Tools/bewerbung.py` unter Linux) erzeugt im privaten Arbeitsordner eine Datei `Bewerbungsauftrag.json`. `Tools/neue-bewerbung.sh` bleibt unter Linux ein kompatibler Alias. Unmittelbar danach wird die tatsächlich übergebene Stellenbeschreibung in `Kandidat/Stellenbeschreibung.md` gesichert, bevor Profilabgleich oder Rückfragen beginnen. Ein Platzhalter des Ordnerhelfers ist kein fortsetzbarer Stelleninhalt.
+Das Subcommand `neu` des einheitlichen Python-Dispatchers (`python3 Tools/bewerbung.py`) erzeugt im privaten Arbeitsordner eine Datei `Bewerbungsauftrag.json`. `neue-bewerbung.py` sowie POSIX- und CMD-Starter bleiben kompatible Aliase. Unmittelbar danach wird die tatsächlich übergebene Stellenbeschreibung in `Kandidat/Stellenbeschreibung.md` gesichert, bevor Profilabgleich oder Rückfragen beginnen. Ein Platzhalter des Ordnerhelfers ist kein fortsetzbarer Stelleninhalt.
 
 Ab Schema 4 enthält sie mindestens:
 

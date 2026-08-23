@@ -18,7 +18,7 @@ Dazu gehören:
 - Gehaltswunsch und Gehaltslogik
 - optionale persönliche Angaben, wenn sie wirklich verwendet werden sollen
 
-Kopiere keine Auswahltexte wie `[Vollzeit / Teilzeit]` unverändert in die echte private Datei. Trage eine echte Entscheidung oder einen eindeutigen Wert wie `nicht festgelegt` ein. Vor Bewerbungen prüft `Tools/Pruefe-Stammdaten.ps1` diese Datei; ungeklärte Kernentscheidungen können die finale Veröffentlichung blockieren.
+Kopiere keine Auswahltexte wie `[Vollzeit / Teilzeit]` unverändert in die echte private Datei. Trage eine echte Entscheidung oder einen eindeutigen Wert wie `nicht festgelegt` ein. Vor Bewerbungen prüft `python3 Tools/bewerbung.py stammdaten` diese Datei; ungeklärte Kernentscheidungen können die finale Veröffentlichung blockieren.
 
 Nicht hier eintragen:
 

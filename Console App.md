@@ -8,7 +8,7 @@ Diese Datei beschreibt mögliche Zukunftsschritte für eine lokale Terminal-Anwe
 
 ## Zielbild
 
-Eine optionale lokale Console App könnte den bestehenden Bewerbungsworkflow über eine verständliche Terminaloberfläche starten und fortsetzen. Die fachliche Logik bliebe in den vorhandenen Prompts und PowerShell-Werkzeugen. Private Daten würden ausschließlich lokal verarbeitet; automatische Übermittlung oder Veröffentlichung bliebe ausgeschlossen.
+Eine optionale lokale Console App könnte den bestehenden Bewerbungsworkflow über eine verständliche Terminaloberfläche starten und fortsetzen. Die fachliche Logik bliebe in den vorhandenen Prompts und Python-Werkzeugen. Private Daten würden ausschließlich lokal verarbeitet; automatische Übermittlung oder Veröffentlichung bliebe ausgeschlossen.
 
 ## Nicht-Ziele
 
@@ -20,7 +20,7 @@ Eine optionale lokale Console App könnte den bestehenden Bewerbungsworkflow üb
 
 ## Mögliche Architektur
 
-Eine spätere Umsetzung könnte aus einer dünnen Terminaloberfläche, einem Sitzungsadapter, einer sicheren Workspace-Verwaltung und einem Prozess-/Cleanup-Controller bestehen. Sie müsste den kanonischen Dispatcher `Tools/bewerbung.ps1` verwenden und vorhandene Checkpoints, Prüfberichte, Hashbindungen und Freigabegates unverändert respektieren.
+Eine spätere Umsetzung könnte aus einer dünnen Terminaloberfläche, einem Sitzungsadapter, einer sicheren Workspace-Verwaltung und einem Prozess-/Cleanup-Controller bestehen. Sie muss den kanonischen Python-Dispatcher `python3 Tools/bewerbung.py` verwenden und vorhandene Checkpoints, Prüfberichte, Hashbindungen und Freigabegates unverändert respektieren.
 
 ## Grobe Roadmap
 
@@ -33,7 +33,7 @@ Eine spätere Umsetzung könnte aus einer dünnen Terminaloberfläche, einem Sit
 
 ## Qualitätsgates
 
-Eine Umsetzung dürfte erst als belastbar gelten, wenn die vollständige vorhandene PowerShell-Suite, die synthetischen Rollen-Fixtures, die Browserprüfung, die Cleanup-Prüfungen und die Datenschutztests erfolgreich sind. Ein CLI-Test direkt aus dem Quellverzeichnis wäre kein ausreichender Paketnachweis.
+Eine Umsetzung dürfte erst als belastbar gelten, wenn die vollständige Python-Suite, die synthetischen Rollen-Fixtures, die Browserprüfung, die Cleanup-Prüfungen und die Datenschutztests erfolgreich sind. Ein CLI-Test direkt aus dem Quellverzeichnis wäre kein ausreichender Paketnachweis.
 
 ## Offene Entscheidungen
 

@@ -13,7 +13,7 @@ Die Lebenslaufreferenz ist bewusst als ruhiger deutscher Recruiter-CV angelegt:
 - Kompetenzen als gruppierte Zeilen statt Tag-Wolke
 - feste A4-Seitenhöhe für den stabilen Chrome-/Edge-/Chromium-Export
 - Vorschauabstände, Schatten und Seitenhintergründe ausschließlich unter `@media screen`; `.page + .page` wird im Druckmodus ausdrücklich auf `margin-top: 0` gesetzt
-- ein markierter optionaler Passfoto-Block, der über `bewerbung.ps1 passfoto` vollständig befüllt oder entfernt wird
+- ein markierter optionaler Passfoto-Block, der über `python3 Tools/bewerbung.py passfoto` vollständig befüllt oder entfernt wird
 
 Die gezeigte Fotoform ist nur eine neutrale Referenz. Bei vorhandenem `Private/Daten/Passfoto.png` werden Größe, Form, Rahmen, Position und Zuschnitt an das konkrete Bewerbungsdesign angepasst und anschließend im Seitenscreenshot geprüft. Ohne Datei bleibt weder ein Fotoelement noch reservierter Leerraum zurück.
 
