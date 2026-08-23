@@ -10,7 +10,7 @@ import sys
 if str(PROJECT / "Tools") not in sys.path:
     sys.path.insert(0, str(PROJECT / "Tools"))
 
-from linux_py.finalization_cache import cache_decision, read_state, save_result, stage_fingerprint
+from apply_foundry.finalization_cache import cache_decision, read_state, save_result, stage_fingerprint
 
 
 class FinalizationCacheTests(unittest.TestCase):
@@ -30,10 +30,10 @@ class FinalizationCacheTests(unittest.TestCase):
         return stage_fingerprint(
             stage,
             self.root,
-            implementation_files=[PROJECT / "Tools/linux_py/finalization_cache.py"],
+            implementation_files=[PROJECT / "Tools/apply_foundry/finalization_cache.py"],
             input_files=[self.source],
             parameters={"mode": "test"},
-            runtime={"schemaVersion": 1, "coreRuntime": {"kind": "python", "version": "3.9"}},
+            runtime={"schemaVersion": 1, "coreRuntime": {"kind": "python", "version": "3.11"}},
         )
 
     def test_schema_two_roundtrip_and_hash_bound_hit(self):

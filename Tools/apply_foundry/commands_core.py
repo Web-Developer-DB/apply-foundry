@@ -1,4 +1,4 @@
-"""PowerShell-independent workflow handlers for Linux.
+"""PowerShell-independent workflow handlers for supported desktop systems.
 
 This module owns all browser-free commands.  Browser/PDF/ATS/finalization
 handlers are intentionally registered from ``commands_browser.py``.
@@ -2211,11 +2211,11 @@ def handle_tests(ctx: CommandContext, args: Mapping[str, Any]) -> int:
             "CliAndPathTests.test_cli_uses_snake_case",
             "CliAndPathTests.test_atomic_json",
             "ScopeContractTests.test_all_scope_choices",
-            "RuntimeDetectionTests.test_diagnose_schema_three",
+            "RuntimeDetectionTests.test_diagnose_schema_four",
             "BrowserPrimitiveTests.test_runtime_fingerprint",
-            "SetupLinuxTests.test_manifest_is_versioned",
+            "SetupLinuxTests.test_manifest_is_versioned_and_contains_only_declared_components",
             "SetupLinuxTests.test_idempotent_run",
-            "SetupLinuxTests.test_schema_two_exposes",
+            "SetupLinuxTests.test_schema_three_exposes",
             "SetupLinuxTests.test_snap_executable",
         )
         tests = [

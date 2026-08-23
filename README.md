@@ -4,6 +4,8 @@
 
 <h1 align="center">apply-foundry</h1>
 
+> **Major-Update (maßgeblich bei widersprüchlichen älteren Abschnitten):** Apply Foundry nutzt einen Python-3.11+-Kern auf Windows, Linux und macOS (x64/ARM64). Der kanonische Einstieg ist `python3 Tools/bewerbung.py`; `Tools/setup.py` erzeugt den read-only Installationsplan. PowerShell-Fachskripte und direkte `pwsh`-Aufrufe sind entfernt.
+
 <p align="center">
   <strong>Agentenunabhängiger KI-Bewerbungsworkflow</strong><br>
   Für Codex, OpenCode, Claude Code, Gemini und weitere AGENTS-kompatible Agenten – von der Stellenanalyse bis zur umfangsgerecht geprüften lokalen Freigabe.
@@ -14,8 +16,8 @@
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-Unreleased-2563EB?style=flat-square" alt="Aktueller unveröffentlichter Entwicklungsstand"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-22C55E?style=flat-square" alt="MIT-Lizenz"></a>
   <a href="https://github.com/Web-Developer-DB/apply-foundry/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/apply-foundry/actions/workflows/tests.yml/badge.svg" alt="Status der automatischen Tests"></a>
-  <img src="https://img.shields.io/badge/Windows%20%2B%20PowerShell-stabil-16A34A?style=flat-square" alt="Windows und PowerShell stabil unterstützt">
-  <a href="#plattformstatus"><img src="https://img.shields.io/badge/Linux-Vorschau-F59E0B?style=flat-square" alt="Linux-Unterstützung im Vorschau-Status"></a>
+  <img src="https://img.shields.io/badge/Python%203.11%2B-Windows%20%7C%20Linux%20%7C%20macOS-2563EB?style=flat-square" alt="Python-Kern für Desktop-Plattformen">
+  <a href="#plattformstatus"><img src="https://img.shields.io/badge/Browsernachweise-Vorschau-F59E0B?style=flat-square" alt="Browsernachweise im Vorschau-Status"></a>
   <img src="https://img.shields.io/badge/Datenschutz-Local--first-7C3AED?style=flat-square" alt="Datenschutz nach dem Local-first-Prinzip">
 </p>
 
@@ -48,6 +50,19 @@ Aus einer Stellenbeschreibung und deinen Profildaten entstehen nur die ausdrück
 
 ### Fünf Auswahlen für den Dokumentumfang
 
+## Plattformen und Setup (Major 2)
+
+Der gemeinsame Kern läuft mit System-Python 3.11+ auf Windows, Linux und macOS (x64/ARM64). Vor Start, Reparatur oder Test wird ausschließlich der Plan gelesen:
+
+```bash
+python3 Tools/setup.py --all --dry-run --format json
+python3 Tools/bewerbung.py diagnose --als-json
+```
+
+Linux nutzt APT, DNF/YUM, Pacman oder Zypper; Windows ausschließlich `winget`; macOS ausschließlich Homebrew. Der Plan kann nur Python, Chrome/Chromium, die passende Systemschrift und ShellCheck installieren, und erst nach bestätigter Berechtigung mit `--yes`. Linux verlangt Liberation Sans, Windows Arial, macOS Arial oder Liberation Sans. Snap, AUR, PyPI, virtuelle Umgebungen und zusätzliche Paketquellen sind ausgeschlossen. Fehlt Python, sind `Tools/setup.sh` und `Tools/setup.cmd` die einzigen nativen Bootstrap-Ausnahmen; alle weiteren Starter delegieren direkt an Python.
+
+macOS ohne Homebrew und unbekannte Linux-Paketmanager erhalten eine genaue manuelle Anleitung. Browsernachweise sind pro Zielprofil weiterhin Vorschau, bis drei vollständige grüne Browserläufe dokumentiert sind.
+
 | Auswahl | Ergebnis |
 | --- | --- |
 | **A – Komplette Bewerbung** | individueller Lebenslauf, Anschreiben und E-Mail-Nachricht |
@@ -59,7 +74,7 @@ Aus einer Stellenbeschreibung und deinen Profildaten entstehen nur die ausdrück
 Bei einem eindeutigen Auftrag wie `Lebenslauf und Anschreiben, aber keine E-Mail` überspringt der Agent die Auswahlfrage. Eine bloße Stellenbeschreibung legt den Umfang dagegen nicht fest. Auswahl B friert die Universalquelle per SHA-256 ein. Für eine reine E-Mail ohne Anlagen ist eine zusätzliche eindeutige Bestätigung erforderlich.
 
 > [!NOTE]
-> **Kanonische Werkzeugkette:** PowerShell 7.6 Core unter Windows, System-Python 3.9+ unter Linux x86_64 sowie für ausgewählte HTML-Dokumente Chromium, Chrome oder Edge. Die Agentenumgebung ist frei wählbar, muss aber Dateien bearbeiten und Terminalbefehle ausführen können. Linux bleibt bis zu drei aufeinanderfolgenden grünen Browsernachweisen je Zielprofil im [Vorschau-Status](#plattformstatus).
+> **Kanonische Werkzeugkette:** System-Python 3.11+ unter Windows, Linux und macOS (x64/ARM64) sowie für ausgewählte HTML-Dokumente Chromium, Chrome oder Edge. Die Agentenumgebung ist frei wählbar, muss aber Dateien bearbeiten und Terminalbefehle ausführen können. Browsernachweise bleiben je Zielprofil bis zu drei aufeinanderfolgenden grünen Läufen im [Vorschau-Status](#plattformstatus).
 
 ### So fließen deine Daten
 

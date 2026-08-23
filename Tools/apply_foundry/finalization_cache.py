@@ -1,4 +1,4 @@
-"""Hash-bound, atomic stage cache for the Linux finalization workflow.
+"""Hash-bound, atomic stage cache for the Python finalization workflow.
 
 The on-disk contract intentionally mirrors ``Common/FinalizationCache.psm1``:
 ``Pruefstand.json`` remains schema 2 and can therefore be inspected by either

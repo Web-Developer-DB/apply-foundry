@@ -1,4 +1,4 @@
-"""Read-only Linux runtime and dependency detection."""
+"""Read-only runtime and dependency detection for supported desktop platforms."""
 
 import os
 import platform
@@ -27,6 +27,10 @@ def os_release() -> Dict[str, str]:
 
 
 def package_manager() -> Optional[str]:
+    if sys.platform == "win32":
+        return "winget" if shutil.which("winget") else None
+    if sys.platform == "darwin":
+        return "brew" if shutil.which("brew") else None
     for executable, name in (("apt-get", "apt"), ("dnf", "dnf"), ("yum", "yum"), ("pacman", "pacman"), ("zypper", "zypper")):
         if shutil.which(executable):
             return name
@@ -74,6 +78,8 @@ def _browser_identity(executable: str) -> Optional[Tuple[str, str, str]]:
 
 
 def _snap_launcher(path: Path) -> bool:
+    if not sys.platform.startswith("linux"):
+        return False
     try:
         resolved = path.resolve(strict=True)
         if str(resolved) == "/usr/bin/snap" or str(resolved).startswith("/snap/"):
@@ -102,10 +108,10 @@ def browser_details(requested: str = "auto", executable_path: Optional[Path] = N
         candidates.append((requested, str(executable_path)))
     else:
         table = {
-            "chrome": ("google-chrome", "google-chrome-stable"),
-            "chromium": ("chromium", "chromium-browser"),
-            "edge": ("microsoft-edge", "microsoft-edge-stable"),
-            "firefox": ("firefox",),
+            "chrome": ("google-chrome", "google-chrome-stable", "chrome", "chrome.exe"),
+            "chromium": ("chromium", "chromium-browser", "chromium.exe"),
+            "edge": ("microsoft-edge", "microsoft-edge-stable", "msedge", "msedge.exe"),
+            "firefox": ("firefox", "firefox.exe"),
         }
         names = ("chrome", "chromium", "edge") if requested == "auto" else (requested,)
         for browser_name in names:
@@ -133,6 +139,14 @@ def browser_details(requested: str = "auto", executable_path: Optional[Path] = N
 
 
 def font_details() -> Dict[str, Any]:
+    if sys.platform == "win32":
+        fonts = Path(os.environ.get("WINDIR", r"C:\\Windows")) / "Fonts"
+        arial = fonts / "arial.ttf"
+        return {"available": arial.is_file(), "font": "Arial", "path": str(arial) if arial.is_file() else None, "version": None}
+    if sys.platform == "darwin":
+        for path in (Path("/System/Library/Fonts/Supplemental/Arial.ttf"), Path("/Library/Fonts/Arial.ttf")):
+            if path.is_file():
+                return {"available": True, "font": "Arial", "path": str(path), "version": None}
     paths = (
         Path("/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"),
         Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
@@ -154,19 +168,20 @@ def font_details() -> Dict[str, Any]:
 
 def runtime_fingerprint(browser: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     release = os_release()
+    platform_id = "windows" if sys.platform == "win32" else "macos" if sys.platform == "darwin" else "linux"
     result: Dict[str, Any] = {
         "schemaVersion": 2,
-        "os": "linux" if sys.platform.startswith("linux") else sys.platform,
+        "os": platform_id,
         "architecture": platform.machine().lower(),
-        "distributionId": release.get("ID", ""),
-        "distributionVersion": release.get("VERSION_ID", ""),
+        "distributionId": release.get("ID", "") if platform_id == "linux" else platform_id,
+        "distributionVersion": release.get("VERSION_ID", "") if platform_id == "linux" else platform.version(),
         "wsl": bool(os.environ.get("WSL_DISTRO_NAME")),
         "coreRuntime": {
-            "platform": "linux",
+            "platform": platform_id,
             "language": "python",
             "kind": "python",
             "version": platform.python_version(),
-            "minimumVersion": "3.9",
+            "minimumVersion": "3.11",
             "path": str(Path(sys.executable).resolve()),
             # Kept for readers of the existing technical fingerprint contract.
             "executable": str(Path(sys.executable).resolve()),
@@ -187,9 +202,10 @@ def diagnose(browser: str = "auto", executable_path: Optional[Path] = None, brow
     release = os_release()
     architecture = platform.machine().lower()
     manager = package_manager()
-    is_linux = sys.platform.startswith("linux")
-    supported_arch = architecture in ("x86_64", "amd64")
-    supported = is_linux and supported_arch and manager is not None
+    platform_id = "windows" if sys.platform == "win32" else "macos" if sys.platform == "darwin" else "linux" if sys.platform.startswith("linux") else sys.platform
+    supported_arch = architecture in ("x86_64", "amd64", "arm64", "aarch64")
+    supported_os = platform_id in ("windows", "linux", "macos")
+    supported = supported_os and supported_arch and manager is not None
     checks = []
     exit_code = 0
 
@@ -199,10 +215,10 @@ def diagnose(browser: str = "auto", executable_path: Optional[Path] = None, brow
         if status == "error" and required:
             exit_code = max(exit_code, failure_code)
 
-    python_ok = sys.version_info >= (3, 9)
-    add("core_runtime", "ok" if python_ok else "error", True, "Python %s; erforderlich: 3.9 oder neuer (%s)." % (platform.python_version(), sys.executable), 2)
-    add("plattform", "ok" if supported else "error", True, "Linux %s %s; Architektur %s; Paketmanager %s." % (release.get("ID", ""), release.get("VERSION_ID", ""), architecture, manager or "nicht erkannt"), 2)
-    add("paketmanager", "ok" if manager else "error", True, "Erkannt: %s." % manager if manager else "Kein unterstützter Paketmanager erkannt.", 2)
+    python_ok = sys.version_info >= (3, 11)
+    add("core_runtime", "ok" if python_ok else "error", True, "Python %s; erforderlich: 3.11 oder neuer (%s)." % (platform.python_version(), sys.executable), 2)
+    add("plattform", "ok" if supported_os and supported_arch else "error", True, "%s; Architektur %s." % (platform_id, architecture), 2)
+    add("paketmanager", "ok" if manager else "error", True, "Erkannt: %s." % manager if manager else "Kein unterstützter Paketmanager/Homebrew erkannt.", 2)
     try:
         probe = Path(tempfile.gettempdir()) / (".apply-foundry-probe-" + uuid.uuid4().hex)
         probe.write_bytes(b"*")
@@ -211,37 +227,37 @@ def diagnose(browser: str = "auto", executable_path: Optional[Path] = None, brow
     except OSError as exc:
         add("temp_schreibzugriff", "error", True, str(exc))
     font = font_details()
-    add("schriftart", "ok" if font["available"] else "error", True, "Liberation Sans gefunden: %s" % font.get("path") if font["available"] else "Liberation Sans wurde nicht gefunden.")
+    add("schriftart", "ok" if font["available"] else "error", True, "%s gefunden: %s" % (font.get("font"), font.get("path")) if font["available"] else "Erforderliche Schriftart wurde nicht gefunden.")
     shellcheck = executable_details(("shellcheck",))
     add("shellcheck", "ok" if shellcheck["available"] else "warning", False, "ShellCheck %s (%s)" % (shellcheck.get("version"), shellcheck.get("path")) if shellcheck["available"] else "ShellCheck fehlt; vollständige Bash-/CI-Prüfung ist nicht verfügbar.")
     explicit_browser = browser_required or browser != "auto" or executable_path is not None
     browser_info = browser_details(browser, executable_path)
     add("browser", "ok" if browser_info["available"] else ("error" if explicit_browser else "warning"), explicit_browser, "%s %s (%s)" % (browser_info.get("name"), browser_info.get("version"), browser_info.get("path")) if browser_info["available"] else "Kein unterstützter distributionsbasierter Chromium-Browser gefunden.")
-    setup = "python3 Tools/setup-linux.py"
+    setup = "python3 Tools/setup.py"
     core = {
-        "platform": "linux", "name": "python", "language": "python", "status": "present" if python_ok else "missing",
-        "version": platform.python_version(), "minimumVersion": "3.9", "path": str(Path(sys.executable).resolve()),
-        "source": "System-Python aus der Distribution", "installable": supported,
-        "setupCommand": setup + " --runtime --dry-run --format json", "permission": "Root/sudo für Distributionspaket",
+        "platform": platform_id, "name": "python", "language": "python", "status": "present" if python_ok else "missing",
+        "version": platform.python_version(), "minimumVersion": "3.11", "path": str(Path(sys.executable).resolve()),
+        "source": "System-Python", "installable": supported,
+        "setupCommand": setup + " --runtime --dry-run --format json", "permission": "Administrationsrechte falls Installation nötig",
     }
     browser_present = bool(browser_info["available"] and browser_info.get("engine") == "chromium")
     browser_source = (
         "Vorhandener versionsgeprüfter Systembrowser (%s)" % browser_info.get("name")
-        if browser_present else "Chromium aus der Distribution"
+        if browser_present else "Chromium/Chrome aus dem deklarierten Paketweg"
     )
     dependencies = [
         core,
-        {"name": "browser", "requested": "chromium", "detectedAs": browser_info.get("name"), "status": "present" if browser_present else "missing", "version": browser_info.get("version"), "path": browser_info.get("path"), "source": browser_source, "installable": supported and release.get("ID") != "ubuntu", "setupCommand": setup + " --browser chromium --dry-run --format json", "permission": "Root/sudo für Distributionspaket"},
-        {"name": "fonts", "status": "present" if font["available"] else "missing", "version": None, "path": font.get("path"), "source": "Liberation Sans aus der Distribution", "installable": supported, "setupCommand": setup + " --fonts --dry-run --format json", "permission": "Root/sudo für Distributionspaket"},
-        {"name": "shellcheck", "status": "present" if shellcheck["available"] else "missing", "version": shellcheck.get("version"), "path": shellcheck.get("path"), "source": "ShellCheck aus der Distribution", "installable": supported, "setupCommand": setup + " --shellcheck --dry-run --format json", "permission": "Root/sudo für Distributionspaket"},
+        {"name": "browser", "requested": "chromium", "detectedAs": browser_info.get("name"), "status": "present" if browser_present else "missing", "version": browser_info.get("version"), "path": browser_info.get("path"), "source": browser_source, "installable": supported, "setupCommand": setup + " --browser chromium --dry-run --format json", "permission": "Administrationsrechte falls Installation nötig"},
+        {"name": "fonts", "status": "present" if font["available"] else "missing", "version": None, "path": font.get("path"), "source": "%s-Systemschrift" % font.get("font"), "installable": supported, "setupCommand": setup + " --fonts --dry-run --format json", "permission": "Administrationsrechte falls Installation nötig"},
+        {"name": "shellcheck", "status": "present" if shellcheck["available"] else "missing", "version": shellcheck.get("version"), "path": shellcheck.get("path"), "source": "ShellCheck aus dem deklarierten Paketweg", "installable": supported, "setupCommand": setup + " --shellcheck --dry-run --format json", "permission": "Administrationsrechte falls Installation nötig"},
     ]
     status = "nicht_unterstuetzt" if exit_code == 2 else "nicht_bereit" if exit_code == 1 else "bereit_mit_warnungen" if any(item["status"] == "warning" for item in checks) else "bereit"
     return {
-        "schemaVersion": 3, "checkedAtUtc": utc_now(), "status": status, "exitCode": exit_code,
+        "schemaVersion": 4, "checkedAtUtc": utc_now(), "status": status, "exitCode": exit_code,
         "checks": checks,
-        "platform": {"name": "Linux", "distributionId": release.get("ID", ""), "distributionVersion": release.get("VERSION_ID", ""), "architecture": architecture, "packageManager": manager},
+        "platform": {"name": platform_id, "distributionId": release.get("ID", "") if platform_id == "linux" else platform_id, "distributionVersion": release.get("VERSION_ID", "") if platform_id == "linux" else platform.version(), "architecture": architecture, "packageManager": manager},
         "coreRuntime": core,
-        "setup": {"linux": setup + " --all --dry-run --format json", "windows": None},
+        "setup": {"command": setup + " --all --dry-run --format json"},
         "dependencies": dependencies,
         "runtimeFingerprint": runtime_fingerprint(browser_info),
     }

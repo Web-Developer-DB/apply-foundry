@@ -18,7 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from Tools.linux_py.browser_tools import (  # noqa: E402
+from Tools.apply_foundry.browser_tools import (  # noqa: E402
     BrowserError,
     _chromium_base,
     browser_candidates,
@@ -34,9 +34,9 @@ from Tools.linux_py.browser_tools import (  # noqa: E402
     runtime_fingerprint,
     sha256,
 )
-from Tools.linux_py.cli import CommandContext  # noqa: E402
-from Tools.linux_py.commands_browser import _similarity, ats, layout  # noqa: E402
-from Tools.linux_py.errors import CliUsageError  # noqa: E402
+from Tools.apply_foundry.cli import CommandContext  # noqa: E402
+from Tools.apply_foundry.commands_browser import _similarity, ats, layout  # noqa: E402
+from Tools.apply_foundry.errors import CliUsageError  # noqa: E402
 
 
 def png_chunk(kind, payload):
@@ -58,6 +58,21 @@ def synthetic_png(width=40, height=60):
 
 
 class BrowserPrimitiveTests(unittest.TestCase):
+    def test_pdf_stream_length_beats_embedded_endstream_bytes(self):
+        """A stream payload may legally contain that byte sequence in comments."""
+        cmap = b"/CIDInit /ProcSet findresource begin\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfchar\n<0001> <004D>\nendstream\n<0002> <0061>\nendbfchar\nendcmap\n"
+        content = b"BT /F1 12 Tf <00010002> Tj ET\n"
+        objects = [
+            b"1 0 obj << /Type /Font /ToUnicode 2 0 R >> endobj\n",
+            b"2 0 obj << /Length " + str(len(cmap)).encode() + b" >> stream\n" + cmap + b"endstream\nendobj\n",
+            b"3 0 obj << /Type /Page /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >> endobj\n",
+            b"4 0 obj << /Length " + str(len(content)).encode() + b" >> stream\n" + content + b"endstream\nendobj\n",
+        ]
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "length.pdf"
+            path.write_bytes(b"%PDF-1.7\n" + b"".join(objects) + b"%%EOF\n")
+            self.assertIn("Ma", extract_pdf_text(path))
+
     def test_explicit_a4_pages_and_capture_document(self):
         source = '<html><head></head><body><main class="page"><p>Eins</p></main><main class="page"><p>Zwei</p></main></body></html>'
         pages = html_pages(source)
@@ -107,7 +122,7 @@ class BrowserPrimitiveTests(unittest.TestCase):
         self.assertEqual("linux", report["coreRuntime"]["platform"])
         self.assertEqual("python", report["coreRuntime"]["language"])
         self.assertEqual("python", report["coreRuntime"]["kind"])
-        self.assertEqual("3.9", report["coreRuntime"]["minimumVersion"])
+        self.assertEqual("3.11", report["coreRuntime"]["minimumVersion"])
         self.assertTrue(report["coreRuntime"]["path"])
         self.assertIsNone(report["powerShellVersion"])
 
@@ -150,16 +165,16 @@ class BrowserPrimitiveTests(unittest.TestCase):
     def test_browser_sandbox_is_active_normally_and_root_fails_closed(self):
         with tempfile.TemporaryDirectory() as temp:
             profile = Path(temp)
-            with mock.patch("Tools.linux_py.browser_tools.os.geteuid", return_value=1000):
+            with mock.patch("Tools.apply_foundry.browser_tools.os.geteuid", return_value=1000):
                 arguments = _chromium_base(profile)
             self.assertNotIn("--no-sandbox", arguments)
             self.assertNotIn("--disable-gpu-sandbox", arguments)
-            with mock.patch("Tools.linux_py.browser_tools.os.geteuid", return_value=0):
+            with mock.patch("Tools.apply_foundry.browser_tools.os.geteuid", return_value=0):
                 with mock.patch.dict(os.environ, {}, clear=False):
                     os.environ.pop("APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER", None)
                     with self.assertRaisesRegex(BrowserError, "normalen Benutzer"):
                         _chromium_base(profile)
-            with mock.patch("Tools.linux_py.browser_tools.os.geteuid", return_value=0):
+            with mock.patch("Tools.apply_foundry.browser_tools.os.geteuid", return_value=0):
                 with mock.patch.dict(os.environ, {"APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER": "1"}):
                     self.assertIn("--no-sandbox", _chromium_base(profile))
 

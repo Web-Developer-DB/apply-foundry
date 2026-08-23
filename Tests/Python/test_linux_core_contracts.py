@@ -16,9 +16,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in os.sys.path:
     os.sys.path.insert(0, str(REPO_ROOT))
 
-from Tools.linux_py import load_handlers  # noqa: E402
-from Tools.linux_py.cli import CommandContext, parse, run  # noqa: E402
-from Tools.linux_py.commands_core import (  # noqa: E402
+from Tools.apply_foundry import load_handlers  # noqa: E402
+from Tools.apply_foundry.cli import CommandContext, parse, run  # noqa: E402
+from Tools.apply_foundry.commands_core import (  # noqa: E402
     handle_checkpoint,
     handle_dialog_pruefen,
     handle_dialog_uebernehmen,
@@ -34,17 +34,17 @@ from Tools.linux_py.commands_core import (  # noqa: E402
     handle_universal_neu,
     validate_dialog_order,
 )
-from Tools.linux_py.contracts import (  # noqa: E402
+from Tools.apply_foundry.contracts import (  # noqa: E402
     artifact_set_hash,
     assert_artifacts_current,
     document_scope,
     scope_from_cli,
 )
-from Tools.linux_py.errors import CliUsageError, ContractError, UnsafePathError  # noqa: E402
-from Tools.linux_py.io import artifact_record, read_json, sha256_file, write_atomic_json, write_atomic_text  # noqa: E402
-from Tools.linux_py.paths import resolve_order_paths, safe_path, slug, validate_portable_relative  # noqa: E402
-from Tools.linux_py.registry import COMMANDS  # noqa: E402
-from Tools.linux_py import runtime  # noqa: E402
+from Tools.apply_foundry.errors import CliUsageError, ContractError, UnsafePathError  # noqa: E402
+from Tools.apply_foundry.io import artifact_record, read_json, sha256_file, write_atomic_json, write_atomic_text  # noqa: E402
+from Tools.apply_foundry.paths import resolve_order_paths, safe_path, slug, validate_portable_relative  # noqa: E402
+from Tools.apply_foundry.registry import COMMANDS  # noqa: E402
+from Tools.apply_foundry import runtime  # noqa: E402
 
 
 MASTER = """# Persönliche Daten
@@ -547,11 +547,11 @@ class RuntimeDetectionTests(unittest.TestCase):
                 details = runtime.browser_details("firefox", executable)
         self.assertEqual("gecko", details["engine"])
 
-    def test_diagnose_schema_three_has_generic_python_core(self):
+    def test_diagnose_schema_four_has_generic_python_core(self):
         report = runtime.diagnose()
-        self.assertEqual(3, report["schemaVersion"])
+        self.assertEqual(4, report["schemaVersion"])
         self.assertEqual("python", report["coreRuntime"]["language"])
-        self.assertEqual("3.9", report["coreRuntime"]["minimumVersion"])
+        self.assertEqual("3.11", report["coreRuntime"]["minimumVersion"])
         self.assertIn(report["exitCode"], (0, 1, 2))
 
 

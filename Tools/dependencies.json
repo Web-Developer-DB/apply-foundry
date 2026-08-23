@@ -1,9 +1,10 @@
 {
-  "schemaVersion": 1,
-  "kind": "apply-foundry-linux-dependencies",
-  "minimumPythonVersion": "3.9",
+  "schemaVersion": 2,
+  "kind": "apply-foundry-dependencies",
+  "minimumPythonVersion": "3.11",
   "supportedArchitectures": [
-    "x86_64"
+    "x86_64",
+    "arm64"
   ],
   "managerPrecedence": [
     "apt",
@@ -116,6 +117,26 @@
           "packages": ["ShellCheck"],
           "source": "Zypper-Distribution"
         }
+      }
+    }
+  },
+  "platforms": {
+    "windows": {
+      "packageManager": "winget",
+      "components": {
+        "coreRuntime": {"packages": ["Python.Python.3.13"], "source": "winget"},
+        "browser": {"packages": ["Google.Chrome"], "source": "winget"},
+        "fonts": {"packages": [], "source": "Windows-Systemschrift Arial"},
+        "shellcheck": {"packages": ["koalaman.shellcheck"], "source": "winget"}
+      }
+    },
+    "macos": {
+      "packageManager": "brew",
+      "components": {
+        "coreRuntime": {"packages": ["python@3.13"], "source": "Homebrew formula"},
+        "browser": {"packages": ["google-chrome"], "source": "Homebrew cask"},
+        "fonts": {"packages": ["font-liberation"], "source": "Homebrew cask"},
+        "shellcheck": {"packages": ["shellcheck"], "source": "Homebrew formula"}
       }
     }
   }

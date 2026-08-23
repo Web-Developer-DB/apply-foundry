@@ -7,14 +7,14 @@ Dieses Dokument beschreibt die neun verbindlichen Nutzerfälle für Umfangsauswa
 Automatisierte Vertrags- und Fixturetests werden mit folgendem Befehl ausgeführt:
 
 ```powershell
-.\Tests\Run-RegressionTests.ps1
+python3 Tools/bewerbung.py tests --suite vollstaendig
 ```
 
 Sie prüfen deterministische Regeln, Dateizustände und Schutzgrenzen. Sie sind keine echte Modellsitzung. Alle Fixtures müssen ausschließlich fiktive Daten in einem temporären Testordner verwenden. Echte Daten oder Bewerbungen unter `Private/` dürfen weder gelesen noch verändert werden.
 
 ## Statusbegriffe
 
-- **Automatisiert:** Der deterministische Vertrags- oder Dateizustand wird durch [`Run-RegressionTests.ps1`](Run-RegressionTests.ps1) geprüft.
+- **Automatisiert:** Der deterministische Vertrags- oder Dateizustand wird durch `python3 Tools/bewerbung.py tests --suite vollstaendig` geprüft.
 - **Dokumentiert:** Das Dialogverhalten ist als reproduzierbares Szenario festgelegt, wurde aber nicht als echte Modellsitzung ausgeführt.
 - **Realer Modelltest nicht ausgeführt:** Es wurde in diesem Auftrag kein Modell für diesen Fall gestartet; daraus darf kein bestandener Modelltest abgeleitet werden.
 
@@ -256,4 +256,4 @@ A – wobei ich vielleicht doch nur ein Anschreiben möchte.
 
 ## Abnahmeregel
 
-Die neun Szenarien gelten dokumentarisch nur dann als aktuell, wenn ihre Feld- und Statusaussagen mit Prompt 01 und dem implementierten Schema 5 übereinstimmen. Nach einer Änderung am Dialog- oder Auftragsvertrag müssen diese Datei und die zugehörigen Prüfungen in `Run-RegressionTests.ps1` gemeinsam aktualisiert werden. Ein bestandener deterministischer Test darf niemals als bestandene Sitzung mit Codex, OpenCode, Claude Code oder einem Ollama-Modell ausgegeben werden.
+Die neun Szenarien gelten dokumentarisch nur dann als aktuell, wenn ihre Feld- und Statusaussagen mit Prompt 01 und dem implementierten Schema 5 übereinstimmen. Nach einer Änderung am Dialog- oder Auftragsvertrag müssen diese Datei und die zugehörigen Python-Prüfungen gemeinsam aktualisiert werden. Ein bestandener deterministischer Test darf niemals als bestandene Sitzung mit Codex, OpenCode, Claude Code oder einem Ollama-Modell ausgegeben werden.

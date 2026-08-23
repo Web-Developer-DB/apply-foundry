@@ -1,4 +1,4 @@
-"""Strict GNU-long-option dispatcher shared by every Python Linux entry."""
+"""Strict GNU-long-option dispatcher shared by every Python entry."""
 
 import os
 import re
@@ -104,7 +104,7 @@ def _value(raw: str, name: str, spec: OptionSpec, invocation_dir: Path) -> Any:
 
 
 def _global_help(specs: Mapping[str, CommandSpec], order: Sequence[str]) -> str:
-    lines = ["Einheitlicher Bewerbungsworkflow für Linux (Python)", "", "Aufruf:", "  python3 Tools/bewerbung.py <subcommand> [optionen]", "", "Subcommands:"]
+    lines = ["Einheitlicher Bewerbungsworkflow für Windows, Linux und macOS (Python)", "", "Aufruf:", "  python3 Tools/bewerbung.py <subcommand> [optionen]", "", "Subcommands:"]
     for name in order:
         lines.append("  %-20s %s" % (name, specs[name].summary))
     lines.extend(("", "Details: <subcommand> --help"))
