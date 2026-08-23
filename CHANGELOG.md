@@ -6,6 +6,15 @@ Alle wesentlichen Änderungen am Projekt werden in dieser Datei dokumentiert. Di
 
 ## Unveröffentlicht
 
+### Major: ein Python-Kern für Desktop-Plattformen
+
+- Der produktive Kern ist jetzt Python 3.11+ für Windows, Linux und macOS auf x64 und ARM64. `Tools/apply_foundry/` ersetzt den Linux-spezifischen Paketnamen; `bewerbung.py`, `neue-bewerbung.py` und `setup.py` sind die kanonischen Einstiege.
+- Alle PowerShell-Fachwerkzeuge, -Module und -Tests wurden entfernt. Bestehende private Aufträge und Artefakte bleiben lesbar; technische Nachweise aus dem früheren PowerShell-Kern werden wie bei einem Plattformwechsel neu erzeugt.
+- `setup.py` erzeugt Setup-Schema 3 für APT, DNF/YUM, Pacman, Zypper, winget und Homebrew. Es beschränkt Installationen auf Python, Browser, Schrift und ShellCheck; POSIX- und CMD-Dateien dürfen ausschließlich einen fehlenden Python-Start mit explizitem `--runtime --yes` bootstrappen.
+- Windows verwendet winget, macOS Homebrew (`python@3.13`, `google-chrome`, `shellcheck`, bei Bedarf `font-liberation`) und Linux ausschließlich den jeweiligen Distributions-Paketmanager. PyPI, Snap, AUR und zusätzliche Paketquellen bleiben ausgeschlossen.
+- Der ATS-PDF-Leser bindet Streams jetzt bytebasiert an `/Length`. Dadurch werden Flate-Streams nicht mehr an zufälligen `endstream`-Bytefolgen abgeschnitten; ein Extraktionsfehler wird als präziser ATS-Teilfehler protokolliert.
+- Tests und CI verwenden Python auf Windows, Linux und macOS. Die Plattformmatrix enthält x64 und ARM64; Python 3.11 bleibt als Mindestversionsjob enthalten. Browserläufe bleiben je Zielprofil bis zu drei dokumentierten Erfolgen als Vorschau markiert.
+
 ### Hinzugefügt
 
 - Eigenständiger, ausschließlich auf der Standardbibliothek basierender Linux-Kern für System-Python 3.9+ mit `Tools/bewerbung.py`, `Tools/neue-bewerbung.py` und den Fachmodulen unter `Tools/linux_py/`. Er bildet dieselben 23 Subcommands, GNU-Langoptionen, Exitcodes und privaten Artefaktschemata wie der unveränderte Windows-PowerShell-Kern ab.

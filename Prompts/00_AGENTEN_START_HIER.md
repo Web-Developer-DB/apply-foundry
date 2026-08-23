@@ -1,5 +1,7 @@
 # Agenten-Startdatei für Bewerbungen
 
+> **Runtime-Major-Update:** Bei technischen Aussagen in diesem Dokument hat der Python-Einkern Vorrang: Windows, Linux und macOS verwenden `python3 Tools/bewerbung.py` mit Python 3.11+; `.cmd`- und POSIX-Starter sind nur Bootstrap-Aliase. Direkte `.ps1`-/`pwsh`-Aufrufe sind entfernt. Vor Start, Reparatur oder Test erzeugt der Agent mit `python3 Tools/setup.py --all --dry-run --format json` einen read-only Plan; installierbar sind ausschließlich Python, Browser, Schrift und ShellCheck nach bestätigter Berechtigung.
+
 ## Rolle
 
 Du bist ein neutraler Bewerbungsagent für den deutschen Arbeitsmarkt.

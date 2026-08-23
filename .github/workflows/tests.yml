@@ -1,338 +1,46 @@
-name: Tests
+name: Python contracts
 
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 
 permissions:
   contents: read
 
-concurrency:
-  group: tests-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  powershell-fast:
-    name: PowerShell schnell (windows-2025)
-    runs-on: windows-2025
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - name: Windows-Setup-Dry-run
-        shell: pwsh
-        run: ./Tools/setup-windows.ps1 -All -DryRun -Format json
-      - name: Windows PowerShell 5.1-Setup-Dry-run
-        shell: powershell
-        run: ./Tools/setup-windows.ps1 -All -DryRun -Format json
-      - name: Schnelle synthetische Suite
-        shell: pwsh
-        run: ./Tests/Run-RegressionTests.ps1 -Suite schnell -BerichtPath Tests/Artifacts/test-fast-windows-2025.json
-      - name: Schnellen Testbericht hochladen
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-fast-windows-2025
-          path: Tests/Artifacts
-          if-no-files-found: ignore
-          retention-days: 7
-
-  powershell-core:
-    name: PowerShell core (windows-2025)
-    runs-on: windows-2025
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - name: PowerShell-Regressionssuite
-        shell: pwsh
-        run: ./Tests/Run-RegressionTests.ps1 -Suite vollstaendig -BerichtPath Tests/Artifacts/test-full-windows-2025.json
-      - name: Vollständigen Testbericht hochladen
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-full-windows-2025
-          path: Tests/Artifacts
-          if-no-files-found: ignore
-          retention-days: 7
-
-  linux-python:
-    name: Python core (Ubuntu 24.04)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - name: Python-Runtime
-        run: python3 --version
-      - name: Standardbibliotheks-Unit- und Vertragstests
-        run: python3 -m unittest discover -s Tests/Python -p 'test_*.py'
-      - name: Schnelle Linux-Suite
-        run: python3 Tools/bewerbung.py tests --suite schnell --bericht-path Tests/Artifacts/test-fast-linux.json
-      - name: Vollständige browserfreie Linux-Suite
-        run: python3 Tools/bewerbung.py tests --suite vollstaendig --bericht-path Tests/Artifacts/test-full-linux.json
-      - name: Linux-Testberichte hochladen
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-python-linux
-          path: Tests/Artifacts
-          if-no-files-found: ignore
-          retention-days: 7
-
-  cross-core-order-windows:
-    name: Cross-core order (Windows PowerShell)
-    runs-on: windows-2025
-    timeout-minutes: 10
+  desktop-contracts:
+    name: ${{ matrix.os }} / ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-2025, arch: x64, python: '3.13' }
+          - { os: windows-11-arm, arch: arm64, python: '3.13' }
+          - { os: ubuntu-24.04, arch: x64, python: '3.13' }
+          - { os: ubuntu-24.04-arm, arch: arm64, python: '3.13' }
+          - { os: macos-15-intel, arch: x64, python: '3.13' }
+          - { os: macos-15, arch: arm64, python: '3.13' }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-      - name: Synthetischen Schema-5-Auftrag erzeugen und normalisieren
-        shell: pwsh
+        with: { python-version: ${{ matrix.python }} }
+      - name: Read-only setup plan
+        run: python Tools/setup.py --all --dry-run --format json
+      - name: Browser-free contracts
         run: |
-          $fixtureRoot = (Resolve-Path -LiteralPath 'Tests/Fixtures/CrossPlatform').Path
-          $scenario = Get-Content -LiteralPath (Join-Path $fixtureRoot 'scenario.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-          $privateRoot = Join-Path $env:RUNNER_TEMP 'apply-foundry-parity/Private'
-          $dataRoot = Join-Path $privateRoot 'Daten'
-          $applicationsRoot = Join-Path $privateRoot 'Bewerbungen'
-          New-Item -ItemType Directory -Path $dataRoot, $applicationsRoot -Force | Out-Null
-          Copy-Item -LiteralPath (Join-Path $fixtureRoot 'stammdaten.md') -Destination (Join-Path $dataRoot '01_PERSOENLICHE_DATEN.md')
-          Copy-Item -LiteralPath (Join-Path $fixtureRoot 'profil.md') -Destination (Join-Path $dataRoot '02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md')
-          pwsh -NoProfile -File Tools/bewerbung.ps1 neu `
-            --firma ([string]$scenario.firma) `
-            --rolle ([string]$scenario.rolle) `
-            --datum ([string]$scenario.datum) `
-            --umfang ([string]$scenario.umfang) `
-            --umfang-quelle ([string]$scenario.umfangQuelle) `
-            --stellenbeschreibung-path (Join-Path $fixtureRoot 'stelle.md') `
-            --stammdaten-path (Join-Path $dataRoot '01_PERSOENLICHE_DATEN.md') `
-            --profil-path (Join-Path $dataRoot '02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md') `
-            --bewerbungen-root $applicationsRoot
-          $orderPath = Join-Path $applicationsRoot ([string]$scenario.relativeOrderPath)
-          New-Item -ItemType Directory -Path 'Tests/Artifacts/parity-windows' -Force | Out-Null
-          $diagnoseText = (& pwsh -NoProfile -File Tools/bewerbung.ps1 diagnose --als-json) -join "`n"
-          if ($LASTEXITCODE -ne 0) { throw "Windows-Diagnose schlug mit Exitcode $LASTEXITCODE fehl." }
-          $diagnose = $diagnoseText | ConvertFrom-Json
-          $diagnoseText | Set-Content -LiteralPath 'Tests/Artifacts/parity-windows/diagnose.json' -Encoding utf8NoBOM
-          $diagnose.runtimeFingerprint | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $privateRoot 'Origin-Runtime-Fingerprint.json') -Encoding utf8NoBOM
-          Import-Module (Resolve-Path -LiteralPath 'Tools/Common/Platform.psm1') -Force
-          Get-RuntimeFingerprint | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $privateRoot 'Origin-Technical-Runtime-Fingerprint.json') -Encoding utf8NoBOM
-          python Tests/Fixtures/CrossPlatform/normalize_order.py $orderPath Tests/Artifacts/parity-windows/normalized-order.json
-      - name: Normalisierten Windows-Auftrag hochladen
-        uses: actions/upload-artifact@v4
+          python -m unittest discover -s Tests/Python -p 'test_*.py'
+          python Tools/bewerbung.py tests --suite vollstaendig --bericht-path Tests/Artifacts/contracts-${{ matrix.os }}-${{ matrix.arch }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: parity-order-windows
-          path: Tests/Artifacts/parity-windows/normalized-order.json
-          if-no-files-found: error
+          name: contracts-${{ matrix.os }}-${{ matrix.arch }}
+          path: Tests/Artifacts
+          if-no-files-found: ignore
           retention-days: 7
-      - name: Vollständigen synthetischen Windows-Zustand hochladen
-        uses: actions/upload-artifact@v4
-        with:
-          name: parity-private-windows
-          path: ${{ runner.temp }}/apply-foundry-parity/Private
-          if-no-files-found: error
-          retention-days: 7
-
-  cross-core-order-linux:
-    name: Cross-core order (Linux Python)
+  minimum-python:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Synthetischen Schema-5-Auftrag erzeugen und normalisieren
-        run: |
-          set -euo pipefail
-          mapfile -t parity_scenario < <(python3 -c 'import json, sys; d=json.load(open(sys.argv[1], encoding="utf-8")); [print(d[key]) for key in ("firma", "rolle", "datum", "umfang", "umfangQuelle", "relativeOrderPath")]' Tests/Fixtures/CrossPlatform/scenario.json)
-          test "${#parity_scenario[@]}" -eq 6
-          parity_private_root="$RUNNER_TEMP/apply-foundry-parity/Private"
-          parity_data_root="$parity_private_root/Daten"
-          parity_applications_root="$parity_private_root/Bewerbungen"
-          mkdir -p "$parity_data_root" "$parity_applications_root"
-          cp Tests/Fixtures/CrossPlatform/stammdaten.md "$parity_data_root/01_PERSOENLICHE_DATEN.md"
-          cp Tests/Fixtures/CrossPlatform/profil.md "$parity_data_root/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md"
-          python3 Tools/bewerbung.py neu \
-            --firma "${parity_scenario[0]}" \
-            --rolle "${parity_scenario[1]}" \
-            --datum "${parity_scenario[2]}" \
-            --umfang "${parity_scenario[3]}" \
-            --umfang-quelle "${parity_scenario[4]}" \
-            --stellenbeschreibung-path Tests/Fixtures/CrossPlatform/stelle.md \
-            --stammdaten-path "$parity_data_root/01_PERSOENLICHE_DATEN.md" \
-            --profil-path "$parity_data_root/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md" \
-            --bewerbungen-root "$parity_applications_root"
-          parity_order_path="$parity_applications_root/${parity_scenario[5]}"
-          mkdir -p Tests/Artifacts/parity-linux
-          python3 Tools/bewerbung.py diagnose --als-json > Tests/Artifacts/parity-linux/diagnose.json
-          python3 -c 'import json, pathlib, sys; source=json.load(open(sys.argv[1], encoding="utf-8")); pathlib.Path(sys.argv[2]).write_text(json.dumps(source["runtimeFingerprint"], ensure_ascii=False, indent=2) + "\n", encoding="utf-8")' Tests/Artifacts/parity-linux/diagnose.json "$parity_private_root/Origin-Runtime-Fingerprint.json"
-          python3 -c 'import json, pathlib, sys; from Tools.linux_py.browser_tools import runtime_fingerprint; pathlib.Path(sys.argv[1]).write_text(json.dumps(runtime_fingerprint(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")' "$parity_private_root/Origin-Technical-Runtime-Fingerprint.json"
-          python3 Tests/Fixtures/CrossPlatform/normalize_order.py "$parity_order_path" Tests/Artifacts/parity-linux/normalized-order.json
-      - name: Normalisierten Linux-Auftrag hochladen
-        uses: actions/upload-artifact@v4
-        with:
-          name: parity-order-linux
-          path: Tests/Artifacts/parity-linux/normalized-order.json
-          if-no-files-found: error
-          retention-days: 7
-      - name: Vollständigen synthetischen Linux-Zustand hochladen
-        uses: actions/upload-artifact@v4
-        with:
-          name: parity-private-linux
-          path: ${{ runner.temp }}/apply-foundry-parity/Private
-          if-no-files-found: error
-          retention-days: 7
-
-  cross-core-continue-windows-on-linux:
-    name: Continue Windows order on Linux Python
-    needs: cross-core-order-windows
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - name: Synthetischen Windows-Zustand laden
-        uses: actions/download-artifact@v4
-        with:
-          name: parity-private-windows
-          path: ${{ runner.temp }}/parity-windows-on-linux/Private
-      - name: Status und Checkpoint mit dem Python-Gegenkern fortsetzen
-        run: |
-          set -euo pipefail
-          parity_private_root="$RUNNER_TEMP/parity-windows-on-linux/Private"
-          parity_work="$parity_private_root/Bewerbungen/Parity-GmbH/_Arbeitsdateien/2026-08-23--Fullstack-Developer"
-          parity_report_root="Tests/Artifacts/parity-windows-on-linux"
-          mkdir -p "$parity_report_root"
-          python3 Tools/bewerbung.py status --arbeitsordner "$parity_work" --als-json > "$parity_report_root/status-before.json"
-          python3 Tools/bewerbung.py checkpoint --arbeitsordner "$parity_work" --schritt auftrag_angelegt --als-json > "$parity_report_root/checkpoint.json"
-          python3 Tools/bewerbung.py status --arbeitsordner "$parity_work" --als-json > "$parity_report_root/status-after.json"
-          python3 Tools/bewerbung.py diagnose --als-json > "$parity_report_root/current-diagnose.json"
-          if python3 -c 'import json, sys; from Tools.linux_py.commands_browser import _assert_runtime_current; _assert_runtime_current(json.load(open(sys.argv[1], encoding="utf-8-sig")), {}, False)' "$parity_private_root/Origin-Technical-Runtime-Fingerprint.json"; then
-            echo "FEHLER: Der produktive Python-Runtime-Validator akzeptierte den Windows-Fingerprint." >&2
-            exit 1
-          fi
-          python3 -c 'from Tools.linux_py.browser_tools import runtime_fingerprint; from Tools.linux_py.commands_browser import _assert_runtime_current; _assert_runtime_current(runtime_fingerprint(), {}, False)'
-          python3 -c 'import json, pathlib, sys; origin=json.load(open(sys.argv[1], encoding="utf-8-sig")); current=json.load(open(sys.argv[2], encoding="utf-8"))["runtimeFingerprint"]; before=json.load(open(sys.argv[3], encoding="utf-8")); after=json.load(open(sys.argv[4], encoding="utf-8")); checkpoint=json.load(open(sys.argv[5], encoding="utf-8")); assert origin["os"] == "windows" and origin["coreRuntime"]["language"] == "powershell"; assert current["os"] == "linux" and current["coreRuntime"]["language"] == "python"; assert origin["os"] != current["os"] and origin["coreRuntime"]["language"] != current["coreRuntime"]["language"]; assert before["finalReportValid"] is False and before["technicalAttempt"] is None and before["phase"] not in ("persoenliche_pruefung", "veroeffentlicht"); assert checkpoint["step"] == "auftrag_angelegt"; assert after["workflowCheckpoint"]["valid"] is True and after["workflowCheckpoint"]["lastCompletedStep"] == "auftrag_angelegt"; report={"schemaVersion":1,"kind":"cross_core_continuation","sourceCore":"windows-powershell","continuationCore":"linux-python","statusContinued":True,"checkpointContinued":True,"foreignRuntimeEvidenceAccepted":False,"sourceRuntimeFingerprint":origin,"continuationRuntimeFingerprint":current}; pathlib.Path(sys.argv[6]).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")' "$parity_private_root/Origin-Runtime-Fingerprint.json" "$parity_report_root/current-diagnose.json" "$parity_report_root/status-before.json" "$parity_report_root/status-after.json" "$parity_report_root/checkpoint.json" "$parity_report_root/continuation-contract.json"
-      - name: Linux-Fortsetzungsbericht hochladen
-        uses: actions/upload-artifact@v4
-        with:
-          name: parity-continuation-windows-to-linux
-          path: Tests/Artifacts/parity-windows-on-linux
-          if-no-files-found: error
-          retention-days: 7
-      - name: Unter Linux fortgesetzten synthetischen Zustand hochladen
-        uses: actions/upload-artifact@v4
-        with:
-          name: parity-private-windows-continued-on-linux
-          path: ${{ runner.temp }}/parity-windows-on-linux/Private
-          if-no-files-found: error
-          retention-days: 7
-
-  cross-core-continue-linux-on-windows:
-    name: Continue Linux order on Windows PowerShell
-    needs: cross-core-order-linux
-    runs-on: windows-2025
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - name: Synthetischen Linux-Zustand laden
-        uses: actions/download-artifact@v4
-        with:
-          name: parity-private-linux
-          path: ${{ runner.temp }}/parity-linux-on-windows/Private
-      - name: Status und Checkpoint mit dem PowerShell-Gegenkern fortsetzen
-        shell: pwsh
-        run: |
-          $privateRoot = Join-Path $env:RUNNER_TEMP 'parity-linux-on-windows/Private'
-          $work = Join-Path $privateRoot 'Bewerbungen/Parity-GmbH/_Arbeitsdateien/2026-08-23--Fullstack-Developer'
-          $reportRoot = 'Tests/Artifacts/parity-linux-on-windows'
-          New-Item -ItemType Directory -Path $reportRoot -Force | Out-Null
-          $statusBeforeText = (& pwsh -NoProfile -File Tools/bewerbung.ps1 status --arbeitsordner $work --als-json) -join "`n"
-          if ($LASTEXITCODE -ne 0) { throw "Windows-Status schlug mit Exitcode $LASTEXITCODE fehl." }
-          $statusBeforeText | Set-Content -LiteralPath (Join-Path $reportRoot 'status-before.json') -Encoding utf8NoBOM
-          $checkpointText = (& pwsh -NoProfile -File Tools/bewerbung.ps1 checkpoint --arbeitsordner $work --schritt auftrag_angelegt --als-json) -join "`n"
-          if ($LASTEXITCODE -ne 0) { throw "Windows-Checkpoint schlug mit Exitcode $LASTEXITCODE fehl." }
-          $checkpointText | Set-Content -LiteralPath (Join-Path $reportRoot 'checkpoint.json') -Encoding utf8NoBOM
-          $statusAfterText = (& pwsh -NoProfile -File Tools/bewerbung.ps1 status --arbeitsordner $work --als-json) -join "`n"
-          if ($LASTEXITCODE -ne 0) { throw "Windows-Status nach Checkpoint schlug mit Exitcode $LASTEXITCODE fehl." }
-          $statusAfterText | Set-Content -LiteralPath (Join-Path $reportRoot 'status-after.json') -Encoding utf8NoBOM
-          $diagnoseText = (& pwsh -NoProfile -File Tools/bewerbung.ps1 diagnose --als-json) -join "`n"
-          if ($LASTEXITCODE -ne 0) { throw "Windows-Diagnose schlug mit Exitcode $LASTEXITCODE fehl." }
-          $diagnoseText | Set-Content -LiteralPath (Join-Path $reportRoot 'current-diagnose.json') -Encoding utf8NoBOM
-          $origin = Get-Content -LiteralPath (Join-Path $privateRoot 'Origin-Runtime-Fingerprint.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-          $originTechnical = Get-Content -LiteralPath (Join-Path $privateRoot 'Origin-Technical-Runtime-Fingerprint.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-          $current = ($diagnoseText | ConvertFrom-Json).runtimeFingerprint
-          $statusBefore = $statusBeforeText | ConvertFrom-Json
-          $checkpoint = $checkpointText | ConvertFrom-Json
-          $statusAfter = $statusAfterText | ConvertFrom-Json
-          Import-Module (Resolve-Path -LiteralPath 'Tools/Common/Platform.psm1') -Force
-          if ($origin.os -ne 'linux' -or $origin.coreRuntime.language -ne 'python') { throw 'Ursprungsfingerprint stammt nicht aus dem Linux-Python-Kern.' }
-          if ($current.os -ne 'windows' -or $current.coreRuntime.language -ne 'powershell') { throw 'Fortsetzungsfingerprint stammt nicht aus dem Windows-PowerShell-Kern.' }
-          if ($origin.os -eq $current.os -or $origin.coreRuntime.language -eq $current.coreRuntime.language) { throw 'Gegenkernwechsel wurde im Runtime-Fingerprint nicht erkannt.' }
-          if ($originTechnical.schemaVersion -ne 1 -or $originTechnical.os -ne 'linux') { throw 'Der technische Linux-Ursprungsfingerprint besitzt nicht den produktiven Schema-1-Vertrag.' }
-          if (Test-RuntimeFingerprintCurrent -Fingerprint $originTechnical) { throw 'Der produktive PowerShell-Runtime-Validator akzeptierte den Linux-Python-Fingerprint.' }
-          if (-not (Test-RuntimeFingerprintCurrent -Fingerprint (Get-RuntimeFingerprint))) { throw 'Der produktive PowerShell-Runtime-Validator lehnte den eigenen aktuellen Fingerprint ab.' }
-          if ($statusBefore.finalReportValid -or $null -ne $statusBefore.technicalAttempt -or $statusBefore.phase -in @('persoenliche_pruefung', 'veroeffentlicht')) { throw 'Fremder Runtime-Fingerprint wurde als aktueller technischer Nachweis behandelt.' }
-          if ($checkpoint.step -ne 'auftrag_angelegt' -or -not $statusAfter.workflowCheckpoint.valid -or $statusAfter.workflowCheckpoint.lastCompletedStep -ne 'auftrag_angelegt') { throw 'PowerShell-Gegenkern konnte den portablen Checkpoint nicht fortsetzen.' }
-          [ordered]@{
-            schemaVersion = 1
-            kind = 'cross_core_continuation'
-            sourceCore = 'linux-python'
-            continuationCore = 'windows-powershell'
-            statusContinued = $true
-            checkpointContinued = $true
-            foreignRuntimeEvidenceAccepted = $false
-            sourceRuntimeFingerprint = $origin
-            continuationRuntimeFingerprint = $current
-          } | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $reportRoot 'continuation-contract.json') -Encoding utf8NoBOM
-      - name: Windows-Fortsetzungsbericht hochladen
-        uses: actions/upload-artifact@v4
-        with:
-          name: parity-continuation-linux-to-windows
-          path: Tests/Artifacts/parity-linux-on-windows
-          if-no-files-found: error
-          retention-days: 7
-      - name: Unter Windows fortgesetzten synthetischen Zustand hochladen
-        uses: actions/upload-artifact@v4
-        with:
-          name: parity-private-linux-continued-on-windows
-          path: ${{ runner.temp }}/parity-linux-on-windows/Private
-          if-no-files-found: error
-          retention-days: 7
-
-  cross-core-order-compare:
-    name: Cross-core normalized order parity
-    needs: [cross-core-continue-windows-on-linux, cross-core-continue-linux-on-windows]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - name: Windows-Artefakt laden
-        uses: actions/download-artifact@v4
-        with:
-          name: parity-order-windows
-          path: parity/windows
-      - name: Linux-Artefakt laden
-        uses: actions/download-artifact@v4
-        with:
-          name: parity-order-linux
-          path: parity/linux
-      - name: Normalisierte Aufträge bytegenau vergleichen
-        run: cmp parity/windows/normalized-order.json parity/linux/normalized-order.json
-
-  bash-adapters:
-    name: Bash adapters (Ubuntu 24.04)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - name: ShellCheck bereitstellen
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends shellcheck
-      - name: Bash-Syntax
-        run: bash -n Tools/bewerbung.sh Tools/neue-bewerbung.sh Tools/setup-linux.sh Tools/setup-ubuntu.sh Tests/Bash/test-bewerbung-cli.sh Tests/Bash/test-setup-linux.sh Tests/Bash/test-setup-ubuntu.sh
-      - name: ShellCheck
-        run: shellcheck Tools/bewerbung.sh Tools/neue-bewerbung.sh Tools/setup-linux.sh Tools/setup-ubuntu.sh Tests/Bash/test-bewerbung-cli.sh Tests/Bash/test-setup-linux.sh Tests/Bash/test-setup-ubuntu.sh
-      - name: Dispatcher- und Kompatibilitätstests
-        run: bash Tests/Bash/test-bewerbung-cli.sh
-      - name: Opt-in-Setup-Tests
-        run: bash Tests/Bash/test-setup-ubuntu.sh
-      - name: Plattformneutrale Setup-Tests
-        run: bash Tests/Bash/test-setup-linux.sh
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: python -m unittest discover -s Tests/Python -p 'test_*.py'

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Vertragstests für den Linux-Python-Bootstrap (nur Standardbibliothek)."""
+"""Vertragstests für den plattformneutralen Python-Bootstrap."""
 
 import contextlib
 import importlib.util
@@ -13,10 +13,10 @@ from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SETUP_PATH = REPO_ROOT / "Tools" / "setup-linux.py"
+SETUP_PATH = REPO_ROOT / "Tools" / "setup.py"
 SPEC = importlib.util.spec_from_file_location("apply_foundry_setup_linux", SETUP_PATH)
 if SPEC is None or SPEC.loader is None:
-    raise RuntimeError("setup-linux.py konnte nicht geladen werden")
+    raise RuntimeError("setup.py konnte nicht geladen werden")
 setup = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = setup
 SPEC.loader.exec_module(setup)
@@ -89,8 +89,8 @@ class SetupLinuxTests(unittest.TestCase):
         return setup.PlatformContext(distro, "13", "x86_64", manager, "/usr/bin/" + executable)
 
     def test_manifest_is_versioned_and_contains_only_declared_components(self):
-        self.assertEqual(1, self.catalog["schemaVersion"])
-        self.assertEqual("3.9", self.catalog["minimumPythonVersion"])
+        self.assertEqual(2, self.catalog["schemaVersion"])
+        self.assertEqual("3.11", self.catalog["minimumPythonVersion"])
         self.assertEqual(
             {"apt", "dnf", "yum", "pacman", "zypper"},
             set(self.catalog["packageManagers"]),
@@ -158,17 +158,16 @@ class SetupLinuxTests(unittest.TestCase):
                     os_release_path=os_release,
                     trust_executable=lambda path: path,
                 )
-            with self.assertRaises(setup.SetupError) as arch_error:
-                setup.build_context(
-                    self.catalog,
-                    which=lambda _name: "/bin/tool",
-                    machine="aarch64",
-                    os_release_path=os_release,
-                    trust_executable=lambda path: path,
-                )
+            context = setup.build_context(
+                self.catalog,
+                which=lambda _name: "/bin/tool",
+                machine="aarch64",
+                os_release_path=os_release,
+                trust_executable=lambda path: path,
+            )
         self.assertEqual(2, manager_error.exception.exit_code)
         self.assertIn("Manuell benötigt", str(manager_error.exception))
-        self.assertEqual(2, arch_error.exception.exit_code)
+        self.assertEqual("arm64", context.architecture)
 
     def test_untrusted_package_manager_path_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -186,21 +185,34 @@ class SetupLinuxTests(unittest.TestCase):
                 )
         self.assertEqual(2, caught.exception.exit_code)
 
-    def test_schema_two_exposes_python_core_runtime_and_install_plan(self):
+    def test_schema_three_exposes_python_core_runtime_and_install_plan(self):
         report = setup.build_report(
             options(runtime=True, shellcheck=True),
             self.context(),
             self.catalog,
             detections(shellcheck=setup.Detection(False)),
         )
-        self.assertEqual(2, report["schemaVersion"])
+        self.assertEqual(3, report["schemaVersion"])
         self.assertEqual("linux", report["coreRuntime"]["platform"])
         self.assertEqual("python", report["coreRuntime"]["language"])
-        self.assertEqual("3.9", report["coreRuntime"]["minimumVersion"])
-        self.assertEqual("python3 Tools/setup-linux.py --runtime --dry-run --format json", report["coreRuntime"]["setupCommand"])
+        self.assertEqual("3.11", report["coreRuntime"]["minimumVersion"])
+        self.assertEqual("python3 Tools/setup.py --runtime --dry-run --format json", report["coreRuntime"]["setupCommand"])
         self.assertEqual("install", report["dependencies"]["shellcheck"]["plannedAction"])
         self.assertEqual(["shellcheck"], report["plannedChanges"][0]["packages"])
         self.assertIn("--shellcheck", report["applyCommand"])
+
+    def test_windows_and_macos_use_only_the_declared_package_routes(self):
+        missing = detections(
+            coreRuntime=setup.Detection(False), browser=setup.Detection(False),
+            fonts=setup.Detection(False), shellcheck=setup.Detection(False),
+        )
+        windows = setup.build_report(options(runtime=True, browser=True, shellcheck=True), setup.PlatformContext("windows", "11", "arm64", "winget", "C:/Windows/System32/winget.exe", "windows"), self.catalog, missing)
+        self.assertEqual("winget", windows["packageManager"])
+        self.assertEqual("Python.Python.3.13", windows["plannedChanges"][0]["packages"][0])
+        self.assertNotIn("powershell", json.dumps(windows).lower())
+        macos = setup.build_report(options(runtime=True, browser=True, fonts=True, shellcheck=True), setup.PlatformContext("macos", "15", "arm64", "brew", "/opt/homebrew/bin/brew", "macos"), self.catalog, missing)
+        self.assertEqual("brew", macos["packageManager"])
+        self.assertEqual({"python@3.13", "google-chrome", "font-liberation", "shellcheck"}, {package for change in macos["plannedChanges"] for package in change["packages"]})
 
     def test_font_detection_falls_back_to_actual_system_font_without_fc_match(self):
         with tempfile.TemporaryDirectory() as temp:

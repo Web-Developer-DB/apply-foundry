@@ -1,25 +1,21 @@
 #!/usr/bin/env python3
-"""Compatibility entry for creating an application on Linux."""
+"""Platform-neutral compatibility entry for creating an application."""
 
 import sys
-import platform
 from pathlib import Path
 
-if sys.version_info < (3, 9):
-    print("Fehler: Python 3.9 oder neuer ist erforderlich.", file=sys.stderr)
+if sys.version_info < (3, 11):
+    print("Fehler: Python 3.11 oder neuer ist erforderlich.", file=sys.stderr)
     raise SystemExit(2)
-if sys.prefix != getattr(sys, "base_prefix", sys.prefix):
-    print("Fehler: Eine virtuelle Python-Umgebung ist nicht Teil des Linux-Laufzeitvertrags. Verwende System-Python.", file=sys.stderr)
-    raise SystemExit(2)
-if not sys.platform.startswith("linux") or platform.machine().lower() not in ("x86_64", "amd64"):
-    print("Fehler: Die Python-Kernimplementierung unterstützt ausschließlich Linux x64.", file=sys.stderr)
+if sys.platform not in ("win32", "darwin") and not sys.platform.startswith("linux"):
+    print("Fehler: Unterstützt werden Windows, Linux und macOS.", file=sys.stderr)
     raise SystemExit(2)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from Tools.linux_py.cli import main  # noqa: E402
+from Tools.apply_foundry.cli import main  # noqa: E402
 
 
 if __name__ == "__main__":

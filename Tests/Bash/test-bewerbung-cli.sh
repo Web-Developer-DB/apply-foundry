@@ -48,7 +48,7 @@ for shell_file in "$launcher" "$compat_launcher"; do
   grep -Fq 'pwsh' "$shell_file" && fail "Linux-Alias hängt weiterhin von PowerShell ab: $shell_file"
 done
 
-python3 -I -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' || fail 'Python 3.9 oder neuer ist für den Linux-Vertragstest erforderlich.'
+python3 -I -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' || fail 'Python 3.11 oder neuer ist erforderlich.'
 
 help_output="$(python3 -B "$dispatcher" --help)"
 for command_name in diagnose neu universal-neu universal-status universal-finalisieren status checkpoint migrieren stammdaten dialog-pruefen dialog-uebernehmen passfoto kontext inhalt pruefen layout pdf ats finalisieren freigabe tokenbericht test-baseline tests; do
@@ -86,6 +86,7 @@ printf '%s\n' \
   '# synthetic Python dispatcher used only by the Bash adapter contract' \
   > "$wrapper_root/bewerbung.py"
 chmod +x "$wrapper_root/bewerbung.py"
+cp -- "$wrapper_root/bewerbung.py" "$wrapper_root/neue-bewerbung.py"
 
 capture="$test_root/direct.capture"
 env FAKE_CAPTURE_PATH="$capture" \

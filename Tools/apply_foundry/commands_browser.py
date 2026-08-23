@@ -1,4 +1,4 @@
-"""Native Linux handlers for browser, PDF, ATS and finalization stages."""
+"""Native Python handlers for browser, PDF, ATS and finalization stages."""
 
 from __future__ import annotations
 
@@ -549,6 +549,22 @@ def ats(ctx: Any, args: Mapping[str, Any]) -> int:
                 pdf_report_path = default
         if pdf_report_path is None:
             raise ContractError("Ein ATS-Prüfbericht erfordert den zugehörigen PDF-Export-Bericht mit Browser-Fingerprint.")
+        pdf_report_path = safe_path(pdf_report_path, root, must_exist=True, kind="file")
+        export = read_json(pdf_report_path)
+        export_results = export.get("results") if isinstance(export, dict) else None
+        expected = [(document.name, sha256_file(document), pdf_path.name, sha256_file(pdf_path)) for document, pdf_path in zip(documents, pdfs)]
+        if not isinstance(export, dict) or export.get("schemaVersion") != 1 or not isinstance(export_results, list):
+            raise ContractError("PDF-Export-Bericht besitzt kein gültiges Ergebnisformat für die ATS-Bindung.")
+        if len(export_results) != len(expected):
+            raise ContractError("PDF-Export-Bericht deckt nicht exakt die erwarteten ATS-Artefakte ab.")
+        for html_name, html_hash, pdf_name, pdf_hash in expected:
+            matches = [value for value in export_results if isinstance(value, dict) and value.get("htmlFile") == html_name and value.get("pdfFile") == pdf_name]
+            if len(matches) != 1 or str(matches[0].get("htmlSha256", "")).upper() != html_hash or str(matches[0].get("pdfSha256", "")).upper() != pdf_hash:
+                raise ContractError(f"PDF-Export-Bericht ist nicht exakt an die aktuellen ATS-Artefakte gebunden: {pdf_name}")
+        runtime = export.get("runtime")
+        if not isinstance(runtime, dict) or runtime.get("schemaVersion") != 1 or not isinstance(runtime.get("browser"), dict):
+            raise ContractError("PDF-Export-Bericht enthält keinen vollständigen Runtime-/Browser-Fingerprint.")
+        _assert_runtime_current(runtime, {}, True)
     fields = _markdown_fields(stammdaten)
     full_name = fields.get("Vollständiger Name", "")
     if not full_name:
@@ -608,22 +624,12 @@ def ats(ctx: Any, args: Mapping[str, Any]) -> int:
             })
         except (OSError, BrowserError, ValueError) as exc:
             errors.append(f"{pdf_path.name}: ATS-Textprüfung fehlgeschlagen: {exc}")
-    runtime: Optional[Dict[str, Any]] = None
+            results.append({
+                "htmlFile": document.name, "htmlSha256": sha256_file(document),
+                "pdfFile": pdf_path.name, "pdfSha256": sha256_file(pdf_path),
+                "extractionEngine": "interner_tounicode_parser", "extractionError": str(exc),
+            })
     if report_path is not None:
-        assert pdf_report_path is not None
-        pdf_report_path = safe_path(pdf_report_path, root, must_exist=True, kind="file")
-        export = read_json(pdf_report_path)
-        export_results = export.get("results") if isinstance(export, dict) else None
-        if not isinstance(export, dict) or export.get("schemaVersion") != 1 or not isinstance(export_results, list) or len(export_results) != len(results):
-            raise ContractError("PDF-Export-Bericht deckt nicht exakt die ATS-Artefakte ab.")
-        for result in results:
-            matches = [value for value in export_results if value.get("htmlFile") == result["htmlFile"] and value.get("pdfFile") == result["pdfFile"]]
-            if len(matches) != 1 or str(matches[0].get("htmlSha256", "")).upper() != result["htmlSha256"] or str(matches[0].get("pdfSha256", "")).upper() != result["pdfSha256"]:
-                raise ContractError(f"PDF-Export-Bericht ist nicht exakt an die aktuellen ATS-Artefakte gebunden: {result['pdfFile']}")
-        runtime = export.get("runtime")
-        if not isinstance(runtime, dict) or runtime.get("schemaVersion") != 1 or not isinstance(runtime.get("browser"), dict):
-            raise ContractError("PDF-Export-Bericht enthält keinen vollständigen Runtime-/Browser-Fingerprint.")
-        _assert_runtime_current(runtime, {}, True)
         write_atomic_json(report_path, {
             "schemaVersion": 2, "checkedAtUtc": utc_now(), "runtime": runtime,
             "folder": str(folder), "status": "fehler" if errors else ("warnung" if warnings else "ok"),

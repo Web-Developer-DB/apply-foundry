@@ -1,4 +1,4 @@
-"""Browser, PNG and PDF primitives for the native Linux workflow.
+"""Browser, PNG and PDF primitives for the native Python workflow.
 
 Only the Python standard library is used.  The module deliberately mirrors the
 PowerShell contracts: native programs receive an argument vector, every run is
@@ -72,6 +72,10 @@ def os_release() -> Dict[str, str]:
 
 
 def package_manager() -> Optional[str]:
+    if sys.platform == "win32":
+        return "winget" if shutil.which("winget") else None
+    if sys.platform == "darwin":
+        return "brew" if shutil.which("brew") else None
     for command, label in (("apt-get", "apt"), ("dnf", "dnf"), ("yum", "yum"), ("pacman", "pacman"), ("zypper", "zypper")):
         if shutil.which(command):
             return label
@@ -80,6 +84,7 @@ def package_manager() -> Optional[str]:
 
 def runtime_fingerprint(browser: Optional[BrowserInfo] = None) -> Dict[str, Any]:
     release = os_release()
+    os_id = "windows" if sys.platform == "win32" else "macos" if sys.platform == "darwin" else "linux"
     browser_value: Optional[Dict[str, str]] = None
     if browser is not None:
         browser_value = {
@@ -95,23 +100,23 @@ def runtime_fingerprint(browser: Optional[BrowserInfo] = None) -> Dict[str, Any]
             pass
     return {
         "schemaVersion": 1,
-        "os": "linux",
+        "os": os_id,
         "osDescription": platform.platform(),
-        "distributionId": release.get("ID"),
-        "distributionVersion": release.get("VERSION_ID"),
+        "distributionId": release.get("ID") if os_id == "linux" else os_id,
+        "distributionVersion": release.get("VERSION_ID") if os_id == "linux" else platform.version(),
         "packageManager": package_manager(),
         "wsl": is_wsl,
-        "architecture": "x64" if platform.machine().lower() in {"x86_64", "amd64"} else platform.machine().lower(),
+        "architecture": "x64" if platform.machine().lower() in {"x86_64", "amd64"} else "arm64" if platform.machine().lower() in {"arm64", "aarch64"} else platform.machine().lower(),
         # Legacy keys remain readable for reports created by the PowerShell engine.
         "powerShellVersion": None,
         "psEdition": None,
         "pythonVersion": platform.python_version(),
         "coreRuntime": {
-            "platform": "linux",
+            "platform": os_id,
             "language": "python",
             "kind": "python",
             "version": platform.python_version(),
-            "minimumVersion": "3.9",
+            "minimumVersion": "3.11",
             "path": str(Path(sys.executable).resolve()),
             "executable": str(Path(sys.executable).resolve()),
         },
@@ -127,6 +132,11 @@ def run_process(
     max_stderr: int = 65536,
     cwd: Optional[Path] = None,
 ) -> ProcessResult:
+    startup: Dict[str, Any] = {}
+    if os.name == "nt":
+        startup["creationflags"] = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+    else:
+        startup["start_new_session"] = True
     try:
         proc = subprocess.Popen(
             [str(executable), *[str(value) for value in arguments]],
@@ -136,7 +146,7 @@ def run_process(
             text=True,
             encoding="utf-8",
             errors="replace",
-            start_new_session=True,
+            **startup,
         )
     except OSError as exc:
         raise BrowserError(f"Natives Programm konnte nicht gestartet werden: {executable} ({exc})") from exc
@@ -145,15 +155,24 @@ def run_process(
         stdout, stderr = proc.communicate(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
         timed_out = True
-        try:
-            os.killpg(proc.pid, signal.SIGTERM)
-            stdout, stderr = proc.communicate(timeout=3)
-        except (ProcessLookupError, subprocess.TimeoutExpired):
+        if os.name == "nt":
+            # /T is essential: Chromium creates children which otherwise
+            # survive a timeout and can lock the temporary profile.
             try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+                subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8, check=False)
+            except (OSError, subprocess.TimeoutExpired):
+                proc.kill()
             stdout, stderr = proc.communicate()
+        else:
+            try:
+                os.killpg(proc.pid, signal.SIGTERM)
+                stdout, stderr = proc.communicate(timeout=3)
+            except (ProcessLookupError, subprocess.TimeoutExpired):
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                stdout, stderr = proc.communicate()
     stdout_truncated = len(stdout) > max_stdout
     stderr_truncated = len(stderr) > max_stderr
     return ProcessResult(
@@ -168,12 +187,12 @@ def run_process(
 
 def _browser_identity(path: Path) -> BrowserInfo:
     real = path.resolve(strict=True)
-    if str(real) == "/usr/bin/snap" or str(real).startswith("/snap/"):
+    if sys.platform.startswith("linux") and (str(real) == "/usr/bin/snap" or str(real).startswith("/snap/")):
         raise BrowserError(f"Snap-Browser liegt außerhalb des unterstützten Browservertrags: {real}")
     try:
         if real.stat().st_size <= 131072:
             prefix = real.read_bytes()[:131072]
-            if prefix.startswith(b"#!") and re.search(rb"(?im)(?:^|[\s/])snap(?:\s+run)?\s+", prefix):
+            if sys.platform.startswith("linux") and prefix.startswith(b"#!") and re.search(rb"(?im)(?:^|[\s/])snap(?:\s+run)?\s+", prefix):
                 raise BrowserError(f"Snap-Transition-Launcher liegt außerhalb des unterstützten Browservertrags: {real}")
     except OSError as exc:
         raise BrowserError(f"Browserpfad konnte nicht sicher geprüft werden: {real} ({exc})") from exc
@@ -215,12 +234,28 @@ def browser_candidates(
             raise BrowserError("Firefox ist nur für eine ausdrücklich aktivierte Layoutdiagnose zulässig.")
         return [info]
 
-    definitions: List[Tuple[str, List[str], List[str]]] = [
-        ("chrome", ["/usr/bin/google-chrome-stable", "/usr/bin/google-chrome"], ["google-chrome-stable", "google-chrome", "chrome"]),
-        ("chromium", ["/usr/bin/chromium", "/usr/bin/chromium-browser"], ["chromium", "chromium-browser"]),
-        ("edge", ["/usr/bin/microsoft-edge-stable", "/usr/bin/microsoft-edge"], ["microsoft-edge-stable", "microsoft-edge", "msedge"]),
-        ("firefox", ["/usr/bin/firefox"], ["firefox"]),
-    ]
+    if sys.platform == "win32":
+        program_files = [os.environ.get("PROGRAMFILES", ""), os.environ.get("PROGRAMFILES(X86)", ""), os.environ.get("LOCALAPPDATA", "")]
+        definitions = [
+            ("chrome", [str(Path(base) / "Google/Chrome/Application/chrome.exe") for base in program_files if base], ["chrome.exe", "chrome"]),
+            ("chromium", [], ["chromium.exe", "chromium"]),
+            ("edge", [str(Path(base) / "Microsoft/Edge/Application/msedge.exe") for base in program_files if base], ["msedge.exe", "msedge"]),
+            ("firefox", [str(Path(base) / "Mozilla Firefox/firefox.exe") for base in program_files if base], ["firefox.exe", "firefox"]),
+        ]
+    elif sys.platform == "darwin":
+        definitions = [
+            ("chrome", ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"], ["google-chrome", "chrome"]),
+            ("chromium", ["/Applications/Chromium.app/Contents/MacOS/Chromium"], ["chromium"]),
+            ("edge", ["/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"], ["microsoft-edge", "msedge"]),
+            ("firefox", ["/Applications/Firefox.app/Contents/MacOS/firefox"], ["firefox"]),
+        ]
+    else:
+        definitions = [
+            ("chrome", ["/usr/bin/google-chrome-stable", "/usr/bin/google-chrome"], ["google-chrome-stable", "google-chrome", "chrome"]),
+            ("chromium", ["/usr/bin/chromium", "/usr/bin/chromium-browser"], ["chromium", "chromium-browser"]),
+            ("edge", ["/usr/bin/microsoft-edge-stable", "/usr/bin/microsoft-edge"], ["microsoft-edge-stable", "microsoft-edge", "msedge"]),
+            ("firefox", ["/usr/bin/firefox"], ["firefox"]),
+        ]
     found: List[BrowserInfo] = []
     seen: set = set()
     for name, paths, commands in definitions:
@@ -513,7 +548,7 @@ def _chromium_base(profile: Path, width: int = 794, height: int = 1123) -> List[
         f"--user-data-dir={profile}", f"--window-size={width},{height}",
     ]
     effective_uid = os.geteuid() if hasattr(os, "geteuid") else -1
-    if effective_uid == 0:
+    if sys.platform.startswith("linux") and effective_uid == 0:
         if os.environ.get("APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER") != "1":
             raise BrowserError(
                 "Chromium wird als Root nicht ohne Browser-Sandbox gestartet. "
@@ -611,25 +646,53 @@ def print_html(browser: BrowserInfo, html: Path, output: Path, timeout: int, tem
 
 
 def extract_pdf_text(path: Path) -> str:
+    """Extract Chrome's ToUnicode text with length-bound PDF streams.
+
+    PDF streams are binary data.  Searching for ``endstream`` inside them is
+    unsafe because those bytes can occur in Flate data; Chrome 151 exposed
+    precisely that failure mode.  We first index indirect objects as bytes and
+    then read each stream from its dictionary's direct ``/Length`` value (or a
+    referenced length object).  The text/CMap grammar is decoded only after
+    the stream boundary is proven.
+    """
     data = path.read_bytes()
-    text = data.decode("latin-1", errors="ignore")
-    objects: Dict[int, str] = {}
-    for match in re.finditer(r"(?s)(\d+)\s+\d+\s+obj(.*?)endobj", text):
+    objects: Dict[int, bytes] = {}
+    for match in re.finditer(rb"(?s)(\d+)\s+\d+\s+obj\b(.*?)\bendobj", data):
         objects[int(match.group(1))] = match.group(2)
     if not objects:
         raise BrowserError("PDF enthält keine lesbaren Objekte.")
 
-    def stream(body: str) -> str:
-        match = re.search(r"(?s)stream\r?\n(.*?)\r?\nendstream", body)
-        if not match:
+    def text(body: bytes) -> str:
+        return body.decode("latin-1", errors="ignore")
+
+    def stream(body: bytes) -> str:
+        marker = re.search(rb"(?<![A-Za-z])stream(?:\r\n|\n|\r)", body)
+        if not marker:
             return ""
-        raw = match.group(1).encode("latin-1")
-        if "/FlateDecode" in body:
+        dictionary = body[: marker.start()]
+        direct = re.search(rb"/Length\s+(\d+)(?!\s+\d+\s+R)", dictionary)
+        indirect = re.search(rb"/Length\s+(\d+)\s+\d+\s+R", dictionary)
+        length: Optional[int] = int(direct.group(1)) if direct else None
+        if indirect:
+            length_body = objects.get(int(indirect.group(1)))
+            number = re.search(rb"\b(\d+)\b", length_body or b"")
+            length = int(number.group(1)) if number else None
+        if length is None:
+            raise BrowserError("PDF-Stream besitzt keine auswertbare /Length-Angabe.")
+        start = marker.end()
+        end = start + length
+        if length < 0 or end > len(body):
+            raise BrowserError("PDF-Streamlänge überschreitet die Objektgrenze.")
+        raw = body[start:end]
+        trailer = body[end : end + 32].lstrip(b"\r\n")
+        if not trailer.startswith(b"endstream"):
+            raise BrowserError("PDF-Stream endet nicht an der durch /Length gebundenen Grenze.")
+        if b"/FlateDecode" in dictionary:
             try:
                 raw = zlib.decompress(raw)
             except zlib.error as exc:
                 raise BrowserError(f"Komprimierter PDF-Textstrom konnte nicht gelesen werden: {exc}") from exc
-        return raw.decode("latin-1", errors="ignore")
+        return text(raw)
 
     def hex_unicode(value: str) -> str:
         try:
@@ -657,13 +720,14 @@ def extract_pdf_text(path: Path) -> str:
         return result
 
     font_maps: Dict[int, Dict[str, str]] = {}
-    for number, body in objects.items():
+    for number, raw_body in objects.items():
+        body = text(raw_body)
         match = re.search(r"/ToUnicode\s+(\d+)\s+0\s+R", body)
         if match and int(match.group(1)) in objects:
             font_maps[number] = cmap(stream(objects[int(match.group(1))]))
     if not font_maps:
         raise BrowserError("PDF enthält keine auswertbare ToUnicode-Zuordnung.")
-    page_objects = [(number, body) for number, body in sorted(objects.items()) if re.search(r"/Type\s*/Page(?!s)", body)]
+    page_objects = [(number, text(body)) for number, body in sorted(objects.items()) if re.search(rb"/Type\s*/Page(?!s)", body)]
     if not page_objects:
         raise BrowserError("PDF enthält keine auswertbaren Seitenobjekte.")
 

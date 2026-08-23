@@ -1,53 +1,39 @@
-name: Browser smoke
+name: Cross-platform browser smoke
 
-on:
-  pull_request:
-  workflow_dispatch:
-  schedule:
-    - cron: "23 4 * * 2"
+on: [pull_request, workflow_dispatch]
 
 permissions:
   contents: read
 
-concurrency:
-  group: browser-smoke-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  browser-smoke-windows:
-    name: Windows browser smoke (required)
-    runs-on: windows-2025
-    timeout-minutes: 25
+  browser:
+    name: Browser / ${{ matrix.os }} / ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-2025, arch: x64 }
+          - { os: windows-11-arm, arch: arm64 }
+          - { os: ubuntu-24.04, arch: x64 }
+          - { os: ubuntu-24.04-arm, arch: arm64 }
+          - { os: macos-15-intel, arch: x64 }
+          - { os: macos-15, arch: arm64 }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - name: Windows-Browser-Smoke
-        shell: pwsh
-        run: ./Tests/Run-RegressionTests.ps1 -Suite browser -BerichtPath Tests/Artifacts/browser-windows.json
-      - name: Bereinigte Browserartefakte hochladen
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+      - name: Diagnose und Browser-Smoketest
+        env:
+          APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER: '1'
+        run: |
+          python Tools/bewerbung.py diagnose --browser-erforderlich --als-json
+          python Tools/bewerbung.py tests --suite browser --bericht-path Tests/Artifacts/browser-${{ matrix.os }}-${{ matrix.arch }}.json
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: browser-smoke-windows
+          name: browser-${{ matrix.os }}-${{ matrix.arch }}
           path: Tests/Artifacts
           if-no-files-found: ignore
-          retention-days: 7
-
-  browser-smoke-ubuntu:
-    name: Ubuntu browser smoke (staged)
-    # Ubuntu is intentionally not a pull-request gate until the repository
-    # contains three consecutive parity runs in Tests/Stabilitaetsnachweise.
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-      - name: Ubuntu-Browser-Smoke
-        run: python3 Tools/bewerbung.py tests --suite browser --bericht-path Tests/Artifacts/browser-ubuntu.json
-      - name: Bereinigte Browserartefakte hochladen
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: browser-smoke-ubuntu
-          path: Tests/Artifacts
-          if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 30

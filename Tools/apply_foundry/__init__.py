@@ -1,4 +1,4 @@
-"""Linux-native apply-foundry workflow implementation.
+"""Platform-neutral apply-foundry workflow implementation.
 
 The package intentionally depends on the Python standard library only.  Core
 handlers live in :mod:`commands_core`; browser/finalization handlers may be
@@ -22,9 +22,9 @@ def load_handlers() -> Dict[str, object]:
 
     handlers: Dict[str, object] = dict(CORE_HANDLERS)
     try:
-        module = import_module("Tools.linux_py.commands_browser")
+        module = import_module("Tools.apply_foundry.commands_browser")
     except ModuleNotFoundError as exc:
-        if exc.name != "Tools.linux_py.commands_browser":
+        if exc.name != "Tools.apply_foundry.commands_browser":
             raise
     else:
         handlers.update(getattr(module, "BROWSER_HANDLERS"))

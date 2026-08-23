@@ -24,7 +24,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends bubblewrap
           mkdir -p "$RUNNER_TEMP/apply-foundry-bwrap-probe"
-          python3 -c 'import sys; from pathlib import Path; from Tools.linux_py.prompt_regression import _require_sandbox; _require_sandbox(Path(sys.argv[1]))' "$RUNNER_TEMP/apply-foundry-bwrap-probe"
+          python3 -c 'import sys; from pathlib import Path; from Tools.apply_foundry.prompt_regression import _require_sandbox; _require_sandbox(Path(sys.argv[1]))' "$RUNNER_TEMP/apply-foundry-bwrap-probe"
       - name: Exakte Prompt-CLI-Versionen installieren
         run: npm install --global @openai/codex@0.148.0-alpha.15 opencode-ai@1.18.18 @anthropic-ai/claude-code@2.1.235 @google/gemini-cli@0.55.1
       - name: Fehlende Secrets fail-closed melden

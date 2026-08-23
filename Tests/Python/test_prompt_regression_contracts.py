@@ -14,8 +14,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in os.sys.path:
     os.sys.path.insert(0, str(REPO_ROOT))
 
-from Tools.linux_py.cli import CommandContext  # noqa: E402
-from Tools.linux_py.prompt_regression import (  # noqa: E402
+from Tools.apply_foundry.cli import CommandContext  # noqa: E402
+from Tools.apply_foundry.prompt_regression import (  # noqa: E402
     _arguments,
     _copy_public_repository,
     _initialize_fixture,
@@ -28,7 +28,7 @@ from Tools.linux_py.prompt_regression import (  # noqa: E402
     _scenario_output_error,
     run_prompt_regression,
 )
-from Tools.linux_py.io import sha256_file, write_atomic_json  # noqa: E402
+from Tools.apply_foundry.io import sha256_file, write_atomic_json  # noqa: E402
 
 
 class PromptRegressionContractTests(unittest.TestCase):
@@ -153,7 +153,7 @@ class PromptRegressionContractTests(unittest.TestCase):
                 sandbox_path = _sandbox_runtime_path().split(os.pathsep)
             self.assertIn("/opt", sandbox_path)
             self.assertNotIn("/home/comp/private-bin", sandbox_path)
-            with mock.patch("Tools.linux_py.prompt_regression.shutil.which", return_value=None):
+            with mock.patch("Tools.apply_foundry.prompt_regression.shutil.which", return_value=None):
                 with self.assertRaisesRegex(Exception, "bubblewrap fehlt"):
                     _require_sandbox(root)
 

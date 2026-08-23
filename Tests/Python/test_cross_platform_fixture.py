@@ -15,9 +15,9 @@ FIXTURE = PROJECT / "Tests/Fixtures/CrossPlatform"
 if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
-from linux_py.commands_browser import _assert_runtime_current
-from linux_py.browser_tools import runtime_fingerprint
-from linux_py.errors import ContractError
+from apply_foundry.commands_browser import _assert_runtime_current
+from apply_foundry.browser_tools import runtime_fingerprint
+from apply_foundry.errors import ContractError
 
 
 class CrossPlatformFixtureTests(unittest.TestCase):

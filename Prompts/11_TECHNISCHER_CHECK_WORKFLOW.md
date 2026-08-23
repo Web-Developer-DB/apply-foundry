@@ -8,7 +8,7 @@ Er ergänzt den inhaltlichen Qualitätscheck. Er ersetzt nicht die fachliche Pr�
 
 ## Grundregeln für Agenten
 
-- Kritische Eingabedateien unter Windows bevorzugt sequenziell lesen, wenn parallele PowerShell-Prozesse fehlschlagen oder instabil wirken.
+- Kritische Eingabedateien bei jeder Plattform bevorzugt sequenziell lesen, wenn parallele Prozesse fehlschlagen oder instabil wirken.
 - Bei Textsuche mit `rg` keine Pfad-Wildcards wie `ORDNER/*.html` verwenden. Stattdessen:
 
 ```powershell
@@ -38,21 +38,13 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 
 ## Gemeinsamer Plattform- und CLI-Vertrag
 
-Windows verwendet die fachliche PowerShell-7.6-Implementierung:
-
-```powershell
-pwsh -NoProfile -File Tools/bewerbung.ps1 <subcommand> ...
-```
-
-Linux verwendet die eigenständige Standardbibliotheksimplementierung mit System-Python 3.9 oder neuer:
+Windows, Linux und macOS verwenden denselben Standardbibliothekskern mit System-Python 3.11 oder neuer:
 
 ```bash
 python3 Tools/bewerbung.py <subcommand> ...
 ```
 
-Die gemeinsamen 23 Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Beide Kerne verwenden dieselben GNU-Langoptionen, Pfadnormalisierung und privaten Artefaktschemata. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. `bewerbung.sh` und `neue-bewerbung.sh` bleiben reine Linux-Aliase. Direkte Aufrufe der vorhandenen PowerShell-Fachskripte bleiben unter Windows kompatibel unterstützt.
-
-Ein bereits installiertes PowerShell 7.6 kann unter Linux während der gestuften Migration direkt mit `pwsh -NoProfile -File Tools/bewerbung.ps1 ...` als Legacy-Fallback aufgerufen werden. Die Linux-Aliase zeigen dennoch auf Python, kein Linux-CI-Job verwendet `pwsh`, und der Linux-Bootstrap installiert PowerShell nicht.
+Die gemeinsamen 23 Subcommands sind `diagnose`, `neu`, `universal-neu`, `universal-status`, `universal-finalisieren`, `status`, `checkpoint`, `migrieren`, `stammdaten`, `dialog-pruefen`, `dialog-uebernehmen`, `passfoto`, `kontext`, `inhalt`, `pruefen`, `layout`, `pdf`, `ats`, `finalisieren`, `freigabe`, `tokenbericht`, `test-baseline` und `tests`. Sie verwenden dieselben GNU-Langoptionen, Pfadnormalisierung und privaten Artefaktschemata. Exitcode `0` bedeutet Erfolg, `1` einen fachlichen oder technischen Laufzeitfehler und `2` eine ungültige beziehungsweise unsichere CLI-Eingabe, eine nicht unterstützte Umgebung oder eine fehlende Kernruntime. POSIX- und CMD-Dateien sind ausschließlich Bootstrap-Aliase vor dem ersten Python-Start; direkte PowerShell-Aufrufe sind im Major-Release nicht kompatibel.
 
 Das Subcommand `checkpoint --arbeitsordner "..." --schritt NAME` schreibt einen kompakten, hashgebundenen Fortsetzungsnachweis in den privaten Arbeitsordner. Es ist nach jeder sinnvollen Workflow-Grenze aufzurufen, speichert keine Quellinhalte oder Rohchatdaten und ersetzt keine fachliche Prüfung. Der Statusbefehl verwendet ihn nur bei vollständig übereinstimmenden Arbeitsartefakten als Hinweis; bei Abweichungen bleiben Auftrag, Matrix, Kandidaten und Prüfberichte maßgeblich.
 
@@ -60,7 +52,7 @@ Das Subcommand `passfoto --arbeitsordner "..."` ist der idempotente Einbettungss
 
 Der getrennte Universalprozess verwendet `universal-neu`, `universal-status` und `universal-finalisieren`. Er arbeitet ausschließlich unter `Private/Bewerbungen/_Universal-Lebenslauf/`, verlangt für den Softwareentwicklungs-Zweiseiter die exakte atomare Abschnittsverteilung aus `Universalauftrag.json` und aktiviert erst nach den beiden persönlich geprüften PNG-Seiten. `Aktiv/` enthält danach nur PDF, HTML und Manifest; der datierte Arbeitsordner wird nach erfolgreicher Aktivierung vollständig entfernt. Scheitert nur diese letzte Bereinigung, erkennt derselbe erneute Freigabeaufruf die bereits hashgleich aktive Fassung und wiederholt ausschließlich die Bereinigung.
 
-`diagnose` prüft Kernruntime, Betriebssystem, Architektur, Paketmanager, Browser, Temp- und Schreibzugriff sowie Fonts read-only und liefert Diagnoseschema 3 mit `coreRuntime`. Neue Linux-Setup-Ausgaben verwenden Schema 2; alte Ausgaben bleiben lesbar. Die privaten Auftrags-, Matrix-, Prüfstands-, Freigabe- und Manifest-Schemata ändern sich dadurch nicht. `Tools/setup-linux.py` unterstützt Linux x86_64 mit APT, DNF/YUM, Pacman oder Zypper; `Tools/setup-ubuntu.sh` bleibt ein Kompatibilitätsalias. `Tools/setup-windows.ps1` verwendet ausschließlich winget und ist mit Windows PowerShell 5.1 startbar. Beide Setup-Wege kennen Dry-run, JSON-Ausgabe und eine explizite Bestätigung. Unter Linux werden System-Python 3.9+, Chromium, Liberation Sans und optional ShellCheck geprüft; unter Windows PowerShell 7.6, ein Chromium-Browser, Arial und optional ShellCheck. Fehlt Python unter Linux, darf ausschließlich `setup-linux.sh` als minimaler Bash-Bootstrap die Runtime über den erkannten Distributionspaketmanager installieren und delegiert danach an Python. PyPI, virtuelle Umgebungen, Snap, AUR und fremde Browserquellen sind ausgeschlossen. Bereits passende Installationen sind idempotent. Unbekannte Paketmanager enden mit Exitcode `2` und einer manuellen Anleitung; Paketfehler enden mit Exitcode `1` und nennen den erreichten Teilzustand.
+`diagnose` prüft Kernruntime, Betriebssystem, Architektur, Paketmanager, Browser, Temp- und Schreibzugriff sowie Fonts read-only und liefert Diagnoseschema 4 mit `coreRuntime`. `Tools/setup.py` liefert Setup-Schema 3; alte technische Nachweise bleiben lesbar. Die privaten Auftrags-, Matrix-, Prüfstands-, Freigabe- und Manifest-Schemata ändern sich dadurch nicht. Linux unterstützt x64/ARM64 mit APT, DNF/YUM, Pacman oder Zypper, Windows ausschließlich winget und macOS ausschließlich Homebrew. Unter Linux gelten Liberation Sans, unter Windows Arial und unter macOS Arial oder Liberation Sans. Fehlt Python, darf nur der POSIX- beziehungsweise CMD-Starter bei explizitem `--runtime --yes` die Runtime installieren und delegiert danach vollständig an Python. PyPI, virtuelle Umgebungen, Snap, AUR und fremde Browserquellen sind ausgeschlossen. Bereits passende Installationen sind idempotent. Unbekannte Paketmanager und macOS ohne Homebrew enden mit Exitcode `2` und einer manuellen Anleitung; Paketfehler enden mit Exitcode `1` und nennen den erreichten Teilzustand.
 
 Der Pacman-Plan setzt `packageManagerOperation.fullSystemUpgrade = true`, kennzeichnet die erste Änderung mit `includesFullSystemUpgrade` und nennt den vollständigen `-Syu`-Lauf; spätere Paketinstallationen desselben Laufs verwenden `-S`. Diese breite Systemaktualisierung ist Bestandteil des vorab zu bestätigenden Plans. Fehlt Chromium unter Ubuntu oder in RHEL-kompatiblen Basis-Repositories, bleibt die Komponente blockiert und `manualInstruction` nennt Voraussetzung sowie exakten `verificationCommand`; Snap, EPEL und andere Communityquellen werden nicht registriert. Liberation Sans wird über eine tatsächlich vorhandene reguläre Fontdatei validiert; eine bloße Namensauflösung oder ein Symlink reicht nicht, und der Dateifallback funktioniert ohne `fc-match`.
 
@@ -76,7 +68,7 @@ Vorbereitung mit allen maschinellen Prüfungen:
 python3 Tools/bewerbung.py finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME" --browser auto
 ```
 
-Unter Windows lautet der entsprechende Einstieg `pwsh -NoProfile -File Tools/bewerbung.ps1 finalisieren ...` mit denselben GNU-Langoptionen.
+Auf Windows und macOS lautet der identische Einstieg ebenfalls `python3 Tools/bewerbung.py finalisieren ...` (unter Windows alternativ über `Tools\\bewerbung.cmd`).
 
 Dieser Lauf:
 

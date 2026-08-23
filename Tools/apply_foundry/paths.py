@@ -52,6 +52,17 @@ def _absolute(path: Path) -> Path:
     return Path(os.path.abspath(str(path)))
 
 
+def _path_key(path: Path) -> str:
+    """Return an OS-aware key for containment/equality checks.
+
+    Windows permits multiple casings for one file name.  The portable paths
+    stored in order schemas remain untouched; only local filesystem checks use
+    this key.
+    """
+
+    return os.path.normcase(str(path)) if os.name == "nt" else str(path)
+
+
 def safe_path(
     candidate: Path,
     root: Path,
@@ -65,9 +76,11 @@ def safe_path(
     root_abs = _absolute(root)
     candidate_abs = _absolute(candidate)
     try:
-        relative = candidate_abs.relative_to(root_abs)
+        relative = Path(os.path.relpath(_path_key(candidate_abs), _path_key(root_abs)))
     except ValueError as exc:
         raise UnsafePathError("Pfad liegt außerhalb seines vorgesehenen Roots: %s" % candidate_abs) from exc
+    if relative == Path("..") or relative.parts[:1] == ("..",):
+        raise UnsafePathError("Pfad liegt außerhalb seines vorgesehenen Roots: %s" % candidate_abs)
     if relative == Path(".") and not allow_root:
         raise UnsafePathError("Der Root selbst ist für diesen Pfad nicht zulässig: %s" % candidate_abs)
 
@@ -178,7 +191,7 @@ def resolve_order_paths(order: Any, applications_root: Path, work: Optional[Path
         target = safe_path(raw_paths[0], root)
         order_work = safe_path(raw_paths[1], root)
         candidate = safe_path(raw_paths[2], root)
-        if work is not None and _absolute(work) != order_work:
+        if work is not None and _path_key(_absolute(work)) != _path_key(order_work):
             raise ContractError("Übergebener Arbeitsordner stimmt nicht mit dem Legacy-Auftrag überein.")
         return OrderPaths(root, target, order_work, candidate, "", "", "")
     if order.get("pfadModus") != "relativ_zu_bewerbungen_root":
@@ -196,6 +209,6 @@ def resolve_order_paths(order: Any, applications_root: Path, work: Optional[Path
         validate_portable_relative(str(actual), field)
         if actual != wanted:
             raise ContractError("Schema-5-Auftragspfad %s stimmt nicht mit Firma, Rolle und Datum überein." % field)
-    if work is not None and _absolute(work) != expected.work:
+    if work is not None and _path_key(_absolute(work)) != _path_key(expected.work):
         raise ContractError("Übergebener Arbeitsordner stimmt nicht mit dem Schema-5-Auftrag überein.")
     return expected
