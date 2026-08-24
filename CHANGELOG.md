@@ -1,6 +1,6 @@
 # Änderungsprotokoll
 
-## Unveröffentlicht
+## 2.0 – 2026-08-24
 
 ### Python-3.11+-Major
 
