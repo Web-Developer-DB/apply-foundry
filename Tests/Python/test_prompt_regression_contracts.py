@@ -4,6 +4,7 @@
 import io
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -140,6 +141,7 @@ class PromptRegressionContractTests(unittest.TestCase):
         self.assertEqual((None, None), _reported_model('{"status":"ok"}', "gpt-test"))
         self.assertIn("Unerwartete", _reported_model('{"model":"other"}', "gpt-test")[1] or "")
 
+    @unittest.skipUnless(sys.platform.startswith("linux"), "bubblewrap-Vertrag ist Linux-spezifisch")
     def test_bubblewrap_vector_hides_host_home_and_missing_sandbox_fails_closed(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
