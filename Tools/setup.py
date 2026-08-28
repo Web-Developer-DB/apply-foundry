@@ -114,7 +114,7 @@ def load_catalog(path: Path = CATALOG_PATH) -> Dict[str, Any]:
     architectures = raw.get("supportedArchitectures")
     precedence = raw.get("managerPrecedence")
     managers = raw.get("packageManagers")
-    if architectures != ["x86_64", "arm64"] or not isinstance(precedence, list) or not isinstance(managers, dict):
+    if architectures != ["x86_64"] or not isinstance(precedence, list) or not isinstance(managers, dict):
         raise SetupError("Linux-Abhängigkeitsmanifest ist unvollständig.", EXIT_USAGE_OR_PLATFORM)
     if not precedence or len(set(precedence)) != len(precedence):
         raise SetupError("Paketmanager-Priorität im Manifest ist ungültig.", EXIT_USAGE_OR_PLATFORM)
@@ -226,8 +226,8 @@ def build_context(
     trust_executable: Callable[[str], Optional[str]] = resolve_trusted_executable,
 ) -> PlatformContext:
     architecture = normalize_architecture(machine if machine is not None else platform.machine())
-    if architecture not in ("x86_64", "arm64"):
-        raise SetupError("Nur x64 und ARM64 werden unterstützt.", EXIT_USAGE_OR_PLATFORM)
+    if architecture != "x86_64":
+        raise SetupError("Derzeit wird ausschließlich x64 (Intel/AMD) unterstützt.", EXIT_USAGE_OR_PLATFORM)
     os_release = read_os_release(os_release_path)
     distro_id = os_release.get("ID", "unknown").strip().lower() or "unknown"
     distro_version = os_release.get("VERSION_ID", "unknown").strip() or "unknown"
@@ -253,8 +253,8 @@ def build_platform_context(catalog: Mapping[str, Any]) -> PlatformContext:
     if sys.platform.startswith("linux"):
         return build_context(catalog)
     architecture = normalize_architecture(platform.machine())
-    if architecture not in ("x86_64", "arm64"):
-        raise SetupError("Nur x64 und ARM64 werden unterstützt.", EXIT_USAGE_OR_PLATFORM)
+    if architecture != "x86_64":
+        raise SetupError("Derzeit wird ausschließlich x64 (Intel/AMD) unterstützt.", EXIT_USAGE_OR_PLATFORM)
     if sys.platform == "win32":
         executable = shutil.which("winget")
         if not executable:

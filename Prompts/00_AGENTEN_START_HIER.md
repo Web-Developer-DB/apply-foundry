@@ -15,8 +15,8 @@ ist zulässig.
 
 ## Plattform-Preflight
 
-Der einzige Produktivkern ist Python 3.11+ auf Windows, Linux und macOS (x64
-und ARM64). Vor Start, Reparatur oder Test wird read-only geprüft:
+Der einzige Produktivkern ist Python 3.11+ auf Windows, Linux und macOS auf
+x64 (Intel/AMD). Vor Start, Reparatur oder Test wird read-only geprüft:
 
 ```bash
 python3 Tools/setup.py --all --dry-run --format json

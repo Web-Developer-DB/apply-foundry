@@ -203,7 +203,7 @@ def diagnose(browser: str = "auto", executable_path: Optional[Path] = None, brow
     architecture = platform.machine().lower()
     manager = package_manager()
     platform_id = "windows" if sys.platform == "win32" else "macos" if sys.platform == "darwin" else "linux" if sys.platform.startswith("linux") else sys.platform
-    supported_arch = architecture in ("x86_64", "amd64", "arm64", "aarch64")
+    supported_arch = architecture in ("x86_64", "amd64")
     supported_os = platform_id in ("windows", "linux", "macos")
     supported = supported_os and supported_arch and manager is not None
     checks = []
