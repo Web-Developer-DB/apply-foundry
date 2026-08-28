@@ -25,6 +25,11 @@
 - Tests und CI verwenden Python auf Windows, Linux und macOS. Die Matrix deckt
   x64, ARM64 und die Python-3.11-Mindestversion ab; Browsernachweise bleiben
   bis zu drei dokumentierten grünen Läufen je Zielprofil Vorschau.
+- Die plattformneutralen Runtime- und Linux-Sandbox-Vertragstests laufen nun
+  auch auf Windows und macOS korrekt. Auf GitHub-Windows-Runnern wird der
+  Setup-Dry-run nur ausgeführt, wenn der projektvertraglich vorgeschriebene
+  Paketmanager `winget` tatsächlich vorhanden ist; der Paketweg bleibt durch
+  die vollständige synthetische Vertragssuite abgedeckt.
 
 ### Dokumentation
 

@@ -26,7 +26,19 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Read-only setup plan
+        if: runner.os != 'Windows'
         run: python Tools/setup.py --all --dry-run --format json
+      - name: Read-only Windows setup plan when winget is available
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $winget = Get-Command winget -ErrorAction SilentlyContinue
+          if ($null -eq $winget) {
+            Write-Host 'GitHub Windows runners do not provide the declared winget package route; the full contract suite validates that route synthetically.'
+          } else {
+            python Tools/setup.py --all --dry-run --format json
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Browser-free contracts
         run: |
           python -m unittest discover -s Tests/Python -p 'test_*.py'

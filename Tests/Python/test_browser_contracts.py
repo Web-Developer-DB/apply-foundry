@@ -144,11 +144,12 @@ class BrowserPrimitiveTests(unittest.TestCase):
         self.assertEqual(100.0, equal["orderedTrigramCoveragePercent"])
         self.assertFalse(changed["passed"])
 
-    def test_runtime_fingerprint_names_python_core(self):
+    def test_runtime_fingerprint_names_platform_neutral_python_core(self):
         report = runtime_fingerprint()
+        expected_platform = "windows" if sys.platform == "win32" else "macos" if sys.platform == "darwin" else "linux"
         self.assertEqual(1, report["schemaVersion"])
-        self.assertEqual("linux", report["os"])
-        self.assertEqual("linux", report["coreRuntime"]["platform"])
+        self.assertEqual(expected_platform, report["os"])
+        self.assertEqual(expected_platform, report["coreRuntime"]["platform"])
         self.assertEqual("python", report["coreRuntime"]["language"])
         self.assertEqual("python", report["coreRuntime"]["kind"])
         self.assertEqual("3.11", report["coreRuntime"]["minimumVersion"])
@@ -194,18 +195,21 @@ class BrowserPrimitiveTests(unittest.TestCase):
     def test_browser_sandbox_is_active_normally_and_root_fails_closed(self):
         with tempfile.TemporaryDirectory() as temp:
             profile = Path(temp)
-            with mock.patch("Tools.apply_foundry.browser_tools.os.geteuid", return_value=1000):
-                arguments = _chromium_base(profile)
-            self.assertNotIn("--no-sandbox", arguments)
-            self.assertNotIn("--disable-gpu-sandbox", arguments)
-            with mock.patch("Tools.apply_foundry.browser_tools.os.geteuid", return_value=0):
-                with mock.patch.dict(os.environ, {}, clear=False):
-                    os.environ.pop("APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER", None)
-                    with self.assertRaisesRegex(BrowserError, "normalen Benutzer"):
-                        _chromium_base(profile)
-            with mock.patch("Tools.apply_foundry.browser_tools.os.geteuid", return_value=0):
-                with mock.patch.dict(os.environ, {"APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER": "1"}):
-                    self.assertIn("--no-sandbox", _chromium_base(profile))
+            # This contract targets Linux root handling. Simulating Linux keeps
+            # the same assertion meaningful on the Windows/macOS CI runners.
+            with mock.patch("Tools.apply_foundry.browser_tools.sys.platform", "linux"):
+                with mock.patch("Tools.apply_foundry.browser_tools.os.geteuid", return_value=1000, create=True):
+                    arguments = _chromium_base(profile)
+                self.assertNotIn("--no-sandbox", arguments)
+                self.assertNotIn("--disable-gpu-sandbox", arguments)
+                with mock.patch("Tools.apply_foundry.browser_tools.os.geteuid", return_value=0, create=True):
+                    with mock.patch.dict(os.environ, {}, clear=False):
+                        os.environ.pop("APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER", None)
+                        with self.assertRaisesRegex(BrowserError, "normalen Benutzer"):
+                            _chromium_base(profile)
+                with mock.patch("Tools.apply_foundry.browser_tools.os.geteuid", return_value=0, create=True):
+                    with mock.patch.dict(os.environ, {"APPLY_FOUNDRY_ALLOW_UNSANDBOXED_BROWSER": "1"}):
+                        self.assertIn("--no-sandbox", _chromium_base(profile))
 
 
 @unittest.skipUnless(os.environ.get("APPLY_FOUNDRY_BROWSER_TEST") == "1", "echter Browser-Smoke nur in der Browser-Suite")
