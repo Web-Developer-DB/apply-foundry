@@ -23,7 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: ${{ matrix.python }} }
+        with:
+          python-version: ${{ matrix.python }}
       - name: Read-only setup plan
         run: python Tools/setup.py --all --dry-run --format json
       - name: Browser-free contracts
