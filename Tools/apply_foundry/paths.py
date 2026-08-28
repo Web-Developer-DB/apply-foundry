@@ -2,6 +2,7 @@
 
 import os
 import re
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PurePosixPath
@@ -63,6 +64,31 @@ def _path_key(path: Path) -> str:
     return os.path.normcase(str(path)) if os.name == "nt" else str(path)
 
 
+def _is_macos_system_alias(path: Path) -> bool:
+    """Allow only the fixed root aliases supplied by macOS itself.
+
+    macOS exposes /var, /tmp and /etc as symbolic links into /private.  These
+    aliases commonly occur in paths produced by ``tempfile``.  They are not
+    user-controlled contract-path links, so rejecting them would make valid
+    temporary report paths unusable.  All other symbolic links remain banned.
+    """
+
+    if sys.platform != "darwin":
+        return False
+    expected_targets = {
+        Path("/var"): Path("/private/var"),
+        Path("/tmp"): Path("/private/tmp"),
+        Path("/etc"): Path("/private/etc"),
+    }
+    expected = expected_targets.get(path)
+    if expected is None:
+        return False
+    try:
+        return path.resolve(strict=True) == expected
+    except OSError:
+        return False
+
+
 def safe_path(
     candidate: Path,
     root: Path,
@@ -89,7 +115,7 @@ def safe_path(
     for index, item in enumerate(chain):
         if not item.exists() and not item.is_symlink():
             continue
-        if item.is_symlink():
+        if item.is_symlink() and not _is_macos_system_alias(item):
             raise UnsafePathError("Symbolische Links sind im Vertragspfad nicht zulässig: %s" % item)
         if index < len(chain) - 1 and not item.is_dir():
             raise UnsafePathError("Eine Datei maskiert einen benötigten Ordner: %s" % item)

@@ -5,6 +5,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -226,8 +227,11 @@ class SetupLinuxTests(unittest.TestCase):
                 trust_executable=lambda path: path,
                 font_roots=(Path(temp),),
             )
-        self.assertTrue(detected.present)
-        self.assertEqual(str(font), detected.path)
+            self.assertTrue(detected.present)
+            self.assertEqual(
+                os.path.normcase(str(font.resolve())),
+                os.path.normcase(str(Path(detected.path).resolve())),
+            )
 
     def test_font_file_fallback_rejects_name_only_and_symlinks(self):
         with tempfile.TemporaryDirectory() as temp:
