@@ -158,16 +158,18 @@ class SetupLinuxTests(unittest.TestCase):
                     os_release_path=os_release,
                     trust_executable=lambda path: path,
                 )
-            context = setup.build_context(
-                self.catalog,
-                which=lambda _name: "/bin/tool",
-                machine="aarch64",
-                os_release_path=os_release,
-                trust_executable=lambda path: path,
-            )
+            with self.assertRaises(setup.SetupError) as architecture_error:
+                setup.build_context(
+                    self.catalog,
+                    which=lambda _name: "/bin/tool",
+                    machine="aarch64",
+                    os_release_path=os_release,
+                    trust_executable=lambda path: path,
+                )
         self.assertEqual(2, manager_error.exception.exit_code)
         self.assertIn("Manuell benötigt", str(manager_error.exception))
-        self.assertEqual("arm64", context.architecture)
+        self.assertEqual(2, architecture_error.exception.exit_code)
+        self.assertIn("ausschließlich x64", str(architecture_error.exception))
 
     def test_untrusted_package_manager_path_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -206,11 +208,11 @@ class SetupLinuxTests(unittest.TestCase):
             coreRuntime=setup.Detection(False), browser=setup.Detection(False),
             fonts=setup.Detection(False), shellcheck=setup.Detection(False),
         )
-        windows = setup.build_report(options(runtime=True, browser=True, shellcheck=True), setup.PlatformContext("windows", "11", "arm64", "winget", "C:/Windows/System32/winget.exe", "windows"), self.catalog, missing)
+        windows = setup.build_report(options(runtime=True, browser=True, shellcheck=True), setup.PlatformContext("windows", "11", "x86_64", "winget", "C:/Windows/System32/winget.exe", "windows"), self.catalog, missing)
         self.assertEqual("winget", windows["packageManager"])
         self.assertEqual("Python.Python.3.13", windows["plannedChanges"][0]["packages"][0])
         self.assertNotIn("powershell", json.dumps(windows).lower())
-        macos = setup.build_report(options(runtime=True, browser=True, fonts=True, shellcheck=True), setup.PlatformContext("macos", "15", "arm64", "brew", "/opt/homebrew/bin/brew", "macos"), self.catalog, missing)
+        macos = setup.build_report(options(runtime=True, browser=True, fonts=True, shellcheck=True), setup.PlatformContext("macos", "15", "x86_64", "brew", "/usr/local/bin/brew", "macos"), self.catalog, missing)
         self.assertEqual("brew", macos["packageManager"])
         self.assertEqual({"python@3.13", "google-chrome", "font-liberation", "shellcheck"}, {package for change in macos["plannedChanges"] for package in change["packages"]})
 

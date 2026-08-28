@@ -571,6 +571,13 @@ class RuntimeDetectionTests(unittest.TestCase):
         self.assertEqual("3.11", report["coreRuntime"]["minimumVersion"])
         self.assertIn(report["exitCode"], (0, 1, 2))
 
+    def test_diagnose_marks_arm_as_unsupported(self):
+        with mock.patch.object(runtime.platform, "machine", return_value="arm64"):
+            report = runtime.diagnose()
+        platform_check = next(item for item in report["checks"] if item["name"] == "plattform")
+        self.assertEqual("error", platform_check["status"])
+        self.assertEqual(2, report["exitCode"])
+
 
 if __name__ == "__main__":
     unittest.main()

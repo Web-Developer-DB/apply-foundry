@@ -373,7 +373,7 @@ Die Freigabe-ID und alle geprüften Artefakthashes müssen beim späteren Veröf
 
 ### 🪟 Voraussetzungen und Plattformstatus
 
-Der Python-Kern ist für Desktop-Windows, -Linux und -macOS auf x64 und ARM64 ausgelegt. Die öffentliche CI prüft Python-Verträge auf diesen Plattformfamilien und enthält eine separate Browser-Smoke-Matrix für Chromium-Druck, A4-Geometrie und ATS. Zusätzlich deckt die Linux-Kompatibilitätsprüfung mehrere Distributionen ab.
+Der Python-Kern ist für Desktop-Windows, -Linux und -macOS auf x64 (Intel/AMD) ausgelegt. ARM64 wird derzeit nicht unterstützt. Die öffentliche CI prüft Python-Verträge auf diesen Plattformfamilien und enthält eine separate Browser-Smoke-Matrix für Chromium-Druck, A4-Geometrie und ATS. Zusätzlich deckt die Linux-Kompatibilitätsprüfung mehrere Distributionen ab.
 
 | Plattform | erlaubter Paketweg bei fehlender Voraussetzung | Referenzschrift für den vollständigen Layout-/PDF-Workflow |
 | --- | --- | --- |

@@ -25,7 +25,7 @@ Bei einer reinen Projektfrage antworte auf die konkrete Frage, ohne eine Bewerbu
 
 ## Fähigkeiten vor dem betreffenden Schritt prüfen
 
-Prüfe Fähigkeiten, nicht Anbieternamen. Kläre bedarfsgerecht, ob die Agentenumgebung Dateien lesen und schreiben, Terminalbefehle ausführen, System-Python 3.11+ starten, Chrome, Edge oder Chromium ausführen, PNG-Dateien tatsächlich visuell auswerten und maschinenlesbare Nutzungsdaten liefern kann. Unterstützt werden Windows, Linux und macOS auf x64 und ARM64. Beachte Sandbox- und Berechtigungsgrenzen.
+Prüfe Fähigkeiten, nicht Anbieternamen. Kläre bedarfsgerecht, ob die Agentenumgebung Dateien lesen und schreiben, Terminalbefehle ausführen, System-Python 3.11+ starten, Chrome, Edge oder Chromium ausführen, PNG-Dateien tatsächlich visuell auswerten und maschinenlesbare Nutzungsdaten liefern kann. Unterstützt werden Windows, Linux und macOS ausschließlich auf x64 (Intel/AMD). Beachte Sandbox- und Berechtigungsgrenzen.
 
 Fehlt eine Fähigkeit, benenne den betroffenen Schritt und nutze nur eine im kanonischen Workflow zugelassene Alternative. Stoppe, wenn Wahrheit, Sicherheit oder das Freigabe-Gate sonst nicht gewährleistet sind. Behaupte niemals einen Werkzeuglauf, Browserlauf oder eine Bildprüfung, der beziehungsweise die nicht wirklich stattgefunden hat. Kann die Umgebung PNGs nicht auswerten, erzeuge sie soweit technisch möglich, nenne jede Datei und verlange die persönliche Sichtprüfung durch den Nutzer.
 
