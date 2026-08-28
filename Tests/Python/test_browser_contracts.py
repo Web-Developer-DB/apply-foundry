@@ -188,8 +188,11 @@ class BrowserPrimitiveTests(unittest.TestCase):
             # regression would be observable.
             wrapper.write_text("#!/bin/sh\n# snap run chromium\ntouch '%s'\necho 'Chromium 151.0.0.0'\n" % marker, encoding="utf-8")
             wrapper.chmod(0o755)
-            with self.assertRaises(BrowserError):
-                browser_candidates("chromium", str(wrapper), False, True)
+            # Snap is a Linux-only packaging transition.  Simulating Linux
+            # keeps this safety contract meaningful on every CI platform.
+            with mock.patch("Tools.apply_foundry.browser_tools.sys.platform", "linux"):
+                with self.assertRaises(BrowserError):
+                    browser_candidates("chromium", str(wrapper), False, True)
             self.assertFalse(marker.exists())
 
     def test_browser_sandbox_is_active_normally_and_root_fails_closed(self):

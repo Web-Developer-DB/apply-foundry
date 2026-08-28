@@ -31,6 +31,10 @@
   Setup-Dry-run nur ausgeführt, wenn der projektvertraglich vorgeschriebene
   Paketmanager `winget` tatsächlich vorhanden ist; der Paketweg bleibt durch
   die vollständige synthetische Vertragssuite abgedeckt.
+- Die Pfadverträge akzeptieren die festen macOS-Systemaliase `/var`, `/tmp`
+  und `/etc` nach `/private`, sperren jedoch weiterhin alle
+  benutzersteuerbaren symbolischen Links. Font- und Snap-Vertragstests
+  normalisieren nun die jeweiligen Windows-/macOS-Pfaddarstellungen.
 
 ### Dokumentation
 
