@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import base64
 import binascii
+from collections import Counter
+from html.parser import HTMLParser
 import json
 import os
 import platform
@@ -24,10 +26,105 @@ import zlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from urllib.parse import urlsplit
 
 
 class BrowserError(RuntimeError):
     """Controlled browser or render failure."""
+
+
+class _CandidateLinkParser(HTMLParser):
+    """Collect candidate anchors while keeping the HTML contract dependency-free."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.links: List[Dict[str, str]] = []
+        self.errors: List[str] = []
+        self._current: Optional[Dict[str, Any]] = None
+
+    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+        values = {key.lower(): value or "" for key, value in attrs}
+        lowered = tag.lower()
+        if lowered == "a":
+            if self._current is not None:
+                self.errors.append("Verschachtelte <a>-Elemente sind nicht zulässig.")
+            self._current = {"href": values.get("href", ""), "text": []}
+        elif "href" in values:
+            self.errors.append(f"Nur <a>-Elemente dürfen ein href-Attribut besitzen ({lowered}).")
+        if "src" in values:
+            source = values["src"].strip()
+            if not source.startswith("data:"):
+                self.errors.append(f"{lowered} lädt über src eine externe oder lokale Ressource.")
+
+    def handle_startendtag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+        self.handle_starttag(tag, attrs)
+        self.handle_endtag(tag)
+
+    def handle_data(self, data: str) -> None:
+        if self._current is not None:
+            self._current["text"].append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() != "a":
+            return
+        if self._current is None:
+            self.errors.append("Schließendes </a> ohne öffnendes <a>-Element.")
+            return
+        href = str(self._current["href"]).strip()
+        visible = " ".join("".join(self._current["text"]).split())
+        if not href:
+            self.errors.append("<a>-Element benötigt ein href-Attribut.")
+        else:
+            self.links.append({"target": href, "visibleText": visible})
+        self._current = None
+
+    def close(self) -> None:
+        super().close()
+        if self._current is not None:
+            self.errors.append("Nicht geschlossenes <a>-Element.")
+            self._current = None
+
+
+def candidate_link_contract(source: str) -> Tuple[List[str], List[str]]:
+    """Return permitted PDF link targets and static-contract errors for candidate HTML."""
+
+    parser = _CandidateLinkParser()
+    try:
+        parser.feed(source)
+        parser.close()
+    except Exception as exc:  # HTMLParser must never turn malformed candidate HTML into a crash.
+        return [], [f"HTML-Linkprüfung konnte nicht ausgeführt werden: {exc}"]
+    errors = list(parser.errors)
+    targets: List[str] = []
+    for link in parser.links:
+        target = link["target"]
+        visible = link["visibleText"]
+        lowered = target.lower()
+        if lowered.startswith("https://"):
+            parsed = urlsplit(target)
+            if not parsed.netloc or parsed.username or parsed.password or parsed.fragment or any(char.isspace() for char in target):
+                errors.append(f"HTTPS-Link ist ungültig oder nicht druckstabil: {target}")
+                continue
+            if visible != target:
+                errors.append(f"HTTPS-Link muss als vollständige sichtbare URL erscheinen: {target}")
+                continue
+        elif lowered.startswith("mailto:"):
+            address = target[7:]
+            if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", address) or visible.casefold() != address.casefold():
+                errors.append(f"mailto-Link muss exakt die sichtbare E-Mail-Adresse enthalten: {target}")
+                continue
+        else:
+            errors.append(f"Nur https://- und mailto:-Links sind in Bewerbungs-HTML zulässig: {target}")
+            continue
+        targets.append(target)
+    forbidden = re.search(r"(?is)<script\b|@import\b|<link\b|\b(?:src|href)\s*=\s*['\"](?:file:|//|javascript:)", source)
+    if forbidden:
+        errors.append("HTML lädt Skripte oder externe/lokale Ressourcen.")
+    for reference in re.findall(r"(?is)url\(\s*(['\"]?)(.*?)\1\s*\)", source):
+        value = reference[1].strip()
+        if value and not value.startswith("data:"):
+            errors.append(f"CSS darf keine externe oder lokale Ressource über url() laden: {value}")
+    return targets, list(dict.fromkeys(errors))
 
 
 @dataclass(frozen=True)
@@ -643,6 +740,134 @@ def print_html(browser: BrowserInfo, html: Path, output: Path, timeout: int, tem
         }
     finally:
         shutil.rmtree(run_root, ignore_errors=True)
+
+
+def check_chromium_readiness(browser: BrowserInfo, timeout: int, temp_root: Path) -> None:
+    """Prove that the selected Chromium can safely render and print a local A4 page."""
+
+    if browser.engine != "chromium":
+        raise BrowserError("Die Browser-Vorprüfung akzeptiert ausschließlich Chromium.")
+    run_root = Path(tempfile.mkdtemp(prefix="browser-readiness-", dir=str(temp_root)))
+    try:
+        source = run_root / "readiness.html"
+        output = run_root / "readiness.pdf"
+        source.write_text(
+            "<!doctype html><html lang=\"de\"><head><meta charset=\"utf-8\">"
+            "<style>@page { size: A4; margin: 0; }.page { width: 210mm; height: 297mm; }</style>"
+            "</head><body><main class=\"page\">Browser bereit</main></body></html>",
+            encoding="utf-8",
+        )
+        print_html(browser, source, output, timeout, temp_root)
+    finally:
+        shutil.rmtree(run_root, ignore_errors=True)
+
+
+def _pdf_literal(raw: bytes, start: int) -> Tuple[Optional[str], int]:
+    """Decode a PDF literal string beginning at ``start`` (the opening parenthesis)."""
+
+    if start >= len(raw) or raw[start:start + 1] != b"(":
+        return None, start
+    output = bytearray()
+    depth, index = 1, start + 1
+    escapes = {ord("n"): b"\n", ord("r"): b"\r", ord("t"): b"\t", ord("b"): b"\b", ord("f"): b"\f"}
+    while index < len(raw):
+        value = raw[index]
+        index += 1
+        if value == ord("\\"):
+            if index >= len(raw):
+                break
+            escaped = raw[index]
+            index += 1
+            if escaped in escapes:
+                output.extend(escapes[escaped])
+            elif escaped in (ord("\n"), ord("\r")):
+                if escaped == ord("\r") and index < len(raw) and raw[index] == ord("\n"):
+                    index += 1
+            elif ord("0") <= escaped <= ord("7"):
+                digits = bytes([escaped])
+                while index < len(raw) and len(digits) < 3 and ord("0") <= raw[index] <= ord("7"):
+                    digits += bytes([raw[index]])
+                    index += 1
+                output.append(int(digits, 8))
+            else:
+                output.append(escaped)
+            continue
+        if value == ord("("):
+            depth += 1
+        elif value == ord(")"):
+            depth -= 1
+            if depth == 0:
+                return output.decode("utf-8", errors="replace"), index
+        output.append(value)
+    return None, index
+
+
+def _pdf_uri_values(raw: bytes) -> List[str]:
+    """Extract URI actions from annotation dictionaries in direct or object streams."""
+
+    targets: List[str] = []
+    for annotation in re.finditer(rb"(?s)/Subtype\s*/Link\b(.*?)(?=/Subtype\s*/Link\b|\bendobj\b|\Z)", raw):
+        value = annotation.group(0)
+        if not re.search(rb"/S\s*/URI\b", value):
+            continue
+        for match in re.finditer(rb"/URI\s*", value):
+            index = match.end()
+            while index < len(value) and value[index] in b" \t\r\n\f\x00":
+                index += 1
+            if value[index:index + 1] == b"(":
+                decoded, _ = _pdf_literal(value, index)
+                if decoded is not None:
+                    targets.append(decoded)
+            elif value[index:index + 1] == b"<":
+                closing = value.find(b">", index + 1)
+                if closing > index:
+                    try:
+                        targets.append(bytes.fromhex(value[index + 1:closing].decode("ascii")).decode("utf-8", errors="replace"))
+                    except ValueError:
+                        pass
+    return targets
+
+
+def extract_pdf_link_targets(path: Path) -> List[str]:
+    """Read URI link annotations without accepting text-only link representations."""
+
+    data = path.read_bytes()
+    objects = [match.group(2) for match in re.finditer(rb"(?s)(\d+)\s+\d+\s+obj\b(.*?)\bendobj", data)]
+    if not objects:
+        raise BrowserError("PDF enthält keine lesbaren Objekte für die Linkprüfung.")
+    targets: List[str] = []
+    for body in objects:
+        targets.extend(_pdf_uri_values(body))
+        if b"/Type" not in body or b"/ObjStm" not in body or b"/FlateDecode" not in body:
+            continue
+        marker = re.search(rb"(?<![A-Za-z])stream(?:\r\n|\n|\r)", body)
+        length = re.search(rb"/Length\s+(\d+)(?!\s+\d+\s+R)", body[:marker.start()] if marker else b"")
+        if not marker or not length:
+            continue
+        raw = body[marker.end():marker.end() + int(length.group(1))]
+        try:
+            targets.extend(_pdf_uri_values(zlib.decompress(raw)))
+        except zlib.error:
+            continue
+    return targets
+
+
+def verify_pdf_link_targets(path: Path, expected_targets: Sequence[str]) -> Dict[str, Any]:
+    """Return a hash-bound, exact annotation comparison for one generated PDF."""
+
+    expected = Counter(expected_targets)
+    actual = Counter(extract_pdf_link_targets(path))
+    missing = list((expected - actual).elements())
+    unexpected = list((actual - expected).elements())
+    return {
+        "expectedCount": sum(expected.values()),
+        "actualCount": sum(actual.values()),
+        "expectedTargets": sorted(expected.elements()),
+        "actualTargets": sorted(actual.elements()),
+        "missingTargets": sorted(missing),
+        "unexpectedTargets": sorted(unexpected),
+        "passed": not missing and not unexpected,
+    }
 
 
 def extract_pdf_text(path: Path) -> str:

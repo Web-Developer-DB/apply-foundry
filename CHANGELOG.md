@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## Unreleased
+
+- Finale Bewerbungs-PDFs erhalten und prüfen jetzt ausschließlich sichtbare `https://`-Portfolio-/Profillinks und `mailto:`-E-Mail-Links. Die statische HTML-Prüfung trennt diese passiven Dokumentlinks von weiterhin gesperrten Nachladepfaden; der PDF-Exportbericht bindet erwartete und tatsächlich vorhandene Linkannotationen an den PDF-Hash.
+- Die Finalisierung prüft Chromium vor dem Layout mit einer lokalen A4-Druckprobe, validiert Dichteausnahmen vor jedem Browserstart und entscheidet über die Dichtesperre vor PDF-Export und ATS. Dadurch werden Sandboxfehler und blockierte Layouts ohne unnötige Folgeläufe beendet; es gibt keinen Firefox-Fallback und keinen unsicheren lokalen Sandbox-Bypass.
+
 ## 2.0 – 2026-08-24
 
 ### Python-3.11+-Major

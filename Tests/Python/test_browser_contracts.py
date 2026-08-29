@@ -23,7 +23,9 @@ from Tools.apply_foundry.browser_tools import (  # noqa: E402
     _chromium_base,
     browser_candidates,
     build_capture_html,
+    candidate_link_contract,
     extract_pdf_text,
+    extract_pdf_link_targets,
     html_pages,
     measure_bottom_whitespace,
     pdf_media_box_summary,
@@ -33,9 +35,11 @@ from Tools.apply_foundry.browser_tools import (  # noqa: E402
     run_process,
     runtime_fingerprint,
     sha256,
+    verify_pdf_link_targets,
 )
 from Tools.apply_foundry.cli import CommandContext  # noqa: E402
-from Tools.apply_foundry.commands_browser import _css_diagnostics, _density_gate, _similarity, ats, layout  # noqa: E402
+from Tools.apply_foundry.commands_browser import _css_diagnostics, _density_gate, _similarity, _validated_density_exception, ats, layout  # noqa: E402
+from Tools.apply_foundry.commands_core import _static_html_errors  # noqa: E402
 from Tools.apply_foundry.errors import CliUsageError  # noqa: E402
 
 
@@ -76,7 +80,7 @@ class BrowserPrimitiveTests(unittest.TestCase):
             "keine weitere recruiterrelevante, belegte Information. Einseiter: Ein Einseiter würde die vollständige "
             "formale Chronologie und die relevanten Projektbelege unlesbar verdichten."
         )
-        exception = _density_gate(layout_report, reason)
+        exception = _density_gate(layout_report, _validated_density_exception(reason))
         self.assertEqual("ausnahme_bestaetigt", exception["status"])
         self.assertEqual(reason, exception["exceptionReason"])
 
@@ -86,7 +90,62 @@ class BrowserPrimitiveTests(unittest.TestCase):
             "bottomWhitespaceMm": 74.2,
         }]}
         with self.assertRaisesRegex(CliUsageError, "Seite:"):
-            _density_gate(layout_report, "Bitte ausnahmsweise zulassen.")
+            _validated_density_exception("Bitte ausnahmsweise zulassen.")
+
+    def test_candidate_links_allow_only_visible_https_and_mailto_targets(self):
+        source = (
+            '<a href="https://portfolio.example/muster">https://portfolio.example/muster</a>'
+            '<a href="mailto:max.muster@example.org">max.muster@example.org</a>'
+        )
+        self.assertEqual(
+            ["https://portfolio.example/muster", "mailto:max.muster@example.org"],
+            candidate_link_contract(source)[0],
+        )
+        self.assertEqual([], candidate_link_contract(source)[1])
+        for invalid in (
+            '<a href="https://portfolio.example/muster">Portfolio</a>',
+            '<a href="javascript:alert(1)">javascript:alert(1)</a>',
+            '<img src="https://example.org/photo.png">',
+            '<style>@import url("https://example.org/style.css")</style>',
+            '<style>.profile { background: url("file:///tmp/private.png") }</style>',
+        ):
+            self.assertTrue(candidate_link_contract(invalid)[1], invalid)
+
+    def test_static_html_check_accepts_passive_contact_links_but_rejects_loads(self):
+        prefix = (
+            '<!doctype html><html lang="de"><head><style>@page { size: A4; margin: 0; }'
+            '.page { width: 210mm; height: 297mm; }</style></head><body><main class="page">'
+        )
+        suffix = "</main></body></html>"
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "Lebenslauf - Muster.Max.html"
+            path.write_text(
+                prefix + '<a href="https://portfolio.example/muster">https://portfolio.example/muster</a>'
+                '<a href="mailto:max.muster@example.org">max.muster@example.org</a>' + suffix,
+                encoding="utf-8",
+            )
+            self.assertEqual([], _static_html_errors(path, "lebenslauf"))
+            path.write_text(prefix + '<img src="https://portfolio.example/photo.png">' + suffix, encoding="utf-8")
+            self.assertTrue(_static_html_errors(path, "lebenslauf"))
+
+    def test_pdf_link_annotations_must_match_expected_targets_exactly(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "links.pdf"
+            path.write_bytes(
+                b"%PDF-1.7\n1 0 obj << /Type /Annot /Subtype /Link /A << /S /URI "
+                b"/URI (https://portfolio.example/muster) >> >> endobj\n"
+                b"2 0 obj << /Type /Annot /Subtype /Link /A << /S /URI "
+                b"/URI (mailto:max.muster@example.org) >> >> endobj\n%%EOF\n"
+            )
+            self.assertEqual(
+                ["https://portfolio.example/muster", "mailto:max.muster@example.org"],
+                extract_pdf_link_targets(path),
+            )
+            passed = verify_pdf_link_targets(path, ["https://portfolio.example/muster", "mailto:max.muster@example.org"])
+            self.assertTrue(passed["passed"])
+            missing = verify_pdf_link_targets(path, ["https://portfolio.example/muster"])
+            self.assertFalse(missing["passed"])
+            self.assertEqual(["mailto:max.muster@example.org"], missing["unexpectedTargets"])
     def test_pdf_stream_length_beats_embedded_endstream_bytes(self):
         """A stream payload may legally contain that byte sequence in comments."""
         cmap = b"/CIDInit /ProcSet findresource begin\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfchar\n<0001> <004D>\nendstream\n<0002> <0061>\nendbfchar\nendcmap\n"
@@ -233,7 +292,7 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
             stammdaten.write_text("- Vollständiger Name: Max Muster\n", encoding="utf-8")
             html_path = candidate / "Lebenslauf - Muster.Max.html"
             html_path.write_text(
-                '''<!doctype html><html lang="de"><head><meta charset="utf-8"><style>@page { size: A4; margin: 0; } html,body{margin:0}.page { width:210mm;height:297mm;box-sizing:border-box;padding:18mm;font-family:Arial,sans-serif }</style></head><body><main class="page"><h1>Max Muster</h1><h2>Testentwickler</h2><p>Erfahrener Entwickler für sichere Systeme und verständliche Anwendungen. Diese synthetische Datei prüft vollständig die Unicode Textschicht im erzeugten Dokument. Sie enthält genügend Wörter für robuste Token Bigramm und Trigramm Vergleiche ohne echte private Bewerbungsdaten.</p><p>01/2020 - 12/2025</p><footer class="page-footer">Seite 1</footer></main></body></html>''',
+                '''<!doctype html><html lang="de"><head><meta charset="utf-8"><style>@page { size: A4; margin: 0; } html,body{margin:0}.page { width:210mm;height:297mm;box-sizing:border-box;padding:18mm;font-family:Arial,sans-serif }</style></head><body><main class="page"><h1>Max Muster</h1><h2>Testentwickler</h2><p>Erfahrener Entwickler für sichere Systeme und verständliche Anwendungen. Diese synthetische Datei prüft vollständig die Unicode Textschicht im erzeugten Dokument. Sie enthält genügend Wörter für robuste Token Bigramm und Trigramm Vergleiche ohne echte private Bewerbungsdaten.</p><p><a href="https://portfolio.example/muster">https://portfolio.example/muster</a> · <a href="mailto:max.muster@example.org">max.muster@example.org</a></p><p>01/2020 - 12/2025</p><footer class="page-footer">Seite 1</footer></main></body></html>''',
                 encoding="utf-8",
             )
             context = CommandContext(REPO_ROOT, REPO_ROOT, io.StringIO(), io.StringIO())
@@ -251,6 +310,9 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
             extracted = extract_pdf_text(pdf_path)
             self.assertIn("Max Muster", extracted)
             self.assertIn("Testentwickler", extracted)
+            self.assertTrue(verify_pdf_link_targets(pdf_path, [
+                "https://portfolio.example/muster", "mailto:max.muster@example.org",
+            ])["passed"])
 
             order = {
                 "schemaVersion": 5, "firma": "Acme", "rolle": "Testentwickler",
