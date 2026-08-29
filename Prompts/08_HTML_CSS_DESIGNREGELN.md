@@ -8,6 +8,8 @@ Ein laut Dokumentumfang ausgewählter Lebenslauf oder ein ausgewähltes Anschrei
 
 - CSS immer direkt im HTML einbetten.
 - Keine automatisch geladenen externen oder lokalen Ressourcen, Fonts, Stylesheets, Bilder, Medien, Skripte oder CDNs. Vollständig eingebettete `data:`-Ressourcen sind zulässig, wenn sie keine privaten Zusatzdaten offenlegen.
+- Kontaktlinks sind die einzige Ausnahme ohne Nachladen: `<a href="https://…">https://…</a>` für Portfolio- oder Profilseiten und `<a href="mailto:name@example.de">name@example.de</a>` für E-Mail-Adressen. Der sichtbare Text muss dem Ziel vollständig entsprechen; verkürzte oder anders beschriftete Links sind nicht zulässig. Diese Links müssen im HTML lesbar und im exportierten PDF anklickbar bleiben.
+- Nicht zulässig bleiben insbesondere `javascript:`, `file:`, protokollrelative Ziele (`//…`), andere URI-Schemata, `<link>`, `@import`, externe oder lokale `src`-Attribute sowie CSS-`url()`-Nachladungen. Ein Linkziel darf beim Rendern nicht geladen werden.
 - Keine Dateipfade im Dokument anzeigen.
 - Keine sichtbaren Platzhalter in finalen Dateien.
 - A4 als feste Seitenfläche verwenden.

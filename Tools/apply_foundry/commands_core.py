@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from .cli import CommandContext, Handler
+from .browser_tools import candidate_link_contract
 from .contracts import (
     approval_records,
     artifact_set_hash,
@@ -1528,8 +1529,8 @@ def _static_html_errors(path: Path, kind: str) -> List[str]:
     page_rule = re.search(r"(?is)\.page\s*\{(?P<body>[^}]*)}", value)
     if not page_rule or not re.search(r"(?i)\bwidth\s*:\s*210mm\s*;", page_rule.group("body")) or not re.search(r"(?i)\bheight\s*:\s*297mm\s*;", page_rule.group("body")):
         errors.append("%s benötigt .page mit width: 210mm und height: 297mm." % path.name)
-    if re.search(r"(?is)<script\b|@import\b|<link\b|\b(?:src|href)\s*=\s*['\"](?:https?:|file:|//)", value):
-        errors.append("%s lädt Skripte oder externe/lokale Ressourcen." % path.name)
+    _, link_errors = candidate_link_contract(value)
+    errors.extend("%s: %s" % (path.name, error) for error in link_errors)
     pages = _html_page_count(value)
     if kind == "anschreiben" and pages != 1:
         errors.append("Anschreiben muss genau eine explizite A4-Seite enthalten; gefunden: %d." % pages)

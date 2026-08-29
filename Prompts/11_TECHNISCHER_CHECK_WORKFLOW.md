@@ -75,13 +75,13 @@ Dieser Lauf:
 - verlangt eine vollständige `Anforderungsmatrix.json`
 - validiert den bestätigten Dokumentumfang und den fortsetzbaren Dialogzustand; neue Aufträge verwenden Schema 5, Legacy-Aufträge der Schemata 1 bis 4 werden nicht automatisch umgeschrieben
 - sperrt ungeklärte zentrale Bewerbungslogistik
-- führt Dialog und Stammdaten, danach statischen HTML-Check, Inhalt, DOM/Layout, PDF und ATS in dieser festen Abbruchreihenfolge aus
+- führt Dialog und Stammdaten, danach statischen HTML-Check und Inhalt aus; vor dem Layout weist eine kleine lokale Chromium-A4-Druckprobe die Browserbereitschaft nach. Erst danach folgen DOM/Layout, Dichte-Gate, PDF-Linkprüfung und ATS in dieser festen Abbruchreihenfolge
 - schreibt im `Inhalts-Pruefbericht.json` für Matrix-Schema 5 die maschinenlesbare `recruiterCoverage`, `evidenceCoverage`, `anschreibenCoverage`, `externalSourceCoverage`, `evidenzDisposition` und `sprachqualitaet`; fehlende Prioritätsbelege, falsche Zieldokumente oder Seiten, unbelegte Direktbehauptungen, fehlende Quellenanker und unvollständige Strategien blockieren
 - erzeugt frische Layoutscreenshots samt Dichtehinweisen
-- sperrt bei einem zweiseitigen Lebenslauf mit mehr als 55 mm freier Fläche im nutzbaren Inhaltsbereich die Sichtfreigabe mit `layout_ueberarbeitung_erforderlich`; ohne neue Vorbereitung existiert keine Freigabe-ID
+- sperrt bei einem zweiseitigen Lebenslauf mit mehr als 55 mm freier Fläche im nutzbaren Inhaltsbereich die Sichtfreigabe mit `layout_ueberarbeitung_erforderlich`; PDF-Export und ATS werden dann nicht gestartet, ohne neue Vorbereitung existiert keine Freigabe-ID. Eine syntaktisch unvollständige `--dichteausnahme-begruendung` wird bereits vor jedem Browserprozess abgewiesen; eine gültige Ausnahme kann den hashgebundenen Layoutnachweis wiederverwenden.
 - misst bei Chromium zusätzlich DOM-Überlauf, Scrollhöhe und Elementgrenzen je isolierter A4-Seite; jeder sichtbare Überlauf blockiert die Vorbereitung
 - rendert zusätzlich jedes vollständige Original-HTML in eine temporäre A4-PDF und blockiert, wenn ihre Seitenzahl nicht exakt den expliziten `.page`-Containern entspricht; damit werden Wechselwirkungen zwischen Seiten wie druckwirksame Vorschauabstände erkannt
-- exportiert und validiert genau die laut Dokumentumfang ausgewählten HTML-Dokumente als PDFs
+- exportiert und validiert genau die laut Dokumentumfang ausgewählten HTML-Dokumente als PDFs; für jeden erlaubten HTTPS- oder `mailto:`-Kontaktlink muss das PDF exakt dieselbe URI-Linkannotation enthalten. Fehlende, zusätzliche oder andere Ziele blockieren Export und ATS.
 - prüft die PDF-Textschicht und Lesbarkeit für ATS
 - schreibt Hashnachweise für Quellen, sämtliche Kandidatendateien, PDFs und Seitenscreenshots; bei einem individuellen Lebenslauf mit vorhandenem Passfoto kommt exakt der optionale Quellnachweis `passfoto` hinzu
 - schreibt `Pruefstand.json` Schema 2 ausschließlich im privaten Arbeitsordner. Jede Stufe wird vor ihrem Start als `running`, danach als `passed` oder bei einem kontrollierten Werkzeugfehler als `failed` gespeichert. Erfolgreiche Stufen werden nur bei identischen Quellen, Parametern, Werkzeug- und Laufzeithashes wiederverwendet; fehlgeschlagene oder unterbrochene Stufen nie. `--neu-pruefen` umgeht den Prüfstand.
@@ -141,7 +141,7 @@ Der Prüfer kontrolliert:
 - keine Entwurfsdateien im finalen Bewerbungsordner
 - exakte A4-Grundstruktur mit `width: 210mm` und `height: 297mm`
 - exakt eine Anschreibenseite sowie ein oder zwei explizite Lebenslaufseiten mit konsistenten Seiten-Footern
-- eingebettetes CSS ohne automatisch geladene externe oder lokale Ressourcen, Skripte, Fonts, Medien oder CDNs
+- eingebettetes CSS ohne automatisch geladene externe oder lokale Ressourcen, Skripte, Fonts, Medien oder CDNs; als passive Dokumentlinks sind ausschließlich sichtbare, unveränderte `https://`- und `mailto:`-Anker erlaubt
 - `overflow: hidden` nur auf der äußeren A4-Seite
 - kurze, platzhalterfreie E-Mail-Nachricht mit konkretem `Betreff:` in der ersten Zeile
 - bei strukturierten Veröffentlichungen: korrekte `Versand/`-/`Intern/`-Trennung und vollständiges Hash-Manifest
@@ -249,6 +249,7 @@ Der PDF-Export:
 - nutzt Chrome, Edge oder Chromium Headless für den PDF-Export
 - speichert die PDFs beim Einzellauf im geprüften HTML-/Kandidatenordner; die Finalisierung übernimmt sie anschließend ausschließlich nach `Versand/`
 - nutzt dieselben Dateinamen wie die HTML-Dateien, nur mit `.pdf`
+- erfasst die erlaubten Kontaktziele aus dem HTML und bestätigt pro PDF die gleichzahligen URI-Linkannotationen; Textdarstellung ohne anklickbare Annotation genügt nicht
 - prüft, ob jede PDF-Datei existiert, nicht leer ist und einen PDF-Header enthält
 - prüft, ob die PDF-MediaBox DIN A4 entspricht, sofern das Exporttool dies unterstützt
 - prüft, ob jede PDF frisch erzeugt wurde, korrekt endet und genauso viele Seiten wie das HTML explizite A4-Seitencontainer enthält

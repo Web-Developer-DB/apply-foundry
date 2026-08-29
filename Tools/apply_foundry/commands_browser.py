@@ -19,6 +19,8 @@ from .browser_tools import (
     BrowserInfo,
     browser_candidates,
     build_capture_html,
+    candidate_link_contract,
+    check_chromium_readiness,
     extract_pdf_text,
     html_page_bodies,
     html_pages,
@@ -30,6 +32,7 @@ from .browser_tools import (
     resolve_browser,
     runtime_fingerprint,
     safe_name,
+    verify_pdf_link_targets,
 )
 from .errors import CliUsageError, ContractError, WorkflowError
 from .finalization_cache import STAGE_ORDER, cache_decision, read_state, save_result, stage_fingerprint
@@ -385,7 +388,12 @@ def pdf(ctx: Any, args: Mapping[str, Any]) -> int:
     final_paths = [safe_path(document.with_suffix(".pdf"), folder, kind="file") for document in documents]
     if bool(_arg(args, "nicht_ueberschreiben", False)) and any(value.exists() for value in final_paths):
         raise ContractError("Mindestens eine PDF existiert bereits und --nicht-ueberschreiben ist gesetzt.")
-    snapshots = [(document, sha256_file(document)) for document in documents]
+    snapshots = []
+    for document in documents:
+        targets, link_errors = candidate_link_contract(read_text(document))
+        if link_errors:
+            raise ContractError(f"HTML-Linkvertrag ist vor dem PDF-Export verletzt: {document.name}: {' | '.join(link_errors)}")
+        snapshots.append((document, sha256_file(document), targets))
     browser = browser_candidates(
         str(_arg(args, "browser", "auto")),
         str(_arg(args, "browser_executable_path", "")) or None,
@@ -401,22 +409,28 @@ def pdf(ctx: Any, args: Mapping[str, Any]) -> int:
     for candidate in browser:
         run = Path(tempfile.mkdtemp(prefix="pdf-export-", dir=str(temp_root)))
         try:
-            staged: List[Tuple[Path, Path, Path, str]] = []
-            for index, (document, expected_hash) in enumerate(snapshots):
+            staged: List[Tuple[Path, Path, Path, str, List[str], Dict[str, Any]]] = []
+            for index, (document, expected_hash, expected_targets) in enumerate(snapshots):
                 temporary = run / f"document-{index + 1}.pdf"
                 print_html(candidate, document, temporary, timeout, temp_root, minimum)
-                staged.append((document, final_paths[index], temporary, expected_hash))
-            if any(sha256_file(document) != expected for document, _, _, expected in staged):
+                link_verification = verify_pdf_link_targets(temporary, expected_targets)
+                if not link_verification["passed"]:
+                    raise BrowserError(
+                        f"PDF-Linkprüfung fehlgeschlagen für {document.name}: "
+                        f"fehlend={link_verification['missingTargets']}, zusätzlich={link_verification['unexpectedTargets']}"
+                    )
+                staged.append((document, final_paths[index], temporary, expected_hash, expected_targets, link_verification))
+            if any(sha256_file(document) != expected for document, _, _, expected, _, _ in staged):
                 raise BrowserError("HTML-Datei wurde während des PDF-Exports verändert.")
             backups: List[Tuple[Path, Path]] = []
             published: List[Path] = []
             try:
-                for _, target, _, _ in staged:
+                for _, target, _, _, _, _ in staged:
                     if target.exists():
                         backup = run / ("backup-" + target.name)
                         os.replace(target, backup)
                         backups.append((target, backup))
-                for _, target, temporary, _ in staged:
+                for _, target, temporary, _, _, _ in staged:
                     os.replace(temporary, target)
                     published.append(target)
                 results = [{
@@ -428,9 +442,10 @@ def pdf(ctx: Any, args: Mapping[str, Any]) -> int:
                     "pdfBytes": target.stat().st_size,
                     "pages": pdf_page_count(target),
                     "mediaBox": pdf_media_box_summary(target),
-                } for document, target, _, expected in staged]
+                    "linkVerification": {**link_verification, "pdfSha256": sha256_file(target)},
+                } for document, target, _, expected, _, link_verification in staged]
                 write_atomic_json(report_path, {
-                    "schemaVersion": 1,
+                    "schemaVersion": 2,
                     "exportedAtUtc": utc_now(),
                     "runtime": runtime_fingerprint(candidate),
                     "browser": candidate.name,
@@ -557,7 +572,7 @@ def ats(ctx: Any, args: Mapping[str, Any]) -> int:
         export = read_json(pdf_report_path)
         export_results = export.get("results") if isinstance(export, dict) else None
         expected = [(document.name, sha256_file(document), pdf_path.name, sha256_file(pdf_path)) for document, pdf_path in zip(documents, pdfs)]
-        if not isinstance(export, dict) or export.get("schemaVersion") != 1 or not isinstance(export_results, list):
+        if not isinstance(export, dict) or export.get("schemaVersion") not in (1, 2) or not isinstance(export_results, list):
             raise ContractError("PDF-Export-Bericht besitzt kein gültiges Ergebnisformat für die ATS-Bindung.")
         if len(export_results) != len(expected):
             raise ContractError("PDF-Export-Bericht deckt nicht exakt die erwarteten ATS-Artefakte ab.")
@@ -565,6 +580,10 @@ def ats(ctx: Any, args: Mapping[str, Any]) -> int:
             matches = [value for value in export_results if isinstance(value, dict) and value.get("htmlFile") == html_name and value.get("pdfFile") == pdf_name]
             if len(matches) != 1 or str(matches[0].get("htmlSha256", "")).upper() != html_hash or str(matches[0].get("pdfSha256", "")).upper() != pdf_hash:
                 raise ContractError(f"PDF-Export-Bericht ist nicht exakt an die aktuellen ATS-Artefakte gebunden: {pdf_name}")
+            if export.get("schemaVersion") == 2:
+                links = matches[0].get("linkVerification")
+                if not isinstance(links, dict) or links.get("passed") is not True or str(links.get("pdfSha256", "")).upper() != pdf_hash:
+                    raise ContractError(f"PDF-Export-Bericht enthält keinen gültigen Linknachweis: {pdf_name}")
         runtime = export.get("runtime")
         if not isinstance(runtime, dict) or runtime.get("schemaVersion") != 1 or not isinstance(runtime.get("browser"), dict):
             raise ContractError("PDF-Export-Bericht enthält keinen vollständigen Runtime-/Browser-Fingerprint.")
@@ -728,7 +747,7 @@ def _assert_runtime_current(prepared: Any, args: Mapping[str, Any], require_brow
         explicit_value = _arg(args, "browser_executable_path", None) or bound.get("executable")
         try:
             browser = resolve_browser(requested, str(explicit_value) if explicit_value else None, False, True)
-        except BrowserError as exc:
+        except (BrowserError, OSError, ValueError) as exc:
             raise ContractError("Gebundener Browser ist nicht mehr sicher verfügbar; erneut vorbereiten.") from exc
         current = runtime_fingerprint(browser)
         prepared_browser = prepared.get("browser")
@@ -750,7 +769,22 @@ def _candidate_groups(candidate: Path, layout_folder: Path, work: Path) -> Dict[
     }
 
 
-def _density_gate(layout_data: Mapping[str, Any], exception_reason: Any) -> Dict[str, Any]:
+def _validated_density_exception(exception_reason: Any) -> Optional[str]:
+    """Validate the exception form before any browser process is started."""
+
+    reason = re.sub(r"\s+", " ", str(exception_reason or "").strip())
+    if not reason:
+        return None
+    required_labels = ("seite:", "beleglage:", "einseiter:")
+    if len(reason) < 120 or any(label not in reason.lower() for label in required_labels):
+        raise CliUsageError(
+            "--dichteausnahme-begruendung benötigt mindestens 120 Zeichen und die Abschnitte "
+            "'Seite:', 'Beleglage:' und 'Einseiter:'."
+        )
+    return reason
+
+
+def _density_gate(layout_data: Mapping[str, Any], exception_reason: Optional[str]) -> Dict[str, Any]:
     findings = []
     for value in layout_data.get("results", []) if isinstance(layout_data, Mapping) else []:
         if not isinstance(value, Mapping) or not str(value.get("htmlFile", "")).startswith("Lebenslauf -"):
@@ -764,19 +798,13 @@ def _density_gate(layout_data: Mapping[str, Any], exception_reason: Any) -> Dict
                 "bottomWhitespaceMm": whitespace, "thresholdMm": 55.0,
                 "warning": value.get("densityWarning") or "Ungewöhnlich viel freie Fläche im nutzbaren Inhaltsbereich.",
             })
-    reason = re.sub(r"\s+", " ", str(exception_reason or "").strip())
+    reason = exception_reason
     if not findings:
         if reason:
             raise CliUsageError("--dichteausnahme-begruendung ist nur bei einer tatsächlichen Dichteblockade zulässig.")
         return {"status": "nicht_ausgeloest", "findings": [], "exceptionReason": None}
     if not reason:
         return {"status": "ueberarbeitung_erforderlich", "findings": findings, "exceptionReason": None}
-    required_labels = ("seite:", "beleglage:", "einseiter:")
-    if len(reason) < 120 or any(label not in reason.lower() for label in required_labels):
-        raise CliUsageError(
-            "--dichteausnahme-begruendung benötigt mindestens 120 Zeichen und die Abschnitte "
-            "'Seite:', 'Beleglage:' und 'Einseiter:'."
-        )
     return {"status": "ausnahme_bestaetigt", "findings": findings, "exceptionReason": reason}
 
 
@@ -824,6 +852,7 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
         raise ContractError("Bewerbungsauftrag und Anforderungsmatrix müssen JSON-Objekte sein.")
     scope = _document_scope(order)
     expected_html = int(scope["lebenslauf"] != "nicht_enthalten") + int(scope["anschreiben"])
+    density_exception = _validated_density_exception(_arg(args, "dichteausnahme_begruendung", None))
     _quality_evidence(candidate)
     force = bool(_arg(args, "neu_pruefen", False))
     base_runtime = runtime_fingerprint()
@@ -877,6 +906,13 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
         browser_info = resolve_browser(requested, str(explicit) if explicit else None, False, True)
         browser_runtime = runtime_fingerprint(browser_info)
         browser_args.update({"browser": browser_info.name, "browser_executable_path": str(browser_info.path)})
+        try:
+            check_chromium_readiness(browser_info, timeout, _browser_temp(paths["root"]))
+        except BrowserError as exc:
+            raise ContractError(
+                "Browser-Vorprüfung fehlgeschlagen. Bitte die lokale Chromium-Sandbox beziehungsweise Browserfreigabe "
+                f"bereitstellen; es wurde kein unsicherer Ersatzmodus verwendet. Ursache: {exc}"
+            ) from exc
         html_inputs = _regular_files(candidate, "*.html")
         stage_runs.append(_cached_stage(
             ctx, work=work, state_path=paths["check_state"], stage="layout",
@@ -886,6 +922,67 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
             runtime=browser_runtime, force=force,
             action=lambda: layout(ctx, {"ordner": candidate, "output_root": paths["layout"], "bericht_path": paths["layout_report"], **browser_args}),
         ))
+    else:
+        paths["layout"].mkdir(parents=True, exist_ok=True)
+        paths["pdf_dir"].mkdir(parents=True, exist_ok=True)
+        for stage, output, kind in (
+            ("layout", paths["layout_report"], "layoutcheck"),
+            ("pdf", paths["pdf_report"], "pdf_export"),
+            ("ats", paths["ats_report"], "ats_pdf"),
+        ):
+            stage_runs.append(_cached_stage(
+                ctx, work=work, state_path=paths["check_state"], stage=stage,
+                inputs=[paths["order_path"]], outputs=[output], parameters={"notRequired": True},
+                runtime=base_runtime, force=force,
+                action=lambda output=output, kind=kind: _not_required(output, kind),
+            ))
+
+    groups = _candidate_groups(candidate, paths["layout"], work)
+    expected_screenshots = sum(len(html_pages(read_text(path))) for path in _regular_files(candidate, "*.html"))
+    if len(groups["html"]) != expected_html or len(groups["screenshots"]) != expected_screenshots:
+        raise ContractError(
+            f"Vorbereitung erzeugte nicht den erwarteten Layoutumfang: HTML {len(groups['html'])} statt {expected_html}, "
+            f"Screenshots {len(groups['screenshots'])} statt {expected_screenshots}."
+        )
+    layout_data = read_json(paths["layout_report"])
+    warnings = [] if not isinstance(layout_data, dict) else [
+        f"{value.get('htmlFile')}, Seite {value.get('pageNumber')} von {value.get('pageCount')}: {value.get('densityWarning')}"
+        for value in layout_data.get("results", []) if isinstance(value, dict) and value.get("densityWarning")
+    ]
+    density_gate = _density_gate(layout_data, density_exception)
+    runtime = layout_data.get("runtime") if isinstance(layout_data, dict) else runtime_fingerprint()
+    source_inputs: Dict[str, Any] = {
+        "stammdaten": _source_record(paths["stammdaten"]),
+        "profil": _source_record(paths["profil"]),
+        "bewerbungsauftrag": _source_record(paths["order_path"], work),
+        "anforderungsmatrix": _source_record(paths["matrix_path"], work),
+    }
+    if evidence.is_file():
+        source_inputs["evidenzindex"] = _source_record(evidence, work)
+    if density_gate["status"] == "ueberarbeitung_erforderlich":
+        # Older PDFs must not be attached to a newly blocked preparation report.
+        blocked_groups = dict(groups)
+        blocked_groups["pdf"] = []
+        report = {
+            "schemaVersion": 8, "status": "layout_ueberarbeitung_erforderlich", "preparedAtUtc": utc_now(),
+            "runtime": runtime, "workFolder": str(work), "candidateFolder": str(candidate), "targetFolder": str(paths["target"]),
+            "layoutReport": str(paths["layout_report"]), "layoutReportArtifact": _record(paths["layout_report"], work),
+            "pdfReport": None, "atsReport": None, "expectedScreenshots": expected_screenshots, "documentScope": scope,
+            "personalReview": "png_sichtpruefung" if expected_screenshots else "textpruefung", "layoutWarnings": warnings,
+            "layoutGate": density_gate,
+            "tokenUsageReport": {"available": False, "reason": "Agentenlaufzeit stellte keine maschinenlesbaren Nutzungsdaten bereit."},
+            "stageOrder": list(STAGE_ORDER), "stageRuns": stage_runs, "sourceInputs": source_inputs, "artifacts": blocked_groups,
+        }
+        write_atomic_json(paths["final_report"], report)
+        _emit(ctx, "[FEHLER] Technische Vorbereitung gesperrt: Der zweiseitige Lebenslauf enthält ungewöhnlich viel freie Fläche.")
+        for finding in density_gate["findings"]:
+            _emit(ctx, "- %s, Seite %s: %s mm freie Fläche (Grenze %s mm)" % (
+                finding["htmlFile"], finding["pageNumber"], finding["bottomWhitespaceMm"], finding["thresholdMm"]
+            ))
+        _emit(ctx, "PDF-Export und ATS-Prüfung wurden nicht gestartet. Überarbeite die Seitenverteilung oder verwende eine konkrete --dichteausnahme-begruendung.")
+        return 1
+
+    if expected_html:
         layout_outputs = _regular_files(paths["layout"], "*.png")
         stage_runs.append(_cached_stage(
             ctx, work=work, state_path=paths["check_state"], stage="pdf",
@@ -905,43 +1002,9 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
                 "bericht_path": paths["ats_report"], "pdf_export_bericht_path": paths["pdf_report"],
             }),
         ))
-    else:
-        paths["layout"].mkdir(parents=True, exist_ok=True)
-        paths["pdf_dir"].mkdir(parents=True, exist_ok=True)
-        for stage, output, kind in (
-            ("layout", paths["layout_report"], "layoutcheck"),
-            ("pdf", paths["pdf_report"], "pdf_export"),
-            ("ats", paths["ats_report"], "ats_pdf"),
-        ):
-            stage_runs.append(_cached_stage(
-                ctx, work=work, state_path=paths["check_state"], stage=stage,
-                inputs=[paths["order_path"]], outputs=[output], parameters={"notRequired": True},
-                runtime=base_runtime, force=force,
-                action=lambda output=output, kind=kind: _not_required(output, kind),
-            ))
-
-    groups = _candidate_groups(candidate, paths["layout"], work)
-    expected_screenshots = sum(len(html_pages(read_text(path))) for path in _regular_files(candidate, "*.html"))
-    if len(groups["html"]) != expected_html or len(groups["pdf"]) != expected_html or len(groups["screenshots"]) != expected_screenshots:
-        raise ContractError(
-            f"Vorbereitung erzeugte nicht den erwarteten Umfang: HTML/PDF {len(groups['html'])}/{len(groups['pdf'])} statt {expected_html}, "
-            f"Screenshots {len(groups['screenshots'])} statt {expected_screenshots}."
-        )
-    layout_data = read_json(paths["layout_report"])
-    warnings = [] if not isinstance(layout_data, dict) else [
-        f"{value.get('htmlFile')}, Seite {value.get('pageNumber')} von {value.get('pageCount')}: {value.get('densityWarning')}"
-        for value in layout_data.get("results", []) if isinstance(value, dict) and value.get("densityWarning")
-    ]
-    density_gate = _density_gate(layout_data, _arg(args, "dichteausnahme_begruendung", None))
-    runtime = layout_data.get("runtime") if isinstance(layout_data, dict) else runtime_fingerprint()
-    source_inputs: Dict[str, Any] = {
-        "stammdaten": _source_record(paths["stammdaten"]),
-        "profil": _source_record(paths["profil"]),
-        "bewerbungsauftrag": _source_record(paths["order_path"], work),
-        "anforderungsmatrix": _source_record(paths["matrix_path"], work),
-    }
-    if evidence.is_file():
-        source_inputs["evidenzindex"] = _source_record(evidence, work)
+        groups = _candidate_groups(candidate, paths["layout"], work)
+        if len(groups["pdf"]) != expected_html:
+            raise ContractError(f"Vorbereitung erzeugte nicht den erwarteten PDF-Umfang: {len(groups['pdf'])} statt {expected_html}.")
     report: Dict[str, Any] = {
         "schemaVersion": 8,
         "status": "layout_ueberarbeitung_erforderlich" if density_gate["status"] == "ueberarbeitung_erforderlich" else "bereit_zur_sichtpruefung",
@@ -965,14 +1028,6 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
             "artifactSetSha256": artifact_set_hash(records, work), "artifactCount": len(records), "createdAtUtc": utc_now(),
         }
     write_atomic_json(paths["final_report"], report)
-    if report["status"] == "layout_ueberarbeitung_erforderlich":
-        _emit(ctx, "[FEHLER] Technische Vorbereitung gesperrt: Der zweiseitige Lebenslauf enthält ungewöhnlich viel freie Fläche.")
-        for finding in density_gate["findings"]:
-            _emit(ctx, "- %s, Seite %s: %s mm freie Fläche (Grenze %s mm)" % (
-                finding["htmlFile"], finding["pageNumber"], finding["bottomWhitespaceMm"], finding["thresholdMm"]
-            ))
-        _emit(ctx, "Überarbeite die recruiterrelevante Seitenverteilung oder verwende eine konkrete --dichteausnahme-begruendung.")
-        return 1
     try:
         _run_core(ctx, "checkpoint", {"arbeitsordner": work, "schritt": "technische_vorbereitung_abgeschlossen"})
     except WorkflowError as exc:
