@@ -5,8 +5,8 @@
 <h1 align="center">apply-foundry</h1>
 
 <p align="center">
-  <strong>Agentenunabhängiger, lokaler Workflow für deutsche Bewerbungsunterlagen</strong><br>
-  Für AGENTS-kompatible Coding-Agenten – von der Stellenanalyse bis zur persönlich geprüften lokalen Freigabe.
+  <strong>Aus Stellenanzeige und belegten Profildaten werden passgenaue, geprüfte Bewerbungsunterlagen.</strong><br>
+  Lokal, agentenunabhängig und nachvollziehbar – von der Stellenanalyse bis zur persönlichen Freigabe.
 </p>
 
 <p align="center">
@@ -19,6 +19,7 @@
 </p>
 
 <p align="center">
+  <a href="#was-ist-apply-foundry">✨ Vorteile</a> ·
   <a href="#nutzung">👤 Nutzung</a> ·
   <a href="#schnellstart">🚀 Schnellstart</a> ·
   <a href="#interaktiver-dialog">💬 Dialog</a> ·
@@ -30,13 +31,34 @@
 
 ---
 
-## Auf einen Blick
+<a id="was-ist-apply-foundry"></a>
 
-Dieses Repository gibt unterschiedlichen Coding-Agenten denselben sicheren Bewerbungsworkflow. [`AGENTS.md`](AGENTS.md) ordnet den Auftrag ein, [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) steuert den kanonischen Ablauf und der Python-Kern erzeugt und prüft die gewählten Unterlagen lokal.
+## Was ist apply-foundry?
 
-| 🎯 **Passgenau** | 🔒 **Lokal & privat** | ✅ **Prüfbar** |
+**apply-foundry ist kein weiterer Bewerbungstext-Generator.** Das Projekt ist ein vollständiger, lokaler Arbeitsablauf für deutsche Bewerbungen: Ein kompatibler Coding-Agent analysiert die Stelle, gleicht ihre Anforderungen ausschließlich mit belegten Profildaten ab und erstellt – je nach deiner Auswahl – Lebenslauf, Anschreiben und E-Mail-Nachricht. Anschließend durchlaufen die Dokumente feste Qualitäts-, Layout- und PDF-Prüfungen sowie Kontrollen ihrer Lesbarkeit für Bewerbermanagementsysteme (ATS). Veröffentlicht wird erst nach deiner persönlichen Kontrolle – und ausschließlich lokal.
+
+Damit löst apply-foundry ein typisches Problem einzelner KI-Prompts: Ein überzeugend klingender Text allein sagt noch nichts darüber aus, ob alle Angaben wahr sind, das Dokument technisch funktioniert, die PDF lesbar ist oder der zuletzt geprüfte Stand später unverändert verwendet wird. apply-foundry verbindet deshalb Texterstellung, Nachweise, technische Prüfung und Freigabe zu einem reproduzierbaren Prozess.
+
+### Was daran anders ist
+
+| Typischer Einzelprompt oder reiner Textgenerator | apply-foundry |
+| --- | --- |
+| erzeugt vor allem einen Textentwurf | begleitet den gesamten Weg von der Stellenanalyse bis zu lokal freigegebenen Versanddateien |
+| lässt Herkunft und Belastbarkeit von Aussagen leicht offen | trennt Anforderungen, belegte Erfahrung und offene Punkte; unbelegte Fakten dürfen nicht erfunden werden |
+| endet häufig vor Layout-, PDF- und ATS-Prüfung | prüft je nach Dokumentumfang Struktur, Inhalt, A4-Layout, PDF-Export und ATS-Textschicht |
+| macht Änderungen zwischen Prüfung und Nutzung schwer nachvollziehbar | bindet Prüfungen, Screenshots und Freigaben über Hashes an den tatsächlich geprüften Dateistand |
+| hängt oft von einem bestimmten Agenten oder einer einzelnen Prompt-Sitzung ab | definiert einen gemeinsamen Workflow für AGENTS-kompatible Coding-Agenten und lässt bestehende Aufträge aus Dateien fortsetzen |
+| unterscheidet nicht zwingend zwischen Entwurf, Prüfdatei und versandfertigem Ergebnis | trennt Arbeitsdateien von `Versand/`, versendet nichts und verlangt vor der lokalen Freigabe deine persönliche Prüfung |
+
+### Die wichtigsten Vorteile auf einen Blick
+
+| 🎯 **Passgenau statt generisch** | 🧾 **Belegt statt erfunden** | 🔒 **Lokal statt automatisch versendet** |
 | :---: | :---: | :---: |
-| Jede Bewerbung wird aus Stelle und belegten Profildaten aufgebaut. | Echte Daten und Arbeitsergebnisse liegen ausschließlich unter `Private/`. | Struktur, Inhalt, Layout, PDF und ATS werden nur als bestanden gemeldet, wenn der aktuelle Lauf sie wirklich geprüft hat. |
+| Jede Bewerbung wird aus der konkreten Stelle und dem tatsächlichen Profil aufgebaut. | Berufliche Aussagen müssen auf vorhandenen Daten oder geklärten Angaben beruhen. | Echte Daten und Ergebnisse bleiben unter `Private/`; ein Versand an Unternehmen ist nicht Teil des Workflows. |
+| ✅ **Technisch geprüft** | 🔗 **Nachvollziehbar** | 🧭 **Agentenunabhängig** |
+| Struktur, Inhalt, Layout, PDF und ATS werden nur als bestanden gemeldet, wenn der aktuelle Lauf sie wirklich geprüft hat. | Hashgebundene Nachweise verhindern, dass ein geänderter Stand mit einer alten Freigabe veröffentlicht wird. | Zentrale Regeln und Dateiverträge sorgen dafür, dass kompatible Agenten denselben Prozess ausführen und fortsetzen können. |
+
+[`AGENTS.md`](AGENTS.md) ordnet den Auftrag ein, [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) steuert den kanonischen Ablauf und der Python-Kern erzeugt und prüft die gewählten Unterlagen lokal.
 
 Aus einer Stellenbeschreibung und deinen privaten Daten entstehen nur die ausdrücklich gewählten Bestandteile: ein individueller Lebenslauf, ein unverändert übernommener Universal-Lebenslauf, ein Anschreiben und/oder eine E-Mail-Nachricht. Screenshots, PDFs und ATS-Nachweise werden nur erzeugt, wenn der gewählte Umfang HTML-Dokumente enthält. Versand an Unternehmen findet nie automatisch statt.
 
