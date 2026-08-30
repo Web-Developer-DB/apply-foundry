@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Aus Stellenanzeige und belegten Profildaten werden passgenaue, geprüfte Bewerbungsunterlagen.</strong><br>
-  Lokal, agentenunabhängig und nachvollziehbar – von der Stellenanalyse bis zur persönlichen Freigabe.
+  Lokale Arbeitsdateien und Freigabe – für AGENTS-kompatible Coding-Agenten, nachvollziehbar und unter deiner Kontrolle.
 </p>
 
 <p align="center">
@@ -20,6 +20,8 @@
 
 <p align="center">
   <a href="#was-ist-apply-foundry">✨ Vorteile</a> ·
+  <a href="#verantwortung">🧭 Verantwortung</a> ·
+  <a href="#eu-ai-act">⚖️ EU AI Act</a> ·
   <a href="#nutzung">👤 Nutzung</a> ·
   <a href="#schnellstart">🚀 Schnellstart</a> ·
   <a href="#interaktiver-dialog">💬 Dialog</a> ·
@@ -35,20 +37,22 @@
 
 ## Was ist apply-foundry?
 
-**apply-foundry ist kein weiterer Bewerbungstext-Generator.** Das Projekt ist ein vollständiger, lokaler Arbeitsablauf für deutsche Bewerbungen: Ein kompatibler Coding-Agent analysiert die Stelle, gleicht ihre Anforderungen ausschließlich mit belegten Profildaten ab und erstellt – je nach deiner Auswahl – Lebenslauf, Anschreiben und E-Mail-Nachricht. Anschließend durchlaufen die Dokumente feste Qualitäts-, Layout- und PDF-Prüfungen sowie Kontrollen ihrer Lesbarkeit für Bewerbermanagementsysteme (ATS). Veröffentlicht wird erst nach deiner persönlichen Kontrolle – und ausschließlich lokal.
+**apply-foundry ist kein weiterer Bewerbungstext-Generator.** Das Projekt ist ein durchgängiger, bewerberseitiger Arbeitsablauf für deutsche Bewerbungen: Ein kompatibler Coding-Agent analysiert die Stelle, gleicht ihre Anforderungen ausschließlich mit belegten Profildaten ab und erstellt – je nach deiner Auswahl – Lebenslauf, Anschreiben und E-Mail-Nachricht. Anschließend durchlaufen die Dokumente feste Qualitäts-, Layout- und PDF-Prüfungen sowie Kontrollen ihrer Lesbarkeit für Bewerbermanagementsysteme (ATS). Veröffentlicht wird erst nach deiner persönlichen Kontrolle – und ausschließlich lokal.
+
+Die strategische Positionierung wählt, gewichtet und formuliert vorhandene Erfahrung so, dass sie für die Zielrolle verständlich und relevant wird. Sie verändert keine Tatsachen: Ziel ist ein zutreffendes, belegbares und ausgewogenes Bild des Bewerbers, nicht eine fiktive Bewerbung oder eine Irreführung des Recruiters. Die Dateien und die lokale Freigabe liegen im Repository lokal; der eingesetzte Coding-Agent oder das KI-Modell kann je nach Umgebung trotzdem lokal oder cloudbasiert betrieben werden.
 
 Damit löst apply-foundry ein typisches Problem einzelner KI-Prompts: Ein überzeugend klingender Text allein sagt noch nichts darüber aus, ob alle Angaben wahr sind, das Dokument technisch funktioniert, die PDF lesbar ist oder der zuletzt geprüfte Stand später unverändert verwendet wird. apply-foundry verbindet deshalb Texterstellung, Nachweise, technische Prüfung und Freigabe zu einem reproduzierbaren Prozess.
 
 ### Was daran anders ist
 
-| Typischer Einzelprompt oder reiner Textgenerator | apply-foundry |
+| Ein isolierter Textentwurf | apply-foundry |
 | --- | --- |
-| erzeugt vor allem einen Textentwurf | begleitet den gesamten Weg von der Stellenanalyse bis zu lokal freigegebenen Versanddateien |
-| lässt Herkunft und Belastbarkeit von Aussagen leicht offen | trennt Anforderungen, belegte Erfahrung und offene Punkte; unbelegte Fakten dürfen nicht erfunden werden |
-| endet häufig vor Layout-, PDF- und ATS-Prüfung | prüft je nach Dokumentumfang Struktur, Inhalt, A4-Layout, PDF-Export und ATS-Textschicht |
-| macht Änderungen zwischen Prüfung und Nutzung schwer nachvollziehbar | bindet Prüfungen, Screenshots und Freigaben über Hashes an den tatsächlich geprüften Dateistand |
-| hängt oft von einem bestimmten Agenten oder einer einzelnen Prompt-Sitzung ab | definiert einen gemeinsamen Workflow für AGENTS-kompatible Coding-Agenten und lässt bestehende Aufträge aus Dateien fortsetzen |
-| unterscheidet nicht zwingend zwischen Entwurf, Prüfdatei und versandfertigem Ergebnis | trennt Arbeitsdateien von `Versand/`, versendet nichts und verlangt vor der lokalen Freigabe deine persönliche Prüfung |
+| sichert den restlichen Bewerbungs- und Freigabeprozess nicht automatisch ab | begleitet den gesamten Weg von der Stellenanalyse bis zu lokal freigegebenen Versanddateien |
+| macht Herkunft und Belastbarkeit von Aussagen nicht automatisch nachvollziehbar | trennt Anforderungen, belegte Erfahrung und offene Punkte; unbelegte Fakten dürfen nicht erfunden werden |
+| enthält nicht automatisch Layout-, PDF- oder ATS-Prüfungen | prüft je nach Dokumentumfang Struktur, Inhalt, A4-Layout, PDF-Export und ATS-Textschicht |
+| bindet einen später geänderten Stand nicht zwingend an die ursprüngliche Prüfung | bindet Prüfungen, Screenshots und Freigaben über Hashes an den tatsächlich geprüften Dateistand |
+| lässt die Verantwortungsgrenze zwischen Mensch, Agent und Modell offen | definiert einen gemeinsamen Workflow für AGENTS-kompatible Coding-Agenten und verlangt die persönliche Prüfung vor der Freigabe |
+| trennt Entwurf, Prüfdatei und versandfertiges Ergebnis nicht zwingend | trennt Arbeitsdateien von `Versand/`, versendet nichts und verlangt vor der lokalen Freigabe deine persönliche Prüfung |
 
 ### Die wichtigsten Vorteile auf einen Blick
 
@@ -58,9 +62,26 @@ Damit löst apply-foundry ein typisches Problem einzelner KI-Prompts: Ein überz
 | ✅ **Technisch geprüft** | 🔗 **Nachvollziehbar** | 🧭 **Agentenunabhängig** |
 | Struktur, Inhalt, Layout, PDF und ATS werden nur als bestanden gemeldet, wenn der aktuelle Lauf sie wirklich geprüft hat. | Hashgebundene Nachweise verhindern, dass ein geänderter Stand mit einer alten Freigabe veröffentlicht wird. | Zentrale Regeln und Dateiverträge sorgen dafür, dass kompatible Agenten denselben Prozess ausführen und fortsetzen können. |
 
+<a id="verantwortung"></a>
+
+### Bestimmungsgemäßer und verantwortungsvoller Einsatz
+
+apply-foundry ist ausschließlich für die bewerberseitige Vorbereitung der eigenen Unterlagen gedacht. Es unterstützt keine Arbeitgeberentscheidung und ist nicht dafür vorgesehen, Bewerber zu analysieren, zu filtern, zu vergleichen, zu bewerten oder auszuwählen.
+
+Strategische Positionierung bedeutet, belegte Erfahrung zu strukturieren, zu priorisieren und verständlich auf die Zielrolle zu beziehen. Nicht dazu gehören:
+
+- erfundene Identitäten, Arbeitgeber, Tätigkeiten, Projekte, Abschlüsse, Zertifikate, Kenntnisse oder Zeiträume;
+- fiktive Bewerbungen, die als echte Bewerbungen ausgegeben werden;
+- irreführende Umdeutungen oder bewusst täuschende Auslassungen wesentlicher Tatsachen;
+- die Verwendung eines erzeugten Dokuments ohne persönliche Prüfung und Verantwortung des Bewerbers.
+
+Ziel ist ein zutreffendes, belegbares, ausgewogenes und für die Stelle relevantes Bild des potenziellen Bewerbers. Synthetische Angaben sind ausschließlich für technische Fixtures unter `Tests/` vorgesehen und dürfen nicht als echte Bewerbung verwendet oder versendet werden.
+
 [`AGENTS.md`](AGENTS.md) ordnet den Auftrag ein, [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) steuert den kanonischen Ablauf und der Python-Kern erzeugt und prüft die gewählten Unterlagen lokal.
 
 Aus einer Stellenbeschreibung und deinen privaten Daten entstehen nur die ausdrücklich gewählten Bestandteile: ein individueller Lebenslauf, ein unverändert übernommener Universal-Lebenslauf, ein Anschreiben und/oder eine E-Mail-Nachricht. Screenshots, PDFs und ATS-Nachweise werden nur erzeugt, wenn der gewählte Umfang HTML-Dokumente enthält. Versand an Unternehmen findet nie automatisch statt.
+
+Der technische ATS-Nachweis beschreibt die Auslesbarkeit der erzeugten Datei für Bewerbermanagementsysteme. Er ist keine Zusage über die Entscheidung, Wahrnehmung oder Reaktion eines Recruiters.
 
 > [!NOTE]
 > **Entwicklungsstand:** Der aktuelle technische Vertrag steht unter [`CHANGELOG.md`](CHANGELOG.md). Der Produktivkern nutzt ausschließlich Python 3.11+ und die Standardbibliothek; Browserprüfungen verwenden einen lokal vorhandenen Chrome-, Edge- oder Chromium-Browser.
@@ -366,8 +387,25 @@ Das Sicherheitsmodell ist bewusst einfach:
 - Der Workflow lädt keine Unterlagen hoch und kontaktiert keine Arbeitgeber.
 - Eine externe Übermittlung entscheidest und führst ausschließlich du außerhalb dieses Repositories aus.
 
+Die Dateien und Nachweise dieses Repositories werden lokal abgelegt. Ob Eingaben zusätzlich an einen Coding-Agenten oder ein KI-Modell außerhalb des Rechners übermittelt werden, hängt von der gewählten Agentenumgebung ab; prüfe dafür deren Datenschutz- und Nutzungsbedingungen.
+
 > [!TIP]
 > Für einen Test des Projekts verwende ausschließlich die synthetischen Fixtures unter `Tests/`. Sie enthalten keine privaten Bewerber- oder Arbeitgeberdaten.
+
+<a id="eu-ai-act"></a>
+
+### ⚖️ EU AI Act und rechtliche Einordnung
+
+> [!NOTE]
+> **Stand: 30. August 2026.** Dieser Abschnitt ist eine vorsichtige Produkt- und Nutzungseinordnung, keine Rechtsberatung, keine Konformitätserklärung und keine Zertifizierung. Eine andere technische Ausgestaltung, ein anderer Anbieter oder ein anderer Einsatzzweck kann zu einer anderen Bewertung führen.
+
+Der in dieser README beschriebene bestimmungsgemäße Zweck ist die bewerberseitige Vorbereitung eigener Bewerbungsunterlagen. Der EU AI Act ordnet in Anhang III Nummer 4(a) dagegen insbesondere KI-Systeme als hochriskant ein, die für Arbeitgeber Bewerbungen analysieren oder filtern, gezielte Stellenanzeigen platzieren oder Kandidaten bewerten. apply-foundry ist für diese Arbeitgeberfunktionen nicht vorgesehen. Eine zweckändernde Weiterentwicklung oder Nutzung müsste rechtlich neu bewertet werden. Maßgeblich sind insbesondere Artikel 2, 3, 6 und Anhang III der [konsolidierten Verordnung (EU) 2024/1689](https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX%3A02024R1689-20260727).
+
+Artikel 2 Absatz 10 nimmt die Pflichten von Betreibern, die natürliche Personen sind und ein KI-System ausschließlich persönlich und nicht beruflich verwenden, aus dem Anwendungsbereich. Das ist eine kontextabhängige Betreiber-Ausnahme und keine pauschale Befreiung dieses Repositories, seiner Anbieter oder jeder anderen Nutzung. Auch andere Rechtsvorschriften, insbesondere zum Datenschutz, sowie die Bedingungen des tatsächlich eingesetzten Coding-Agenten bleiben zu prüfen.
+
+Die Transparenzpflichten aus Artikel 50 gelten seit dem 2. August 2026. Diese README macht den KI-gestützten Charakter des Workflows ausdrücklich sichtbar; sie ersetzt keine gegebenenfalls erforderliche Information im konkreten Agenten-Dialog. Ob für eine konkrete Ausgabe zusätzlich eine Kennzeichnung erforderlich ist, hängt von der Rolle (Anbieter oder Betreiber), dem verwendeten System und dem Veröffentlichungskontext ab. Die technische Kennzeichnung und Erkennbarkeit KI-generierter Ausgaben kann eine Pflicht des Anbieters des eingesetzten KI-Systems sein; dieses Repository erfüllt sie nicht automatisch. Weitere Hinweise enthält die [EU-Kommission zu den Transparenzpflichten nach Artikel 50](https://digital-strategy.ec.europa.eu/de/faqs/transparency-obligations-under-article-50-ai-act).
+
+Der Open-Source-Status ist keine vollständige Ausnahme: Artikel 2 Absatz 12 enthält Rückausnahmen unter anderem für Hochrisiko-Systeme sowie für die Artikel 5 und 50. Das Verbot fiktiver und irreführender Bewerbungen ist deshalb vor allem eine verbindliche Projektregel für wahrheitsgemäße, verantwortungsvolle Nutzung. Es behauptet nicht, dass jede unwahre Bewerbung automatisch den engeren Verbotstatbestand manipulativer KI-Praktiken nach Artikel 5 erfüllt.
 
 <a id="pruefen-und-lokal-freigeben"></a>
 
@@ -422,7 +460,7 @@ Diese Angaben sind keine Checkliste für den ersten Start. Sie betreffen den vol
 
 ### ⚠️ Bekannte Grenzen
 
-Unterstützt sind Desktop-Windows, -Linux und -macOS; mobile Plattformen und BSD-Systeme gehören nicht zum Projektvertrag. Die technische Prüfung kann keine fachliche Wahrheit, keine Rechtsberatung und keine individuelle Karriereberatung ersetzen. Eine optisch oder technisch bestandene Datei wird nie automatisch versendet.
+Unterstützt sind Desktop-Windows, -Linux und -macOS; mobile Plattformen und BSD-Systeme gehören nicht zum Projektvertrag. Die technische Prüfung kann keine fachliche Wahrheit, keine Rechtsberatung und keine individuelle Karriereberatung ersetzen. Sie garantiert keine bestimmte Vollständigkeit oder Objektivität und weder eine Einladung noch eine Einstellung. Eine optisch oder technisch bestandene Datei wird nie automatisch versendet.
 
 ---
 
