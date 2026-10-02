@@ -1,534 +1,280 @@
 <p align="center">
-  <img src=".github/assets/readme-hero.svg" alt="apply-foundry – lokaler KI-Workflow für deutsche Bewerbungen" width="100%">
+  <img src=".github/assets/readme-hero.svg" alt="apply-foundry – KI-gestützter Bewerbungsworkflow" width="720">
 </p>
 
 <h1 align="center">apply-foundry</h1>
 
 <p align="center">
-  <strong>Aus Stellenanzeige und belegten Profildaten werden passgenaue, geprüfte Bewerbungsunterlagen.</strong><br>
-  Lokale Arbeitsdateien und Freigabe – für AGENTS-kompatible Coding-Agenten, nachvollziehbar und unter deiner Kontrolle.
+  <strong>Deine Erfahrung. Die passende Stelle. Geprüfte Bewerbungsunterlagen.</strong><br>
+  Öffne das Projekt mit deinem Coding-Agenten und gib ihm deinen Bewerbungsauftrag.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Runtime-Python%203.11%2B-3776AB?style=flat-square" alt="Python 3.11 oder neuer">
-  <a href="AGENTS.md"><img src="https://img.shields.io/badge/Agentenregeln-AGENTS.md-0F766E?style=flat-square" alt="Zentrale Agentenregeln"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-Unreleased-2563EB?style=flat-square" alt="Unveröffentlichter Entwicklungsstand"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-22C55E?style=flat-square" alt="MIT-Lizenz"></a>
-  <a href="https://github.com/Web-Developer-DB/apply-foundry/actions/workflows/tests.yml"><img src="https://github.com/Web-Developer-DB/apply-foundry/actions/workflows/tests.yml/badge.svg" alt="Status der Python-Vertragsprüfungen"></a>
-  <img src="https://img.shields.io/badge/Datenschutz-Local--first-7C3AED?style=flat-square" alt="Local-first-Datenschutz">
+  <a href="#schnellstart">🚀 Starten</a> ·
+  <a href="#beispiele">👀 Beispiele</a> ·
+  <a href="#agenten">🤖 Agenten</a> ·
+  <a href="#ergebnisse">📦 Ergebnisse</a> ·
+  <a href="#private-daten--datenschutz">🔒 Datenschutz</a> ·
+  <a href="#entwicklung">🧰 Entwicklung</a>
 </p>
-
-<p align="center">
-  <a href="#was-ist-apply-foundry">✨ Vorteile</a> ·
-  <a href="#verantwortung">🧭 Verantwortung</a> ·
-  <a href="#eu-ai-act">⚖️ EU AI Act</a> ·
-  <a href="#nutzung">👤 Nutzung</a> ·
-  <a href="#schnellstart">🚀 Schnellstart</a> ·
-  <a href="#interaktiver-dialog">💬 Dialog</a> ·
-  <a href="#ergebnisse">🗂️ Dateien</a> ·
-  <a href="#entwicklung">🧰 Entwicklung</a> ·
-  <a href="#lizenz">📄 Lizenz</a> ·
-  <a href="#hilfe">❓ Hilfe</a>
-</p>
-
----
 
 <a id="was-ist-apply-foundry"></a>
-
-## Was ist apply-foundry?
-
-**apply-foundry ist kein weiterer Bewerbungstext-Generator.** Das Projekt ist ein durchgängiger, bewerberseitiger Arbeitsablauf für deutsche Bewerbungen: Ein kompatibler Coding-Agent analysiert die Stelle, gleicht ihre Anforderungen ausschließlich mit belegten Profildaten ab und erstellt – je nach deiner Auswahl – Lebenslauf, Anschreiben und E-Mail-Nachricht. Anschließend durchlaufen die Dokumente feste Qualitäts-, Layout- und PDF-Prüfungen sowie Kontrollen ihrer Lesbarkeit für Bewerbermanagementsysteme (ATS). Veröffentlicht wird erst nach deiner persönlichen Kontrolle – und ausschließlich lokal.
-
-Die strategische Positionierung wählt, gewichtet und formuliert vorhandene Erfahrung so, dass sie für die Zielrolle verständlich und relevant wird. Sie verändert keine Tatsachen: Ziel ist ein zutreffendes, belegbares und ausgewogenes Bild des Bewerbers, nicht eine fiktive Bewerbung oder eine Irreführung des Recruiters. Die Dateien und die lokale Freigabe liegen im Repository lokal; der eingesetzte Coding-Agent oder das KI-Modell kann je nach Umgebung trotzdem lokal oder cloudbasiert betrieben werden.
-
-Damit löst apply-foundry ein typisches Problem einzelner KI-Prompts: Ein überzeugend klingender Text allein sagt noch nichts darüber aus, ob alle Angaben wahr sind, das Dokument technisch funktioniert, die PDF lesbar ist oder der zuletzt geprüfte Stand später unverändert verwendet wird. apply-foundry verbindet deshalb Texterstellung, Nachweise, technische Prüfung und Freigabe zu einem reproduzierbaren Prozess.
-
-### Was daran anders ist
-
-| Ein isolierter Textentwurf | apply-foundry |
-| --- | --- |
-| sichert den restlichen Bewerbungs- und Freigabeprozess nicht automatisch ab | begleitet den gesamten Weg von der Stellenanalyse bis zu lokal freigegebenen Versanddateien |
-| macht Herkunft und Belastbarkeit von Aussagen nicht automatisch nachvollziehbar | trennt Anforderungen, belegte Erfahrung und offene Punkte; unbelegte Fakten dürfen nicht erfunden werden |
-| enthält nicht automatisch Layout-, PDF- oder ATS-Prüfungen | prüft je nach Dokumentumfang Struktur, Inhalt, A4-Layout, PDF-Export und ATS-Textschicht |
-| bindet einen später geänderten Stand nicht zwingend an die ursprüngliche Prüfung | bindet Prüfungen, Screenshots und Freigaben über Hashes an den tatsächlich geprüften Dateistand |
-| lässt die Verantwortungsgrenze zwischen Mensch, Agent und Modell offen | definiert einen gemeinsamen Workflow für AGENTS-kompatible Coding-Agenten und verlangt die persönliche Prüfung vor der Freigabe |
-| trennt Entwurf, Prüfdatei und versandfertiges Ergebnis nicht zwingend | trennt Arbeitsdateien von `Versand/`, versendet nichts und verlangt vor der lokalen Freigabe deine persönliche Prüfung |
-
-### Die wichtigsten Vorteile auf einen Blick
-
-| 🎯 **Passgenau statt generisch** | 🧾 **Belegt statt erfunden** | 🔒 **Lokal statt automatisch versendet** |
-| :---: | :---: | :---: |
-| Jede Bewerbung wird aus der konkreten Stelle und dem tatsächlichen Profil aufgebaut. | Berufliche Aussagen müssen auf vorhandenen Daten oder geklärten Angaben beruhen. | Echte Daten und Ergebnisse bleiben unter `Private/`; ein Versand an Unternehmen ist nicht Teil des Workflows. |
-| ✅ **Technisch geprüft** | 🔗 **Nachvollziehbar** | 🧭 **Agentenunabhängig** |
-| Struktur, Inhalt, Layout, PDF und ATS werden nur als bestanden gemeldet, wenn der aktuelle Lauf sie wirklich geprüft hat. | Hashgebundene Nachweise verhindern, dass ein geänderter Stand mit einer alten Freigabe veröffentlicht wird. | Zentrale Regeln und Dateiverträge sorgen dafür, dass kompatible Agenten denselben Prozess ausführen und fortsetzen können. |
-
-<a id="verantwortung"></a>
-
-### Bestimmungsgemäßer und verantwortungsvoller Einsatz
-
-apply-foundry ist ausschließlich für die bewerberseitige Vorbereitung der eigenen Unterlagen gedacht. Es unterstützt keine Arbeitgeberentscheidung und ist nicht dafür vorgesehen, Bewerber zu analysieren, zu filtern, zu vergleichen, zu bewerten oder auszuwählen.
-
-Strategische Positionierung bedeutet, belegte Erfahrung zu strukturieren, zu priorisieren und verständlich auf die Zielrolle zu beziehen. Nicht dazu gehören:
-
-- erfundene Identitäten, Arbeitgeber, Tätigkeiten, Projekte, Abschlüsse, Zertifikate, Kenntnisse oder Zeiträume;
-- fiktive Bewerbungen, die als echte Bewerbungen ausgegeben werden;
-- irreführende Umdeutungen oder bewusst täuschende Auslassungen wesentlicher Tatsachen;
-- die Verwendung eines erzeugten Dokuments ohne persönliche Prüfung und Verantwortung des Bewerbers.
-
-Ziel ist ein zutreffendes, belegbares, ausgewogenes und für die Stelle relevantes Bild des potenziellen Bewerbers. Synthetische Angaben sind ausschließlich für technische Fixtures unter `Tests/` vorgesehen und dürfen nicht als echte Bewerbung verwendet oder versendet werden.
-
-[`AGENTS.md`](AGENTS.md) ordnet den Auftrag ein, [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) steuert den kanonischen Ablauf und der Python-Kern erzeugt und prüft die gewählten Unterlagen lokal.
-
-Aus einer Stellenbeschreibung und deinen privaten Daten entstehen nur die ausdrücklich gewählten Bestandteile: ein individueller Lebenslauf, ein unverändert übernommener Universal-Lebenslauf, ein Anschreiben und/oder eine E-Mail-Nachricht. Screenshots, PDFs und ATS-Nachweise werden nur erzeugt, wenn der gewählte Umfang HTML-Dokumente enthält. Versand an Unternehmen findet nie automatisch statt.
-
-Der technische ATS-Nachweis beschreibt die Auslesbarkeit der erzeugten Datei für Bewerbermanagementsysteme. Er ist keine Zusage über die Entscheidung, Wahrnehmung oder Reaktion eines Recruiters.
-
-> [!NOTE]
-> **Entwicklungsstand:** Der aktuelle technische Vertrag steht unter [`CHANGELOG.md`](CHANGELOG.md). Der Produktivkern nutzt ausschließlich Python 3.11+ und die Standardbibliothek; Browserprüfungen verwenden einen lokal vorhandenen Chrome-, Edge- oder Chromium-Browser.
-
-### Fünf Auswahlen für den Dokumentumfang
-
-| Auswahl | Ergebnis |
-| --- | --- |
-| **A – Komplette Bewerbung** | individueller Lebenslauf, Anschreiben und E-Mail-Nachricht |
-| **B – Anschreiben mit Universal-Lebenslauf** | freigegebener Universal-Lebenslauf unverändert, neues Anschreiben und neue E-Mail-Nachricht |
-| **C – Individueller Lebenslauf** | nur ein stellenbezogener Lebenslauf |
-| **D – Nur Anschreiben** | nur ein Anschreiben, ohne still hinzugefügten Lebenslauf oder E-Mail-Text |
-| **E – Eigene Zusammenstellung** | ausdrücklich gewählte Kombination aus Lebenslauf, Anschreiben und E-Mail-Nachricht |
-
-Eine Stellenanzeige allein legt den Umfang nicht fest. Bei einem eindeutigen Wunsch wie „Lebenslauf und Anschreiben, aber keine E-Mail“ wird die Auswahl ohne zusätzliche Rückfrage übernommen. Eine reine E-Mail ohne Anlagen benötigt eine gesonderte Bestätigung.
-
-### So fließen deine Daten
-
-```mermaid
-flowchart LR
-    A["📋 Stellenanzeige"] --> C["💬 Umfang A–E"]
-    C --> D["🧭 Profilabgleich & Matrix"]
-    B["🔐 Private Profildaten"] --> D
-    D --> E["📝 gewählte Kandidaten"]
-    E --> F["✅ umfangsabhängige Prüfungen"]
-    F --> G["👀 persönliche Sicht- oder Textprüfung"]
-    G --> H["📦 Versand · Intern · Manifest"]
-
-    classDef input fill:#dbeafe,stroke:#2563eb,color:#172554
-    classDef private fill:#ede9fe,stroke:#7c3aed,color:#2e1065
-    classDef agent fill:#ccfbf1,stroke:#0f766e,color:#042f2e
-    classDef check fill:#dcfce7,stroke:#16a34a,color:#052e16
-    classDef output fill:#fef3c7,stroke:#d97706,color:#451a03
-    class A input
-    class B private
-    class C,D agent
-    class E input
-    class F check
-    class G private
-    class H output
-```
-
-## Wähle deinen Einstieg
-
-| Ich möchte … | Passender Start |
-| --- | --- |
-| eine neue Bewerbung erstellen | Stellenbeschreibung und gewünschten Dokumentumfang an den Agenten geben |
-| meine Daten einrichten oder prüfen | zuerst `Private/Daten/` prüfen lassen; `Private.example/` ist nur eine Strukturvorlage |
-| einen Universal-Lebenslauf erstellen oder aktualisieren | den eigenen Universalprozess unter `Private/Bewerbungen/_Universal-Lebenslauf/` starten |
-| eine bestehende Bewerbung fortsetzen | den Status des privaten Arbeitsordners prüfen lassen |
-| das Projekt weiterentwickeln | Architektur, Prompts, Tools und Tests im Entwicklerabschnitt verwenden |
-
-### Automatischer Projekteinstieg für Coding-Agenten
-
-AGENTS-kompatible Agenten beginnen im Projektstamm mit [`AGENTS.md`](AGENTS.md). Für einen Bewerbungsauftrag lädt der Agent danach den vollständigen Ablauf aus [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) und nur die für den jeweiligen Schritt zuständigen Promptmodule. [`CLAUDE.md`](CLAUDE.md), [`GEMINI.md`](GEMINI.md) und [`opencode.json`](opencode.json) sind schlanke Umgebungsadapter; sie enthalten keinen zweiten Workflow.
-
-Ein Agent darf keine Fakten erfinden, keine privaten Dateien außerhalb von `Private/` kopieren und keine Bewerbung versenden. Seine Werkzeuge müssen für den jeweiligen Schritt tatsächlich Dateien lesen und schreiben, Terminalbefehle ausführen sowie für visuelle HTML-Prüfungen PNGs auswerten können. Fehlt eine Fähigkeit, muss der Agent dies offen benennen und den Freigabeschritt sicher stoppen.
-
----
-
 <a id="nutzung"></a>
 
-## 👤 Für Nutzer
+## Was bekomme ich?
 
-Dieser Abschnitt ist für Menschen, die mit einem Coding-Agenten deutsche Bewerbungsunterlagen erstellen möchten. Du brauchst keine Kenntnisse über den internen Python-Code. Wichtig sind vollständige, wahre Angaben und die persönliche Prüfung vor einer lokalen Veröffentlichung.
+apply-foundry hilft dir, mit einem Coding-Agenten deutsche Bewerbungsunterlagen für deine eigene Bewerbung zu erstellen: einen stellenbezogenen Lebenslauf, ein Anschreiben und auf Wunsch eine E-Mail-Nachricht. Du bringst deine tatsächliche Erfahrung und die Stellenanzeige mit; der Agent führt dich von der Dateneinrichtung bis zu den freigegebenen Dateien.
 
-**Direkt zum Ziel:** [Schnellstart](#schnellstart) · [Dialog verstehen](#interaktiver-dialog) · [Ablauf verstehen](#prozess) · [Dateien verwenden](#ergebnisse) · [Private Daten](#private-daten--datenschutz) · [Prüfen und freigeben](#pruefen-und-lokal-freigeben) · [Hilfe](#hilfe)
+- **Passend zur Stelle:** Anforderungen werden mit deinen belegten Erfahrungen abgeglichen und verständlich dargestellt.
+- **Mehr als Text:** Inhalt, Seitenlayout, PDF und technische Textauslesbarkeit werden je nach Dokumentumfang geprüft.
+- **Unter deiner Kontrolle:** Du prüfst jede Vorschau persönlich. Die Freigabe ist lokal; der Workflow versendet nichts automatisch.
+
+Das Projekt richtet sich an Bewerber, die einen eingerichteten Coding-Agenten verwenden können. Ein einfacher Chat ohne Datei- und Terminalzugriff reicht dafür nicht. Dateien werden lokal gespeichert; ob dein Agent Eingaben in einer Cloud verarbeitet, hängt von seiner Umgebung ab.
 
 <a id="schnellstart"></a>
 
-### 🚀 Erste Bewerbung: Schritt für Schritt
+## 🚀 In wenigen Minuten starten
 
-> [!IMPORTANT]
-> Folge bei deiner ersten Bewerbung den Schritten 0 bis 8. Der Agent führt technische Arbeiten aus und nennt fehlende Voraussetzungen; du kontrollierst die inhaltlichen Angaben und prüfst später jede erzeugte Seite persönlich.
+**Voraussetzung:** Ein eingerichteter Coding-Agent, der Projektdateien lesen und schreiben, Terminalbefehle ausführen und die Regeln aus `AGENTS.md` berücksichtigen kann. Für die Dokumentprüfung braucht er außerdem PNG-Bildauswertung oder die vorgeschriebene persönliche Alternative. Beispiele sind Codex, Claude Code, Gemini CLI und OpenCode; siehe [Agenten und Nachweisstand](#agenten). Du brauchst außerdem deine Unterlagen und den vollständigen Text der Stellenanzeige.
 
-#### 0. Das solltest du bereithalten
+Aktuell vorgesehen sind **Windows, Linux und Intel-Macs auf x64**. Apple Silicon und andere ARM64-Systeme sind nicht freigegeben. Der Agent prüft Python 3.11+, Chrome/Edge/Chromium und die passende Systemschrift. Fehlende Voraussetzungen installiert er nur nach sichtbarem Plan und bestätigter Berechtigung.
 
-| Benötigt | Wofür? |
-| --- | --- |
-| eine eingerichtete Agentenumgebung, zum Beispiel die Codex-App | das Projekt öffnen und den Workflow ausführen |
-| Lebenslauf, Zeugnisse oder eigene Notizen | nur wahre persönliche und fachliche Angaben übernehmen |
-| vollständiger Text der Stellenanzeige | Unterlagen gezielt auf die Stelle ausrichten |
+### 1. Projekt herunterladen
 
-Für den normalen Start musst du weder Python noch Browser oder Systemschrift einzeln prüfen. Der Agent klärt technische Voraussetzungen erst dann, wenn sie für den konkreten Arbeitsschritt relevant sind. Falls etwas fehlt, steht die Lösung unter [Häufige Probleme](#hilfe).
-
-#### 1. Projekt herunterladen und öffnen
-
-Wenn das Projekt noch nicht auf deinem Rechner liegt:
+Mit Git:
 
 ```bash
 git clone https://github.com/Web-Developer-DB/apply-foundry.git
 cd apply-foundry
 ```
 
-Öffne den Projektstamm, nicht nur den übergeordneten Ordner. Dort müssen mindestens `AGENTS.md`, `README.md`, `Prompts/`, `Tools/` und `Private.example/` sichtbar sein. Git ist für das Klonen und Aktualisieren nützlich, aber nicht Teil der Bewerbungsprüfung selbst.
+Alternativ: [ZIP herunterladen](https://github.com/Web-Developer-DB/apply-foundry/archive/refs/heads/main.zip) und entpacken.
 
-#### 2. Codex-App oder andere Agentenumgebung im Projektstamm starten
+### 2. Projektordner im Agenten öffnen
 
-**Codex-App unter Windows oder Linux:** Öffne den Ordner `apply-foundry` als lokalen Arbeitsbereich und starte darin einen neuen Codex-Task. Gib dem Agenten anschließend deinen konkreten Auftrag, etwa das Einrichten deiner Daten oder das Erstellen einer Bewerbung. Der Agent liest die Projektregeln aus `AGENTS.md` im geöffneten Ordner.
+Öffne den Ordner, in dem `README.md`, `AGENTS.md`, `Prompts/` und `Tools/` liegen. Starte die Agentensitzung dort und gib deinen Auftrag ein.
 
-Für andere eingerichtete Coding-Agenten gilt derselbe Grundsatz: Starte die Agentensitzung im Projektordner. Entscheidend ist nicht der Name der App, sondern dass der Agent `AGENTS.md` lesen sowie Dateien und Terminalbefehle im lokalen Arbeitsbereich verwenden kann.
-
-Du musst keine Befehle ausführen, um eine Bewerbung zu starten. Der folgende Befehl ist nur für Nutzer gedacht, die den technischen Überblick selbst ansehen möchten:
-
-```bash
-python3 Tools/bewerbung.py --help
-```
-
-Die gemeinsamen Subcommands sind für Agenten und fortgeschrittene Nutzer verfügbar; der normale Bewerbungsdialog benötigt sie nicht als manuellen Zwischenschritt.
-
-#### 3. Private Daten mit dem Agenten einrichten
-
-Sende zum Beispiel diesen Auftrag an den Agenten:
+### 3. Bewerberdaten einrichten
 
 ```text
-Hilf mir dabei, meine privaten Bewerberdaten einzurichten.
-
-1. Prüfe zuerst, ob Private/Daten bereits existiert. Überschreibe nichts ungefragt.
-2. Nutze Private.example/Daten nur als Strukturvorlage.
-3. Trenne persönliche Stammdaten von Berufserfahrung, Kenntnissen und Belegen.
-4. Übernimm keine Beispieldaten und erfinde keine Fakten.
-5. Fasse die Angaben vor dem Schreiben verständlich zusammen und warte auf meine Bestätigung.
+Hilf mir dabei, meine Bewerberdaten für apply-foundry einzurichten.
 ```
 
-Die vorgesehene Struktur ist:
+Der Agent prüft zuerst vorhandene Daten, fragt fehlende Angaben ab und nutzt `Private.example/` nur als Strukturvorlage. Prüfe seine Zusammenfassung; bestätige eine dauerhafte Speicherung ausdrücklich.
+
+### 4. Erste Bewerbung starten
 
 ```text
-Private/
-└── Daten/
-    ├── 01_PERSOENLICHE_DATEN.md
-    ├── 02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md
-    └── README.md
-```
-
-`01_PERSOENLICHE_DATEN.md` enthält nur Identität, Kontakt und Bewerbungslogistik. Berufserfahrung, Ausbildung, Weiterbildung, Projekte, private Praxis, Kenntnisse und Formulierungsgrenzen gehören in `02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`.
-
-#### 4. Eigene Daten persönlich kontrollieren
-
-Prüfe die privaten Dateien selbst, bevor daraus Unterlagen entstehen. Korrigiere insbesondere Namen, Zeiträume, Arbeitgeber, Bildungsstationen, Kontaktdaten, Sprachniveaus und die Trennung zwischen beruflich belegter Erfahrung, Weiterbildung, Projektpraxis und privater Praxis.
-
-> [!WARNING]
-> Gib keine Passwörter, Bankdaten, Ausweisnummern oder andere nicht benötigte Geheimnisse ein. `Private/` schützt vor einer Aufnahme in Git, ersetzt aber keine Prüfung der Datenschutz- und Kontoeinstellungen deiner Agentenumgebung.
-
-#### 5. Stellenanzeige an den Agenten übergeben
-
-Übermittle den vollständigen Text der Stellenanzeige und formuliere deinen Dokumentwunsch. Eine geeignete Nachricht ist zum Beispiel:
-
-```text
-Erstelle eine vollständige Bewerbung für diese Stelle. Ich wähle Umfang A.
-Bitte arbeite nur mit meinen privaten Daten, erfinde keine Erfahrung und halte vor einer Veröffentlichung für meine persönliche Sichtprüfung an.
+Erstelle Lebenslauf, Anschreiben und E-Mail-Nachricht für folgende Stelle:
 
 [vollständiger Text der Stellenanzeige]
 ```
 
-Der Agent klärt nur tatsächlich fehlende, bewerbungsrelevante Angaben. Neue Angaben gelten zunächst nur für diese Bewerbung. Eine dauerhafte Änderung der privaten Stammdaten braucht eine transparente Begründung und deine eindeutige Zustimmung.
+Damit ist der Umfang eindeutig. Du kannst genauso „nur ein Anschreiben“ oder „Lebenslauf und Anschreiben ohne E-Mail“ beauftragen.
 
-#### 6. Jede erzeugte Vorschau persönlich prüfen
+### 5. Vorschauen prüfen und freigeben
 
-Bei HTML-Unterlagen erzeugt die technische Vorbereitung eine PNG-Datei pro A4-Seite. Öffne jede genannte Datei und prüfe Inhalt, Namen, Daten, Lesbarkeit, Seitenaufteilung und vollständige Darstellung. Änderungen am Kandidaten oder an seinen Quellen entwerten frühere PNG-, PDF-, ATS- und Sichtnachweise; danach muss der Agent alles erneut vorbereiten.
+Öffne jede vom Agenten genannte Seitenvorschau und prüfe Inhalt, Namen, Zeiträume, Lesbarkeit und Seitenaufteilung. Bestätige danach ausdrücklich die persönliche Prüfung. Bei einer bestätigten reinen E-Mail prüfst du stattdessen die genannte Textdatei.
 
-Bei einem zweiseitigen Lebenslauf gilt zusätzlich:
+**Mehr musst du für den normalen Einstieg zunächst nicht verstehen.** Profilabgleich, Dokumenterstellung und technische Prüfungen führt der Agent mit den Projektwerkzeugen aus. Für HTML-Unterlagen gehören Layout-, PDF- und ATS-Prüfung dazu. Du musst keine einzelnen Tools manuell bedienen und keine interne Architektur kennen.
 
-- Seite 1 zeigt die stärksten belegten Auswahlkriterien für die Zielrolle.
-- Seite 2 ist ein geschlossener fachlicher Block und keine Restseite.
-- Beide Seiten haben einen markierten Seitenkopf, eindeutige Abschnittskennungen und einen festen `page-footer`.
-- Eine ungewöhnlich große freie Fläche im nutzbaren Inhaltsbereich sperrt die Sichtfreigabe. Inhalte werden dabei nicht erfunden oder künstlich zusammengedrückt.
+„In wenigen Minuten“ beschreibt den Einstieg: Dateneinrichtung, Rückfragen, fehlende Voraussetzungen und persönliche Prüfung können zusätzliche Zeit benötigen.
 
-In seltenen Fällen kann der Agent nur mit einer konkreten, im Finalisierungsbericht gespeicherten Begründung eine Dichteausnahme vorbereiten:
+<a id="beispiele"></a>
 
-```bash
-python3 Tools/bewerbung.py finalisieren \
-  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE" \
-  --dichteausnahme-begruendung "Seite: ... Beleglage: ... Einseiter: ..."
-```
+## 👀 So sieht der Workflow aus
 
-Diese Ausnahme ersetzt nie deine persönliche Sichtprüfung.
+Alle folgenden Abbildungen verwenden ausschließlich **synthetische Testdaten**. Der Dialog und die Ordneransicht sind schematische Darstellungen; die Dokumente sind Designvorschauen aus den vorhandenen Vorlagen. Sie dokumentieren keinen echten Agentenlauf und keine freigegebene Bewerbung.
 
-#### 7. Lokale Freigabe ausdrücklich bestätigen
+**Auftrag geben und bei der persönlichen Prüfung anhalten**
 
-Nach einem erfolgreichen Vorbereitungslauf stoppt der Agent bei `bereit_zur_sichtpruefung`. Erst nach deiner eindeutigen Bestätigung speichert er die hashgebundene Sichtfreigabe und darf anschließend lokal veröffentlichen:
+![Schematischer Agentendialog mit synthetischem Beispielauftrag und persönlicher Prüfung](.github/assets/workflow-example.png)
 
-```bash
-python3 Tools/bewerbung.py freigabe \
-  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE" \
-  --freigabe-id FR-XXXXXXXXXXXX \
-  --bestaetigt \
-  --notiz "Alle finalen Seiten persönlich geprüft."
-
-python3 Tools/bewerbung.py finalisieren \
-  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE" \
-  --veroeffentlichen
-```
-
-Die Veröffentlichung ist ausschließlich eine lokale Freigabe in deinem privaten Bewerbungsordner. Der Workflow lädt nichts hoch und sendet keine E-Mail an ein Unternehmen.
-
-#### 8. Nur die Versanddateien verwenden
-
-Versende oder lade später nur die Dateien aus dem lokalen Ordner `Versand/` hoch. Screenshots, Prüfberichte, Arbeitsnotizen, HTML-Quellen, `Tokenverbrauch.json` und interne Nachweise sind nicht versandfertig.
-
----
-
-<a id="interaktiver-dialog"></a>
-
-### 💬 Interaktiver Bewerbungsdialog
-
-Der Agent arbeitet nicht wie ein Formular, sondern rekonstruiert anhand der privaten Daten, der Stellenanzeige und des bestätigten Umfangs einen sicheren Arbeitsstand. Er soll fehlende Tatsachen gezielt fragen, aber keine Bewerbung aus Platzhaltern oder Vermutungen bauen.
-
-| Situation | Erwartetes Verhalten |
+| Lebenslauf: eine A4-Seite | Anschreiben: eine A4-Seite |
 | --- | --- |
-| Nur Stellenanzeige vorhanden | Der Agent fragt nach Auswahl A–E. |
-| Umfang ist eindeutig genannt | Der Agent übernimmt ihn ohne erneute Auswahlfrage. |
-| Erfahrung oder Zeitraum fehlt | Der Agent dokumentiert die Lücke statt sie zu erfinden. |
-| Neue persönliche Angabe | Sie gilt zunächst nur für den aktuellen Auftrag. |
-| Kandidat oder Quelle wird geändert | Der Agent erzeugt die technischen Nachweise vollständig neu. |
-| Sichtprüfung bestätigt | Der Agent darf die gebundene Freigabe speichern und lokal veröffentlichen. |
+| ![Synthetische Lebenslauf-Designvorschau für Max Mustermann](.github/assets/cv-example.png) | ![Synthetische Anschreiben-Designvorschau für Max Mustermann](.github/assets/cover-letter-example.png) |
+
+**Fertige Dateien und interne Nachweise bleiben getrennt**
+
+![Schematische Ordneransicht mit synthetischem Versandbeispiel und internen Unterlagen](.github/assets/output-example.png)
+
+[Quellen und reproduzierbare Bilderzeugung](Tests/Fixtures/Readme/README.md)
+
+## Warum mehr als ein einzelner KI-Prompt?
+
+Ein Textentwurf allein prüft weder seine fachliche Grundlage noch die spätere Datei. apply-foundry verbindet die Erstellung mit einem kontrollierten Arbeitsablauf.
+
+| Ein einzelner Textentwurf | apply-foundry |
+| --- | --- |
+| liefert Formulierungen | gleicht Stellenanforderungen und belegte Erfahrung ab |
+| macht die Herkunft von Aussagen nicht automatisch sichtbar | dokumentiert Belege, Lücken und offene Fragen |
+| enthält keine automatische Dokumentprüfung | prüft Inhalt, A4-Layout, PDF und auslesbaren Text je nach Umfang |
+| sagt nichts über spätere Änderungen aus | bindet die Freigabe an genau den geprüften Dateistand |
+| ist zunächst ein Entwurf | trennt Arbeitsstände von persönlich freigegebenen Versanddateien |
+
+Die ATS-Prüfung kontrolliert die technische Textauslesbarkeit der erzeugten PDFs. Sie garantiert keine Kompatibilität mit jedem Bewerbermanagementsystem, Einladung oder Einstellung.
 
 <a id="prozess"></a>
 
-### 🧭 So arbeitet der Agent
+## So funktioniert der Ablauf
 
-Der Workflow trennt bewusst Arbeitsversion, technische Vorbereitung und veröffentlichte Unterlagen. Ein Dokument mit endgültig klingendem Namen ist noch nicht automatisch versandfertig.
-
-1. Umfang, Firma, Rolle und offene Tatsachen klären.
-2. Privaten Auftrag unter `Private/Bewerbungen/` anlegen oder fortsetzen.
-3. Stellenanzeige, Profilabgleich, Anforderungsmatrix und Evidenz vorbereiten.
-4. Aus belegten Angaben nur die gewählten Kandidatendateien erstellen.
-5. Dialog, Stammdaten, Inhalt und statische A4-Struktur prüfen.
-6. Layoutbilder, PDFs und ATS-Nachweise über den vollständigen Finalisierungslauf erzeugen.
-7. Die genannten PNGs oder bei reiner E-Mail die Textdatei persönlich prüfen.
-8. Sichtfreigabe an den unveränderten Artefaktsatz binden.
-9. Den freigegebenen Satz ausschließlich lokal nach `Versand/` und `Intern/` veröffentlichen.
-
-Die operative Referenz bleibt [`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md). Sie ist verbindlicher als diese Übersicht.
-
----
-
-<a id="ergebnisse"></a>
-
-### 🗂️ Welche Dateien entstehen – und wofür sind sie da?
-
-Während der Bearbeitung liegen Quellen, Kandidaten und Prüfnachweise ausschließlich unter einem privaten Arbeitsordner:
-
-```text
-Private/Bewerbungen/
-└── FIRMA/
-    └── _Arbeitsdateien/
-        └── YYYY-MM-DD--ROLLE/
-            ├── Bewerbungsauftrag.json
-            ├── Anforderungsmatrix.json
-            ├── Kandidat/
-            ├── Layoutcheck/
-            ├── PDF-Export/
-            ├── ATS-Pruefbericht.json
-            ├── Finalisierungsbericht.json
-            └── Sichtfreigabe.json
+```mermaid
+flowchart LR
+    A["Stellenanzeige"] --> B["Profilabgleich"]
+    B --> C["Dokumente"]
+    C --> D["Technische Prüfung"]
+    D --> E["Deine persönliche Prüfung"]
+    E --> F["Lokale Freigabe · Versand/"]
 ```
 
-Nach der lokalen Veröffentlichung entsteht ein getrennter Zielordner:
+Offene Tatsachen werden geklärt; sie dürfen nicht durch plausible Behauptungen ersetzt werden. Änderungen nach einer Prüfung erfordern neue Nachweise und eine neue persönliche Bestätigung.
 
-```text
-Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLE/
-├── Versand/
-├── Intern/
-└── Manifest.json
-```
+<a id="agenten"></a>
 
-#### Der veröffentlichte Bewerbungsordner
+## Welche Agenten kann ich verwenden?
 
-| Bereich | Zweck |
+Entscheidend sind die Fähigkeiten im geöffneten Projekt: Dateien lesen und schreiben, Terminalbefehle ausführen und Projektregeln beachten. Für HTML-Prüfungen muss der Agent PNGs tatsächlich auswerten können. Fehlt diese Fähigkeit, muss er jede Vorschau benennen und deine persönliche Prüfung verlangen; andere fehlende Fähigkeiten können den Ablauf blockieren.
+
+| Umgebung | Projekteinstieg | Im Repository für Promptregression vorgesehen | Nachweisstand |
+| --- | --- | --- | --- |
+| OpenAI Codex | `AGENTS.md` | ja | kein gespeicherter vollständiger Modelltestnachweis |
+| Claude Code | `CLAUDE.md` verweist auf `AGENTS.md` | ja | kein gespeicherter vollständiger Modelltestnachweis |
+| Gemini CLI | `GEMINI.md` bindet `AGENTS.md` ein | ja | kein gespeicherter vollständiger Modelltestnachweis |
+| OpenCode | gemeinsame Regeln in `AGENTS.md`; `opencode.json` deaktiviert das Teilen | ja | kein gespeicherter vollständiger Modelltestnachweis |
+
+Diese Einstiege führen in denselben Workflow. Adapter und Testkonfigurationen sind keine Garantie für jede Agenten- oder Modellversion. Andere Agenten sind prinzipiell geeignet, wenn sie die genannten Fähigkeiten und Regeln tatsächlich unterstützen. Agent, Modellzugang, mögliche Abonnements und API-Zugänge richtest du separat ein.
+
+Die automatisierten Python-Vertragstests prüfen die Projektwerkzeuge und Schutzgrenzen; sie sind keine echten Modellsitzungen. [Details zu Architektur und Agenteneinstieg](docs/architecture.md)
+
+<a id="interaktiver-dialog"></a>
+
+## Daten einrichten und Bewerbungen erstellen
+
+Persönliche und fachliche Angaben liegen getrennt unter `Private/Daten/`: Kontaktdaten und Bewerbungslogistik einerseits, Erfahrung, Ausbildung, Kenntnisse und Belege andererseits. Der Agent führt dich durch diese Einrichtung. Kontrolliere insbesondere Zeiträume, Arbeitgeber und die Trennung zwischen Berufserfahrung, Weiterbildung und privater Praxis.
+
+Neue Angaben gelten zunächst nur für den aktuellen Auftrag. Eine dauerhafte Änderung deines Profils braucht einen transparenten Formulierungsvorschlag und deine eindeutige Zustimmung.
+
+### Welche Unterlagen möchtest du?
+
+| Auswahl | Ergebnis |
 | --- | --- |
-| `Versand/` | Nur die ausgewählten PDF-Anlagen und gegebenenfalls die E-Mail-Nachricht. Diesen Ordner nutzt du für einen späteren Versand. |
-| `Intern/` | HTML-Quellen und interne Nachweise zur eigenen Dokumentation. Nicht mitsenden. |
-| `Manifest.json` | Hashgebundene Liste der veröffentlichten Dateien und ihres Dokumentumfangs. |
+| **A – Komplette Bewerbung** | individueller Lebenslauf, Anschreiben und E-Mail-Nachricht |
+| **B – Mit Universal-Lebenslauf** | bereits freigegebener Universal-Lebenslauf unverändert, neues Anschreiben und neue E-Mail-Nachricht |
+| **C – Individueller Lebenslauf** | nur ein stellenbezogener Lebenslauf |
+| **D – Nur Anschreiben** | nur ein Anschreiben |
+| **E – Eigene Zusammenstellung** | ausdrücklich gewählte Kombination |
 
-#### Welche Datei nutze ich für welchen Zweck?
+Du musst keinen Auswahlbuchstaben kennen: Ein eindeutiger Wunsch wird direkt übernommen. Bei einer Stellenanzeige ohne Dokumentwunsch fragt der Agent nach; er ergänzt keine Unterlagen ungefragt. Eine reine E-Mail ohne Anlagen braucht eine gesonderte Bestätigung.
 
-| Datei | Verwendung |
-| --- | --- |
-| `Lebenslauf - NACHNAME.VORNAME.pdf` | Versand, wenn ein individueller oder universeller Lebenslauf ausgewählt wurde |
-| `Anschreiben - NACHNAME.VORNAME.pdf` | Versand, wenn ein Anschreiben ausgewählt wurde |
-| `Email-Nachricht--FIRMEN-SLUG.md` | Vorlage für eine manuelle E-Mail, wenn sie ausgewählt wurde |
-| `Finalisierungsbericht.json` | technischer Nachweis des aktuellen Vorbereitungsstands, nicht versenden |
-| `Sichtfreigabe.json` | persönlicher Freigabenachweis, nicht versenden |
-| `Tokenverbrauch.json` | optionaler privater Diagnosebericht, nicht versenden |
+### Andere Einstiege
 
-#### Offene Fragen
-
-Unklare, aber für eine Bewerbung wichtige Angaben stehen im Arbeitsstand. Der Agent darf offene Fragen nicht durch plausible Formulierungen ersetzen. Kläre sie, bevor du die Kandidatendateien freigibst.
-
----
-
-<a id="private-daten--datenschutz"></a>
-
-### 🔐 Private Daten & Datenschutz
-
-Echte Bewerberdaten gehören nur nach `Private/`. `Private.example/` enthält ausschließlich eine sichere Strukturvorlage und darf nie mit echten Angaben überschrieben werden. Private Daten werden nicht in öffentliche Tests, Logs oder Git aufgenommen.
-
-Das Sicherheitsmodell ist bewusst einfach:
-
-- Der Agent verarbeitet nur die Daten, die du in den privaten Bereich einbringst.
-- Der Workflow erfindet keine Identitäts-, Berufs-, Projekt- oder Qualifikationsangaben.
-- Nur eine aktuelle persönliche Sichtprüfung ermöglicht die lokale Freigabe.
-- Der Workflow lädt keine Unterlagen hoch und kontaktiert keine Arbeitgeber.
-- Eine externe Übermittlung entscheidest und führst ausschließlich du außerhalb dieses Repositories aus.
-
-Die Dateien und Nachweise dieses Repositories werden lokal abgelegt. Ob Eingaben zusätzlich an einen Coding-Agenten oder ein KI-Modell außerhalb des Rechners übermittelt werden, hängt von der gewählten Agentenumgebung ab; prüfe dafür deren Datenschutz- und Nutzungsbedingungen.
-
-> [!TIP]
-> Für einen Test des Projekts verwende ausschließlich die synthetischen Fixtures unter `Tests/`. Sie enthalten keine privaten Bewerber- oder Arbeitgeberdaten.
-
-<a id="eu-ai-act"></a>
-
-### ⚖️ EU AI Act und rechtliche Einordnung
-
-> [!NOTE]
-> **Stand: 30. August 2026.** Dieser Abschnitt ist eine vorsichtige Produkt- und Nutzungseinordnung, keine Rechtsberatung, keine Konformitätserklärung und keine Zertifizierung. Eine andere technische Ausgestaltung, ein anderer Anbieter oder ein anderer Einsatzzweck kann zu einer anderen Bewertung führen.
-
-Der in dieser README beschriebene bestimmungsgemäße Zweck ist die bewerberseitige Vorbereitung eigener Bewerbungsunterlagen. Der EU AI Act ordnet in Anhang III Nummer 4(a) dagegen insbesondere KI-Systeme als hochriskant ein, die für Arbeitgeber Bewerbungen analysieren oder filtern, gezielte Stellenanzeigen platzieren oder Kandidaten bewerten. apply-foundry ist für diese Arbeitgeberfunktionen nicht vorgesehen. Eine zweckändernde Weiterentwicklung oder Nutzung müsste rechtlich neu bewertet werden. Maßgeblich sind insbesondere Artikel 2, 3, 6 und Anhang III der [konsolidierten Verordnung (EU) 2024/1689](https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX%3A02024R1689-20260727).
-
-Artikel 2 Absatz 10 nimmt die Pflichten von Betreibern, die natürliche Personen sind und ein KI-System ausschließlich persönlich und nicht beruflich verwenden, aus dem Anwendungsbereich. Das ist eine kontextabhängige Betreiber-Ausnahme und keine pauschale Befreiung dieses Repositories, seiner Anbieter oder jeder anderen Nutzung. Auch andere Rechtsvorschriften, insbesondere zum Datenschutz, sowie die Bedingungen des tatsächlich eingesetzten Coding-Agenten bleiben zu prüfen.
-
-Die Transparenzpflichten aus Artikel 50 gelten seit dem 2. August 2026. Diese README macht den KI-gestützten Charakter des Workflows ausdrücklich sichtbar; sie ersetzt keine gegebenenfalls erforderliche Information im konkreten Agenten-Dialog. Ob für eine konkrete Ausgabe zusätzlich eine Kennzeichnung erforderlich ist, hängt von der Rolle (Anbieter oder Betreiber), dem verwendeten System und dem Veröffentlichungskontext ab. Die technische Kennzeichnung und Erkennbarkeit KI-generierter Ausgaben kann eine Pflicht des Anbieters des eingesetzten KI-Systems sein; dieses Repository erfüllt sie nicht automatisch. Weitere Hinweise enthält die [EU-Kommission zu den Transparenzpflichten nach Artikel 50](https://digital-strategy.ec.europa.eu/de/faqs/transparency-obligations-under-article-50-ai-act).
-
-Der Open-Source-Status ist keine vollständige Ausnahme: Artikel 2 Absatz 12 enthält Rückausnahmen unter anderem für Hochrisiko-Systeme sowie für die Artikel 5 und 50. Das Verbot fiktiver und irreführender Bewerbungen ist deshalb vor allem eine verbindliche Projektregel für wahrheitsgemäße, verantwortungsvolle Nutzung. Es behauptet nicht, dass jede unwahre Bewerbung automatisch den engeren Verbotstatbestand manipulativer KI-Praktiken nach Artikel 5 erfüllt.
+- **Universal-Lebenslauf:** „Erstelle oder aktualisiere meinen universellen Lebenslauf.“ Dafür gibt es einen eigenen stellenunabhängigen Prozess.
+- **Fortsetzen:** „Setze meine Bewerbung bei [Firma] für [Rolle] fort.“ Der Agent rekonstruiert den Stand aus den Dateien.
+- **Daten prüfen:** „Prüfe meine bestehenden Bewerberdaten.“ Vorhandene private Dateien werden nicht ungefragt überschrieben.
 
 <a id="pruefen-und-lokal-freigeben"></a>
 
-### ✅ Prüfen und lokal freigeben
+## Vorschauen prüfen und lokal freigeben
 
-Der verbindliche technische Abschluss verwendet immer den vollständigen Dispatcher:
+Der Agent nennt dir die zu prüfenden PNG-Dateien pro A4-Seite. Öffne jede davon und kontrolliere auch fachliche Aussagen: Sind Erfahrungen richtig eingeordnet? Sind alle Angaben wahr? Gibt es abgeschnittene Inhalte oder schlecht lesbare Seiten?
 
-```bash
-python3 Tools/bewerbung.py finalisieren \
-  --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE" \
-  --browser auto
+Der Ablauf hält bei `bereit_zur_sichtpruefung`. Erst deine neue eindeutige Bestätigung erlaubt die lokale Freigabe. Eine spätere Änderung entwertet die alte Bestätigung. Auch ein zweiseitiger Lebenslauf muss auf beiden Seiten sinnvoll aufgebaut sein; der Agent behandelt Layoutprobleme vor der Freigabe.
+
+[Technische Freigabeschritte und Layoutregeln](docs/technical-workflow.md)
+
+<a id="ergebnisse"></a>
+
+## Wo liegen die fertigen Dateien?
+
+Nach der persönlichen Prüfung und lokalen Freigabe liegen die ausgewählten Dateien hier:
+
+```text
+Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLE/
+├── Versand/       ← ausgewählte PDFs und gegebenenfalls E-Mail-Text
+├── Intern/        ← Quellen und interne Nachweise
+└── Manifest.json  ← Nachweis des freigegebenen Dateisatzes
 ```
 
-Er prüft Dialog und Stammdaten, statische Kandidatenstruktur, Inhalt, Browserlayout, PDF-Export und ATS-Textschicht in fester Reihenfolge. Bei ausgewählten HTML-Dokumenten gehören frische PNG-Screenshots und PDFs zum Ergebnis. Bei einer ausgewählten reinen E-Mail werden Browser-, PDF- und ATS-Schritte korrekt als nicht erforderlich dokumentiert.
+**Verwende ausschließlich die Dateien aus `Versand/` für deine Bewerbung.** Der Workflow versendet oder lädt sie nicht hoch; das entscheidest und erledigst du selbst. Screenshots, Prüfberichte, HTML-Quellen und `Tokenverbrauch.json` sind keine Versanddateien.
 
-Nach der technischen Vorbereitung gilt:
+[Interne Arbeitsordner, Dateinamen und Nachweise](docs/technical-workflow.md#arbeitsordner-und-ergebnisse)
 
-- `bereit_zur_sichtpruefung`: Öffne jede genannte PNG-Datei und bestätige erst danach die Freigabe.
-- `layout_ueberarbeitung_erforderlich`: Der zweiseitige Lebenslauf hat eine unzulässige freie Fläche; verteile belegte, relevante Inhalte neu oder dokumentiere eine zulässige Ausnahme.
-- Fehler oder geänderte Quellen: Unterlagen überarbeiten und den vollständigen Lauf erneut ausführen.
+<a id="private-daten--datenschutz"></a>
 
-Die Freigabe-ID und alle geprüften Artefakthashes müssen beim späteren Veröffentlichen noch aktuell sein. Ein veralteter Screenshot oder ein geänderter Kandidat kann nicht weiterverwendet werden.
+## 🔒 Kann ich dem Projekt meine Daten anvertrauen?
+
+- **Getrennte Dateien:** Echte Angaben und Arbeitsergebnisse gehören nur nach `Private/`. `Private.example/` ist eine Strukturvorlage; fiktive Beispielwerte werden nie als deine Daten übernommen.
+- **Kein automatischer Versand:** Der Workflow kontaktiert keine Arbeitgeber und lädt keine Unterlagen hoch.
+- **Keine privaten Testdaten:** Öffentliche Beispiele und Tests verwenden ausschließlich synthetische Angaben.
+- **Git-Schutz mit Grenzen:** `Private/` wird von Git ignoriert. `.gitignore` ist keine Verschlüsselung und schützt weder vor anderen lokalen Programmen noch vor einem bewussten Upload.
+- **Agentenumgebung prüfen:** Lokale Dateien bedeuten kein zwingend lokales KI-Modell. Cloudverarbeitung, Aufbewahrung und Nutzung deiner Eingaben hängen vom Agenten und seinen Datenschutz- und Nutzungsbedingungen ab.
+
+Gib keine Passwörter, Bankdaten, Ausweisnummern oder andere unnötige Geheimnisse ein. Prüfe die Kontoeinstellungen deiner Agentenumgebung, bevor du persönliche Daten bereitstellst.
 
 <a id="plattformstatus"></a>
 
-### 🪟 Voraussetzungen und Plattformstatus
+## Plattformen und Voraussetzungen
 
-Der Python-Kern ist für Desktop-Windows, -Linux und -macOS auf x64 (Intel/AMD) ausgelegt. ARM64 wird derzeit nicht unterstützt. Die öffentliche CI prüft Python-Verträge auf diesen Plattformfamilien und enthält eine separate Browser-Smoke-Matrix für Chromium-Druck, A4-Geometrie und ATS. Zusätzlich deckt die Linux-Kompatibilitätsprüfung mehrere Distributionen ab.
+Der aktuelle Entwicklungsstand unterstützt **Windows x64, Linux x64 und macOS auf Intel x64**. **ARM64 einschließlich Apple Silicon ist derzeit nicht freigegeben.** Vollständige Browserstabilität bleibt Vorschau, bis je Zielprofil drei dokumentierte grüne Läufe vorliegen.
 
-| Plattform | erlaubter Paketweg bei fehlender Voraussetzung | Referenzschrift für den vollständigen Layout-/PDF-Workflow |
-| --- | --- | --- |
-| Windows | `winget` | Arial |
-| Linux | APT, DNF/YUM, Pacman oder Zypper | Liberation Sans |
-| macOS | Homebrew | Arial oder Liberation Sans |
+Für HTML-Unterlagen benötigt der Workflow Python 3.11+, Chrome/Edge/Chromium sowie Arial auf Windows, Liberation Sans auf Linux oder eine dieser beiden Schriften auf macOS. Der Agent prüft die Voraussetzungen vor dem Start; du brauchst die einzelnen Werkzeuge im normalen Dialog nicht selbst aufzurufen.
 
-Diese Angaben sind keine Checkliste für den ersten Start. Sie betreffen den vollständigen technisch geprüften HTML-/PDF-Workflow. Der Setupplan zeigt ausschließlich diese Wege, wenn eine tatsächlich benötigte Voraussetzung fehlt. Ein unbekannter Paketmanager, Ubuntu ohne zulässigen nativen Browserweg oder macOS ohne Homebrew führt zu einer klaren manuellen Voraussetzung statt zu einer Umgehung.
+Der historische Release v2.0 hatte einen breiteren Architekturvertrag. Seit dem 28. August 2026 gilt für den aktuellen Stand ausschließlich x64. [Plattformdetails, Setup und Releasehistorie](docs/platform-support.md)
 
 <a id="hilfe"></a>
 
-### ❓ Häufige Probleme
+## Häufige Probleme
 
-| Beobachtung | Was tun? |
+| Frage oder Problem | Nächster Schritt |
 | --- | --- |
-| Ich möchte nur starten und kenne die technischen Voraussetzungen nicht | Repository klonen, in der Codex-App als lokalen Arbeitsbereich öffnen und einen konkreten Auftrag geben. Der Agent prüft fehlende Voraussetzungen erst bei Bedarf. |
-| `python3` fehlt oder ist zu alt | Den read-only Setupplan ausführen und die angezeigte System-Python-Voraussetzung installieren. |
-| Browserlauf schlägt fehl | Prüfen, ob Chrome, Edge oder Chromium verfügbar ist; keinen anderen Browser als verbindlichen PDF-Ersatz verwenden. |
-| Die Referenzschrift fehlt | Nur für den vollständigen HTML-/PDF-Workflow relevant. Zuerst den read-only Plan `python3 Tools/setup.py --all --dry-run --format json` ausführen; der Agent soll keine Installation ohne deine Zustimmung starten. |
-| Screenshots sind vorhanden, aber die Sichtprüfung fehlt | Nicht veröffentlichen. Jede genannte Seite selbst öffnen und eindeutig bestätigen. |
-| Layout-Gate sperrt den Lebenslauf | Zuerst die fachliche Seitenverteilung prüfen; keine irrelevanten Inhalte ergänzen oder Schrift künstlich verkleinern. |
-| Nach einer Änderung verweigert die Freigabe das Veröffentlichen | Erwartetes Verhalten: vollständige technische Vorbereitung und neue Sichtprüfung ausführen. |
-| Unklare Erfahrung oder fehlendes Zertifikat | Nicht behaupten. In den offenen Fragen dokumentieren oder vor der Bewerbung klären. |
+| Muss ich die technischen Kommandos kennen? | Öffne den Projektstamm im eingerichteten Agenten und gib deinen Auftrag; der Agent bedient die Werkzeuge. |
+| Python, Browser oder Schrift fehlen | Der Agent zeigt den Setupplan und nennt Voraussetzungen. Installationen brauchen bestätigte Berechtigung. |
+| Ich verwende einen Apple-Silicon-Mac oder ARM64-Rechner | Dieser aktuelle Stand ist dafür nicht freigegeben; siehe Plattformdetails. |
+| Agent oder Browser kann nicht auf Dateien zugreifen | Lass die fehlende Fähigkeit konkret benennen; ohne erforderliche Nachweise kann keine Freigabe erfolgen. |
+| Screenshots sind vorhanden, aber noch keine fertigen Dateien | Prüfe alle genannten Seiten persönlich und bestätige die Prüfung ausdrücklich. |
+| Ein Layoutproblem blockiert den Ablauf | Der Agent überarbeitet belegte Inhalte und Seitenaufteilung; danach prüfst du neue Vorschauen. |
+| Erfahrung, Zeitraum oder Zertifikat ist unklar | Angabe klären oder als offene Frage dokumentieren; nichts erfinden. |
+| Nach einer Änderung fehlt die Freigabe | Erwartetes Verhalten: neuer Prüflauf und neue persönliche Bestätigung. |
 
-### ⚠️ Bekannte Grenzen
+<a id="verantwortung"></a>
 
-Unterstützt sind Desktop-Windows, -Linux und -macOS; mobile Plattformen und BSD-Systeme gehören nicht zum Projektvertrag. Die technische Prüfung kann keine fachliche Wahrheit, keine Rechtsberatung und keine individuelle Karriereberatung ersetzen. Sie garantiert keine bestimmte Vollständigkeit oder Objektivität und weder eine Einladung noch eine Einstellung. Eine optisch oder technisch bestandene Datei wird nie automatisch versendet.
+## Verantwortungsvolle Nutzung
 
----
+Strategische Positionierung bedeutet, wahre und belegbare Erfahrungen auszuwählen, zu gewichten und stellenrelevant zu formulieren. Ziel ist ein zutreffendes und ausgewogenes Bild für den Recruiter. Erfundene Identitäten, Arbeitgeber, Tätigkeiten, Projekte, Abschlüsse, Zertifikate, Kenntnisse oder Zeiträume sind unzulässig. Ebenso unzulässig sind irreführende Umdeutungen oder bewusst täuschende Auslassungen.
+
+Das Projekt unterstützt die eigene Bewerbung. Es ist nicht für Arbeitgeberbewertung, Ranking, Filterung oder Auswahl von Bewerbern vorgesehen. Technische Prüfung und KI-Unterstützung garantieren weder fachliche Wahrheit oder Vollständigkeit noch eine Einladung oder Einstellung. Du prüfst und verantwortest die Unterlagen vor ihrer Verwendung.
+
+<a id="eu-ai-act"></a>
+
+### EU AI Act
+
+Die ausführliche [EU-AI-Act-Einordnung](docs/legal/eu-ai-act.md) beschreibt Zweckgrenzen, Rollen, Transparenzpflichten und rechtliche Grenzen mit Quellen und Datumsstand. Sie ist keine Rechtsberatung, Konformitätserklärung oder Zertifizierung.
 
 <a id="entwicklung"></a>
 
-## 🧰 Für Entwickler
+## 🧰 Für Entwickler und technisch Interessierte
 
-### Projektprinzipien
+Der Produktivkern verwendet Python 3.11+ und die Standardbibliothek. Der verbindliche Agenteneinstieg ist [AGENTS.md](AGENTS.md); der kanonische Bewerbungsworkflow steht in [Prompts/00_AGENTEN_START_HIER.md](Prompts/00_AGENTEN_START_HIER.md).
 
-- Ein Python-3.11+-Kern aus Standardbibliothek statt plattformgetrennter Workflowimplementierungen.
-- Ein kanonischer Bewerbungsworkflow in `AGENTS.md` und `Prompts/`, keine doppelten Agentenanweisungen.
-- Private Daten nur unter `Private/`; öffentliche Tests verwenden ausschließlich synthetische Fixtures.
-- Fail-closed bei unsicheren Pfaden, fehlenden Fähigkeiten, nicht aktuellen Artefakten und ungeklärter Sichtfreigabe.
-- Keine versteckte Installation oder externe Übermittlung im Bewerbungsworkflow.
-
-### Architektur
-
-| Bereich | Aufgabe |
+| Vertiefung | Inhalt |
 | --- | --- |
-| [`AGENTS.md`](AGENTS.md) | Routing, Sicherheitsgrenzen und Arbeitsregeln für Agenten |
-| [`Prompts/README.md`](Prompts/README.md) | kanonischer Bewerbungsworkflow und schrittbezogene Regeln |
-| [`Tools/bewerbung.py`](Tools/bewerbung.py) | plattformneutraler CLI-Dispatcher |
-| `Tools/apply_foundry/` | Python-Kern für Aufträge, Verträge, Browser, PDF, ATS und Finalisierung |
-| [`Tools/setup.py`](Tools/setup.py) | read-only Setupplanung und bestätigte Systeminstallation |
-| `Tests/` | synthetische Vertrags-, Browser-, Setup- und Promptregressionen |
-| [`Private.example/README.md`](Private.example/README.md) | private Strukturvorlage ohne Nutzerdaten |
+| [Architektur und Entwicklung](docs/architecture.md) | Agenteneinstieg, Promptmodule, Python-Kern, Tests und CI |
+| [Technischer Workflow](docs/technical-workflow.md) | Dateiverträge, Prüfungen, Hashbindung, Freigabe und Layout-Gates |
+| [Plattformunterstützung](docs/platform-support.md) | aktuelle Grenzen, Paketwege, Setup und historische Einordnung |
+| [Console-App-Roadmap](docs/console-app.md) | Konzept einer optionalen Terminaloberfläche, nicht implementiert |
 
-### Prompt-System und Dateiverträge
-
-[`Prompts/00_AGENTEN_START_HIER.md`](Prompts/00_AGENTEN_START_HIER.md) ist der Einstieg für Bewerbungsaufträge. Die Module `01` bis `11` werden erst bei ihrem jeweiligen Arbeitsschritt geladen. Technische Verträge betreffen unter anderem:
-
-- feste A4-HTML-Seiten und kontrollierte Chromium-Druckvorprüfung,
-- strukturierte, hashgebundene private Aufträge, Matrix- und Evidenzdateien,
-- Layout-, PDF-, ATS- und Finalisierungsberichte,
-- persönliche Sichtfreigabe mit aktuellem Artefaktsatz,
-- strikte Trennung zwischen privatem Arbeitsordner, `Versand/` und `Intern/`.
-
-Bei zweiseitigen Lebensläufen erzwingt der statische Prüfer pro Seite einen `data-cv-page-header`, pro fachlicher Rubrik eine dokumentweit eindeutige `data-cv-section`-Kennung und einen `<footer class="page-footer">`. Die Dichtemessung schließt den Footerbereich aus und blockiert ungewöhnlich große freie Inhaltsflächen vor der Sichtfreigabe.
-
-### Tests und CI
-
-Die schnelle browserfreie Prüfung:
+Browserfreie Prüfung, nach dem read-only Setupplan:
 
 ```bash
+python3 Tools/setup.py --all --dry-run --format json
 python3 -m unittest discover -s Tests/Python -p 'test_*.py'
 python3 Tools/bewerbung.py tests --suite vollstaendig
 ```
 
-Die vollständige synthetische Regression einschließlich Browser, PDF und ATS:
-
-```bash
-python3 Tools/bewerbung.py tests --mit-browser
-```
-
-Die CI-Workflows, etwa [`tests.yml`](.github/workflows/tests.yml), prüfen Python-Verträge auf Windows, Linux und macOS, die Python-3.11-Mindestversion, die Browser-Smokes sowie die Linux-Distributionskompatibilität. Promptregressionen bleiben von den erforderlichen Zugangsdaten abhängig und verwenden bereinigte synthetische Arbeitskopien.
-
-### Empfohlener Entwickler-Workflow
-
-1. Vor Tests oder Reparaturen `python3 Tools/setup.py --all --dry-run --format json` ausführen.
-2. Nur betroffene Prompts, Tools und Tests lesen und ändern.
-3. Keine privaten Daten nachverfolgen, in Logs schreiben oder als Testfixture verwenden.
-4. Bei funktionalen Änderungen [`CHANGELOG.md`](CHANGELOG.md) aktualisieren.
-5. Passende browserfreie Tests und bei Browseränderungen die vollständige Browserregression ausführen.
-
----
+[CHANGELOG.md](CHANGELOG.md) dokumentiert Änderungen. Für technische Arbeit gelten weiterhin alle privaten Pfadgrenzen und persönlichen Freigabegates.
 
 <a id="lizenz"></a>
 
-## 📄 Lizenz
+## Lizenz
 
-Dieses Projekt steht unter der [MIT-Lizenz](LICENSE).
+apply-foundry steht unter der [MIT-Lizenz](LICENSE).

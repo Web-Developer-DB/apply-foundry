@@ -1,0 +1,14 @@
+# EU AI Act und rechtliche Einordnung
+
+> [!NOTE]
+> **Stand: 30. August 2026.** Dieser Abschnitt ist eine vorsichtige Produkt- und Nutzungseinordnung, keine Rechtsberatung, keine Konformitätserklärung und keine Zertifizierung. Eine andere technische Ausgestaltung, ein anderer Anbieter oder ein anderer Einsatzzweck kann zu einer anderen Bewertung führen.
+
+Der in der README beschriebene bestimmungsgemäße Zweck ist die bewerberseitige Vorbereitung eigener Bewerbungsunterlagen. Der EU AI Act ordnet in Anhang III Nummer 4(a) dagegen insbesondere KI-Systeme als hochriskant ein, die für Arbeitgeber Bewerbungen analysieren oder filtern, gezielte Stellenanzeigen platzieren oder Kandidaten bewerten. apply-foundry ist für diese Arbeitgeberfunktionen nicht vorgesehen. Eine zweckändernde Weiterentwicklung oder Nutzung müsste rechtlich neu bewertet werden. Maßgeblich sind insbesondere Artikel 2, 3, 6 und Anhang III der [konsolidierten Verordnung (EU) 2024/1689](https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX%3A02024R1689-20260727).
+
+Artikel 2 Absatz 10 nimmt die Pflichten von Betreibern, die natürliche Personen sind und ein KI-System ausschließlich persönlich und nicht beruflich verwenden, aus dem Anwendungsbereich. Das ist eine kontextabhängige Betreiber-Ausnahme und keine pauschale Befreiung dieses Repositories, seiner Anbieter oder jeder anderen Nutzung. Auch andere Rechtsvorschriften, insbesondere zum Datenschutz, sowie die Bedingungen des tatsächlich eingesetzten Coding-Agenten bleiben zu prüfen.
+
+Die Transparenzpflichten aus Artikel 50 gelten seit dem 2. August 2026. Diese README macht den KI-gestützten Charakter des Workflows ausdrücklich sichtbar; sie ersetzt keine gegebenenfalls erforderliche Information im konkreten Agenten-Dialog. Ob für eine konkrete Ausgabe zusätzlich eine Kennzeichnung erforderlich ist, hängt von der Rolle (Anbieter oder Betreiber), dem verwendeten System und dem Veröffentlichungskontext ab. Die technische Kennzeichnung und Erkennbarkeit KI-generierter Ausgaben kann eine Pflicht des Anbieters des eingesetzten KI-Systems sein; dieses Repository erfüllt sie nicht automatisch. Weitere Hinweise enthält die [EU-Kommission zu den Transparenzpflichten nach Artikel 50](https://digital-strategy.ec.europa.eu/de/faqs/transparency-obligations-under-article-50-ai-act).
+
+Der Open-Source-Status ist keine vollständige Ausnahme: Artikel 2 Absatz 12 enthält Rückausnahmen unter anderem für Hochrisiko-Systeme sowie für die Artikel 5 und 50. Das Verbot fiktiver und irreführender Bewerbungen ist deshalb vor allem eine verbindliche Projektregel für wahrheitsgemäße, verantwortungsvolle Nutzung. Es behauptet nicht, dass jede unwahre Bewerbung automatisch den engeren Verbotstatbestand manipulativer KI-Praktiken nach Artikel 5 erfüllt.
+
+[Zurück zur README](../../README.md#eu-ai-act)
