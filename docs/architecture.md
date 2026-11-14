@@ -47,7 +47,7 @@ Die vollständige synthetische Regression einschließlich Browser, PDF und ATS:
 python3 Tools/bewerbung.py tests --mit-browser
 ```
 
-Die CI-Workflows, etwa [`tests.yml`](../.github/workflows/tests.yml), prüfen Python-Verträge auf Windows, Linux und macOS, die Python-3.11-Mindestversion, die Browser-Smokes sowie die Linux-Distributionskompatibilität. Promptregressionen bleiben von den erforderlichen Zugangsdaten abhängig und verwenden bereinigte synthetische Arbeitskopien.
+Die CI-Workflows, etwa [`tests.yml`](../.github/workflows/tests.yml), prüfen Python-Verträge auf Windows, Linux und macOS, die Python-3.11-Mindestversion, die Browser-Smokes sowie die Linux-Distributionskompatibilität. Promptregressionen bleiben von den erforderlichen Zugangsdaten abhängig. Sie verwenden Git-erfasste öffentliche Projektdateien und separat erzeugte synthetische Testdaten.
 
 ## Empfohlener Entwickler-Workflow
 

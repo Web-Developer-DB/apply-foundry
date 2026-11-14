@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Softwareentwicklung und Junior-Systemadministration haben getrennte aktive Universal-Lebensläufe. Neue Bewerbungen wählen die Fachrichtung mit `neu --universal-fachrichtung`. Bestehende Aufträge bleiben an ihren ursprünglichen HTML-Snapshot gebunden. Auch Universal-Arbeitsstände unterstützen `checkpoint`.
+- Die Finalisierung sperrt abgebrochene Aufträge und geänderte Universal-Snapshots. Versanddateien stammen exakt aus dem bestätigten Umfang und dem persönlich freigegebenen Artefaktsatz. Nachträglich hinzugefügte Kandidatendateien entwerten die Vorbereitung.
+- Matrix-Schema 5 prüft Pflichtfelder, Anforderungsbelege, Stellenfundstellen und externe Quellen. Prompt-Regressionen übernehmen ausschließlich Git-erfasste öffentliche Dateien und ergänzen die vorgesehenen synthetischen Testdaten.
+
 - Die README führt neue Nutzer direkt über einen kurzen Dialog-Quickstart zu persönlich geprüften Unterlagen. Agentenkompatibilität, synthetische Designbeispiele, Datenschutz und Versanddateien stehen im Nutzerbereich; Architektur, technische Prüfungen, Plattformdetails und die bisherige EU-AI-Act-Einordnung sind unter `docs/` vertieft. Die Console-App-Roadmap liegt jetzt unter `docs/console-app.md`; `Vorlagen/` behält seinen etablierten Namen.
 - Vier ausschließlich synthetische README-Abbildungen werden aus öffentlichen Testquellen reproduzierbar erzeugt. Die Dokumentationsprüfungen beziehen die neuen Seiten, Bilder und Sprungmarken ein.
 - Historische Einordnung des Plattformvertrags: Tag `v2.0` (`81c0e06`, 24. August 2026) deklarierte x64 und ARM64. Erst Commit `ee8d3dd` vom 28. August 2026 beschränkte Runtime, Setup, Manifest und CI auf x64. Die historischen Releaseangaben bleiben erhalten; aktueller Support und noch nicht bestätigte Browserstabilität werden getrennt dokumentiert.

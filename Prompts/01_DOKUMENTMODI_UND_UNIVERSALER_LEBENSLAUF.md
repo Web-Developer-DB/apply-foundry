@@ -364,11 +364,12 @@ Eine reine Standabfrage verändert weder Auftrag noch Profil. Ein anderer Agent 
 
 Bei `lebenslauf = universal_unveraendert` wird ein bereits freigegebener universeller Lebenslauf als konkreter HTML-Snapshot verwendet:
 
-- Die automatisch verwendete Quelle liegt unter `Private/Bewerbungen/_Universal-Lebenslauf/Aktiv/Intern/Lebenslauf - NACHNAME.VORNAME.html` und besitzt dort ein gültiges hashgebundenes `Manifest.json` mit bestätigter persönlicher Sichtprüfung.
+- Frage bei einer neuen Bewerbung mit Universal-Lebenslauf nach der Fachrichtung, wenn sie aus dem Nutzerauftrag nicht eindeutig hervorgeht. Verwende `neu --universal-fachrichtung softwareentwicklung` oder `neu --universal-fachrichtung systemadministration`; Auswahl E nennt zusätzlich `lebenslauf` in `--dokumente`.
+- Das freigegebene Original liegt unter `Private/Bewerbungen/_Universal-Lebenslauf/Aktiv--FACHRICHTUNG/Intern/` mit gültigem hashgebundenem Manifest und persönlicher Sichtprüfung. Ein früheres gemeinsames `Aktiv/` kann für die darin ausgewiesene Fachrichtung gelesen werden, solange für sie noch kein eigenes aktives Paket existiert.
 - Sie muss frei von Platzhaltern sein und nach dem Pflichtschema benannt sein.
 - Liegt die Quelle unter dem Repository, werden ihr projekt-relativer Pfad, Dateiname und SHA-256-Wert eingefroren.
 - Bei einer Quelle außerhalb des Repositorys wird kein betriebssystemspezifischer absoluter Pfad gespeichert. Dateiname, Kandidatensnapshot und SHA-256 bleiben die Bindung; beim Fortsetzen entscheidet der Hash.
-- Der Kandidaten-Lebenslauf wird hashgleich übernommen und weder textlich noch gestalterisch an Firma oder Zielrolle angepasst.
+- Der Kandidaten-Lebenslauf wird hashgleich übernommen und weder textlich noch gestalterisch an Firma oder Zielrolle angepasst. Fortsetzung, Vorbereitung und Veröffentlichung prüfen den Kandidaten gegen den ursprünglichen Hash. Der Wechsel der aktiven Fassung berührt den vorhandenen Auftrag nicht.
 - Die Zielrolle muss in Anschreiben und E-Mail-Betreff stehen, nicht im unveränderten universellen Lebenslauf.
 - Der Lebenslauf-zu-Anschreiben-Abgleich verwendet den Snapshot als Referenz.
 - Eine belegte Anforderung, die im universellen Lebenslauf fehlt, darf im Anschreiben erklärt werden. Ist dies für Glaubwürdigkeit oder formale Eignung nicht ausreichend, wird ein individueller Lebenslauf empfohlen; der Umfang wird nicht stillschweigend gewechselt.

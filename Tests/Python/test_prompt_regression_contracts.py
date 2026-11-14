@@ -4,6 +4,8 @@
 import io
 import json
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -72,6 +74,7 @@ class PromptRegressionContractTests(unittest.TestCase):
         self.assertIsNone(_mutation_error([" M Private/Test.json"], ["Private/**"]))
         self.assertIn("Nicht erlaubte", _mutation_error([" M README.md"], ["Private/**"]) or "")
 
+    @unittest.skipUnless(shutil.which("git"), "Git für den Prompt-Arbeitsbereich erforderlich")
     def test_public_copy_excludes_private_and_agent_state(self):
         with tempfile.TemporaryDirectory() as temp:
             source, target = Path(temp) / "source", Path(temp) / "target"
@@ -81,10 +84,19 @@ class PromptRegressionContractTests(unittest.TestCase):
             (source / "Private/secret.txt").write_text("secret", encoding="utf-8")
             (source / ".codex/state.json").write_text("{}", encoding="utf-8")
             (source / "Tools/public.txt").write_text("public", encoding="utf-8")
+            (source / "Tests/Artifacts").mkdir(parents=True)
+            (source / "Tests/Artifacts/test.log").write_text("synthetic log", encoding="utf-8")
+            (source / ".env").write_text("synthetic", encoding="utf-8")
+            (source / ".env.local").write_text("synthetic", encoding="utf-8")
+            subprocess.run(["git", "init", "--quiet"], cwd=source, check=True)
+            subprocess.run(["git", "add", "-f", "--", "Tools/public.txt", "Private/secret.txt", ".env"], cwd=source, check=True)
+            (source / "Tools/local.txt").write_text("untracked", encoding="utf-8")
             _copy_public_repository(source, target)
             self.assertTrue((target / "Tools/public.txt").is_file())
             self.assertFalse((target / "Private").exists())
             self.assertFalse((target / ".codex").exists())
+            for name in (".env", ".env.local", "Tests/Artifacts", "Tools/local.txt"):
+                self.assertFalse((target / name).exists(), name)
 
     def test_synthetic_fixture_contains_only_synthetic_bound_artifacts(self):
         with tempfile.TemporaryDirectory() as temp:

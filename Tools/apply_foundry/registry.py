@@ -1,6 +1,7 @@
 """Public subcommand and GNU-option registry."""
 
 from .cli import CommandSpec, OptionSpec
+from .contracts import UNIVERSAL_PROFILES
 
 
 def O(key, kind="string", allowed=(), minimum=None, maximum=None, placeholder="WERT"):
@@ -34,15 +35,19 @@ COMMANDS = {
         "--dokumente": O("dokumente", "documents", placeholder="LISTE"),
         "--umfang-quelle": E("umfang_quelle", ("auswahl", "direkter_auftrag", "fortgesetzter_auftrag"), "QUELLE"),
         "--email-allein-bestaetigt": S("email_allein_bestaetigt"),
-        "--universal-lebenslauf-path": P("universal_lebenslauf_path"), "--datum": O("datum", placeholder="YYYY-MM-DD"),
+        "--universal-lebenslauf-path": P("universal_lebenslauf_path"),
+        "--universal-fachrichtung": E("universal_fachrichtung", UNIVERSAL_PROFILES, "FACHRICHTUNG"),
+        "--datum": O("datum", placeholder="YYYY-MM-DD"),
         "--stellenbeschreibung-path": P("stellenbeschreibung_path"), "--stammdaten-path": P("stammdaten_path"),
         "--profil-path": P("profil_path"), "--bewerbungen-root": P("bewerbungen_root"), "--fortsetzen": S("fortsetzen"),
     }, ("--firma",)),
-    "universal-neu": CommandSpec("Universellen Softwareentwicklungs-Lebenslauf anlegen", {
+    "universal-neu": CommandSpec("Universellen Lebenslauf für die gewählte Fachrichtung anlegen", {
+        "--fachrichtung": E("fachrichtung", UNIVERSAL_PROFILES, "FACHRICHTUNG"),
         "--datum": O("datum", placeholder="YYYY-MM-DD"), "--stammdaten-path": P("stammdaten_path"),
         "--profil-path": P("profil_path"), "--bewerbungen-root": P("bewerbungen_root"), "--fortsetzen": S("fortsetzen"),
     }),
     "universal-status": CommandSpec("Gespeicherten Stand des universellen Lebenslaufs ermitteln", {
+        "--fachrichtung": E("fachrichtung", UNIVERSAL_PROFILES, "FACHRICHTUNG"),
         "--arbeitsordner": P("arbeitsordner"), "--bewerbungen-root": P("bewerbungen_root"), "--als-json": S("als_json"),
     }),
     "universal-finalisieren": CommandSpec("Universellen Lebenslauf vorbereiten oder lokal aktivieren", {

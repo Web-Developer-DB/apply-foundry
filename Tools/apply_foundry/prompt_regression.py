@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from .errors import ContractError
 from .io import read_json, sha256_file, write_atomic_json
-from .paths import resolve_order_paths
+from .paths import resolve_order_paths, safe_path
 
 
 @dataclass(frozen=True)
@@ -46,7 +46,7 @@ def _run(
     cwd: Optional[Path] = None,
     environment: Optional[Mapping[str, str]] = None,
     timeout: int = 15,
-    max_stdout: int = 262144,
+    max_stdout: Optional[int] = 262144,
     max_stderr: int = 16384,
 ) -> _Process:
     started = time.monotonic()
@@ -194,23 +194,23 @@ def _load_catalog(path: Path, member: str) -> List[Mapping[str, Any]]:
 
 
 def _copy_public_repository(source: Path, destination: Path) -> None:
-    excluded = {".git", "Private", ".agents", ".codex", "__pycache__", ".pytest_cache"}
+    excluded = {".git", "private", ".agents", ".codex", "__pycache__", ".pytest_cache"}
+    listed = _git(source, ["ls-files", "--cached", "-z"], max_stdout=None).stdout
     destination.mkdir(parents=True)
-    for current, directory_names, file_names in os.walk(str(source), topdown=True, followlinks=False):
-        current_path = Path(current)
-        relative_dir = current_path.relative_to(source)
-        directory_names[:] = [
-            name for name in directory_names
-            if name not in excluded and not (current_path / name).is_symlink()
-        ]
-        target_dir = destination / relative_dir
-        target_dir.mkdir(parents=True, exist_ok=True)
-        for name in file_names:
-            source_file = current_path / name
-            if source_file.is_symlink() or name == "test-fast.json" or any(part in excluded for part in source_file.relative_to(source).parts):
-                continue
-            target = target_dir / name
-            shutil.copy2(str(source_file), str(target))
+    for name in sorted(set(listed.split("\0")) - {""}):
+        relative = Path(name)
+        parts = tuple(part.lower() for part in relative.parts)
+        if excluded.intersection(parts) or parts[:2] == ("tests", "artifacts"):
+            continue
+        if (parts[-1] == ".env" or parts[-1].startswith(".env.")) and parts[-1] != ".env.example":
+            continue
+        file = source / relative
+        if file.is_symlink() or not file.is_file():
+            continue
+        safe_path(file, source, must_exist=True, kind="file")
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(file, target)
 
 
 def _initialize_fixture(root: Path, fixture_id: str, scenario_id: Optional[str] = None) -> None:
@@ -297,11 +297,11 @@ def _initialize_fixture(root: Path, fixture_id: str, scenario_id: Optional[str] 
     )
 
 
-def _git(root: Path, arguments: Sequence[str]) -> _Process:
+def _git(root: Path, arguments: Sequence[str], max_stdout: Optional[int] = 131072) -> _Process:
     git = shutil.which("git")
     if not git:
         raise ContractError("Git fehlt; isolierte Prompt-Regression ist nicht verfügbar.")
-    result = _run(git, arguments, cwd=root, timeout=30, max_stdout=131072, max_stderr=131072)
+    result = _run(git, arguments, cwd=root, timeout=30, max_stdout=max_stdout, max_stderr=131072)
     if result.exit_code != 0:
         raise ContractError("Git-Schritt fehlgeschlagen: %s" % (result.stderr.strip() or "Exitcode %d" % result.exit_code))
     return result

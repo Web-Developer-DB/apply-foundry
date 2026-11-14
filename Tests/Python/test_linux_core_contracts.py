@@ -24,6 +24,7 @@ from Tools.apply_foundry.commands_core import (  # noqa: E402
     handle_dialog_pruefen,
     handle_dialog_uebernehmen,
     handle_freigabe,
+    handle_inhalt,
     handle_migrieren,
     handle_neu,
     handle_passfoto,
@@ -33,6 +34,7 @@ from Tools.apply_foundry.commands_core import (  # noqa: E402
     handle_test_baseline,
     handle_tokenbericht,
     handle_universal_neu,
+    handle_universal_status,
     validate_dialog_order,
 )
 from Tools.apply_foundry.contracts import (  # noqa: E402
@@ -42,6 +44,7 @@ from Tools.apply_foundry.contracts import (  # noqa: E402
     scope_from_cli,
 )
 from Tools.apply_foundry.errors import CliUsageError, ContractError, UnsafePathError  # noqa: E402
+from Tools.apply_foundry.commands_browser import finalisieren  # noqa: E402
 from Tools.apply_foundry.io import artifact_record, read_json, sha256_file, write_atomic_json, write_atomic_text  # noqa: E402
 from Tools.apply_foundry.paths import resolve_order_paths, safe_path, slug, validate_portable_relative  # noqa: E402
 from Tools.apply_foundry.registry import COMMANDS  # noqa: E402
@@ -79,6 +82,22 @@ Synthetisches Softwareentwicklungsprofil für lokale Vertragstests.
 
 01/2020 - 12/2024 · Testentwicklung
 """
+
+
+def active_fixture(active, direction="softwareentwicklung"):
+    from Tools.apply_foundry.contracts import universal_profile
+
+    source = active / "Intern/Lebenslauf - Person.Test.html"
+    pdf = active / "Versand/Lebenslauf - Person.Test.pdf"
+    write_atomic_text(source, "Synthetischer universeller Lebenslauf für " + direction)
+    write_atomic_text(pdf, "Synthetischer Inhalt für den Manifestvertrag")
+    write_atomic_json(active / "Manifest.json", {
+        "schemaVersion": 1, "auftragsart": "universal_lebenslauf", "fachrichtung": direction,
+        "zielrollen": list(universal_profile(direction)["zielrollen"]),
+        "personalReview": {"confirmed": True},
+        "files": [artifact_record(path, active) for path in (source, pdf)],
+    })
+    return source
 
 
 class SyntheticProject:
@@ -254,14 +273,7 @@ class WorkflowCoreTests(unittest.TestCase):
             })
 
     def test_universal_source_binding_is_relative_hash_bound_and_legacy_readable(self):
-        source = self.project.applications / "_Universal-Lebenslauf/Aktiv/Intern/Lebenslauf - Person.Test.html"
-        source.parent.mkdir(parents=True)
-        source.write_text(
-            '<!doctype html><html lang="de"><head><style>@page { size: A4; margin: 0; }'
-            '.page { width: 210mm; height: 297mm; }</style></head><body><main class="page">'
-            'Vollständig synthetischer universeller Lebenslauf.</main></body></html>',
-            encoding="utf-8",
-        )
+        source = active_fixture(self.project.applications / "_Universal-Lebenslauf/Aktiv")
         args = {
             "firma": "Beispiel GmbH", "rolle": "Fullstack Developer", "umfang": "B",
             "datum": "2026-08-23", "bewerbungen_root": self.project.applications,
@@ -295,6 +307,49 @@ class WorkflowCoreTests(unittest.TestCase):
         source.write_text(source.read_text(encoding="utf-8") + "\nverändert", encoding="utf-8")
         with self.assertRaises(CliUsageError):
             handle_neu(self.project.context, {**args, "fortsetzen": True})
+        args.pop("universal_lebenslauf_path")
+        self.assertEqual(0, handle_neu(self.project.context, {**args, "fortsetzen": True}))
+
+    def test_selects_universal_direction_explicitly_and_continues_with_frozen_snapshot(self):
+        namespace = self.project.applications / "_Universal-Lebenslauf"
+        legacy = active_fixture(namespace / "Aktiv", "systemadministration")
+        software = active_fixture(namespace / "Aktiv--Softwareentwicklung")
+        args = {
+            "firma": "Beispiel GmbH", "rolle": "Frontend", "umfang": "B", "datum": "2026-08-23",
+            "bewerbungen_root": self.project.applications, "stammdaten_path": self.project.master,
+            "profil_path": self.project.profile,
+        }
+        with self.assertRaisesRegex(CliUsageError, "ausdrücklich"):
+            handle_neu(self.project.context, args)
+        self.assertEqual(0, handle_neu(self.project.context, {**args, "universal_fachrichtung": "softwareentwicklung"}))
+        work = self.project.applications / "Beispiel-GmbH/_Arbeitsdateien/2026-08-23--Frontend"
+        snapshot = work / "Kandidat" / software.name
+        self.assertEqual(sha256_file(software), sha256_file(snapshot))
+        active_fixture(namespace / "Aktiv--Systemadministration", "systemadministration")
+        self.project.reset_output()
+        self.assertEqual(0, handle_universal_status(self.project.context, {"als_json": True}))
+        active = json.loads(self.project.stdout.getvalue())["activeFolders"]
+        self.assertEqual({"softwareentwicklung", "systemadministration"}, set(active))
+        self.assertNotEqual(active["softwareentwicklung"], active["systemadministration"])
+        self.assertEqual(0, handle_neu(self.project.context, {
+            **args, "rolle": "Linux-Administration", "umfang": "E", "dokumente": ["lebenslauf", "anschreiben"],
+            "universal_fachrichtung": "systemadministration",
+        }))
+        admin_work = work.with_name("2026-08-23--Linux-Administration")
+        self.assertEqual(sha256_file(legacy), sha256_file(admin_work / "Kandidat" / legacy.name))
+        self.assertFalse(read_json(admin_work / "Bewerbungsauftrag.json")["dokumentumfang"]["emailNachricht"])
+        software.unlink()
+        self.assertEqual(0, handle_neu(self.project.context, {**args, "fortsetzen": True}))
+        with self.assertRaisesRegex(CliUsageError, "Fachrichtung"):
+            handle_neu(self.project.context, {**args, "fortsetzen": True, "universal_fachrichtung": "systemadministration"})
+        write_atomic_text(snapshot, "Nachträglich veränderter synthetischer Inhalt")
+        order_path = work / "Bewerbungsauftrag.json"
+        order = read_json(order_path)
+        order["bewerbungsentscheidung"] = "bewerben"
+        write_atomic_json(order_path, order)
+        write_atomic_json(work / "Anforderungsmatrix.json", {"schemaVersion": 1, "requirements": []})
+        with self.assertRaisesRegex(ContractError, "ursprünglichen Universal-Snapshot"):
+            finalisieren(self.project.context, {"arbeitsordner": work})
 
     def test_status_reconstructs_state_and_marks_changed_checkpoint_stale(self):
         work, _ = self.project.create_application()
@@ -444,6 +499,29 @@ class WorkflowCoreTests(unittest.TestCase):
         self.assertTrue(any("data-cv-section" in item for item in errors))
         self.assertTrue(any("dokumentweit eindeutig" in item for item in errors))
 
+    def test_universal_systemadministration_has_its_own_consistent_positioning(self):
+        source_hashes = (sha256_file(self.project.master), sha256_file(self.project.profile))
+        args = {"datum": "2026-08-23", "bewerbungen_root": self.project.applications,
+                "stammdaten_path": self.project.master, "profil_path": self.project.profile,
+                "fachrichtung": "systemadministration"}
+        self.assertEqual(0, handle_universal_neu(self.project.context, args))
+        work = self.project.applications / "_Universal-Lebenslauf/_Arbeitsdateien/2026-08-23--Systemadministration"
+        order = read_json(work / "Universalauftrag.json")
+        self.assertEqual("systemadministration", order["fachrichtung"])
+        self.assertIn("Junior Systemadministrator", order["zielrollen"])
+        self.assertEqual(work, self.project.applications / order["arbeitsOrdner"])
+        basis = (work / "Kandidat/Stellenbeschreibung.md").read_text(encoding="utf-8")
+        self.assertIn("Junior-Systemadministration", basis)
+        self.assertNotIn("IT-Administration ist keine Zielrichtung", basis)
+        self.assertEqual(0, handle_universal_neu(self.project.context, dict(args, fortsetzen=True)))
+        self.assertEqual(0, handle_checkpoint(self.project.context, {"arbeitsordner": work, "schritt": "auftrag_angelegt"}))
+        checkpoint = read_json(work / "Workflow-Checkpoint.json")
+        self.assertEqual("auftrag_angelegt", checkpoint["lastCompletedStep"])
+        self.assertIn("Universalauftrag.json", [item["path"] for item in checkpoint["artifacts"]])
+        self.assertEqual(source_hashes, (sha256_file(self.project.master), sha256_file(self.project.profile)))
+        with self.assertRaises(ContractError):
+            handle_universal_neu(self.project.context, dict(args, fachrichtung="unbekannt"))
+
 
 class ApprovalTokenAndBaselineTests(unittest.TestCase):
     def setUp(self):
@@ -456,7 +534,11 @@ class ApprovalTokenAndBaselineTests(unittest.TestCase):
         artifact = self.work / "Kandidat/Pruefseite.txt"
         artifact.write_text("persönlich zu prüfender synthetischer Inhalt", encoding="utf-8")
         record = artifact_record(artifact, self.work)
-        records = [record]
+        order_path = self.work / "Bewerbungsauftrag.json"
+        order = read_json(order_path)
+        order["bewerbungsentscheidung"] = "bewerben"
+        write_atomic_json(order_path, order)
+        records = [record, *[artifact_record(path, self.work) for path in (self.work / "Kandidat").iterdir() if path != artifact]]
         report = {
             "schemaVersion": 7, "status": "bereit_zur_sichtpruefung", "personalReview": "textpruefung",
             "artifacts": {"candidate": records},
@@ -471,7 +553,7 @@ class ApprovalTokenAndBaselineTests(unittest.TestCase):
         self.assertEqual(1, approval["schemaVersion"])
         self.assertTrue(approval["humanConfirmation"])
         self.assertEqual("geprüft und bestätigt", approval["note"])
-        self.assertEqual(record["path"], approval["artifacts"][0]["path"])
+        self.assertIn(record["path"], [item["path"] for item in approval["artifacts"]])
         artifact.write_text("nachträglich verändert", encoding="utf-8")
         with self.assertRaises(ContractError):
             handle_freigabe(self.project.context, {"arbeitsordner": self.work, "freigabe_id": "FR-ABCDEF123456", "bestaetigt": True})
@@ -481,6 +563,91 @@ class ApprovalTokenAndBaselineTests(unittest.TestCase):
             handle_freigabe(self.project.context, {"arbeitsordner": self.work, "freigabe_id": "FR-ABCDEF123456"})
         with self.assertRaises(ContractError):
             handle_freigabe(self.project.context, {"arbeitsordner": self.work, "freigabe_id": "bad", "bestaetigt": True})
+
+    def test_email_release_requires_exact_approval_and_explicit_decision(self):
+        args = {
+            "firma": "E-Mail Test", "rolle": "Testrolle", "datum": "2026-08-23",
+            "umfang": "E", "dokumente": ["email_nachricht"], "email_allein_bestaetigt": True,
+        }
+        self.assertEqual(0, handle_neu(self.project.context, args))
+        work = self.project.applications / "E-Mail-Test/_Arbeitsdateien/2026-08-23--Testrolle"
+        candidate = work / "Kandidat"
+        order_path = work / "Bewerbungsauftrag.json"
+        order = read_json(order_path)
+        order["dialog"]["status"] = "bereit_zur_dokumenterstellung"
+        matrix_path = work / "Anforderungsmatrix.json"
+        for title in ("Stellenbeschreibung", "Analyse", "Qualitaetscheck", "Druck-Hinweis"):
+            write_atomic_text(candidate / (title + ".md"), "# Synthetischer Testnachweis\n\n"
+                              "Dieser Nachweis dient der technischen Prüfung des freigegebenen Dokumentumfangs ohne echte Bewerbungsdaten.")
+        message = candidate / "Email-Nachricht--E-Mail-Test.md"
+        write_atomic_text(message, "Betreff: Bewerbung als Testrolle\n\nGuten Tag, hier folgt der synthetische Test.")
+        write_atomic_json(matrix_path, {"schemaVersion": 1, "requirements": [{"id": "test-1"}]})
+        options = {"arbeitsordner": work}
+        order["bewerbungsentscheidung"] = "nicht_bewerben"
+        write_atomic_json(order_path, order)
+        for op in (options, {**options, "veroeffentlichen": True}):
+            with self.assertRaisesRegex(ContractError, "nicht_bewerben"):
+                finalisieren(self.project.context, op)
+        order["bewerbungsentscheidung"] = "bewerben"
+        write_atomic_json(order_path, order)
+        self.assertEqual(0, finalisieren(self.project.context, options))
+        report = read_json(work / "Finalisierungsbericht.json")
+        approval = {**options, "freigabe_id": report["approvalRequest"]["approvalId"], "bestaetigt": True}
+        extra = candidate / "Email-Nachricht--Nicht-Freigegeben.md"
+        write_atomic_text(extra, "Betreff: Nicht freigegebener synthetischer Text")
+        with self.assertRaisesRegex(ContractError, "Dateibestand"):
+            handle_freigabe(self.project.context, approval)
+        extra.unlink()
+        self.assertEqual(0, handle_freigabe(self.project.context, approval))
+        write_atomic_text(extra, "Betreff: Nach Freigabe hinzugefügter synthetischer Text")
+        with self.assertRaisesRegex(ContractError, "Dateibestand"):
+            finalisieren(self.project.context, {**options, "veroeffentlichen": True})
+        self.assertFalse((self.project.applications / order["zielOrdner"] / "Versand").exists())
+        with self.assertRaisesRegex(ContractError, "inhalt|Versanddateien"):
+            finalisieren(self.project.context, options)
+        extra.unlink()
+        self.assertEqual(0, finalisieren(self.project.context, {**options, "veroeffentlichen": True}))
+        shipping = self.project.applications / order["zielOrdner"] / "Versand"
+        self.assertEqual([message.name], [path.name for path in shipping.iterdir()])
+
+    def test_schema5_checks_evidence_and_external_sources(self):
+        candidate = self.work / "Kandidat"
+        job = candidate / "Stellenbeschreibung.md"
+        write_atomic_text(job, "Python wird vorausgesetzt.")
+        order_path = self.work / "Bewerbungsauftrag.json"
+        order = read_json(order_path)
+        order["dokumentumfang"].update(lebenslauf="nicht_enthalten", anschreiben=False, emailNachricht=True)
+        write_atomic_json(order_path, order)
+        write_atomic_text(candidate / "Email-Nachricht--Beispiel-GmbH.md", "Betreff: Synthetische Bewerbung\n\nPython")
+        line_number = PROFILE.splitlines().index("- Python") + 1
+        write_atomic_json(self.work / "Evidenzindex.json", {
+            "schemaVersion": 1, "profilSha256": sha256_file(self.project.profile),
+            "belege": [{"id": "profil-python", "quelle": "profil", "text": "- Python",
+                        "zeileVon": line_number, "zeileBis": line_number, "belegart": "PROJEKTPRAXIS"}],
+        })
+        matrix_path = self.work / "Anforderungsmatrix.json"
+        requirement = {"id": "muss-python", "anforderung": "Python", "typ": "muss", "status": "erfuellt",
+                       "kategorie": "fachlich", "gewichtung": "kritisch", "beleg": "Belegte Pythonkenntnis",
+                       "belegart": "PROJEKTPRAXIS", "behandlung": "In der E-Mail nennen",
+                       "stellenFundstellen": ["stelle-python"], "belegRefIds": ["profil-python"]}
+        matrix = {"schemaVersion": 5, "requirements": [requirement], "externeQuellen": [],
+                  "stellenanzeigeAbdeckung": {"sourceSha256": sha256_file(job), "fundstellen": [
+                      {"id": "stelle-python", "zeileVon": 1, "zeileBis": 1,
+                       "text": "Python wird vorausgesetzt.", "klassifikation": "anforderung",
+                       "anforderungIds": ["muss-python"]},
+                  ]}}
+        report_path = self.work / "Inhalts-Pruefbericht.json"
+        args = {"ordner": candidate, "auftrag_path": order_path, "anforderungsmatrix_path": matrix_path,
+                "bericht_path": report_path}
+        write_atomic_json(matrix_path, matrix)
+        self.assertEqual(0, handle_inhalt(self.project.context, args))
+        requirement.update(belegRefIds=[], stellenFundstellen=[])
+        matrix["externeQuellen"] = [{}]
+        write_atomic_json(matrix_path, matrix)
+        self.assertEqual(1, handle_inhalt(self.project.context, args))
+        failed = read_json(report_path)
+        self.assertEqual("fehler", failed["evidenceCoverage"]["status"])
+        self.assertEqual("fehler", failed["externalSourceCoverage"]["status"])
 
     def test_token_report_preserves_measured_values_on_later_unavailability(self):
         available = {

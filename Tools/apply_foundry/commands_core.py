@@ -22,17 +22,25 @@ import unittest
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from urllib.parse import urlsplit
 
 from .cli import CommandContext, Handler
-from .browser_tools import candidate_link_contract
+from .browser_tools import candidate_link_contract, html_page_bodies
 from .contracts import (
     approval_records,
+    approved_candidate_files,
     artifact_set_hash,
     assert_artifacts_current,
     document_scope,
     new_evidence_draft,
     new_matrix_draft,
+    require_universal_snapshot,
+    require_application_decision,
     scope_from_cli,
+    UNIVERSAL_PROFILES,
+    universal_active_path,
+    universal_profile,
+    validate_universal_order,
 )
 from .errors import CliUsageError, ContractError, UnsafePathError, WorkflowError
 from .io import (
@@ -168,9 +176,12 @@ def _checkpoint_status(work: Path) -> Dict[str, Any]:
 def write_checkpoint(work: Path, step: str) -> Dict[str, Any]:
     if step not in CHECKPOINT_STEPS:
         raise ContractError("Unzulässiger Workflow-Schritt: %s" % step)
-    paths = infer_work_context(work, universal=False)
-    order_path = safe_path(work / "Bewerbungsauftrag.json", work, must_exist=True, kind="file")
+    paths = infer_work_context(work)
+    is_universal = work.parent.parent.name == "_Universal-Lebenslauf"
+    order_path = safe_path(work / ("Universalauftrag.json" if is_universal else "Bewerbungsauftrag.json"), work, must_exist=True, kind="file")
     order = read_json(order_path)
+    if is_universal:
+        validate_universal_order(order, paths.work)
     scope = order.get("dokumentumfang") or {}
     dialog = order.get("dialog") or {}
     blocking = sum(1 for question in dialog.get("rueckfragen", []) if isinstance(question, dict) and question.get("status") == "offen" and question.get("blockiertDokumenterstellung") is True)
@@ -253,117 +264,53 @@ def _regular_external_file(path: Path, label: str) -> Path:
         raise CliUsageError("%s muss auf eine sichere reguläre Datei zeigen: %s" % (label, exc)) from exc
 
 
-def _resolve_new_order_inputs(
-    ctx: CommandContext,
-    args: Mapping[str, Any],
-    applications: Path,
-    applicant: str,
-    scope: Mapping[str, Any],
-) -> Tuple[Optional[Path], Optional[Path], Optional[str], Optional[Dict[str, Any]]]:
-    source_job = args.get("stellenbeschreibung_path")
-    if source_job is not None:
-        source_job = _regular_external_file(Path(source_job), "--stellenbeschreibung-path")
-    universal_source: Optional[Path] = None
-    universal_hash: Optional[str] = None
-    universal_binding: Optional[Dict[str, Any]] = None
-    if scope["lebenslauf"] == "universal_unveraendert":
-        explicit = args.get("universal_lebenslauf_path")
-        if explicit is None:
-            active = applications / "_Universal-Lebenslauf" / "Aktiv"
-            preferred = active / "Intern" / ("Lebenslauf - %s.html" % applicant)
-            legacy = ctx.project_root / "Private/LebenslaufUniversal/Aktiv" / ("Lebenslauf - %s.html" % applicant)
-            if preferred.is_file():
-                valid, _ = _active_manifest_valid(active)
-                if not valid:
-                    raise ContractError("Die lokale Universalquelle besitzt keinen gültigen persönlichen Freigabe- und Hashnachweis.")
-                explicit = preferred
-            elif legacy.is_file():
-                explicit = legacy
-                ctx.warning("Legacy-Universalquelle wird weiterhin gelesen; neue Freigaben gehören unter Private/Bewerbungen/_Universal-Lebenslauf/Aktiv.")
-            else:
-                raise ContractError("Keine aktive Universalquelle gefunden. Zuerst universal-neu und universal-finalisieren ausführen oder --universal-lebenslauf-path angeben.")
-        universal_source = _regular_external_file(Path(explicit), "--universal-lebenslauf-path")
-        expected_name = "Lebenslauf - %s.html" % applicant
-        if universal_source.suffix != ".html" or universal_source.name != expected_name:
-            raise ContractError("Der universelle Lebenslauf muss exakt '%s' heißen." % expected_name)
-        if PLACEHOLDER.search(read_text(universal_source)):
-            raise ContractError("Der universelle Lebenslauf enthält sichtbare Platzhalter.")
-        universal_hash = sha256_file(universal_source)
-        project = applications.parent.parent
-        if universal_source.is_relative_to(project):
-            relative = universal_source.relative_to(project).as_posix()
-            universal_binding = {
-                "sourceHtmlPfadModus": "relativ_zu_projekt_root",
-                "sourceHtmlDateiname": universal_source.name,
-                "sourceHtmlSha256BeiAnlage": universal_hash,
-                "kandidatDatei": expected_name,
-                "sourceHtmlPath": relative,
-            }
-        else:
-            universal_binding = {
-                "sourceHtmlPfadModus": "extern_nicht_gespeichert",
-                "sourceHtmlDateiname": universal_source.name,
-                "sourceHtmlSha256BeiAnlage": universal_hash,
-                "kandidatDatei": expected_name,
-            }
-    elif args.get("universal_lebenslauf_path") is not None:
-        raise CliUsageError("--universal-lebenslauf-path ist nur bei ausgewähltem universellem Lebenslauf zulässig.")
-    return source_job, universal_source, universal_hash, universal_binding
-
-
-def _universal_binding_matches(
-    existing_order: Mapping[str, Any],
-    schema: int,
-    source: Path,
-    source_hash: str,
-    binding: Mapping[str, Any],
-    applicant: str,
-    project_root: Path,
-) -> bool:
-    existing = existing_order.get("universalLebenslauf")
-    if not isinstance(existing, dict):
-        return False
-    expected_candidate = "Lebenslauf - %s.html" % applicant
-    if str(existing.get("sourceHtmlSha256BeiAnlage", "")).upper() != source_hash.upper():
-        return False
-    if existing.get("kandidatDatei") != expected_candidate:
-        return False
-    if existing_order.get("bewerberDateiname") != applicant:
-        return False
-    if schema <= 4:
-        legacy_path = existing.get("sourceHtmlPath")
-        return isinstance(legacy_path, str) and bool(legacy_path.strip()) and Path(
-            os.path.abspath(legacy_path)
-        ) == source
-
-    if existing.get("sourceHtmlDateiname") != binding.get("sourceHtmlDateiname"):
-        return False
-    existing_mode = existing.get("sourceHtmlPfadModus")
-    requested_mode = binding.get("sourceHtmlPfadModus")
-    if existing_mode != requested_mode:
-        return False
-    if existing_mode == "extern_nicht_gespeichert":
-        return existing.get("sourceHtmlPath") in (None, "") and binding.get("sourceHtmlPath") is None
-    if existing_mode != "relativ_zu_projekt_root":
-        return False
-    existing_relative = existing.get("sourceHtmlPath")
-    if existing_relative != binding.get("sourceHtmlPath") or not isinstance(existing_relative, str):
-        return False
-    try:
-        stored = safe_path(
-            project_root / existing_relative,
-            project_root,
-            must_exist=True,
-            kind="file",
-        )
-    except UnsafePathError:
-        return False
-    return stored.name == existing.get("sourceHtmlDateiname") and stored == source
+def _resolve_universal_input(
+    args: Mapping[str, Any], applications: Path, applicant: str,
+) -> Tuple[Path, Dict[str, Any]]:
+    explicit = args.get("universal_lebenslauf_path")
+    direction = args.get("universal_fachrichtung")
+    namespace = applications / "_Universal-Lebenslauf"
+    name = "Lebenslauf - %s.html" % applicant
+    if explicit is None:
+        if direction is None:
+            raise CliUsageError("Wähle den Universal-Lebenslauf ausdrücklich mit --universal-fachrichtung oder --universal-lebenslauf-path.")
+        active = universal_active_path(applications, direction)
+        if not active.exists():
+            active = safe_path(namespace / "Aktiv", applications, kind="dir")
+        if not active.exists():
+            raise ContractError("Keine aktive Universal-Fassung für %s gefunden." % direction)
+        explicit = active / "Intern" / name
+    source = _regular_external_file(Path(explicit), "--universal-lebenslauf-path")
+    if source.name != name:
+        raise ContractError("Der universelle Lebenslauf muss exakt '%s' heißen." % name)
+    source_hash = sha256_file(source)
+    if PLACEHOLDER.search(read_text(source)):
+        raise ContractError("Der universelle Lebenslauf enthält sichtbare Platzhalter.")
+    if source.is_relative_to(namespace):
+        active = source.parent.parent
+        if active.parent != namespace or source.parent.name != "Intern":
+            raise ContractError("Eine interne Universalquelle muss aus einer aktiven Fassung stammen.")
+        valid, manifest = _active_manifest_valid(active, direction, applicant=applicant)
+        if not valid or manifest is None:
+            raise ContractError("Die interne Universalquelle besitzt keinen gültigen Freigabe- und Hashnachweis.")
+        html_record = next(record for record in manifest["files"] if record["path"] == "Intern/" + name)
+        if html_record["sha256"].upper() != source_hash:
+            raise ContractError("Die aktive Universalquelle wurde während der Auswahl verändert.")
+        direction = manifest["fachrichtung"]
+    project = applications.parent.parent
+    binding = {
+        "sourceHtmlDateiname": source.name, "sourceHtmlSha256BeiAnlage": source_hash,
+        "kandidatDatei": name, "sourceHtmlPfadModus": "extern_nicht_gespeichert",
+    }
+    if source.is_relative_to(project):
+        binding.update(sourceHtmlPfadModus="relativ_zu_projekt_root", sourceHtmlPath=source.relative_to(project).as_posix())
+    if direction:
+        binding["fachrichtung"] = direction
+    return source, binding
 
 
 def handle_neu(ctx: CommandContext, args: Mapping[str, Any]) -> int:
     company, role = _validate_creation_fields(str(args["firma"]), str(args.get("rolle", "Bewerbung")))
-    scope = scope_from_cli(args)
     date_value = parse_date(str(args.get("datum", date.today().isoformat())))
     applications = require_private_applications_root(Path(args.get("bewerbungen_root") or _default(ctx, "Private/Bewerbungen")))
     master, profile = _source_paths(ctx, args, applications)
@@ -377,9 +324,9 @@ def handle_neu(ctx: CommandContext, args: Mapping[str, Any]) -> int:
     _assert_no_portable_case_collision(paths.target.parent, paths.target.name)
     _assert_no_portable_case_collision(paths.target.parent, "_Arbeitsdateien")
     _assert_no_portable_case_collision(paths.work.parent, paths.work.name)
-    source_job, universal_source, universal_hash, universal_binding = _resolve_new_order_inputs(
-        ctx, args, applications, applicant, scope
-    )
+    source_job = args.get("stellenbeschreibung_path")
+    if source_job is not None:
+        source_job = _regular_external_file(Path(source_job), "--stellenbeschreibung-path")
     target_exists = paths.target.exists() or paths.target.is_symlink()
     work_exists = paths.work.exists() or paths.work.is_symlink()
     if target_exists or work_exists:
@@ -393,6 +340,7 @@ def handle_neu(ctx: CommandContext, args: Mapping[str, Any]) -> int:
         notes = safe_path(paths.work / "Arbeitsnotizen.md", paths.work, must_exist=True, kind="file")
         existing = read_json(order_path)
         resolve_order_paths(existing, applications, paths.work)
+        scope = scope_from_cli(args, existing)
         existing_scope = existing.get("dokumentumfang") or {}
         schema = existing.get("schemaVersion")
         for key, wanted in (("firma", company), ("rolle", role), ("datum", date_value)):
@@ -412,24 +360,25 @@ def handle_neu(ctx: CommandContext, args: Mapping[str, Any]) -> int:
         if isinstance(schema, int) and schema >= 5 and existing.get("bewerberDateiname") != applicant:
             raise CliUsageError("Bewerbungsauftrag und Dateiname-Name stimmen beim Fortsetzen nicht überein.")
         if scope["lebenslauf"] == "universal_unveraendert":
-            if not _universal_binding_matches(
-                existing,
-                int(schema),
-                universal_source,  # type: ignore[arg-type]
-                str(universal_hash),
-                universal_binding or {},
-                applicant,
-                ctx.project_root,
-            ):
-                raise CliUsageError("Beim Fortsetzen wurde eine andere Universal-Lebenslauf-Quelle übergeben.")
-            candidate_source = safe_path(paths.candidate / ("Lebenslauf - %s.html" % applicant), paths.candidate, must_exist=True, kind="file")
-            if sha256_file(candidate_source) != universal_hash:
-                raise ContractError("Der Kandidaten-Lebenslauf weicht von der gebundenen Universalquelle ab.")
+            snapshot = require_universal_snapshot(existing, paths.candidate)
+            binding = existing["universalLebenslauf"]
+            direction = args.get("universal_fachrichtung")
+            if direction and direction != binding.get("fachrichtung"):
+                raise CliUsageError("Gewählte Fachrichtung stimmt nicht mit der gespeicherten Universalquelle überein.")
+            explicit = args.get("universal_lebenslauf_path")
+            if explicit:
+                source = _regular_external_file(Path(explicit), "--universal-lebenslauf-path")
+                if source.name != snapshot.name or sha256_file(source) != sha256_file(snapshot):
+                    raise CliUsageError("Beim Fortsetzen wurde eine andere Universal-Lebenslauf-Quelle übergeben.")
         if source_job is not None:
             _copy_if_identical_or_missing(source_job, paths.candidate / "Stellenbeschreibung.md", "Stellenbeschreibung")
         ctx.ok("Bestehender Bewerbungsauftrag wird fortgesetzt: %s" % paths.work)
         return 0
 
+    scope = scope_from_cli(args)
+    universal_source, universal_binding = (None, None)
+    if scope["lebenslauf"] == "universal_unveraendert":
+        universal_source, universal_binding = _resolve_universal_input(args, applications, applicant)
     created: List[Path] = []
     try:
         for folder in (applications, paths.target.parent, paths.target, paths.work.parent, paths.work, paths.candidate):
@@ -482,6 +431,7 @@ def handle_neu(ctx: CommandContext, args: Mapping[str, Any]) -> int:
             _write_if_missing(paths.work / "Stellenbeschreibung--ENTWURF.md", "# Stellenbeschreibung\n\n[Stellenbeschreibung hier einfügen]\n")
         if universal_source is not None:
             _copy_if_identical_or_missing(universal_source, paths.candidate / universal_source.name, "Universal-Lebenslauf")
+            require_universal_snapshot(order, paths.candidate)
         _write_application_drafts(paths, company, role, applicant, scope)
         checkpoint = write_checkpoint(paths.work, "auftrag_angelegt")
     except Exception:
@@ -517,6 +467,8 @@ def _write_application_drafts(paths: OrderPaths, company: str, role: str, applic
 
 def handle_universal_neu(ctx: CommandContext, args: Mapping[str, Any]) -> int:
     date_value = parse_date(str(args.get("datum", date.today().isoformat())))
+    direction = args.get("fachrichtung", "softwareentwicklung")
+    selected_profile = universal_profile(direction)
     applications = require_private_applications_root(Path(args.get("bewerbungen_root") or _default(ctx, "Private/Bewerbungen")))
     master, profile = _source_paths(ctx, args, applications)
     fields = _markdown_fields(master)
@@ -525,7 +477,7 @@ def handle_universal_neu(ctx: CommandContext, args: Mapping[str, Any]) -> int:
         raise ContractError("Dateiname-Name fehlt oder ist für den Lebenslauf-Dateinamen ungültig.")
     namespace = safe_path(applications / "_Universal-Lebenslauf", applications)
     collection = safe_path(namespace / "_Arbeitsdateien", applications)
-    work = safe_path(collection / (date_value + "--Softwareentwicklung"), applications)
+    work = safe_path(collection / (date_value + "--" + selected_profile["ordnerSlug"]), applications)
     candidate = safe_path(work / "Kandidat", applications)
     _assert_no_portable_case_collision(applications, "_Universal-Lebenslauf")
     _assert_no_portable_case_collision(namespace, "_Arbeitsdateien")
@@ -533,18 +485,20 @@ def handle_universal_neu(ctx: CommandContext, args: Mapping[str, Any]) -> int:
     if work.exists() or work.is_symlink():
         if not args.get("fortsetzen"):
             raise CliUsageError("Universal-Arbeitsordner existiert bereits; --fortsetzen verwenden: %s" % work)
-        safe_path(work / "Universalauftrag.json", work, must_exist=True, kind="file")
+        existing_order = safe_path(work / "Universalauftrag.json", work, must_exist=True, kind="file")
+        validate_universal_order(read_json(existing_order), work)
         safe_path(candidate, work, must_exist=True, kind="dir")
         ctx.ok("Bestehender Universal-Lebenslauf-Arbeitsstand wird fortgesetzt: %s" % work)
         return 0
     candidate.mkdir(parents=True)
     now = utc_now()
-    work_rel = "_Universal-Lebenslauf/_Arbeitsdateien/%s--Softwareentwicklung" % date_value
+    work_rel = "_Universal-Lebenslauf/_Arbeitsdateien/%s--%s" % (date_value, selected_profile["ordnerSlug"])
     order = {
-        "schemaVersion": 5, "auftragsart": "universal_lebenslauf", "fachrichtung": "softwareentwicklung",
-        "zielrollen": ["Frontend-Entwickler", "Backend-Entwickler", "Fullstack-Entwickler"],
+        "schemaVersion": 5, "auftragsart": "universal_lebenslauf", "fachrichtung": direction,
+        "zielrollen": list(selected_profile["zielrollen"]),
         "datum": date_value, "bewerberDateiname": applicant, "pfadModus": "relativ_zu_bewerbungen_root",
-        "zielOrdner": "_Universal-Lebenslauf/Aktiv", "arbeitsOrdner": work_rel, "kandidatOrdner": work_rel + "/Kandidat",
+        "zielOrdner": universal_active_path(applications, direction).relative_to(applications).as_posix(),
+        "arbeitsOrdner": work_rel, "kandidatOrdner": work_rel + "/Kandidat",
         "dokumentmodus": "individuelle_auswahl",
         "dokumentumfang": {"kennung": "universal_lebenslauf", "bestaetigt": True, "lebenslauf": "individuell", "anschreiben": False, "emailNachricht": False},
         "seitenstrategie": {"typ": "zwei_seiten_semantisch", "abschnitteAtomar": True, "seite1": ["kurzprofil", "technologien", "projekte"], "seite2": ["berufserfahrung", "weiterbildung", "ausbildung", "schulbildung"]},
@@ -555,9 +509,9 @@ def handle_universal_neu(ctx: CommandContext, args: Mapping[str, Any]) -> int:
         "status": "dokumenterstellung", "createdAtUtc": now,
     }
     write_atomic_json(work / "Universalauftrag.json", order)
-    write_atomic_text(candidate / "Stellenbeschreibung.md", "# Positionierungsgrundlage für den universellen Lebenslauf\n\nDieser Auftrag bezieht sich auf keine konkrete Stellenanzeige und keinen Arbeitgeber. Schwerpunkt ist ausschließlich Softwareentwicklung; IT-Administration ist keine Zielrichtung.\n")
+    write_atomic_text(candidate / "Stellenbeschreibung.md", "# Positionierungsgrundlage für den universellen Lebenslauf\n\nDieser Auftrag bezieht sich auf keine konkrete Stellenanzeige und keinen Arbeitgeber. " + selected_profile["positionierung"] + "\n")
     write_atomic_text(candidate / "Analyse.md", "# Analyse\n\n## Recruiter-Strategie\n\n[ergänzen: Belegstrategie und Priorisierung]\n\n## Seitenplan\n\n- Seite 1: Kurzprofil, Technologien und Projekte\n- Seite 2: Berufserfahrung, Weiterbildung, Ausbildung und Schulbildung\n")
-    write_atomic_text(candidate / "Qualitaetscheck.md", "# Qualitätscheck\n\n- Wahrheits- und Profilabgleich: [ergänzen]\n- Softwareentwicklung klar positioniert: [ergänzen]\n")
+    write_atomic_text(candidate / "Qualitaetscheck.md", "# Qualitätscheck\n\n- Wahrheits- und Profilabgleich: [ergänzen]\n- Gewählte Fachrichtung klar positioniert: [ergänzen]\n")
     write_atomic_text(candidate / "Druck-Hinweis.md", "# Druck-Hinweis\n\nBeide expliziten A4-Seiten müssen im Chromium-Export erzeugt und anhand aktueller PNG-Dateien persönlich geprüft werden.\n")
     ctx.ok("Universal-Lebenslauf-Arbeitsordner angelegt: %s" % work)
     ctx.out("Kandidat: %s" % candidate)
@@ -565,38 +519,71 @@ def handle_universal_neu(ctx: CommandContext, args: Mapping[str, Any]) -> int:
     return 0
 
 
-def _active_manifest_valid(active: Path) -> Tuple[bool, Optional[Dict[str, Any]]]:
+def _active_manifest_valid(
+    active: Path, direction: Optional[str] = None, *, applicant: Optional[str] = None,
+) -> Tuple[bool, Optional[Dict[str, Any]]]:
     manifest_path = active / "Manifest.json"
     if not manifest_path.is_file():
         return False, None
     try:
-        manifest = read_json(manifest_path)
-        if manifest.get("schemaVersion") != 1 or manifest.get("auftragsart") != "universal_lebenslauf" or (manifest.get("personalReview") or {}).get("confirmed") is not True:
+        manifest = read_json(safe_path(manifest_path, active, must_exist=True, kind="file"))
+        if not isinstance(manifest, dict) or manifest.get("schemaVersion") != 1 or manifest.get("auftragsart") != "universal_lebenslauf" or (manifest.get("personalReview") or {}).get("confirmed") is not True:
+            return False, None
+        selected = manifest.get("fachrichtung")
+        profile = universal_profile(selected)
+        if (direction and selected != direction) or active.name not in ("Aktiv", "Aktiv--" + profile["ordnerSlug"]):
+            return False, manifest
+        if manifest.get("zielrollen") != list(profile["zielrollen"]):
             return False, manifest
         records = manifest.get("files") or []
-        if len(records) != 2:
+        if not isinstance(records, list) or len(records) != 2 or not all(isinstance(record, dict) for record in records):
             return False, manifest
         assert_artifacts_current(records, active)
         expected = sorted(str(item.get("path")) for item in records)
+        match = re.fullmatch(r"Intern/(Lebenslauf - [A-Za-z0-9][A-Za-z0-9.-]*)\.html", expected[0])
+        if not match or expected[1] != "Versand/" + match[1] + ".pdf" or (applicant and match[1] != "Lebenslauf - " + applicant):
+            return False, manifest
         actual = sorted(path.relative_to(active).as_posix() for path in active.rglob("*") if path.is_file() and path.name != "Manifest.json")
         return expected == actual, manifest
-    except (WorkflowError, OSError, TypeError, ValueError):
+    except (WorkflowError, OSError, TypeError, ValueError, AttributeError):
         return False, None
 
 
 def handle_universal_status(ctx: CommandContext, args: Mapping[str, Any]) -> int:
-    applications = require_private_applications_root(Path(args.get("bewerbungen_root") or _default(ctx, "Private/Bewerbungen")), must_exist=True)
-    namespace = safe_path(applications / "_Universal-Lebenslauf", applications)
-    active = safe_path(namespace / "Aktiv", applications)
-    collection = safe_path(namespace / "_Arbeitsdateien", applications)
     work = args.get("arbeitsordner")
-    if work is not None:
-        work = infer_work_context(Path(work), universal=True).work
+    direction = args.get("fachrichtung")
+    context = infer_work_context(Path(work), universal=True) if work is not None else None
+    applications = context.applications_root if context else require_private_applications_root(
+        Path(args.get("bewerbungen_root") or _default(ctx, "Private/Bewerbungen")), must_exist=True
+    )
+    namespace = safe_path(applications / "_Universal-Lebenslauf", applications)
+    collection = safe_path(namespace / "_Arbeitsdateien", applications)
+    if context:
+        work = context.work
+        order = read_json(safe_path(work / "Universalauftrag.json", work, must_exist=True, kind="file"))
+        actual_direction = validate_universal_order(order, work)
+        if direction and actual_direction != direction:
+            raise CliUsageError("Fachrichtung stimmt nicht mit dem Arbeitsordner überein.")
+        direction = actual_direction
     elif collection.is_dir():
-        candidates = [item for item in collection.iterdir() if item.is_dir() and not item.is_symlink()]
+        suffix = "--" + universal_profile(direction)["ordnerSlug"] if direction else ""
+        candidates = [item for item in collection.iterdir() if item.name.endswith(suffix) and item.is_dir() and not item.is_symlink()]
         if candidates:
             work = max(candidates, key=lambda item: item.stat().st_mtime_ns)
-    valid, manifest = _active_manifest_valid(active) if active.is_dir() else (False, None)
+            order = read_json(safe_path(work / "Universalauftrag.json", work, must_exist=True, kind="file"))
+            direction = validate_universal_order(order, work)
+    legacy = safe_path(namespace / "Aktiv", applications, kind="dir")
+    active_packages = {}
+    for key in UNIVERSAL_PROFILES:
+        path = universal_active_path(applications, key)
+        valid, _ = _active_manifest_valid(path, key)
+        if valid:
+            active_packages[key] = str(path)
+        elif not path.exists() and _active_manifest_valid(legacy, key)[0]:
+            active_packages[key] = str(legacy)
+    direction = direction or next(iter(active_packages), "softwareentwicklung")
+    active = Path(active_packages[direction]) if direction in active_packages else universal_active_path(applications, direction)
+    valid, manifest = _active_manifest_valid(active, direction)
     active_work_id = str((manifest or {}).get("workId", ""))
     if work is not None:
         if valid and work.name == active_work_id:
@@ -606,7 +593,12 @@ def handle_universal_status(ctx: CommandContext, args: Mapping[str, Any]) -> int
             prepared = False
             if report.is_file():
                 try:
-                    prepared = read_json(report).get("status") == "bereit_zur_sichtpruefung"
+                    value = read_json(safe_path(report, work, must_exist=True, kind="file"))
+                    if isinstance(value, dict) and value.get("status") == "bereit_zur_sichtpruefung":
+                        records = approval_records(value)
+                        assert_artifacts_current(records, work)
+                        approved_candidate_files(records, work, work / "Kandidat")
+                        prepared = bool(records)
                 except WorkflowError:
                     pass
             phase = "persoenliche_pruefung" if prepared else "dokumenterstellung"
@@ -624,13 +616,17 @@ def handle_universal_status(ctx: CommandContext, args: Mapping[str, Any]) -> int
         "aktiv_ungueltig": "Aktiver Manifest-Satz ist unvollständig oder verändert und muss neu erzeugt werden.",
         "nicht_angelegt": "Mit universal-neu einen neuen Universal-Lebenslauf-Arbeitsstand anlegen.",
     }
-    result = {"phase": phase, "workFolder": str(work) if work else None, "activeFolder": str(active) if active.is_dir() else None, "activeManifestValid": valid, "nextAction": actions[phase]}
+    result = {"phase": phase, "fachrichtung": direction, "workFolder": str(work) if work else None,
+              "activeFolder": str(active) if active.is_dir() else None, "activeManifestValid": valid,
+              "activeFolders": active_packages, "nextAction": actions[phase]}
     if args.get("als_json"):
         _json_out(ctx, result)
     else:
         ctx.ok("Phase: %s" % phase)
         if work:
             ctx.out("Arbeitsordner: %s" % work)
+        for key, path in active_packages.items():
+            ctx.out("Aktiv (%s): %s" % (key, path))
         ctx.out("Nächster Schritt: %s" % actions[phase])
     return 0
 
@@ -700,6 +696,7 @@ def handle_status(ctx: CommandContext, args: Mapping[str, Any]) -> int:
             final_status = report.get("status")
             records = approval_records(report)
             assert_artifacts_current(records, work)
+            approved_candidate_files(records, work, paths.candidate)
             # A copied order remains portable, but browser/PDF/ATS evidence is
             # deliberately bound to the originating OS, runtime and browser.
             # Do not offer an old foreign report for personal approval after a
@@ -1624,6 +1621,70 @@ def _append_check(collection: List[str], message: str, ctx: CommandContext, kind
     getattr(ctx, kind)(message)
 
 
+def _nonblank(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _refs(value: Any, known: Iterable[str], *, required: bool = True) -> bool:
+    return (isinstance(value, list) and (bool(value) or not required)
+            and all(isinstance(item, str) and item in known for item in value)
+            and len(value) == len(set(value)))
+
+
+def _schema5_requirement_errors(
+    requirements: List[Dict[str, Any]], anchors: Mapping[str, Any], evidence: Mapping[str, Any],
+) -> List[str]:
+    errors = []
+    ids = set()
+    direct = {key for key, record in evidence.items()
+              if record.get("belegart") not in ("NICHT BEHAUPTEN", "EINARBEITUNGSZIEL")}
+    for item in requirements:
+        identifier = item.get("id")
+        if not isinstance(identifier, str) or not TECHNICAL_ID.fullmatch(identifier) or identifier in ids:
+            errors.append("Anforderung besitzt keine eindeutige technische ID.")
+            continue
+        ids.add(identifier)
+        status = item.get("status")
+        if (item.get("typ") not in ("muss", "kann") or status not in ("erfuellt", "teilweise", "nicht_belegt", "unklar", "nicht_relevant")
+                or item.get("kategorie") not in ("fachlich", "erfahrung", "formal", "arbeitsweise", "logistik")
+                or item.get("gewichtung") not in ("kritisch", "hoch", "mittel", "niedrig")
+                or not all(_nonblank(item.get(key)) for key in ("anforderung", "behandlung"))
+                or not all(isinstance(item.get(key), str) for key in ("belegart", "beleg"))):
+            errors.append("Anforderung %s enthält ungültige oder unvollständige Pflichtfelder." % identifier)
+        eligible_anchors = [key for key, anchor in anchors.items()
+                            if anchor.get("klassifikation") in ("anforderung", "aufgabe")
+                            and isinstance(anchor.get("anforderungIds"), list)
+                            and identifier in anchor.get("anforderungIds", [])]
+        if not _refs(item.get("stellenFundstellen"), eligible_anchors):
+            errors.append("Anforderung %s benötigt eine zugeordnete Stellen-Fundstelle." % identifier)
+        supported = status in ("erfuellt", "teilweise")
+        if not _refs(item.get("belegRefIds"), direct if supported else evidence, required=supported):
+            errors.append("Anforderung %s enthält fehlende oder unzulässige Evidenzreferenzen." % identifier)
+        if supported and (not _nonblank(item.get("beleg")) or not _nonblank(item.get("belegart"))
+                          or item.get("belegart") in ("NICHT BEHAUPTEN", "EINARBEITUNGSZIEL")):
+            errors.append("Anforderung %s benötigt eine konkrete, zulässige Belegart und Evidenz." % identifier)
+    for identifier, anchor in anchors.items():
+        references = anchor.get("anforderungIds", [])
+        if (not _refs(references, ids, required=False)
+                or (not references and not _nonblank(anchor.get("begruendung")))):
+            errors.append("Stellen-Fundstelle %s benötigt gültige Anforderungs-IDs oder eine Begründung." % identifier)
+    return errors
+
+
+def _external_source_valid(source: Mapping[str, Any]) -> bool:
+    required = ("id", "typ", "titel", "herausgeber", "url", "abrufzeit", "aussage")
+    if not all(_nonblank(source.get(key)) for key in required) or not TECHNICAL_ID.fullmatch(source["id"]):
+        return False
+    try:
+        url = urlsplit(source["url"])
+    except ValueError:
+        return False
+    uses = source.get("verwendungen")
+    return (url.scheme in ("https", "http") and bool(url.hostname) and _valid_iso(source["abrufzeit"])
+            and isinstance(uses, list) and bool(uses)
+            and all(_nonblank(use) or isinstance(use, dict) and bool(use) for use in uses))
+
+
 def handle_inhalt(ctx: CommandContext, args: Mapping[str, Any]) -> int:
     order_path = Path(args["auftrag_path"])
     paths = infer_work_context(order_path.parent, universal=False)
@@ -1640,7 +1701,7 @@ def handle_inhalt(ctx: CommandContext, args: Mapping[str, Any]) -> int:
             raise UnsafePathError("Berichtspfad darf keine Eingabedatei aliasieren.")
     order, matrix = read_json(order_path), read_json(matrix_path)
     scope = document_scope(order)
-    schema = matrix.get("schemaVersion")
+    schema = matrix.get("schemaVersion") if isinstance(matrix, dict) else None
     if not isinstance(schema, int) or isinstance(schema, bool) or schema not in (1, 2, 3, 4, 5):
         raise ContractError("Anforderungsmatrix verwendet keine unterstützte schemaVersion 1 bis 5.")
     document_folder, email_folder, _ = _candidate_document_folders(folder)
@@ -1662,15 +1723,15 @@ def handle_inhalt(ctx: CommandContext, args: Mapping[str, Any]) -> int:
             oks.append("Dokumentumfang für %s ist konsistent." % kind)
     fields = _markdown_fields(master)
     applicant = fields.get("Vollständiger Name", "")
-    combined = " ".join(texts.values())
     if applicant and expected["lebenslauf"] and _normalized(applicant) not in _normalized(texts["lebenslauf"]):
         _append_check(errors, "Vollständiger Bewerbername fehlt im Lebenslauf.", ctx, "error")
     if expected["anschreiben"]:
         for label, value in (("Firma", order.get("firma")), ("Zielrolle", order.get("rolle"))):
             if value and _normalized(str(value)) not in _normalized(texts["anschreiben"]):
                 _append_check(errors, "%s ist im Anschreiben nicht sichtbar." % label, ctx, "error")
-    requirements = [item for item in matrix.get("requirements", []) if isinstance(item, dict)]
-    if not requirements:
+    raw_requirements = matrix.get("requirements")
+    requirements = [item for item in raw_requirements if isinstance(item, dict)] if isinstance(raw_requirements, list) else []
+    if not requirements or len(requirements) != len(raw_requirements):
         _append_check(errors, "Anforderungsmatrix enthält keine Anforderungen.", ctx, "error")
 
     evidence_coverage: Dict[str, Any] = {
@@ -1697,7 +1758,8 @@ def handle_inhalt(ctx: CommandContext, args: Mapping[str, Any]) -> int:
         if not isinstance(coverage, dict) or str(coverage.get("sourceSha256", "")).upper() != job_hash:
             _append_check(errors, "stellenanzeigeAbdeckung.sourceSha256 stimmt nicht mit der Stellenbeschreibung überein.", ctx, "error")
         else:
-            for anchor in coverage.get("fundstellen", []):
+            fundstellen = coverage.get("fundstellen")
+            for anchor in fundstellen if isinstance(fundstellen, list) else []:
                 valid = isinstance(anchor, dict)
                 identifier = str(anchor.get("id", "")) if valid else ""
                 start, end = anchor.get("zeileVon") if valid else None, anchor.get("zeileBis") if valid else None
@@ -1706,6 +1768,8 @@ def handle_inhalt(ctx: CommandContext, args: Mapping[str, Any]) -> int:
                 if valid:
                     actual = " ".join(job_lines[start - 1:end])
                     if _normalized(actual) != _normalized(str(anchor.get("text", ""))):
+                        valid = False
+                    if schema == 5 and anchor.get("klassifikation") not in ("anforderung", "aufgabe", "nicht_anforderung"):
                         valid = False
                 if valid:
                     anchor_by_id[identifier] = anchor
@@ -1716,8 +1780,8 @@ def handle_inhalt(ctx: CommandContext, args: Mapping[str, Any]) -> int:
                 _append_check(errors, "stellenanzeigeAbdeckung enthält keine prüfbaren Fundstellen.", ctx, "error")
         index_path = safe_path(paths.work / "Evidenzindex.json", paths.work, must_exist=True, kind="file")
         evidence_index = read_json(index_path)
-        if evidence_index.get("schemaVersion") != 1:
-            _append_check(errors, "Evidenzindex verwendet nicht Schema 1.", ctx, "error")
+        if not isinstance(evidence_index, dict) or evidence_index.get("schemaVersion") != 1 or not isinstance(evidence_index.get("belege"), list):
+            raise ContractError("Evidenzindex benötigt Schema 1 und eine Belegliste.")
         evidence_coverage["evidenzindexSha256"] = sha256_file(index_path)
         profile_lines = read_text(profile).splitlines()
         dialog_facts = {str(item.get("id")): item for item in (order.get("dialog") or {}).get("angaben", []) if isinstance(item, dict) and item.get("id")}
@@ -1728,6 +1792,8 @@ def handle_inhalt(ctx: CommandContext, args: Mapping[str, Any]) -> int:
             identifier = str(evidence.get("id", "")) if valid else ""
             source = evidence.get("quelle") if valid else None
             if not TECHNICAL_ID.fullmatch(identifier) or identifier in evidence_by_id or source not in ("profil", "auftrag_angabe"):
+                valid = False
+            if schema == 5 and valid and not all(_nonblank(evidence.get(key)) for key in ("text", "belegart")):
                 valid = False
             if valid and source == "profil":
                 has_profile = True
@@ -1744,66 +1810,154 @@ def handle_inhalt(ctx: CommandContext, args: Mapping[str, Any]) -> int:
             else:
                 _append_check(errors, "Ungültige Evidenz: %s" % identifier, ctx, "error")
             evidence_coverage["profileEvidence"].append({"id": identifier, "quelle": source, "angabeId": evidence.get("angabeId") if isinstance(evidence, dict) else None, "zeileVon": evidence.get("zeileVon") if isinstance(evidence, dict) else None, "zeileBis": evidence.get("zeileBis") if isinstance(evidence, dict) else None, "belegart": evidence.get("belegart") if isinstance(evidence, dict) else None, "valid": valid})
-        if has_profile and str(evidence_index.get("profilSha256", "")).upper() != sha256_file(profile):
+        if (has_profile or schema == 5) and str(evidence_index.get("profilSha256", "")).upper() != sha256_file(profile):
             _append_check(errors, "Evidenzindex.profilSha256 stimmt nicht mit der Profildatei überein.", ctx, "error")
         if has_dialog and str(evidence_index.get("auftragSha256", "")).upper() != sha256_file(order_path):
             _append_check(errors, "Evidenzindex.auftragSha256 stimmt nicht mit dem Bewerbungsauftrag überein.", ctx, "error")
-        for requirement in requirements:
-            for identifier in requirement.get("stellenFundstellen", []):
-                if str(identifier) not in anchor_by_id:
-                    _append_check(errors, "Anforderung %s verweist auf unbekannte Stellen-Fundstelle %s." % (requirement.get("id"), identifier), ctx, "error")
-            for identifier in requirement.get("belegRefIds", []):
-                if str(identifier) not in evidence_by_id:
-                    _append_check(errors, "Anforderung %s verweist auf unbekannte Evidenz %s." % (requirement.get("id"), identifier), ctx, "error")
+        if schema == 5:
+            for message in _schema5_requirement_errors(requirements, anchor_by_id, evidence_by_id):
+                _append_check(errors, message, ctx, "error")
+        else:
+            for requirement in requirements:
+                for field, known in (("stellenFundstellen", anchor_by_id), ("belegRefIds", evidence_by_id)):
+                    for identifier in requirement.get(field, []):
+                        if str(identifier) not in known:
+                            _append_check(errors, "Anforderung %s verwendet eine unbekannte Referenz für %s." % (requirement.get("id"), field), ctx, "error")
         evidence_coverage["status"] = "fehler" if any("Evidenz" in item or "Fundstelle" in item or "stellenanzeigeAbdeckung" in item for item in errors) else "ok"
 
     strategy = matrix.get("recruiterStrategie") or {}
+    if not isinstance(strategy, dict):
+        raise ContractError("recruiterStrategie muss ein JSON-Objekt sein.")
     if recruiter_coverage["applicable"]:
+        cv_files = _selected_files(document_folder, "Lebenslauf - *.html")
+        first_page = ""
+        if len(cv_files) == 1:
+            pages = html_page_bodies(read_text(cv_files[0]))
+            if pages:
+                first_page = _html_text(pages[0])
         required_fields = ("kernbotschaft", "profilSubstanz", "profilSubstanzBegruendung", "prioritaetsAnforderungen", "profilHighlights", "transferbruecken", "auslassungen")
         if any(field not in strategy for field in required_fields):
             _append_check(errors, "recruiterStrategie ist unvollständig.", ctx, "error")
         else:
             recruiter_coverage.update(kernbotschaft=strategy.get("kernbotschaft"), profilSubstanz=strategy.get("profilSubstanz"), configuredPriorityRequirementIds=strategy.get("prioritaetsAnforderungen", []))
             for category, report_key in (("profilHighlights", "highlights"), ("transferbruecken", "transferBridges"), ("auslassungen", "omissions")):
-                for item in strategy.get(category, []):
+                entries = strategy.get(category)
+                if not isinstance(entries, list):
+                    _append_check(errors, "recruiterStrategie.%s muss eine Liste sein." % category, ctx, "error")
+                    continue
+                for item in entries:
                     valid = isinstance(item, dict)
-                    anchors = [str(value) for value in item.get("sichtbareAnker", [])] if valid else []
+                    raw_anchors = item.get("sichtbareAnker") if valid else None
+                    anchors = [value for value in raw_anchors if _nonblank(value)] if isinstance(raw_anchors, list) else []
                     target_kind = str(item.get("zielDokument", "lebenslauf")) if valid else ""
-                    target_text = texts.get(target_kind, combined)
+                    target_text = texts.get(target_kind, "")
+                    if schema == 5 and valid and item.get("platzierung") == "seite_1" and target_kind == "lebenslauf":
+                        target_text = first_page
                     missing_anchors = [anchor for anchor in anchors if _normalized(anchor) not in _normalized(target_text)]
-                    if category != "auslassungen" and (not valid or missing_anchors):
-                        _append_check(errors, "Recruiter-Strategieeintrag ist nicht sichtbar oder ungültig: %s" % item.get("id", item.get("thema", "?")), ctx, "error")
-                    recruiter_coverage[report_key].append({**(item if isinstance(item, dict) else {}), "missingAnchors": missing_anchors, "valid": valid and not missing_anchors})
+                    if category != "auslassungen":
+                        valid = valid and not missing_anchors
+                        if schema == 5:
+                            allowed_placements = ("beliebig", "seite_1") if target_kind == "lebenslauf" else ("beliebig",)
+                            valid = (valid and bool(anchors) and len(anchors) == len(raw_anchors)
+                                     and expected.get(target_kind, False) and item.get("platzierung") in allowed_placements)
+                    elif schema == 5:
+                        valid = (valid and _nonblank(item.get("thema")) and _nonblank(item.get("begruendung"))
+                                 and _refs(item.get("belegRefIds", []), evidence_by_id, required=False))
+                    if not valid:
+                        _append_check(errors, "Recruiter-Strategieeintrag ist nicht sichtbar oder ungültig: %s" % (item.get("id", item.get("thema", "?")) if isinstance(item, dict) else "?"), ctx, "error")
+                    recruiter_coverage[report_key].append({**(item if isinstance(item, dict) else {}), "missingAnchors": missing_anchors, "valid": valid})
             recruiter_coverage["status"] = "fehler" if any("Recruiter-Strategie" in item or "recruiterStrategie" in item for item in errors) else "ok"
 
-    if schema >= 5:
-        external = [item for item in matrix.get("externeQuellen", []) if isinstance(item, dict)]
-        source_coverage["sources"] = external
-        source_coverage["status"] = "ok"
+    if schema == 5:
+        requirement_ids = {item["id"] for item in requirements if isinstance(item.get("id"), str)}
+        direct_evidence = {key for key, item in evidence_by_id.items()
+                           if item.get("belegart") not in ("NICHT BEHAUPTEN", "EINARBEITUNGSZIEL")}
+        if recruiter_coverage["applicable"]:
+            required_priority = {item["id"] for item in requirements if isinstance(item.get("id"), str)
+                                 and item.get("kategorie") in ("fachlich", "erfahrung")
+                                 and item.get("gewichtung") in ("kritisch", "hoch")}
+            priority = strategy.get("prioritaetsAnforderungen")
+            if (not _nonblank(strategy.get("kernbotschaft")) or not _nonblank(strategy.get("profilSubstanzBegruendung"))
+                    or strategy.get("profilSubstanz") not in ("schmal", "ausreichend")
+                    or not _refs(priority, requirement_ids, required=False) or not required_priority.issubset(priority)):
+                _append_check(errors, "recruiterStrategie benötigt eine belegte Positionierung und alle prioritären Anforderungs-IDs.", ctx, "error")
+                recruiter_coverage["status"] = "fehler"
+            highlights = recruiter_coverage["highlights"]
+            highlight_ids = [item.get("id") for item in highlights]
+            known_highlights = {item for item in highlight_ids if isinstance(item, str) and TECHNICAL_ID.fullmatch(item)}
+            if len(known_highlights) != len(highlight_ids) or any(
+                not _refs(item.get("anforderungIds"), requirement_ids) or not _refs(item.get("belegRefIds"), direct_evidence)
+                for item in highlights
+            ):
+                _append_check(errors, "Profilhighlights benötigen eindeutige IDs, Anforderungen und zulässige Belegreferenzen.", ctx, "error")
+                recruiter_coverage["status"] = "fehler"
+            if any(not isinstance(item.get("anforderungId"), str) or item["anforderungId"] not in requirement_ids
+                   or not _refs(item.get("basisHighlightIds"), known_highlights)
+                   or not _nonblank(item.get("zieltechnologie"))
+                   or item.get("formulierungsebene") not in ("ÜBERTRAGBAR", "GRUNDLAGEN / VERSTÄNDNIS", "EINARBEITUNGSZIEL")
+                   for item in recruiter_coverage["transferBridges"]):
+                _append_check(errors, "Transferbrücken benötigen eine Anforderung, eine zulässige Formulierung und belegte Basis-Highlights.", ctx, "error")
+                recruiter_coverage["status"] = "fehler"
+        external = matrix.get("externeQuellen")
+        external_ids = set()
+        if isinstance(external, list):
+            for source in external:
+                if isinstance(source, dict) and _external_source_valid(source) and source["id"] not in external_ids:
+                    external_ids.add(source["id"])
+                    source_coverage["sources"].append(source)
+        valid_sources = isinstance(external, list) and len(external) == len(external_ids)
+        source_coverage["status"] = "ok" if valid_sources else "fehler"
+        if not valid_sources:
+            _append_check(errors, "externeQuellen benötigt eindeutige vollständige Quellen mit URL, Abrufzeit, Aussage und Verwendungen.", ctx, "error")
         if expected["anschreiben"]:
             letter_strategy = matrix.get("anschreibenStrategie") or {}
-            arguments = [item for item in letter_strategy.get("argumente", []) if isinstance(item, dict)]
-            if letter_strategy.get("status") != "final" or not (2 <= len(arguments) <= 4 or arguments and letter_strategy.get("abweichungBegruendung")):
+            raw_arguments = letter_strategy.get("argumente") if isinstance(letter_strategy, dict) else None
+            arguments = [item for item in raw_arguments if isinstance(item, dict)] if isinstance(raw_arguments, list) else []
+            valid_count = 2 <= len(arguments) <= 4 or (
+                len(arguments) == 1 and strategy.get("profilSubstanz") == "schmal"
+                and _nonblank(letter_strategy.get("abweichungBegruendung"))
+            )
+            if not valid_count or len(arguments) != len(raw_arguments) or letter_strategy.get("status") != "final":
                 _append_check(errors, "anschreibenStrategie benötigt finalen Status und zwei bis vier belegte Argumente.", ctx, "error")
             for argument in arguments:
-                missing = [str(anchor) for anchor in argument.get("sichtbareAnker", []) if _normalized(str(anchor)) not in _normalized(texts["anschreiben"])]
-                valid = bool(argument.get("anforderungIds") and argument.get("belegRefIds") and argument.get("stellenFundstellen") and argument.get("arbeitgeberbezug") and argument.get("nutzenargument") and not missing)
+                anchors = argument.get("sichtbareAnker")
+                missing = [anchor for anchor in anchors if _nonblank(anchor) and _normalized(anchor) not in _normalized(texts["anschreiben"])] if isinstance(anchors, list) else []
+                job_refs = argument.get("stellenFundstellen", [])
+                external_refs = argument.get("externeQuellenIds", [])
+                valid = (isinstance(anchors, list) and bool(anchors) and all(_nonblank(anchor) for anchor in anchors) and not missing
+                         and _refs(argument.get("anforderungIds"), requirement_ids)
+                         and _refs(argument.get("belegRefIds"), direct_evidence)
+                         and _refs(job_refs, anchor_by_id, required=not external_refs)
+                         and _refs(external_refs, external_ids, required=False)
+                         and all(_nonblank(argument.get(key)) for key in ("arbeitgeberbezug", "nutzenargument")))
                 if not valid:
                     _append_check(errors, "Anschreibenargument ist nicht vollständig belegt oder sichtbar: %s" % argument.get("id", "?"), ctx, "error")
                 letter_coverage["argumente"].append({**argument, "fehlendeAnker": missing, "valid": valid})
             letter_coverage["status"] = "fehler" if any("Anschreiben" in item or "anschreibenStrategie" in item for item in errors) else "ok"
-        used = set()
-        for requirement in requirements:
-            used.update(str(value) for value in requirement.get("belegRefIds", []))
-        for item in strategy.get("profilHighlights", []):
-            used.update(str(value) for value in item.get("belegRefIds", []))
-        for item in (matrix.get("anschreibenStrategie") or {}).get("argumente", []):
-            used.update(str(value) for value in item.get("belegRefIds", []))
-        omitted = set(str(value) for item in strategy.get("auslassungen", []) for value in item.get("belegRefIds", []))
+        if recruiter_coverage["applicable"]:
+            visible = [*recruiter_coverage["highlights"], *letter_coverage["argumente"]]
+            covered = {identifier for item in visible if item.get("valid")
+                       and _refs(item.get("anforderungIds"), requirement_ids)
+                       and _refs(item.get("belegRefIds"), direct_evidence)
+                       for identifier in item["anforderungIds"]}
+            missing_priority = {item["id"] for item in requirements if isinstance(item.get("id"), str)
+                                and item["id"] in required_priority and item.get("status") in ("erfuellt", "teilweise")} - covered
+            if missing_priority:
+                _append_check(errors, "Sichtbarer Direktbeleg fehlt für prioritäre Anforderungen: %s." % ", ".join(sorted(missing_priority)), ctx, "error")
+                recruiter_coverage["status"] = "fehler"
+        def listed(items: Any) -> List[str]:
+            return [value for item in items if isinstance(item, dict)
+                    for value in (item["belegRefIds"] if isinstance(item.get("belegRefIds"), list) else [])
+                    if isinstance(value, str)] if isinstance(items, list) else []
+
+        used = set(listed(requirements) + listed(strategy.get("profilHighlights")) + listed(letter_coverage["argumente"]))
+        omissions = listed(strategy.get("auslassungen"))
+        omitted = set(omissions)
         unclassified = sorted(set(evidence_by_id) - used - omitted)
         conflicts = sorted(used & omitted)
-        disposition.update(status="ok" if not unclassified and not conflicts else "fehler", used=sorted(used), omitted=sorted(omitted), unclassified=unclassified, conflicts=conflicts)
-        if unclassified or conflicts:
+        disposition_valid = not unclassified and not conflicts and len(omissions) == len(omitted) and not (omitted - evidence_by_id.keys())
+        disposition.update(status="ok" if disposition_valid else "fehler", used=sorted(used), omitted=sorted(omitted), unclassified=unclassified, conflicts=conflicts)
+        if not disposition_valid:
             _append_check(errors, "Evidenzdisposition ist unvollständig oder widersprüchlich.", ctx, "error")
     if expected["anschreiben"]:
         findings = []
@@ -1869,9 +2023,13 @@ def handle_freigabe(ctx: CommandContext, args: Mapping[str, Any]) -> int:
     approval_id = str(args["freigabe_id"])
     if not re.fullmatch(r"FR-[A-Z0-9]{12}", approval_id):
         raise ContractError("Freigabe-ID besitzt nicht das erwartete Format FR-XXXXXXXXXXXX.")
-    regular_report = work / "Finalisierungsbericht.json"
-    universal_report = work / "Universal-Finalisierungsbericht.json"
-    report_path = regular_report if regular_report.is_file() else universal_report
+    is_universal = work.parent.parent.name == "_Universal-Lebenslauf"
+    if not is_universal:
+        order = read_json(safe_path(work / "Bewerbungsauftrag.json", work, must_exist=True, kind="file"))
+        require_application_decision(order)
+        if document_scope(order)["lebenslauf"] == "universal_unveraendert":
+            require_universal_snapshot(order, paths.candidate)
+    report_path = work / ("Universal-Finalisierungsbericht.json" if is_universal else "Finalisierungsbericht.json")
     report_path = safe_path(report_path, work, must_exist=True, kind="file")
     report = read_json(report_path)
     if not isinstance(report, dict) or report.get("status") != "bereit_zur_sichtpruefung":
@@ -1883,6 +2041,7 @@ def handle_freigabe(ctx: CommandContext, args: Mapping[str, Any]) -> int:
     if not records:
         raise ContractError("Finalisierungsbericht enthält keinen freizugebenden Artefaktsatz.")
     assert_artifacts_current(records, work)
+    approved_candidate_files(records, work, paths.candidate)
     set_hash = artifact_set_hash(records, work)
     if set_hash != str(request.get("artifactSetSha256", "")):
         raise ContractError("Artefaktsatz hat sich seit der Vorbereitung verändert.")

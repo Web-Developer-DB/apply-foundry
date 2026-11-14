@@ -8,11 +8,72 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from .errors import ContractError
 from .io import artifact_record, canonical_json, read_json, sha256_bytes, sha256_file
-from .paths import safe_path
+from .paths import parse_date, safe_path
 
 
 DOCUMENTS = ("lebenslauf", "anschreiben", "email_nachricht")
 CV_KINDS = ("individuell", "universal_unveraendert", "nicht_enthalten")
+UNIVERSAL_PROFILES = {
+    "softwareentwicklung": {
+        "ordnerSlug": "Softwareentwicklung",
+        "zielrollen": ("Frontend-Entwickler", "Backend-Entwickler", "Fullstack-Entwickler"),
+        "positionierung": "Schwerpunkt ist ausschließlich Softwareentwicklung; IT-Administration ist keine Zielrichtung.",
+    },
+    "systemadministration": {
+        "ordnerSlug": "Systemadministration",
+        "zielrollen": ("Junior Systemadministrator", "Junior Linux Administrator", "Infrastruktur-Support"),
+        "positionierung": "Schwerpunkt ist Junior-Systemadministration und Infrastruktur-Support; die Erfahrungsart folgt ausschließlich den belegten Profildaten.",
+    },
+}
+
+
+def universal_profile(direction: Any) -> Mapping[str, Any]:
+    if not isinstance(direction, str) or direction not in UNIVERSAL_PROFILES:
+        raise ContractError("Universalauftrag enthält keine unterstützte Fachrichtung.")
+    return UNIVERSAL_PROFILES[direction]
+
+
+def universal_active_path(applications: Path, direction: str) -> Path:
+    folder = "Aktiv--" + universal_profile(direction)["ordnerSlug"]
+    return safe_path(applications / "_Universal-Lebenslauf" / folder, applications, kind="dir")
+
+
+def validate_universal_order(order: Any, work: Path) -> str:
+    if not isinstance(order, dict) or order.get("schemaVersion") != 5 or order.get("auftragsart") != "universal_lebenslauf":
+        raise ContractError("Universalauftrag besitzt kein unterstütztes Schema.")
+    direction = order.get("fachrichtung")
+    profile = universal_profile(direction)
+    work_relative = work.relative_to(work.parents[2]).as_posix()
+    active = universal_active_path(work.parents[2], direction).relative_to(work.parents[2]).as_posix()
+    expected_name = parse_date(str(order.get("datum", ""))) + "--" + profile["ordnerSlug"]
+    if (order.get("zielrollen") != list(profile["zielrollen"])
+            or work.name != expected_name or order.get("arbeitsOrdner") != work_relative
+            or order.get("kandidatOrdner") != work_relative + "/Kandidat"
+            or order.get("zielOrdner") not in (active, "_Universal-Lebenslauf/Aktiv")):
+        raise ContractError("Fachrichtung, Zielrollen und Pfade des Universalauftrags widersprechen sich.")
+    return direction
+
+
+def require_application_decision(order: Mapping[str, Any]) -> None:
+    decision = order.get("bewerbungsentscheidung")
+    if decision == "bewerben" or (order.get("schemaVersion", 0) <= 3 and decision is None):
+        return
+    if decision == "nicht_bewerben":
+        raise ContractError("Auftrag ist mit nicht_bewerben beendet; keine technische Vorbereitung oder Veröffentlichung.")
+    raise ContractError("Bewerbungsentscheidung muss vor der Finalisierung ausdrücklich auf bewerben gesetzt sein.")
+
+
+def require_universal_snapshot(order: Mapping[str, Any], candidate: Path) -> Path:
+    binding = order.get("universalLebenslauf")
+    name = binding.get("kandidatDatei") if isinstance(binding, dict) else None
+    if not isinstance(name, str) or not re.fullmatch(r"Lebenslauf - [A-Za-z0-9][A-Za-z0-9.-]*\.html", name):
+        raise ContractError("Der Universal-Lebenslauf besitzt keinen gültigen Kandidatennamen im Auftrag.")
+    if order.get("bewerberDateiname") and name != "Lebenslauf - %s.html" % order["bewerberDateiname"]:
+        raise ContractError("Der gebundene Universal-Lebenslauf gehört nicht zum Bewerber-Dateinamen.")
+    path = safe_path(candidate / name, candidate, must_exist=True, kind="file")
+    if sha256_file(path) != str(binding.get("sourceHtmlSha256BeiAnlage", "")).upper():
+        raise ContractError("Der Kandidaten-Lebenslauf weicht vom ursprünglichen Universal-Snapshot ab. Stelle die gebundene Fassung wieder her.")
+    return path
 
 
 def document_scope(order: Mapping[str, Any]) -> Dict[str, Any]:
@@ -21,7 +82,7 @@ def document_scope(order: Mapping[str, Any]) -> Dict[str, Any]:
         raise ContractError("Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 5.")
     result = {"lebenslauf": "individuell", "anschreiben": True, "emailNachricht": True}
     configured = order.get("dokumentumfang")
-    if schema >= 4 and configured is not None:
+    if schema >= 4:
         if not isinstance(configured, dict):
             raise ContractError("dokumentumfang muss ein JSON-Objekt sein.")
         cv = configured.get("lebenslauf")
@@ -37,10 +98,13 @@ def document_scope(order: Mapping[str, Any]) -> Dict[str, Any]:
     return result
 
 
-def scope_from_cli(args: Mapping[str, Any]) -> Dict[str, Any]:
+def scope_from_cli(args: Mapping[str, Any], existing: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
     selection = args.get("umfang")
     mode = args.get("dokumentmodus")
     documents = list(args.get("dokumente") or [])
+    universal_selected = bool(args.get("universal_lebenslauf_path") or args.get("universal_fachrichtung"))
+    if args.get("universal_lebenslauf_path") and args.get("universal_fachrichtung"):
+        raise ContractError("Wähle --universal-fachrichtung oder --universal-lebenslauf-path.")
     if selection is None and mode is None:
         raise ContractError("Der Bewerbungsumfang muss ausdrücklich mit --umfang A-E oder --dokumentmodus festgelegt werden.")
     mapping = {
@@ -60,7 +124,8 @@ def scope_from_cli(args: Mapping[str, Any]) -> Dict[str, Any]:
         letter, email = "anschreiben" in documents, "email_nachricht" in documents
         cv = "nicht_enthalten"
         if "lebenslauf" in documents:
-            cv = "universal_unveraendert" if args.get("universal_lebenslauf_path") else "individuell"
+            existing_cv = document_scope(existing)["lebenslauf"] if existing is not None else None
+            cv = "universal_unveraendert" if universal_selected or existing_cv == "universal_unveraendert" else "individuell"
         selection = "E"
     elif selection is None and mode in ("vollbewerbung", "anschreiben_mit_universalem_lebenslauf"):
         selection = "A" if mode == "vollbewerbung" else "B"
@@ -71,6 +136,8 @@ def scope_from_cli(args: Mapping[str, Any]) -> Dict[str, Any]:
         raise ContractError("Dokumentmodus und Umfangsauswahl widersprechen sich.")
     if cv == "nicht_enthalten" and not letter and not email:
         raise ContractError("Der Dokumentumfang muss mindestens ein Dokument enthalten.")
+    if universal_selected and cv != "universal_unveraendert":
+        raise ContractError("Die Universal-Quelle ist nur bei ausgewähltem Universal-Lebenslauf zulässig.")
     email_only_confirmed = bool(args.get("email_allein_bestaetigt"))
     if cv == "nicht_enthalten" and not letter and email and not email_only_confirmed:
         raise ContractError("Ein reiner E-Mail-Auftrag erfordert --email-allein-bestaetigt.")
@@ -157,7 +224,7 @@ def approval_records(report: Mapping[str, Any]) -> List[Mapping[str, Any]]:
         records.append(report["order"])
     unique: Dict[str, Mapping[str, Any]] = {}
     for record in records:
-        key = str(record.get("path", "")).lower()
+        key = str(record.get("path", ""))
         if key not in unique:
             unique[key] = record
     return sorted(unique.values(), key=lambda item: str(item.get("path", "")))
@@ -178,6 +245,21 @@ def assert_artifacts_current(records: Sequence[Mapping[str, Any]], root: Path) -
             raise ContractError("Ungültiger Freigabe-Artefaktrecord: %s" % raw)
         if candidate.stat().st_size != expected_bytes or sha256_file(candidate) != expected_hash:
             raise ContractError("Freigabe-Artefakt wurde verändert: %s" % raw)
+
+
+def approved_candidate_files(
+    records: Sequence[Mapping[str, Any]], work: Path, candidate: Path
+) -> Dict[Path, Mapping[str, Any]]:
+    approved = {}
+    for record in records:
+        path = Path(str(record["path"]))
+        path = path if path.is_absolute() else work / path
+        if path.parent == candidate:
+            approved[path] = record
+    current = {path for path in candidate.iterdir() if path.is_symlink() or path.is_file()}
+    if current != approved.keys():
+        raise ContractError("Dateibestand im Kandidatenordner wurde seit der Vorbereitung verändert. Erneut vorbereiten und prüfen.")
+    return approved
 
 
 def new_approval_id() -> str:

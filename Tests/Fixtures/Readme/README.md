@@ -9,6 +9,35 @@ Die Beispiele sind keine Kandidaten einer echten Bewerbung und besitzen
 keinen Freigabe- oder fachlichen Prüfnachweis. Ihre sichtbare Kennzeichnung
 gehört zum Bild. Sie dürfen nicht als echte Bewerbung verwendet werden.
 
+## Synthetischer Workflow-Test
+
+Die Bildfolge in der README beruht auf einem von einem Agenten ausgeführten
+Testlauf in einer temporären Projektkopie auf Linux x64. Das angepasste
+Browser-Smoke-Fixture verwendete fiktive Angaben für Max Muster und die
+Acme GmbH. Der Agent erstellte die synthetischen Testdateien und führte die
+Projektwerkzeuge bis `bereit_zur_sichtpruefung` aus. Chromium erzeugte zwei
+PNG-Vorschauen und PDFs. Die ATS-Prüfung meldete für beide PDFs eine
+Textabdeckung von 100 Prozent.
+
+Die Dateien `real-run/lebenslauf.png` und `real-run/anschreiben.png` sind
+die unveränderten PNG-Ausgaben dieses Layoutchecks. Die Abgleichgrafik
+überträgt zwei Anforderungen und den zugehörigen Profileintrag aus dem
+Testlauf in eine gestaltete Darstellung. Die Ergebnisgrafik zeigt die
+vorgesehene Ordnerstruktur schematisch. Im Testlauf erfolgte keine persönliche
+Freigabe und keine Veröffentlichung. Ein interaktiver Agentendialog wurde
+nicht aufgezeichnet.
+
+Die drei erläuternden Grafiken lassen sich aus den gespeicherten Vorschauen
+und den synthetischen Angaben erneut rendern:
+
+```bash
+python3 Tests/Fixtures/Readme/real-run/render.py
+```
+
+Das Skript verwendet einen vorhandenen Chromium-Browser und ein temporäres
+Browserprofil. Der Testlauf selbst ist ein angepasster Browser-Smoke-Test
+und wird durch dieses Render-Skript nicht erneut ausgeführt.
+
 ## Reproduzieren
 
 Im Projektstamm zunächst die verfügbaren Voraussetzungen read-only prüfen:

@@ -37,8 +37,12 @@ from .browser_tools import (
 from .errors import CliUsageError, ContractError, WorkflowError
 from .finalization_cache import STAGE_ORDER, cache_decision, read_state, save_result, stage_fingerprint
 from .io import artifact_record, canonical_json, read_json, read_text, sha256_bytes, sha256_file, utc_now, write_atomic_json, write_atomic_text
-from .paths import infer_work_context, require_private_applications_root, safe_path
-from .contracts import approval_records, artifact_set_hash, assert_artifacts_current, new_approval_id
+from .paths import infer_work_context, require_private_applications_root, safe_path, slug
+from .contracts import (
+    approval_records, approved_candidate_files, artifact_set_hash, assert_artifacts_current,
+    document_scope, new_approval_id, require_application_decision, require_universal_snapshot,
+    universal_active_path, validate_universal_order,
+)
 
 
 def _emit(ctx: Any, message: str = "", *, error: bool = False) -> None:
@@ -75,23 +79,28 @@ def _safe_folder(path: Path) -> Tuple[Path, Path]:
     return safe_path(path, root, must_exist=True, kind="dir"), root
 
 
-def _document_scope(order: Mapping[str, Any]) -> Dict[str, Any]:
-    schema = order.get("schemaVersion")
-    if not isinstance(schema, int) or not 1 <= schema <= 5:
-        raise ContractError("Bewerbungsauftrag verwendet keine unterstützte schemaVersion 1 bis 5.")
-    scope = order.get("dokumentumfang")
-    if schema < 4 and scope is None:
-        return {"lebenslauf": "individuell", "anschreiben": True, "emailNachricht": True}
-    if not isinstance(scope, dict):
-        raise ContractError("Bewerbungsauftrag enthält keinen gültigen dokumentumfang.")
-    cv = scope.get("lebenslauf")
-    letter = scope.get("anschreiben")
-    email = scope.get("emailNachricht")
-    if cv not in ("individuell", "universal_unveraendert", "nicht_enthalten") or not isinstance(letter, bool) or not isinstance(email, bool):
-        raise ContractError("dokumentumfang enthält ungültige oder nicht typisierte Werte.")
-    if cv == "nicht_enthalten" and not letter and not email:
-        raise ContractError("dokumentumfang wählt kein Dokument aus.")
-    return {"lebenslauf": cv, "anschreiben": letter, "emailNachricht": email}
+def _shipping_files(order: Mapping[str, Any], files: Iterable[Path]) -> set[str]:
+    scope = document_scope(order)
+    names = {path.name for path in files}
+    expected = set()
+    applicant = order.get("bewerberDateiname")
+    for selected, prefix in ((scope["lebenslauf"] != "nicht_enthalten", "Lebenslauf"), (scope["anschreiben"], "Anschreiben")):
+        html = {name for name in names if name.startswith(prefix + " - ") and name.endswith(".html")}
+        if len(html) != int(selected) or (selected and applicant and html != {f"{prefix} - {applicant}.html"}):
+            raise ContractError(f"Freigegebener HTML-Bestand für {prefix} weicht vom Dokumentumfang ab.")
+        expected.update(Path(name).with_suffix(".pdf").name for name in html)
+    if scope["emailNachricht"]:
+        company_slug = order.get("firmaSlug") or slug(str(order.get("firma", "")))
+        expected.add(f"Email-Nachricht--{company_slug}.md")
+    actual = {name for name in names if name.lower().endswith(".pdf") or re.fullmatch(r"Email-Nachricht--.+\.md", name, re.IGNORECASE)}
+    if actual != expected:
+        raise ContractError("Versanddateien stimmen nicht exakt mit dem bestätigten Dokumentumfang überein.")
+    return expected
+
+
+def _copy_approved_file(source: Path, destination: Path, record: Mapping[str, Any]) -> None:
+    shutil.copy2(source, destination)
+    assert_artifacts_current([{**record, "path": destination.name}], destination.parent)
 
 
 def _selected_html(folder: Path, order: Optional[Mapping[str, Any]] = None) -> List[Path]:
@@ -102,7 +111,7 @@ def _selected_html(folder: Path, order: Optional[Mapping[str, Any]] = None) -> L
     if len(cvs) > 1 or len(letters) > 1:
         raise ContractError(f"Es wird höchstens ein Lebenslauf und ein Anschreiben erwartet; gefunden: {len(cvs)} / {len(letters)}.")
     if order is not None:
-        scope = _document_scope(order)
+        scope = document_scope(order)
         expected_cv = scope["lebenslauf"] != "nicht_enthalten"
         expected_letter = scope["anschreiben"]
         if len(cvs) != int(expected_cv) or len(letters) != int(expected_letter):
@@ -592,7 +601,7 @@ def ats(ctx: Any, args: Mapping[str, Any]) -> int:
     full_name = fields.get("Vollständiger Name", "")
     if not full_name:
         raise ContractError("Stammdaten enthalten keinen Wert für 'Vollständiger Name'.")
-    scope = _document_scope(order)
+    scope = document_scope(order)
     minimum = int(_arg(args, "min_textabdeckung_prozent", 70))
     errors: List[str] = []
     warnings: List[str] = []
@@ -850,7 +859,10 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
     matrix = read_json(paths["matrix_path"])
     if not isinstance(order, dict) or not isinstance(matrix, dict):
         raise ContractError("Bewerbungsauftrag und Anforderungsmatrix müssen JSON-Objekte sein.")
-    scope = _document_scope(order)
+    require_application_decision(order)
+    scope = document_scope(order)
+    if scope["lebenslauf"] == "universal_unveraendert":
+        require_universal_snapshot(order, candidate)
     expected_html = int(scope["lebenslauf"] != "nicht_enthalten") + int(scope["anschreiben"])
     density_exception = _validated_density_exception(_arg(args, "dichteausnahme_begruendung", None))
     _quality_evidence(candidate)
@@ -886,6 +898,10 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
         action=lambda: _run_core(ctx, "pruefen", {"ordner": candidate, "auftrag_path": paths["order_path"]}),
     ))
     content_inputs = [paths["order_path"], paths["stammdaten"], paths["profil"], paths["matrix_path"], *candidate_inputs]
+    photo = None
+    if scope["lebenslauf"] == "individuell":
+        photo = safe_path(paths["private"] / "Daten" / "Passfoto.png", paths["private"], kind="file")
+        content_inputs.append(photo)
     if evidence.is_file():
         content_inputs.append(evidence)
     stage_runs.append(_cached_stage(
@@ -959,6 +975,8 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
     }
     if evidence.is_file():
         source_inputs["evidenzindex"] = _source_record(evidence, work)
+    if photo is not None and photo.is_file():
+        source_inputs["passfoto"] = _source_record(photo)
     if density_gate["status"] == "ueberarbeitung_erforderlich":
         # Older PDFs must not be attached to a newly blocked preparation report.
         blocked_groups = dict(groups)
@@ -1005,6 +1023,7 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
         groups = _candidate_groups(candidate, paths["layout"], work)
         if len(groups["pdf"]) != expected_html:
             raise ContractError(f"Vorbereitung erzeugte nicht den erwarteten PDF-Umfang: {len(groups['pdf'])} statt {expected_html}.")
+    _shipping_files(order, (candidate / Path(record["path"]).name for record in groups["candidate"]))
     report: Dict[str, Any] = {
         "schemaVersion": 8,
         "status": "layout_ueberarbeitung_erforderlich" if density_gate["status"] == "ueberarbeitung_erforderlich" else "bereit_zur_sichtpruefung",
@@ -1030,7 +1049,7 @@ def _normal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
     write_atomic_json(paths["final_report"], report)
     try:
         _run_core(ctx, "checkpoint", {"arbeitsordner": work, "schritt": "technische_vorbereitung_abgeschlossen"})
-    except WorkflowError as exc:
+    except (WorkflowError, OSError) as exc:
         _emit(ctx, f"[WARNUNG] Checkpoint konnte nicht aktualisiert werden: {exc}")
     if density_gate["status"] == "ausnahme_bestaetigt":
         _emit(ctx, "[WARNUNG] Dichteausnahme ist für die persönliche Sichtprüfung dokumentiert.")
@@ -1073,7 +1092,7 @@ def _manifest(stage: Path, order: Mapping[str, Any], source_inputs: Mapping[str,
     files = [_record(path, stage) for path in sorted(stage.rglob("*"), key=lambda item: item.as_posix()) if path.is_file()]
     manifest = {
         "schemaVersion": 1, "createdAtUtc": utc_now(), "firma": order.get("firma"), "rolle": order.get("rolle"),
-        "dokumentumfang": _document_scope(order),
+        "dokumentumfang": document_scope(order),
         "struktur": {"versand": "nur laut Dokumentumfang ausgewählte PDF-Anlagen und E-Mail-Nachricht", "intern": "HTML-Quellen, Analyse und Prüfdokumente"},
         "sourceInputs": {name: {"name": value.get("name") or Path(str(value.get("path", ""))).name, "sha256": value.get("sha256")} for name, value in source_inputs.items()},
         "personalReview": {"kind": approval.get("reviewKind"), "confirmed": True, "approvalId": approval.get("approvalId"), "note": approval.get("note", "")},
@@ -1114,6 +1133,12 @@ def _install_directory(stage: Path, target: Path, replace: bool) -> None:
 
 def _normal_publish(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any]) -> int:
     work: Path = paths["work"]
+    order = read_json(paths["order_path"])
+    if not isinstance(order, dict):
+        raise ContractError("Bewerbungsauftrag ist kein JSON-Objekt.")
+    require_application_decision(order)
+    if document_scope(order)["lebenslauf"] == "universal_unveraendert":
+        require_universal_snapshot(order, paths["candidate"])
     report = read_json(paths["final_report"])
     if not isinstance(report, dict) or report.get("schemaVersion") not in (7, 8) or report.get("status") != "bereit_zur_sichtpruefung":
         raise ContractError("Finalisierungsbericht besitzt keinen aktuellen veröffentlichbaren Freigabestatus.")
@@ -1122,6 +1147,8 @@ def _normal_publish(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
     expected_html = int(report.get("expectedScreenshots", 0)) > 0
     _assert_runtime_current(report.get("runtime"), args, expected_html)
     approval = _read_approval(work, paths["final_report"], report)
+    files = approved_candidate_files(approval["artifacts"], work, paths["candidate"])
+    shipping_names = _shipping_files(order, files)
     note = re.sub(r"\s+", " ", str(approval.get("note", "")).strip())
     if report.get("layoutWarnings") and not note:
         raise ContractError("Layoutwarnungen erfordern eine konkrete Notiz in der Chat-bestätigten Sichtfreigabe.")
@@ -1132,6 +1159,10 @@ def _normal_publish(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
         if not isinstance(value, dict):
             raise ContractError("Finalisierungsbericht enthält einen ungültigen Quellrecord.")
         _assert_source_current(value, work)
+    if document_scope(order)["lebenslauf"] == "individuell":
+        photo = safe_path(paths["private"] / "Daten" / "Passfoto.png", paths["private"], kind="file")
+        if photo.exists() != ("passfoto" in source_inputs):
+            raise ContractError("Passfoto-Quelle wurde seit der Vorbereitung hinzugefügt oder entfernt. Erneut vorbereiten.")
     _run_core(ctx, "dialog-pruefen", {
         "auftrag_path": paths["order_path"], "stammdaten_path": paths["stammdaten"],
         "profil_path": paths["profil"], "fuer_dokumenterstellung": True,
@@ -1140,9 +1171,10 @@ def _normal_publish(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
         "stammdaten_path": paths["stammdaten"], "bewerbungsauftrag_path": paths["order_path"],
         "ungeklaerte_logistik_als_fehler": True, "bericht_path": work / "Stammdaten-Pruefbericht.json",
     })
-    order = read_json(paths["order_path"])
-    if not isinstance(order, dict):
-        raise ContractError("Bewerbungsauftrag ist kein JSON-Objekt.")
+    _run_core(ctx, "inhalt", {
+        "ordner": paths["candidate"], "stammdaten_path": paths["stammdaten"], "profil_path": paths["profil"],
+        "auftrag_path": paths["order_path"], "anforderungsmatrix_path": paths["matrix_path"],
+    })
     company = paths["target"].parent
     stage = safe_path(company / (".publish-" + uuid.uuid4().hex), paths["root"], kind="dir")
     report_temp = safe_path(work / (".Finalisierungsbericht.publish-" + uuid.uuid4().hex + ".json"), paths["root"], kind="file")
@@ -1150,15 +1182,14 @@ def _normal_publish(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
     target_backed_up = False
     target_was_empty = False
     target_installed = False
-    report_installed = False
     try:
         shipping = stage / "Versand"
         internal = stage / "Intern"
         shipping.mkdir(parents=True)
         internal.mkdir()
-        for source in _regular_files(paths["candidate"]):
-            destination = shipping if source.suffix.lower() == ".pdf" or re.match(r"^Email-Nachricht--.+\.md$", source.name) else internal
-            shutil.copy2(source, destination / source.name)
+        for source, record in files.items():
+            destination = shipping if source.name in shipping_names else internal
+            _copy_approved_file(source, destination / source.name, record)
         manifest_path = _manifest(stage, order, source_inputs, approval)
         published = dict(report)
         published["status"] = "veroeffentlicht"
@@ -1183,7 +1214,6 @@ def _normal_publish(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any])
         os.replace(stage, paths["target"])
         target_installed = True
         os.replace(report_temp, paths["final_report"])
-        report_installed = True
     except Exception:
         shutil.rmtree(stage, ignore_errors=True)
         try:
@@ -1226,13 +1256,14 @@ def _universal_paths(work: Path, args: Mapping[str, Any]) -> Dict[str, Any]:
     private = root.parent
     candidate = safe_path(work / "Kandidat", root, must_exist=True, kind="dir")
     order = safe_path(work / "Universalauftrag.json", root, must_exist=True, kind="file")
+    direction = validate_universal_order(read_json(order), work)
     stammdaten = _path(args, "stammdaten_path", private / "Daten" / "01_PERSOENLICHE_DATEN.md")
     profil = _path(args, "profil_path", private / "Daten" / "02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md")
     assert stammdaten is not None and profil is not None
     return {
         "context": context, "root": root, "private": private, "work": work, "candidate": candidate,
         "order_path": order, "stammdaten": safe_path(stammdaten, private, must_exist=True, kind="file"),
-        "profil": safe_path(profil, private, must_exist=True, kind="file"), "active": safe_path(context.target, root, kind="dir"),
+        "profil": safe_path(profil, private, must_exist=True, kind="file"), "active": universal_active_path(root, direction),
         "layout": safe_path(work / "Layoutcheck", root, kind="dir"), "pdf_dir": safe_path(work / "PDF-Export", root, kind="dir"),
         "layout_report": safe_path(work / "Layoutcheck" / "Layoutcheck-Bericht.json", root, kind="file"),
         "pdf_report": safe_path(work / "PDF-Export" / "PDF-Export-Bericht.json", root, kind="file"),
@@ -1244,8 +1275,7 @@ def _universal_paths(work: Path, args: Mapping[str, Any]) -> Dict[str, Any]:
 def _universal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, Any]) -> int:
     work: Path = paths["work"]
     order = read_json(paths["order_path"])
-    if not isinstance(order, dict) or order.get("schemaVersion") != 5 or order.get("auftragsart") != "universal_lebenslauf" or order.get("fachrichtung") != "softwareentwicklung":
-        raise ContractError("Universalauftrag besitzt nicht den unterstützten Softwareentwicklungsvertrag.")
+    validate_universal_order(order, work)
     source_inputs = order.get("sourceInputs")
     if not isinstance(source_inputs, dict):
         raise ContractError("Universalauftrag enthält keine gebundenen Quellen.")
@@ -1278,7 +1308,9 @@ def _universal_prepare(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, An
         raise ContractError(f"Erwartet werden genau zwei aktuelle Seitenscreenshots; gefunden: {len(screenshots)}.")
     layout_data = read_json(paths["layout_report"])
     warnings = [str(value.get("densityWarning")) for value in layout_data.get("results", []) if isinstance(value, dict) and value.get("densityWarning")]
-    candidate_records = [_record(path, work) for path in _regular_files(paths["candidate"])]
+    candidate_files = _regular_files(paths["candidate"])
+    _shipping_files(order, candidate_files)
+    candidate_records = [_record(path, work) for path in candidate_files]
     report: Dict[str, Any] = {
         "schemaVersion": 2, "status": "bereit_zur_sichtpruefung", "preparedAtUtc": utc_now(),
         "workId": work.name, "order": _record(paths["order_path"], work),
@@ -1313,6 +1345,7 @@ def _universal_publish(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, An
         raise ContractError("Universal-Layoutbericht ist nicht lesbar.")
     _assert_runtime_current(layout_report.get("runtime"), args, True)
     approval = _read_approval(work, paths["final_report"], prepared)
+    files = approved_candidate_files(approval["artifacts"], work, paths["candidate"])
     warnings = prepared.get("layoutWarnings") or []
     note = re.sub(r"\s+", " ", str(approval.get("note", "")).strip())
     if warnings and not note:
@@ -1324,11 +1357,12 @@ def _universal_publish(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, An
     order = read_json(paths["order_path"])
     if not isinstance(order, dict):
         raise ContractError("Universalauftrag ist kein JSON-Objekt.")
-    html_files = _regular_files(paths["candidate"], "Lebenslauf - *.html")
+    html_files = [path for path in files if path.match("Lebenslauf - *.html")]
     if len(html_files) != 1:
         raise ContractError("Universeller Kandidat enthält nicht genau eine HTML-Datei.")
     pdf_file = html_files[0].with_suffix(".pdf")
-    safe_path(pdf_file, paths["candidate"], must_exist=True, kind="file")
+    if pdf_file not in files:
+        raise ContractError("Versand-PDF fehlt im freigegebenen Artefaktsatz.")
     namespace = paths["active"].parent
     stage = safe_path(namespace / (".publish-" + uuid.uuid4().hex), paths["root"], kind="dir")
     try:
@@ -1336,12 +1370,12 @@ def _universal_publish(ctx: Any, paths: Mapping[str, Any], args: Mapping[str, An
         internal = stage / "Intern"
         shipping.mkdir(parents=True)
         internal.mkdir()
-        shutil.copy2(pdf_file, shipping / pdf_file.name)
-        shutil.copy2(html_files[0], internal / html_files[0].name)
+        _copy_approved_file(pdf_file, shipping / pdf_file.name, files[pdf_file])
+        _copy_approved_file(html_files[0], internal / html_files[0].name, files[html_files[0]])
         files = [_record(path, stage) for path in sorted(stage.rglob("*"), key=lambda item: item.as_posix()) if path.is_file()]
         write_atomic_json(stage / "Manifest.json", {
-            "schemaVersion": 1, "auftragsart": "universal_lebenslauf", "fachrichtung": "softwareentwicklung",
-            "zielrollen": ["Frontend-Entwickler", "Backend-Entwickler", "Fullstack-Entwickler"],
+            "schemaVersion": 1, "auftragsart": "universal_lebenslauf", "fachrichtung": order["fachrichtung"],
+            "zielrollen": order["zielrollen"],
             "activatedAtUtc": utc_now(), "workId": prepared.get("workId"),
             "personalReview": {"kind": "png_sichtpruefung", "confirmed": True, "approvalId": approval.get("approvalId"), "note": note},
             "layoutWarnings": warnings, "sourceInputs": prepared.get("sources"), "files": files,

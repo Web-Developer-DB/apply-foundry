@@ -50,11 +50,19 @@ Das Subcommand `checkpoint --arbeitsordner "..." --schritt NAME` schreibt einen 
 
 Das Subcommand `passfoto --arbeitsordner "..."` ist der idempotente Einbettungsschritt für einen individuellen Kandidaten-Lebenslauf. Es prüft ausschließlich `Private/Daten/Passfoto.png`, ersetzt den einmaligen markierten Block durch eine bytegleiche eingebettete PNG-Ressource oder leert ihn bei fehlender Datei. Bildbytes werden nie ausgegeben. Universelle oder abgewählte Lebensläufe werden abgelehnt und niemals verändert.
 
-Der getrennte Universalprozess verwendet `universal-neu`, `universal-status` und `universal-finalisieren`. Er arbeitet ausschließlich unter `Private/Bewerbungen/_Universal-Lebenslauf/`, verlangt für den Softwareentwicklungs-Zweiseiter die exakte atomare Abschnittsverteilung aus `Universalauftrag.json` und aktiviert erst nach den beiden persönlich geprüften PNG-Seiten. `Aktiv/` enthält danach nur PDF, HTML und Manifest; der datierte Arbeitsordner wird nach erfolgreicher Aktivierung vollständig entfernt. Scheitert nur diese letzte Bereinigung, erkennt derselbe erneute Freigabeaufruf die bereits hashgleich aktive Fassung und wiederholt ausschließlich die Bereinigung.
+Der Universalprozess verwendet `universal-neu`, `universal-status` und `universal-finalisieren` unter `Private/Bewerbungen/_Universal-Lebenslauf/`. Der Agent prüft die Abschnittsverteilung anhand von `Universalauftrag.json`. Die CLI prüft die Struktur beider A4-Seiten und aktiviert die Fassung nach der an die beiden PNG-Seiten gebundenen persönlichen Sichtfreigabe. Das aktive Paket enthält PDF, HTML und Manifest im Ordner der jeweiligen Fachrichtung. Nach erfolgreicher Aktivierung wird der zugehörige datierte Arbeitsordner entfernt.
 
 `diagnose` prüft Kernruntime, Betriebssystem, Architektur, Paketmanager, Browser, Temp- und Schreibzugriff sowie Fonts read-only und liefert Diagnoseschema 4 mit `coreRuntime`. `Tools/setup.py` liefert Setup-Schema 3; alte technische Nachweise bleiben lesbar. Die privaten Auftrags-, Matrix-, Prüfstands-, Freigabe- und Manifest-Schemata ändern sich dadurch nicht. Windows, Linux und macOS unterstützen ausschließlich x64 (Intel/AMD); Linux verwendet APT, DNF/YUM, Pacman oder Zypper, Windows ausschließlich winget und macOS ausschließlich Homebrew. Unter Linux gelten Liberation Sans, unter Windows Arial und unter macOS Arial oder Liberation Sans. Fehlt Python, darf nur der POSIX- beziehungsweise CMD-Starter bei explizitem `--runtime --yes` die Runtime installieren und delegiert danach vollständig an Python. PyPI, virtuelle Umgebungen, Snap, AUR und fremde Browserquellen sind ausgeschlossen. Bereits passende Installationen sind idempotent. Unbekannte Paketmanager und macOS ohne Homebrew enden mit Exitcode `2` und einer manuellen Anleitung; Paketfehler enden mit Exitcode `1` und nennen den erreichten Teilzustand.
 
 Der Pacman-Plan setzt `packageManagerOperation.fullSystemUpgrade = true`, kennzeichnet die erste Änderung mit `includesFullSystemUpgrade` und nennt den vollständigen `-Syu`-Lauf; spätere Paketinstallationen desselben Laufs verwenden `-S`. Diese breite Systemaktualisierung ist Bestandteil des vorab zu bestätigenden Plans. Fehlt Chromium unter Ubuntu oder in RHEL-kompatiblen Basis-Repositories, bleibt die Komponente blockiert und `manualInstruction` nennt Voraussetzung sowie exakten `verificationCommand`; Snap, EPEL und andere Communityquellen werden nicht registriert. Liberation Sans wird über eine tatsächlich vorhandene reguläre Fontdatei validiert; eine bloße Namensauflösung oder ein Symlink reicht nicht, und der Dateifallback funktioniert ohne `fc-match`.
+
+`universal-neu --fachrichtung systemadministration` legt einen getrennten
+Universal-Arbeitsstand für Junior-Systemadministration an. Ohne diese Option
+bleibt Softwareentwicklung der Standard. Beide Richtungen verwenden dieselben
+Quellen-, A4-, PDF-, ATS- und persönlichen Freigabeprüfungen; das aktive Manifest
+übernimmt Fachrichtung und Zielrollen aus dem geprüften Universalauftrag.
+`universal-status --fachrichtung FACHRICHTUNG` zeigt den einzelnen Arbeitsstand.
+Im JSON-Ergebnis listet `activeFolders` die gültigen aktiven Fassungen auf.
 
 ## Verbindlicher Finalisierungsworkflow
 
@@ -74,6 +82,7 @@ Dieser Lauf:
 
 - verlangt eine vollständige `Anforderungsmatrix.json`
 - validiert den bestätigten Dokumentumfang und den fortsetzbaren Dialogzustand; neue Aufträge verwenden Schema 5, Legacy-Aufträge der Schemata 1 bis 4 werden nicht automatisch umgeschrieben
+- blockiert `nicht_bewerben` und verlangt bei aktuellen Aufträgen die Entscheidung `bewerben`
 - sperrt ungeklärte zentrale Bewerbungslogistik
 - führt Dialog und Stammdaten, danach statischen HTML-Check und Inhalt aus; vor dem Layout weist eine kleine lokale Chromium-A4-Druckprobe die Browserbereitschaft nach. Erst danach folgen DOM/Layout, Dichte-Gate, PDF-Linkprüfung und ATS in dieser festen Abbruchreihenfolge
 - schreibt im `Inhalts-Pruefbericht.json` für Matrix-Schema 5 die maschinenlesbare `recruiterCoverage`, `evidenceCoverage`, `anschreibenCoverage`, `externalSourceCoverage`, `evidenzDisposition` und `sprachqualitaet`; fehlende Prioritätsbelege, falsche Zieldokumente oder Seiten, unbelegte Direktbehauptungen, fehlende Quellenanker und unvollständige Strategien blockieren
@@ -89,6 +98,7 @@ Dieser Lauf:
 - schreibt den Runtime-Fingerprint in Layout-, PDF-, ATS- und Finalisierungsbericht
 - aktualisiert den nicht blockierenden Diagnosebericht `Tokenverbrauch.json` im Arbeitsordner mindestens mit dem Verfügbarkeitsstatus und referenziert ihn optional im `Finalisierungsbericht.json`
 - veröffentlicht noch keine Datei
+- gleicht die vorgesehenen Versanddateien exakt mit dem bestätigten Dokumentumfang ab
 - leitet ab Schema 4 alle erwarteten Dateien aus `dokumentumfang` ab; bei universellem Lebenslauf prüft er zusätzlich dessen SHA-256-Snapshot
 - schreibt bei einem bestätigten reinen E-Mail-Auftrag Layout-, PDF- und ATS-Berichte mit `nicht_erforderlich`, statt einen Browserlauf vorzutäuschen
 

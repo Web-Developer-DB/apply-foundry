@@ -372,17 +372,17 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
             )
             job.write_text(
                 "# Fullstack Developer\n\nDiese vollständig fiktive Stellenbeschreibung dient ausschließlich dem nativen Linux-Vertragstest. "
-                "Gesucht werden wartbare Webentwicklung, API-Integration, Qualitätssicherung und nachvollziehbare Zusammenarbeit.\n",
+                "Gesucht werden Fullstack-Entwicklung und Python für wartbare APIs und Qualitätssicherung.\n",
                 encoding="utf-8",
             )
 
-            def cli(*arguments):
+            def cli(*arguments, expected=0):
                 result = subprocess.run(
                     [sys.executable, str(REPO_ROOT / "Tools/bewerbung.py"), *map(str, arguments)],
                     cwd=str(REPO_ROOT), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     timeout=180, check=False,
                 )
-                self.assertEqual(0, result.returncode, result.stdout + "\n" + result.stderr)
+                self.assertEqual(expected, result.returncode, result.stdout + "\n" + result.stderr)
                 return result
 
             cli(
@@ -399,21 +399,12 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
             order["bewerbungsentscheidung"] = "bewerben"
             order["seitenstrategie"] = "eine_seite"
             order_path.write_text(json.dumps(order, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-            (work / "Anforderungsmatrix.json").write_text(json.dumps({
-                "schemaVersion": 1,
-                "requirements": [{
-                    "id": "muss-1", "anforderung": "Fullstack-Entwicklung", "typ": "muss",
-                    "status": "erfuellt", "belegart": "PROJEKTPRAXIS",
-                    "beleg": "Synthetische Fullstack-Entwicklung", "behandlung": "Lebenslauf und Anschreiben",
-                }],
-            }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             evidence = (
                 "Dieser vollständig synthetische Nachweis dokumentiert den fachlichen und technischen Teststand. "
                 "Er enthält bewusst keine echten Bewerber-, Arbeitgeber- oder Projektdaten und ist inhaltlich abgeschlossen."
             )
             for name, heading in (
-                ("Stellenbeschreibung.md", "Stellenbeschreibung"), ("Analyse.md", "Analyse"),
-                ("Qualitaetscheck.md", "Qualitätscheck"), ("Druck-Hinweis.md", "Druck-Hinweis"),
+                ("Analyse.md", "Analyse"), ("Qualitaetscheck.md", "Qualitätscheck"), ("Druck-Hinweis.md", "Druck-Hinweis"),
             ):
                 (candidate / name).write_text("# %s\n\n%s\n" % (heading, evidence), encoding="utf-8")
             css = (
@@ -442,6 +433,43 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
                 "Guten Tag,\n\nanbei erhalten Sie meine synthetischen Testunterlagen.\n",
                 encoding="utf-8",
             )
+            profile_lines = profile.read_text(encoding="utf-8").splitlines()
+            job_lines = job.read_text(encoding="utf-8").splitlines()
+            evidence_line = profile_lines[-1]
+            job_line = job_lines[-1]
+            requirements, anchors, highlights, arguments = [], [], [], []
+            for technology in ("Fullstack-Entwicklung", "Python"):
+                index = len(requirements) + 1
+                requirement_id, anchor_id = f"muss-{index}", f"stelle-{index}"
+                requirements.append({
+                    "id": requirement_id, "anforderung": technology, "typ": "muss", "kategorie": "fachlich",
+                    "gewichtung": "hoch", "status": "erfuellt", "belegart": "BERUFSPRAXIS",
+                    "beleg": evidence_line, "behandlung": "Im Lebenslauf belegen",
+                    "stellenFundstellen": [anchor_id], "belegRefIds": ["profil-fullstack"],
+                })
+                anchors.append({"id": anchor_id, "zeileVon": len(job_lines), "zeileBis": len(job_lines), "text": job_line,
+                                "klassifikation": "anforderung", "anforderungIds": [requirement_id]})
+                highlights.append({"id": f"highlight-{index}", "anforderungIds": [requirement_id],
+                                   "belegRefIds": ["profil-fullstack"], "zielDokument": "lebenslauf",
+                                   "platzierung": "seite_1", "sichtbareAnker": [technology]})
+                arguments.append({"id": f"argument-{index}", "anforderungIds": [requirement_id],
+                                  "belegRefIds": ["profil-fullstack"], "stellenFundstellen": [anchor_id],
+                                  "arbeitgeberbezug": "Wartbare Webentwicklung", "nutzenargument": "Qualitätssicherung",
+                                  "sichtbareAnker": ["wartbare APIs" if index == 1 else "Qualitätssicherung"]})
+            (work / "Anforderungsmatrix.json").write_text(json.dumps({
+                "schemaVersion": 5, "requirements": requirements, "externeQuellen": [],
+                "stellenanzeigeAbdeckung": {"sourceSha256": sha256(job), "fundstellen": anchors},
+                "anschreibenStrategie": {"status": "final", "argumente": arguments},
+                "recruiterStrategie": {"kernbotschaft": "Belegte Fullstack-Entwicklung", "profilSubstanz": "ausreichend",
+                                      "profilSubstanzBegruendung": "Fiktiver Rollenbezug mit konkreter Projekterfahrung",
+                                      "prioritaetsAnforderungen": [item["id"] for item in requirements],
+                                      "profilHighlights": highlights, "transferbruecken": [], "auslassungen": []},
+            }, ensure_ascii=False), encoding="utf-8")
+            (work / "Evidenzindex.json").write_text(json.dumps({
+                "schemaVersion": 1, "profilSha256": sha256(profile),
+                "belege": [{"id": "profil-fullstack", "quelle": "profil", "belegart": "BERUFSPRAXIS",
+                            "zeileVon": len(profile_lines), "zeileBis": len(profile_lines), "text": evidence_line}],
+            }, ensure_ascii=False), encoding="utf-8")
 
             cli(
                 "finalisieren", "--arbeitsordner", work, "--stammdaten-path", master,
@@ -463,6 +491,15 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
                 "--freigabe-id", prepared["approvalRequest"]["approvalId"], "--bestaetigt",
                 "--notiz", "Alle zwei synthetischen A4-Screenshots persönlich geprüft; große Weißräume sind in diesem Test beabsichtigt.",
             )
+            photo = data / "Passfoto.png"
+            photo.write_bytes(synthetic_png())
+            rejected = cli(
+                "finalisieren", "--arbeitsordner", work, "--stammdaten-path", master,
+                "--profil-path", profile, "--browser-executable-path", browser.path,
+                "--veroeffentlichen", expected=1,
+            )
+            self.assertIn("Passfoto-Quelle", rejected.stderr)
+            photo.unlink()
             cli(
                 "finalisieren", "--arbeitsordner", work, "--stammdaten-path", master,
                 "--profil-path", profile, "--browser-executable-path", browser.path,
@@ -477,9 +514,18 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
             self.assertFalse(any(path.name.startswith((".publish-", ".backup-")) for path in target.parent.iterdir()))
 
     def test_universal_two_page_finalization_approval_and_activation(self):
+        self._check_universal_finalization("softwareentwicklung", "Softwareentwicklung", [])
+
+    def test_universal_systemadministration_finalization_and_manifest(self):
+        self._check_universal_finalization("systemadministration", "Systemadministration", ["--fachrichtung", "systemadministration"])
+
+    def _check_universal_finalization(self, direction, folder_suffix, direction_args):
         candidates = browser_candidates("auto", None, False, True)
         self.assertTrue(candidates, "Browser-Suite erfordert einen nativen Chrome-/Chromium-/Edge-Pfad")
         browser = candidates[0]
+        focus = ("Synthetische Linux-Systemadministration mit Systemdiensten, Protokollen und technischer Dokumentation."
+                 if direction == "systemadministration"
+                 else "Synthetische Softwareentwicklung mit Python, PHP, APIs, Tests und Webtechnologien.")
         with tempfile.TemporaryDirectory(prefix="apply-foundry-universal-") as temp:
             root = Path(temp)
             data = root / "Private/Daten"
@@ -496,7 +542,7 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
                 encoding="utf-8",
             )
             profile.write_text(
-                "# Bewerberprofil\n\nSynthetische Softwareentwicklung mit Python, PHP, APIs, Tests und Webtechnologien.\n",
+                "# Bewerberprofil\n\n" + focus + "\n",
                 encoding="utf-8",
             )
 
@@ -512,8 +558,10 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
             cli(
                 "universal-neu", "--datum", "2026-08-23", "--stammdaten-path", master,
                 "--profil-path", profile, "--bewerbungen-root", applications,
+                *direction_args,
             )
-            work = applications / "_Universal-Lebenslauf/_Arbeitsdateien/2026-08-23--Softwareentwicklung"
+            work = applications / ("_Universal-Lebenslauf/_Arbeitsdateien/2026-08-23--" + folder_suffix)
+            order = json.loads((work / "Universalauftrag.json").read_text(encoding="utf-8"))
             candidate = work / "Kandidat"
             evidence = (
                 "Dieser vollständig synthetische Nachweis dokumentiert die fachliche Vorbereitung und die lokale "
@@ -531,16 +579,15 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
                 ".page:last-child{page-break-after:auto}"
             )
             page_one = (
-                "<header data-cv-page-header><h1>Max Muster</h1><p>Softwareentwicklung · Seite 1 von 2</p></header>"
-                "<section data-cv-section=\"profil\"><h2>Kurzprofil</h2><p>Synthetische Fullstack-Entwicklung mit wartbaren Schnittstellen, "
-                "automatisierten Tests und verständlicher technischer Dokumentation.</p></section>"
-                "<section data-cv-section=\"technologien-projekte\"><h2>Technologien und Projekte</h2><p>Python, PHP, HTML, CSS, JavaScript und API-Integration "
-                "in vollständig fiktiven Projektbeispielen für sichere lokale Vertragstests.</p></section>"
+                f"<header data-cv-page-header><h1>Max Muster</h1><p>{folder_suffix} · Seite 1 von 2</p></header>"
+                f"<section data-cv-section=\"profil\"><h2>Kurzprofil</h2><p>{focus}</p></section>"
+                "<section data-cv-section=\"technologien-projekte\"><h2>Technologien und Projekte</h2>"
+                "<p>Vollständig fiktive Projektbeispiele mit nachvollziehbaren Arbeitsschritten und Qualitätssicherung.</p></section>"
             )
             page_two = (
-                "<header data-cv-page-header><h1>Max Muster</h1><p>Softwareentwicklung · Seite 2 von 2</p></header>"
-                "<section data-cv-section=\"berufserfahrung\"><h2>Berufserfahrung</h2><p>01/2020 - 12/2024 · Synthetische Softwareentwicklung mit "
-                "nachvollziehbarem eigenem Beitrag.</p></section><section data-cv-section=\"weiterbildung\"><h2>Weiterbildung</h2><p>Kontinuierliche fiktive "
+                f"<header data-cv-page-header><h1>Max Muster</h1><p>{folder_suffix} · Seite 2 von 2</p></header>"
+                f"<section data-cv-section=\"berufserfahrung\"><h2>Berufserfahrung</h2><p>01/2020 - 12/2024 · {focus}"
+                "</p></section><section data-cv-section=\"weiterbildung\"><h2>Weiterbildung</h2><p>Kontinuierliche fiktive "
                 "Vertiefung in Qualitätssicherung.</p></section><section data-cv-section=\"ausbildung-schulbildung\"><h2>Ausbildung und Schulbildung</h2>"
                 "<p>Vollständig synthetische Angaben ausschließlich für diesen Regressionstest.</p></section>"
             )
@@ -572,14 +619,16 @@ class ChromiumWorkflowSmoke(unittest.TestCase):
                 "--profil-path", profile, "--browser-executable-path", browser.path,
                 "--veroeffentlichen",
             )
-            active = applications / "_Universal-Lebenslauf/Aktiv"
+            active = applications / ("_Universal-Lebenslauf/Aktiv--" + folder_suffix)
             manifest = json.loads((active / "Manifest.json").read_text(encoding="utf-8"))
             self.assertEqual("universal_lebenslauf", manifest["auftragsart"])
+            self.assertEqual(direction, manifest["fachrichtung"])
+            self.assertEqual(order["zielrollen"], manifest["zielrollen"])
             self.assertTrue(manifest["personalReview"]["confirmed"])
             self.assertEqual(1, len(list((active / "Versand").glob("*.pdf"))))
             self.assertEqual(1, len(list((active / "Intern").glob("*.html"))))
             self.assertFalse(work.exists())
-            status = cli("universal-status", "--bewerbungen-root", applications, "--als-json")
+            status = cli("universal-status", "--bewerbungen-root", applications, "--fachrichtung", direction, "--als-json")
             self.assertEqual("aktiv", json.loads(status.stdout)["phase"])
 
 

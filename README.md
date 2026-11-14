@@ -5,35 +5,34 @@
 <h1 align="center">apply-foundry</h1>
 
 <p align="center">
-  <strong>Deine Erfahrung. Die passende Stelle. Geprüfte Bewerbungsunterlagen.</strong><br>
-  Öffne das Projekt mit deinem Coding-Agenten und gib ihm deinen Bewerbungsauftrag.
+  <strong>Deine Erfahrung. Deine Bewerbung. Deine Entscheidung.</strong><br>
+  Ein lokaler Workflow für wahrheitsgemäße, persönlich geprüfte Bewerbungsunterlagen.
 </p>
 
 <p align="center">
-  <a href="#schnellstart">🚀 Starten</a> ·
-  <a href="#beispiele">👀 Beispiele</a> ·
-  <a href="#agenten">🤖 Agenten</a> ·
-  <a href="#ergebnisse">📦 Ergebnisse</a> ·
-  <a href="#private-daten--datenschutz">🔒 Datenschutz</a> ·
-  <a href="#entwicklung">🧰 Entwicklung</a>
+  <a href="#schnellstart"><strong>Loslegen</strong></a> &nbsp;·&nbsp;
+  <a href="#beispiele">Beispiele ansehen</a> &nbsp;·&nbsp;
+  <a href="#prozess">Ablauf</a> &nbsp;·&nbsp;
+  <a href="#private-daten--datenschutz">Datenschutz</a> &nbsp;·&nbsp;
+  <a href="#entwicklung">Entwicklung</a>
 </p>
 
 <a id="was-ist-apply-foundry"></a>
 <a id="nutzung"></a>
 
-## Was bekomme ich?
+## Von der Stellenanzeige zu deinen Unterlagen
 
 apply-foundry hilft dir, mit einem Coding-Agenten deutsche Bewerbungsunterlagen für deine eigene Bewerbung zu erstellen: einen stellenbezogenen Lebenslauf, ein Anschreiben und auf Wunsch eine E-Mail-Nachricht. Du bringst deine tatsächliche Erfahrung und die Stellenanzeige mit; der Agent führt dich von der Dateneinrichtung bis zu den freigegebenen Dateien.
 
-- **Passend zur Stelle:** Anforderungen werden mit deinen belegten Erfahrungen abgeglichen und verständlich dargestellt.
-- **Mehr als Text:** Inhalt, Seitenlayout, PDF und technische Textauslesbarkeit werden je nach Dokumentumfang geprüft.
-- **Unter deiner Kontrolle:** Du prüfst jede Vorschau persönlich. Die Freigabe ist lokal; der Workflow versendet nichts automatisch.
+| 🎯 Stellenbezug | 📄 Dokumente | ✅ Deine Freigabe |
+| --- | --- | --- |
+| Der Agent gleicht Anforderungen mit deinen belegten Erfahrungen ab. | Je nach Auftrag entstehen Lebenslauf, Anschreiben und E-Mail. | Du prüfst die Vorschauen und bestätigst die lokale Freigabe. |
 
 Das Projekt richtet sich an Bewerber, die einen eingerichteten Coding-Agenten verwenden können. Ein einfacher Chat ohne Datei- und Terminalzugriff reicht dafür nicht. Dateien werden lokal gespeichert; ob dein Agent Eingaben in einer Cloud verarbeitet, hängt von seiner Umgebung ab.
 
 <a id="schnellstart"></a>
 
-## 🚀 In wenigen Minuten starten
+## 🚀 Dein Einstieg
 
 **Voraussetzung:** Ein eingerichteter Coding-Agent, der Projektdateien lesen und schreiben, Terminalbefehle ausführen und die Regeln aus `AGENTS.md` berücksichtigen kann. Für die Dokumentprüfung braucht er außerdem PNG-Bildauswertung oder die vorgeschriebene persönliche Alternative. Beispiele sind Codex, Claude Code, Gemini CLI und OpenCode; siehe [Agenten und Nachweisstand](#agenten). Du brauchst außerdem deine Unterlagen und den vollständigen Text der Stellenanzeige.
 
@@ -76,43 +75,56 @@ Damit ist der Umfang eindeutig. Du kannst genauso „nur ein Anschreiben“ oder
 
 Öffne jede vom Agenten genannte Seitenvorschau und prüfe Inhalt, Namen, Zeiträume, Lesbarkeit und Seitenaufteilung. Bestätige danach ausdrücklich die persönliche Prüfung. Bei einer bestätigten reinen E-Mail prüfst du stattdessen die genannte Textdatei.
 
-**Mehr musst du für den normalen Einstieg zunächst nicht verstehen.** Profilabgleich, Dokumenterstellung und technische Prüfungen führt der Agent mit den Projektwerkzeugen aus. Für HTML-Unterlagen gehören Layout-, PDF- und ATS-Prüfung dazu. Du musst keine einzelnen Tools manuell bedienen und keine interne Architektur kennen.
-
-„In wenigen Minuten“ beschreibt den Einstieg: Dateneinrichtung, Rückfragen, fehlende Voraussetzungen und persönliche Prüfung können zusätzliche Zeit benötigen.
+> [!TIP]
+> Für den normalen Ablauf genügt der Dialog mit deinem Agenten. Er verwendet die Projektwerkzeuge für Profilabgleich und technische Prüfungen. Plane Zeit für Rückfragen und deine persönliche Prüfung ein.
 
 <a id="beispiele"></a>
 
-## 👀 So sieht der Workflow aus
+## 👀 Ein Beispiel von Anfang bis Ende
 
-Alle folgenden Abbildungen verwenden ausschließlich **synthetische Testdaten**. Der Dialog und die Ordneransicht sind schematische Darstellungen; die Dokumente sind Designvorschauen aus den vorhandenen Vorlagen. Sie dokumentieren keinen echten Agentenlauf und keine freigegebene Bewerbung.
+Die folgende Bildfolge zeigt einen **synthetischen Testauftrag** für die fiktive Acme GmbH. Ein Agent hat ein angepasstes Testfixture in einer isolierten Projektkopie ausgeführt. Die Abbildungen erklären den Ablauf; ein interaktiver Agentendialog wurde dabei nicht aufgezeichnet.
 
-**Auftrag geben und bei der persönlichen Prüfung anhalten**
+### 1 · Auftrag geben
 
-![Schematischer Agentendialog mit synthetischem Beispielauftrag und persönlicher Prüfung](.github/assets/workflow-example.png)
+```text
+Erstelle Lebenslauf, Anschreiben und E-Mail-Nachricht für die Stelle
+als Fullstack Developer. Nutze meine belegten Erfahrungen.
+```
 
-| Lebenslauf: eine A4-Seite | Anschreiben: eine A4-Seite |
+Die vollständige Stellenanzeige und dein Profil bilden die Grundlage. Der Agent klärt offene Angaben mit dir.
+
+### 2 · Anforderungen und Belege abgleichen
+
+![Synthetischer Abgleich der Stellenanforderungen mit belegter Berufserfahrung](.github/assets/readme-abgleich.png)
+
+Die Grafik zeigt zwei Einträge aus der Anforderungsmatrix des Testlaufs. Sie verknüpfen Fullstack-Entwicklung und Python mit einem fiktiven Profileintrag.
+
+### 3 · Jede Seite persönlich prüfen
+
+![Persönliche Sichtprüfung mit zwei echten Chromium-Vorschauen aus dem synthetischen Testlauf](.github/assets/readme-pruefung.png)
+
+Der Testlauf hat PDF-Export, Layoutcheck und ATS-Prüfung ausgeführt und bei `bereit_zur_sichtpruefung` angehalten. Die beiden Seiten rechts stammen aus dem Chromium-Layoutcheck. Es sind bewusst einfache Testdokumente. Du kannst sie in Originalgröße öffnen und den Prüfzustand nachvollziehen.
+
+[Lebenslauf-Vorschau öffnen](Tests/Fixtures/Readme/real-run/lebenslauf.png) · [Anschreiben-Vorschau öffnen](Tests/Fixtures/Readme/real-run/anschreiben.png)
+
+### 4 · Freigegebene Dateien finden
+
+![Schematische Darstellung der Ordner Versand und Intern](.github/assets/readme-ergebnis.png)
+
+Die Ordneransicht ist eine schematische Darstellung des vorgesehenen Ergebnisses. Der gezeigte Testlauf endete vor der persönlichen Freigabe. Nach deiner eigenen Prüfung und ausdrücklichen Bestätigung findest du die ausgewählten Unterlagen unter `Versand/`.
+
+<details>
+<summary>Weitere Designvorschauen ansehen</summary>
+
+Diese Vorschauen stammen aus den Designreferenzen und zeigen fiktive Angaben.
+
+| Lebenslauf | Anschreiben |
 | --- | --- |
-| ![Synthetische Lebenslauf-Designvorschau für Max Mustermann](.github/assets/cv-example.png) | ![Synthetische Anschreiben-Designvorschau für Max Mustermann](.github/assets/cover-letter-example.png) |
+| ![Synthetische Lebenslauf-Designvorschau](.github/assets/cv-example.png) | ![Synthetische Anschreiben-Designvorschau](.github/assets/cover-letter-example.png) |
 
-**Fertige Dateien und interne Nachweise bleiben getrennt**
+</details>
 
-![Schematische Ordneransicht mit synthetischem Versandbeispiel und internen Unterlagen](.github/assets/output-example.png)
-
-[Quellen und reproduzierbare Bilderzeugung](Tests/Fixtures/Readme/README.md)
-
-## Warum mehr als ein einzelner KI-Prompt?
-
-Ein Textentwurf allein prüft weder seine fachliche Grundlage noch die spätere Datei. apply-foundry verbindet die Erstellung mit einem kontrollierten Arbeitsablauf.
-
-| Ein einzelner Textentwurf | apply-foundry |
-| --- | --- |
-| liefert Formulierungen | gleicht Stellenanforderungen und belegte Erfahrung ab |
-| macht die Herkunft von Aussagen nicht automatisch sichtbar | dokumentiert Belege, Lücken und offene Fragen |
-| enthält keine automatische Dokumentprüfung | prüft Inhalt, A4-Layout, PDF und auslesbaren Text je nach Umfang |
-| sagt nichts über spätere Änderungen aus | bindet die Freigabe an genau den geprüften Dateistand |
-| ist zunächst ein Entwurf | trennt Arbeitsstände von persönlich freigegebenen Versanddateien |
-
-Die ATS-Prüfung kontrolliert die technische Textauslesbarkeit der erzeugten PDFs. Sie garantiert keine Kompatibilität mit jedem Bewerbermanagementsystem, Einladung oder Einstellung.
+[Herkunft und Bilderzeugung](Tests/Fixtures/Readme/README.md)
 
 <a id="prozess"></a>
 
@@ -127,7 +139,9 @@ flowchart LR
     E --> F["Lokale Freigabe · Versand/"]
 ```
 
-Offene Tatsachen werden geklärt; sie dürfen nicht durch plausible Behauptungen ersetzt werden. Änderungen nach einer Prüfung erfordern neue Nachweise und eine neue persönliche Bestätigung.
+**Dein Beitrag** sind die echten Angaben, Antworten auf offene Fragen und die persönliche Prüfung. Der Agent dokumentiert Belege und führt abhängig vom Dokumentumfang die technischen Prüfungen aus. Änderungen nach der Prüfung erfordern neue Nachweise und eine neue persönliche Bestätigung.
+
+Die ATS-Prüfung kontrolliert die Textauslesbarkeit der PDFs. Sie garantiert keine Kompatibilität mit jedem Bewerbermanagementsystem.
 
 <a id="agenten"></a>
 
@@ -168,7 +182,7 @@ Du musst keinen Auswahlbuchstaben kennen: Ein eindeutiger Wunsch wird direkt üb
 
 ### Andere Einstiege
 
-- **Universal-Lebenslauf:** „Erstelle oder aktualisiere meinen universellen Lebenslauf.“ Dafür gibt es einen eigenen stellenunabhängigen Prozess.
+- **Universal-Lebenslauf:** „Erstelle oder aktualisiere meinen universellen Lebenslauf für Systemadministration.“ Softwareentwicklung und Systemadministration haben eigene freigegebene Fassungen. Sag beim Verwenden in einer Bewerbung dazu, welche Fassung du möchtest.
 - **Fortsetzen:** „Setze meine Bewerbung bei [Firma] für [Rolle] fort.“ Der Agent rekonstruiert den Stand aus den Dateien.
 - **Daten prüfen:** „Prüfe meine bestehenden Bewerberdaten.“ Vorhandene private Dateien werden nicht ungefragt überschrieben.
 
@@ -195,13 +209,14 @@ Private/Bewerbungen/FIRMA/YYYY-MM-DD--ROLLE/
 └── Manifest.json  ← Nachweis des freigegebenen Dateisatzes
 ```
 
-**Verwende ausschließlich die Dateien aus `Versand/` für deine Bewerbung.** Der Workflow versendet oder lädt sie nicht hoch; das entscheidest und erledigst du selbst. Screenshots, Prüfberichte, HTML-Quellen und `Tokenverbrauch.json` sind keine Versanddateien.
+> [!IMPORTANT]
+> Für deine Bewerbung sind ausschließlich die Dateien aus `Versand/` vorgesehen. Du entscheidest selbst über den Versand. Screenshots, Prüfberichte, HTML-Quellen und `Tokenverbrauch.json` bleiben interne Unterlagen.
 
 [Interne Arbeitsordner, Dateinamen und Nachweise](docs/technical-workflow.md#arbeitsordner-und-ergebnisse)
 
 <a id="private-daten--datenschutz"></a>
 
-## 🔒 Kann ich dem Projekt meine Daten anvertrauen?
+## 🔒 Deine Daten und deine Agentenumgebung
 
 - **Getrennte Dateien:** Echte Angaben und Arbeitsergebnisse gehören nur nach `Private/`. `Private.example/` ist eine Strukturvorlage; fiktive Beispielwerte werden nie als deine Daten übernommen.
 - **Kein automatischer Versand:** Der Workflow kontaktiert keine Arbeitgeber und lädt keine Unterlagen hoch.

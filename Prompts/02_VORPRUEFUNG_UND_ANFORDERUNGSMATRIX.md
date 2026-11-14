@@ -84,7 +84,7 @@ Neue Bewerbungen verwenden für `Anforderungsmatrix.json` Schema 5. Die Schemata
 - `Evidenzindex.json`: eigenständiger, privater Index mit SHA-256 der fachlichen Profildatei. Profileinträge haben stabile ID, Zeilenbereich, exakten Profiltext und Belegart. Bestätigte auftragsbezogene Dialogangaben dürfen ebenfalls verwendet werden, aber nur mit `auftragSha256`, `angabeId`, exakter normalisierter Angabe und bestätigtem Wahrheitsstatus. Die menschenlesbare Profildatei beziehungsweise der bestätigte Auftrag bleiben die fachlichen Quellen.
 - `belegRefIds`: bei erfüllten oder teilweise erfüllten Anforderungen zwingende Evidenz-IDs. `NICHT BEHAUPTEN` und `EINARBEITUNGSZIEL` sind keine Direktbelege.
 - `anschreibenStrategie`: Bei ausgewähltem Anschreiben `status = final` und grundsätzlich zwei bis vier Argumente; bei einem als `schmal` dokumentierten Profil ist ein Argument zulässig. Jedes Argument enthält `anforderungIds`, `belegRefIds`, `stellenFundstellen` oder eine Unternehmensquelle, `arbeitgeberbezug`, `nutzenargument` und sichtbare Textanker.
-- `externeQuellen`: Liste strukturierter Unternehmens- oder Gehaltsquellen mit ID, Typ, Titel, Herausgeber, URL, Abrufzeit, optionalem Quellenstand, Aussage und Verwendungen. Eine leere Liste ist zulässig, solange keine externe Aussage verwendet wird.
+- `externeQuellen`: Liste strukturierter Unternehmens- oder Gehaltsquellen mit `id`, `typ`, `titel`, `herausgeber`, `url`, `abrufzeit` (ISO 8601), optionalem Quellenstand, `aussage` und `verwendungen` als Liste. Eine leere Liste ist zulässig, solange keine externe Aussage verwendet wird. Anschreibenargumente referenzieren die Quellen über `externeQuellenIds`.
 
 Die `recruiterStrategie` enthält weiterhin:
 

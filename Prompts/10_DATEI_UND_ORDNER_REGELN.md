@@ -35,21 +35,26 @@ Private/Archiv/
 
 Eigenständiger Universal-Lebenslauf:
 
+`universal-neu --fachrichtung systemadministration` verwendet den Suffix
+`--Systemadministration`; ohne Fachrichtungsoption bleibt `--Softwareentwicklung`
+der kompatible Standard. Zielrollen und Aktivierungsmanifest folgen der Auswahl.
+
 ```text
 Private/Bewerbungen/_Universal-Lebenslauf/
 ├─ _Arbeitsdateien/
-│  └─ YYYY-MM-DD--Softwareentwicklung/
+│  └─ YYYY-MM-DD--FACHRICHTUNG/
 │     ├─ Universalauftrag.json
 │     ├─ Kandidat/
 │     ├─ Layoutcheck/
 │     └─ PDF-Export/
-└─ Aktiv/
-   ├─ Versand/Lebenslauf - NACHNAME.VORNAME.pdf
-   ├─ Intern/Lebenslauf - NACHNAME.VORNAME.html
-   └─ Manifest.json
+├─ Aktiv--Softwareentwicklung/
+│  ├─ Versand/Lebenslauf - NACHNAME.VORNAME.pdf
+│  ├─ Intern/Lebenslauf - NACHNAME.VORNAME.html
+│  └─ Manifest.json
+└─ Aktiv--Systemadministration/  (gleicher Aufbau)
 ```
 
-Die aktive HTML-Datei wird bei `dokumentumfang.lebenslauf = universal_unveraendert` per SHA-256 als unveränderter Snapshot eingebunden. `Aktiv/` entsteht erst nach technischem Check und persönlicher Sichtprüfung. Nach erfolgreicher Aktivierung wird der genau zugehörige datierte Arbeitsordner vollständig gelöscht; im aktiven Paket bleiben ausschließlich HTML, Versand-PDF und deren Manifest. Eine frühere `Private/LebenslaufUniversal/`-Quelle darf nur noch als ausdrücklich angegebene unveränderte Legacy-Quelle gelesen werden und ist kein Ziel für neue Dateien.
+Die aktive HTML-Datei der gewählten Fachrichtung wird bei `dokumentumfang.lebenslauf = universal_unveraendert` per SHA-256 als unveränderter Snapshot eingebunden. Ein aktives Paket entsteht erst nach technischem Check und persönlicher Sichtprüfung. Nach erfolgreicher Aktivierung wird der zugehörige datierte Arbeitsordner entfernt. Das frühere gemeinsame `Aktiv/` bleibt als vorhandene Quelle seiner im Manifest ausgewiesenen Fachrichtung lesbar. Eine Quelle unter `Private/LebenslaufUniversal/` kann ausdrücklich per Pfad gewählt werden.
 
 ## Hauptordner für Bewerbungen
 
