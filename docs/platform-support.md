@@ -35,6 +35,15 @@ Das Setup installiert nur Python, Chromium-Browser, Systemschrift und optional S
 
 Fehlt Python, dienen die POSIX- und CMD-Starter ausschließlich dem ausdrücklich autorisierten Runtime-Bootstrap mit `--runtime --yes`; danach delegieren sie an den Python-Kern.
 
+Unter Windows lassen sich Setup und Diagnose aus dem Projektordner starten:
+
+```bat
+Tools\setup.cmd --all --dry-run --format json
+Tools\bewerbung.cmd diagnose --browser-erforderlich --als-json
+```
+
+Falls Python fehlt, zeigt `Tools\setup.cmd --runtime --dry-run` den WinGet-Befehl an. Nach deiner Bestätigung installiert `Tools\setup.cmd --runtime --yes` Python 3.13 für x64. Die Prüfung von Browser und Schrift folgt mit dem regulären Setup-Plan.
+
 Nach einem Runtime- oder Plattformwechsel bleiben bestehende Aufträge lesbar. Technische Nachweise müssen für die neue Umgebung neu erzeugt werden. Die vorhandenen Prüf- und Freigabegates bleiben verbindlich.
 
 ## Release v2.0 und spätere Einschränkung

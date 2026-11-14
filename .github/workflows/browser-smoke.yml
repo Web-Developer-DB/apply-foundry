@@ -1,6 +1,10 @@
 name: Cross-platform browser smoke
 
-on: [pull_request, workflow_dispatch]
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [develop-windows]
 
 permissions:
   contents: read
