@@ -293,7 +293,19 @@ def _browser_identity(path: Path) -> BrowserInfo:
                 raise BrowserError(f"Snap-Transition-Launcher liegt außerhalb des unterstützten Browservertrags: {real}")
     except OSError as exc:
         raise BrowserError(f"Browserpfad konnte nicht sicher geprüft werden: {real} ({exc})") from exc
-    result = run_process(real, ["--version"], 8, 4096, 4096)
+    executable = real
+    arguments = ["--version"]
+    if sys.platform == "win32":
+        # Chromium's Windows GUI executables do not reliably print --version.
+        system_root = Path(os.environ.get("SystemRoot") or r"C:\Windows")
+        executable = system_root / "System32/WindowsPowerShell/v1.0/powershell.exe"
+        literal_path = str(real).replace("'", "''")
+        arguments = [
+            "-NoProfile", "-NonInteractive", "-Command",
+            f"$v = (Get-Item -LiteralPath '{literal_path}' -ErrorAction Stop).VersionInfo; "
+            "[Console]::WriteLine($v.ProductName + ' ' + $v.ProductVersion)",
+        ]
+    result = run_process(executable, arguments, 8, 4096, 4096)
     text = re.sub(r"[\r\n]+", " ", result.stdout + result.stderr).strip()
     if result.timed_out or result.exit_code != 0 or not text:
         raise BrowserError(f"Browser-Version konnte nicht sicher ermittelt werden: {real}")
@@ -332,7 +344,7 @@ def browser_candidates(
         return [info]
 
     if sys.platform == "win32":
-        program_files = [os.environ.get("PROGRAMFILES", ""), os.environ.get("PROGRAMFILES(X86)", ""), os.environ.get("LOCALAPPDATA", "")]
+        program_files = [os.environ.get(name) for name in ("PROGRAMFILES", "PROGRAMW6432", "PROGRAMFILES(X86)", "LOCALAPPDATA")]
         definitions = [
             ("chrome", [str(Path(base) / "Google/Chrome/Application/chrome.exe") for base in program_files if base], ["chrome.exe", "chrome"]),
             ("chromium", [], ["chromium.exe", "chromium"]),

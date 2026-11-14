@@ -715,7 +715,8 @@ class RuntimeDetectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             executable = Path(temp) / "browser"
             executable.write_text("synthetic", encoding="utf-8")
-            with mock.patch.object(runtime, "_version_output", return_value="Google Chrome 151.0.1234.5"):
+            with mock.patch.object(runtime.sys, "platform", "linux"), \
+                    mock.patch.object(runtime, "_version_output", return_value="Google Chrome 151.0.1234.5"):
                 details = runtime.browser_details("auto", executable)
                 mismatch = runtime.browser_details("edge", executable)
         self.assertTrue(details["available"])
@@ -727,7 +728,8 @@ class RuntimeDetectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             executable = Path(temp) / "firefox"
             executable.write_text("synthetic", encoding="utf-8")
-            with mock.patch.object(runtime, "_version_output", return_value="Mozilla Firefox 142.0"):
+            with mock.patch.object(runtime.sys, "platform", "linux"), \
+                    mock.patch.object(runtime, "_version_output", return_value="Mozilla Firefox 142.0"):
                 details = runtime.browser_details("firefox", executable)
         self.assertEqual("gecko", details["engine"])
 

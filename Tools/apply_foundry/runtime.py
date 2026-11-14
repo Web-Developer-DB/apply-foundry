@@ -103,6 +103,18 @@ def executable_details(names) -> Dict[str, Any]:
 
 
 def browser_details(requested: str = "auto", executable_path: Optional[Path] = None) -> Dict[str, Any]:
+    if sys.platform == "win32" or (sys.platform == "darwin" and executable_path is None):
+        from .browser_tools import BrowserError, browser_candidates
+
+        try:
+            found = browser_candidates(requested, str(executable_path) if executable_path else None, allow_firefox=requested == "firefox")
+        except (BrowserError, OSError):
+            found = []
+        if found:
+            browser = found[0]
+            return {"available": True, "name": browser.name, "engine": browser.engine,
+                    "version": browser.version, "path": str(browser.path)}
+        return {"available": False, "name": None, "engine": None, "version": None, "path": None}
     candidates = []
     if executable_path is not None:
         candidates.append((requested, str(executable_path)))
@@ -140,7 +152,7 @@ def browser_details(requested: str = "auto", executable_path: Optional[Path] = N
 
 def font_details() -> Dict[str, Any]:
     if sys.platform == "win32":
-        fonts = Path(os.environ.get("WINDIR", r"C:\\Windows")) / "Fonts"
+        fonts = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
         arial = fonts / "arial.ttf"
         return {"available": arial.is_file(), "font": "Arial", "path": str(arial) if arial.is_file() else None, "version": None}
     if sys.platform == "darwin":

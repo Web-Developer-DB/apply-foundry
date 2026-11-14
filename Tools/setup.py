@@ -466,12 +466,17 @@ def detect_shellcheck(
 def collect_detections(catalog: Mapping[str, Any]) -> Mapping[str, Detection]:
     minimum = minimum_version_tuple(str(catalog["minimumPythonVersion"]))
     if sys.platform == "win32":
-        fonts = Path(os.environ.get("WINDIR", r"C:\\Windows")) / "Fonts" / "arial.ttf"
-        browser = next((Path(value) for value in (
-            str(Path(os.environ.get("PROGRAMFILES", "")) / "Google/Chrome/Application/chrome.exe"),
-            str(Path(os.environ.get("PROGRAMFILES(X86)", "")) / "Google/Chrome/Application/chrome.exe"),
-        ) if value and Path(value).is_file()), None)
-        return {"coreRuntime": detect_python(minimum), "browser": Detection(browser is not None, path=str(browser) if browser else None, provider="Google Chrome"), "fonts": Detection(fonts.is_file(), path=str(fonts) if fonts.is_file() else None), "shellcheck": detect_shellcheck(trust_executable=lambda value: value)}
+        if __package__:
+            from .apply_foundry.browser_tools import browser_candidates
+        else:
+            from apply_foundry.browser_tools import browser_candidates
+
+        fonts = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / "arial.ttf"
+        browsers = browser_candidates(require_chromium=True)
+        browser = next(iter(browsers), None)
+        providers = {"chrome": "Google Chrome", "edge": "Microsoft Edge", "chromium": "Chromium"}
+        detected = Detection(True, browser.version, str(browser.path), providers[browser.name]) if browser else Detection(False)
+        return {"coreRuntime": detect_python(minimum), "browser": detected, "fonts": Detection(fonts.is_file(), path=str(fonts) if fonts.is_file() else None), "shellcheck": detect_shellcheck(trust_executable=lambda value: value)}
     if sys.platform == "darwin":
         chrome = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
         fonts = (Path("/System/Library/Fonts/Supplemental/Arial.ttf"), Path("/Library/Fonts/Arial.ttf"), Path("/Library/Fonts/LiberationSans-Regular.ttf"))

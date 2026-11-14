@@ -31,22 +31,25 @@ public class Stub {
 }
 '@
 
-    function Invoke-Launcher($Name, $CommandArguments, $ExpectedCode, $ExpectedText = '') {
+    function Invoke-Launcher($Name, $CommandArguments, $ExpectedCode, $ExpectedText = '', [switch]$RealPython) {
         $process = New-Object Diagnostics.Process
+        $launcherDir = if ($RealPython) { Join-Path $repo 'Tools' } else { $tools }
         $process.StartInfo.FileName = Join-Path $env:SystemRoot 'System32/cmd.exe'
-        $process.StartInfo.Arguments = '/d /s /c ""' + (Join-Path $tools "$Name.cmd") + '" ' + $CommandArguments + '"'
+        $process.StartInfo.Arguments = '/d /s /c ""' + (Join-Path $launcherDir "$Name.cmd") + '" ' + $CommandArguments + '"'
         $process.StartInfo.WorkingDirectory = $temp
         $process.StartInfo.UseShellExecute = $false
         $process.StartInfo.RedirectStandardOutput = $true
         $process.StartInfo.RedirectStandardError = $true
-        $process.StartInfo.EnvironmentVariables['PATH'] = "$bin;$env:SystemRoot\System32"
         $process.StartInfo.EnvironmentVariables['ERRORLEVEL'] = '99'
-        $process.StartInfo.EnvironmentVariables['TEST_PY_FAIL'] = $script:pyFail
-        $process.StartInfo.EnvironmentVariables['TEST_WINGET_CODE'] = $script:wingetCode
-        $process.StartInfo.EnvironmentVariables['TEST_PYTHON_CODE'] = $script:pythonCode
-        $process.StartInfo.EnvironmentVariables['LocalAppData'] = Join-Path $temp 'local'
-        $process.StartInfo.EnvironmentVariables['ProgramW6432'] = Join-Path $temp 'machine'
-        $process.StartInfo.EnvironmentVariables['ProgramFiles'] = Join-Path $temp 'machine'
+        if (!$RealPython) {
+            $process.StartInfo.EnvironmentVariables['PATH'] = "$bin;$env:SystemRoot\System32"
+            $process.StartInfo.EnvironmentVariables['TEST_PY_FAIL'] = $script:pyFail
+            $process.StartInfo.EnvironmentVariables['TEST_WINGET_CODE'] = $script:wingetCode
+            $process.StartInfo.EnvironmentVariables['TEST_PYTHON_CODE'] = $script:pythonCode
+            $process.StartInfo.EnvironmentVariables['LocalAppData'] = Join-Path $temp 'local'
+            $process.StartInfo.EnvironmentVariables['ProgramW6432'] = Join-Path $temp 'machine'
+            $process.StartInfo.EnvironmentVariables['ProgramFiles'] = Join-Path $temp 'machine'
+        }
         try {
             $null = $process.Start()
             $stdout = $process.StandardOutput.ReadToEnd()
@@ -101,11 +104,8 @@ public class Stub {
     }
 
     foreach ($name in $launchers) {
-        $launcher = Join-Path $repo "Tools/$name.cmd"
-        & $launcher --help | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "$name --help failed with $LASTEXITCODE." }
-        & $launcher --unsupported-test-option 2>$null | Out-Null
-        if ($LASTEXITCODE -ne 2) { throw "$name returned $LASTEXITCODE for an invalid option." }
+        Invoke-Launcher $name '--help' 0 -RealPython
+        Invoke-Launcher $name '--unsupported-test-option' 2 -RealPython
     }
     Write-Output 'Windows CMD launchers passed.'
 } finally {

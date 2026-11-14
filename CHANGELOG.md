@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Die Windows-Starter wechseln bei fehlendem oder ungeeignetem Python-Launcher zu `python.exe` und geben den tatsächlichen Exitcode des Python-Programms zurück. Das Windows-Setup kann Python 3.13 per WinGet installieren und anschließend im selben Aufruf verwenden. CI prüft die Starter unter `cmd.exe` und startet die Browser-Smokes bei Pushes auf `develop-windows`.
+- Unter Windows beziehen Diagnose, Setup und Chromium-Workflow die Browser-Version aus den Dateimetadaten der installierten Anwendung.
 - Softwareentwicklung und Junior-Systemadministration haben getrennte aktive Universal-Lebensläufe. Neue Bewerbungen wählen die Fachrichtung mit `neu --universal-fachrichtung`. Bestehende Aufträge bleiben an ihren ursprünglichen HTML-Snapshot gebunden. Auch Universal-Arbeitsstände unterstützen `checkpoint`.
 - Die Finalisierung sperrt abgebrochene Aufträge und geänderte Universal-Snapshots. Versanddateien stammen exakt aus dem bestätigten Umfang und dem persönlich freigegebenen Artefaktsatz. Nachträglich hinzugefügte Kandidatendateien entwerten die Vorbereitung.
 - Matrix-Schema 5 prüft Pflichtfelder, Anforderungsbelege, Stellenfundstellen und externe Quellen. Prompt-Regressionen übernehmen ausschließlich Git-erfasste öffentliche Dateien und ergänzen die vorgesehenen synthetischen Testdaten.
