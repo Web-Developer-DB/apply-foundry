@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Die Windows-Tests berücksichtigen fehlende Rechte für symbolische Links und unterstützen den Start des CMD-Testskripts aus PowerShell 7; Pfadvergleiche beachten die Windows-Groß-/Kleinschreibung.
 - Die Windows-Starter wechseln bei fehlendem oder ungeeignetem Python-Launcher zu `python.exe` und geben den tatsächlichen Exitcode des Python-Programms zurück. Das Windows-Setup kann Python 3.13 per WinGet installieren und anschließend im selben Aufruf verwenden. CI prüft die Starter unter `cmd.exe` und startet die Browser-Smokes bei Pushes auf `develop-windows`.
 - Unter Windows beziehen Diagnose, Setup und Chromium-Workflow die Browser-Version aus den Dateimetadaten der installierten Anwendung.
 - Softwareentwicklung und Junior-Systemadministration haben getrennte aktive Universal-Lebensläufe. Neue Bewerbungen wählen die Fachrichtung mit `neu --universal-fachrichtung`. Bestehende Aufträge bleiben an ihren ursprünglichen HTML-Snapshot gebunden. Auch Universal-Arbeitsstände unterstützen `checkpoint`.

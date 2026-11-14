@@ -233,17 +233,26 @@ class SetupLinuxTests(unittest.TestCase):
                 os.path.normcase(str(Path(detected.path).resolve())),
             )
 
-    def test_font_file_fallback_rejects_name_only_and_symlinks(self):
+    def test_font_file_fallback_rejects_name_only(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             fake = root / "LiberationSans-Regular.ttf"
             fake.write_bytes(b"not-a-font" * 200)
             self.assertFalse(setup.detect_fonts(which=lambda _name: None, font_roots=(root,)).present)
-            fake.unlink()
+
+    def test_font_file_fallback_rejects_symlinks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            fake = root / "LiberationSans-Regular.ttf"
             outside = root.parent / (root.name + "-font.ttf")
             outside.write_bytes(b"\x00\x01\x00\x00" + b"synthetic-font-data" * 80)
             self.addCleanup(lambda: outside.unlink(missing_ok=True))
-            fake.symlink_to(outside)
+            try:
+                fake.symlink_to(outside)
+            except OSError as exc:
+                if os.name == "nt" and exc.winerror == 1314:
+                    self.skipTest("Windows user lacks permission to create symbolic links")
+                raise
             self.assertFalse(setup.detect_fonts(which=lambda _name: None, font_roots=(root,)).present)
 
     def test_ubuntu_missing_chromium_is_manual_snap_block(self):

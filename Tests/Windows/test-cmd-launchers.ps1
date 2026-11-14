@@ -1,5 +1,12 @@
 $ErrorActionPreference = 'Stop'
 
+# PowerShell 7 cannot compile a console executable with Add-Type. Use the
+# Windows PowerShell compiler while preserving the caller's environment.
+if ($PSVersionTable.PSEdition -eq 'Core') {
+    & (Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe') -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
+    exit $LASTEXITCODE
+}
+
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $temp = Join-Path ([IO.Path]::GetTempPath()) ("apply foundry " + [guid]::NewGuid())
 $tools = Join-Path $temp 'Start with spaces'
@@ -55,7 +62,10 @@ public class Stub {
             $stdout = $process.StandardOutput.ReadToEnd()
             $stderr = $process.StandardError.ReadToEnd()
             $process.WaitForExit()
-            if ($process.ExitCode -ne $ExpectedCode -or !$stdout.Contains($ExpectedText)) {
+            # Windows may return different casing for the same directory. Keep
+            # the launcher name and forwarded arguments case-sensitive.
+            $normalizedStdout = [regex]::Replace($stdout, [regex]::Escape($tools), [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $tools }, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+            if ($process.ExitCode -ne $ExpectedCode -or !$normalizedStdout.Contains($ExpectedText)) {
                 throw "$Name $CommandArguments returned $($process.ExitCode), expected $ExpectedCode and '$ExpectedText'. Output: $stdout $stderr"
             }
         } finally {
