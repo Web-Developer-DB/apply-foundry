@@ -36,7 +36,7 @@ if "%~1"=="--runtime" (
 ) else if "%~1"=="--yes" (
     set "confirmed=1"
 ) else if "%~1"=="--format" (
-    shift
+    shift /1
     goto bootstrap_format
 ) else if "%~1"=="--format=json" (
     set "output_format=json"
@@ -45,7 +45,7 @@ if "%~1"=="--runtime" (
 ) else (
     exit /b 2
 )
-shift
+shift /1
 goto bootstrap_options
 
 :bootstrap_format
@@ -55,7 +55,7 @@ exit /b 2
 
 :save_format
 set "output_format=%~1"
-shift
+shift /1
 goto bootstrap_options
 
 :bootstrap
