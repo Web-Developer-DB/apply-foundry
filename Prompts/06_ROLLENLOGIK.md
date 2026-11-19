@@ -6,25 +6,11 @@ Die Stellenbeschreibung entscheidet, welche Teile des privaten Profils hervorgeh
 
 Der Agent ist neutral. Er darf keine Branche, keine konkrete Fachrolle, keine Verwaltungstätigkeit, keinen Pflegekontext, keinen Verkaufskontext und kein anderes Berufsbild als Standard voraussetzen. Das konkrete Bewerbungsprofil entsteht immer aus der Kombination von Stellenbeschreibung und privaten Profildaten.
 
-## Vorgehen
+## Strategieauftrag
 
-1. Zielrolle erkennen.
-2. Branche, Arbeitsfeld und typische Aufgaben erkennen.
-3. Muss-Anforderungen erkennen.
-4. Kann-Anforderungen erkennen.
-5. Gewünschte Arbeitsweise, Soft Skills, Tools, Methoden, Systeme oder Fachkenntnisse extrahieren.
-6. Stellenart, Arbeitsmodell, Standort/Region, Eintrittstermin, Reise- oder Schichtanforderungen und Gehaltsanforderung erkennen.
-7. Seniorität oder Einstiegsniveau ableiten.
-8. Firmengröße oder Organisationsart ableiten, falls Hinweise vorhanden sind.
-9. Private Profildaten auf echte Belege prüfen.
-10. Bewerbungslogistik aus dem Snapshot in `Bewerbungsauftrag.json` prüfen und mit der Anzeige abgleichen.
-11. Belegarten aus `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md` auswerten, falls vorhanden.
-12. Kritische und hoch gewichtete Stellenanforderungen nach Recruiter-Relevanz ordnen.
-13. Die stärksten belegten Stationen, Weiterbildungen, Projekte und Kenntnisse zuordnen.
-14. Für fehlende Direktkenntnisse nur bei belastbarer verwandter Grundlage eine wahre Transferbrücke festlegen.
-15. Erst daraus Profilstrategie und Inhaltsentwurf ableiten; Layoutentscheidungen folgen zuletzt.
-16. Risiken, Lücken oder fehlende formale Anforderungen erkennen.
-17. Irrelevante Inhalte bewusst reduzieren und jede wesentliche Auslassung konkret begründen.
+Erstelle aus Stellenbeschreibung, privaten Belegen, bestätigten auftragsbezogenen Angaben und Logistik-Snapshot eine priorisierte Rollenstrategie. Sie muss die nachstehenden Entscheidungen abdecken und in die Matrix nach Prompt 02 einfließen. Eine feste Folge einzelner Denkschritte oder ein zweiter vollständiger Profilabgleich ist dafür nicht erforderlich.
+
+Trenne belegte Arbeitgeberinformationen von plausiblen Ableitungen und offenen Punkten. Verwende vermutete Firmengröße oder Organisationskultur nicht als Tatsache oder als Ersatz für konkrete Aufgaben. Erst die Belegauswahl und Inhaltspriorität bestimmen den Entwurf; das Layout folgt dieser Entscheidung.
 
 ## Bewerbungsprofil
 
@@ -49,7 +35,7 @@ Vor der Erstellung der ausgewählten Bewerbungsdokumente wird eine kurze Profils
 - Schulbildungsmodus und begründete Auswahl öffentlicher Profil-Links
 - bestätigter Dokumentumfang und, falls ausgewählt, Eignung des universellen Lebenslaufs als unveränderte Basis
 
-Diese Strategie wird in `Analyse.md` dokumentiert.
+Diese Strategie wird kompakt in `Analyse.md` dokumentiert. Nutze Matrix- und Evidenz-IDs für bereits gespeicherte Bewertungen; lege keine zweite vollständige Matrix an.
 
 Bei einem universellen Lebenslauf beeinflusst die Rollenstrategie dessen Inhalt nicht. Sie bestimmt, welche belegten Argumente ein ausgewähltes Anschreiben ergänzend hervorhebt und ob der universelle Lebenslauf für die konkrete Bewerbung ausreichend ist.
 
@@ -81,7 +67,7 @@ Wenn Datei `02` Belegarten enthält, gilt:
 - `EINARBEITUNGSZIEL`: nur als Einarbeitung, Lernziel, Vertiefung oder Entwicklungsperspektive formulieren.
 - `NICHT BEHAUPTEN`: nicht als Erfahrung, Verantwortung, sichere Kompetenz oder Rollenpraxis verwenden.
 
-Bei Konflikten gilt die vorsichtigere Belegart. Beispiel: Eine Technologie, die sowohl in einer Wunschrolle als auch unter `EINARBEITUNGSZIEL` steht, darf nicht als vorhandene Erfahrung erscheinen.
+Die Belegart gilt pro konkreter Aussage und Anwendungskontext nach Prompt 07. Ein Wunschrollentitel belegt keine vorhandene Kompetenz; eine Technologie unter `EINARBEITUNGSZIEL` wird dadurch nicht zu Erfahrung. Separat belegte Berufspraxis wird durch zusätzliche private Praxis nicht herabgestuft. Tatsächliche Widersprüche werden geklärt.
 
 Eine Transferbrücke besteht immer aus drei prüfbaren Teilen: der verlangten, nicht direkt belegten Zieltechnologie; mindestens einer belegten verwandten Grundlage aus einem Profilhighlight; und einer realistischen Formulierung als `ÜBERTRAGBAR`, `GRUNDLAGEN / VERSTÄNDNIS` oder `EINARBEITUNGSZIEL`. Ohne belastbare Grundlage wird keine Brücke konstruiert.
 
@@ -148,6 +134,6 @@ Diese Beispiele sind keine festen Branchenvorgaben. Die privaten Daten und die S
 
 ## Dokumentation
 
-Die gewählte Strategie wird in `Analyse.md` und am Ende von `Qualitaetscheck.md` kurz festgehalten. Bei einem Anschreiben wird die maschinenlesbare `anschreibenStrategie` mit Anforderungs-, Evidenz- und Stellenfundstellen-IDs ergänzt; Arbeitgeberbezug und Nutzenargumente müssen aus den belegten Passungen konkret abgeleitet werden.
+Die gewählte Strategie steht in `Analyse.md`; `Qualitaetscheck.md` hält das Prüfurteil und nötige Korrekturen fest und verweist auf diese Strategie. Bei einem Anschreiben wird die maschinenlesbare `anschreibenStrategie` mit Anforderungs-, Evidenz- und Stellenfundstellen-IDs ergänzt; Arbeitgeberbezug und Nutzenargumente müssen aus den belegten Passungen konkret abgeleitet werden.
 
 Unsichere Punkte werden in `Offene_Fragen.md` dokumentiert.

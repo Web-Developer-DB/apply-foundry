@@ -12,6 +12,8 @@ Grundsatz:
 
 Der Dialog muss vollständig als normaler Text funktionieren. Anbieterabhängige Schaltflächen oder Auswahlkomponenten dürfen ergänzend verwendet werden, ersetzen aber niemals die textbasierte Alternative.
 
+Die fachlichen Optionen, Bestätigungen und Zustände sind verbindlich; die Beispieltexte dürfen natürlich und passend zur Ansprache des Nutzers formuliert werden. Eine freie, eindeutige Antwort genügt. Erzeuge keine zusätzliche Bestätigungsrunde allein für die technische Normalisierung.
+
 ## Phase 1: Dokumentumfang erkennen
 
 ### Eindeutigen Auftrag direkt übernehmen
@@ -55,6 +57,8 @@ Akzeptiere Groß- und Kleinschreibung, die Zahlen `1` bis `5`, Formulierungen wi
 Bei E wird nur dann nach den gewünschten Bestandteilen gefragt, wenn sie nicht bereits aus der freien Antwort hervorgehen. Vermeide ein weiteres verschachteltes Menü, wenn eine kurze freie Klärung genügt. Falls ein Lebenslauf gewünscht ist und nicht erkennbar ist, ob er individuell erstellt oder als freigegebener universeller Lebenslauf unverändert verwendet werden soll, frage genau diesen Unterschied nach.
 
 Ist eine Antwort mehrdeutig, wiederhole die betreffende Frage höchstens einmal in vereinfachter Form. Bleibt die Entscheidung danach unklar, stoppe an dieser Stelle. Errate keinen Umfang, lege keine Kandidatendokumente an und verändere kein Profil. Existiert bereits ein Bewerbungsauftrag, bleibt `dokumentumfang.bestaetigt` auf `false` und `dialog.status` auf `profilabgleich_ausstehend`.
+
+Diese Stoppregel betrifft die ungeklärte Umfangsentscheidung. Eine unwichtige optionale Angabe darf neutral entfallen; sie eröffnet keine endlose Klärung. Bei erforderlichen Antworten darf unabhängige Arbeit fortgesetzt werden, die den ungeklärten Umfang und die Tatsachen nicht vorwegnimmt.
 
 ### E-Mail-only-Gate
 
@@ -386,6 +390,6 @@ Erzeuge, prüfe, rendere und veröffentliche ausschließlich die im bestätigten
 - Ein nicht gewähltes Anschreiben wird weder erzeugt noch als fehlende Pflichtdatei behandelt.
 - Eine nicht gewählte E-Mail-Nachricht wird weder erzeugt noch als fehlende Pflichtdatei behandelt.
 - `Nur Anschreiben` bedeutet Auswahl D. Es setzt keinen universellen Lebenslauf voraus und erzeugt keine E-Mail-Nachricht, sofern der Nutzer nichts anderes verlangt.
-- `Anschreiben mit universalem Lebenslauf` bedeutet Auswahl B und enthält den unveränderten Lebenslauf als Anlage sowie eine neue E-Mail-Nachricht.
+- Auswahl B enthält den unveränderten universellen Lebenslauf, Anschreiben und E-Mail nur bei entsprechend eindeutigem Auftrag. Ein Auftrag für universellen Lebenslauf und Anschreiben ohne genannte E-Mail darf nicht allein wegen dieser Kurzbezeichnung auf B erweitert werden; die genaue Zusammenstellung wird nach Phase 1 übernommen oder geklärt.
 
 Der bestätigte Umfang steuert damit auch Kandidatenbestand, Layoutcheck, PDF-Export, ATS-Prüfung, Versandordner und Manifest. Kein Prüfschritt darf einen absichtlich nicht gewählten Bestandteil als Fehler melden.

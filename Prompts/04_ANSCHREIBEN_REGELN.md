@@ -4,6 +4,8 @@
 
 Das Anschreiben verbindet Stellenanforderungen, Bewerberprofil und Motivation glaubwürdig. Es soll individuell wirken, aber nicht übertrieben werblich.
 
+Schreibe für die zuständige Person im Unternehmen: Sie kennt weder den Chat noch Matrix-IDs oder interne Belegkategorien. Erkläre die passende Erfahrung mit genug Kontext, dass eigener Beitrag und Nutzen verständlich sind. Die folgende Gliederung beschreibt inhaltliche Funktionen, keine vorgeschriebene Zahl oder Reihenfolge von Absätzen.
+
 ## Aufbau
 
 1. Betreff mit Zielrolle
@@ -17,7 +19,7 @@ Vor dem Entwurf wird `anschreibenStrategie` in `Anforderungsmatrix.json` fertigg
 
 ## Verbindlicher Quellen-zu-Anschreiben-Abgleich
 
-Ist ein Lebenslauf ausgewählt, wird der individuelle Kandidat vor dem Anschreiben erstellt beziehungsweise der unverändert übernommene universelle Lebenslauf vollständig geprüft. Ist kein Lebenslauf ausgewählt, gleicht der Agent das Anschreiben unmittelbar gegen private Profildaten, normalisierte Dialogangaben, Anforderungsmatrix und Stellenbeschreibung ab. Erst danach schreibt er den ersten Anschreibenentwurf.
+Ist ein Lebenslauf ausgewählt, wird der individuelle Kandidat vor dem Anschreiben erstellt beziehungsweise der unverändert übernommene universelle Lebenslauf inhaltlich und auf Snapshot-Treue abgeglichen. Ist kein Lebenslauf ausgewählt, gleicht der Agent das Anschreiben unmittelbar gegen private Profildaten, normalisierte Dialogangaben, Anforderungsmatrix und Stellenbeschreibung ab. Erst danach schreibt er den ersten Anschreibenentwurf. Die gemeinsame technische Finalisierung folgt nach Fertigstellung der ausgewählten Kandidaten; ein separater Browser- oder PDF-Vorablauf ist hierfür nicht erforderlich.
 
 Prüfe die folgenden Bereiche nur soweit sie für die konkrete Stelle und den bestätigten Dokumentumfang relevant sind:
 
@@ -62,7 +64,7 @@ Pflichtregeln:
 
 ## Inhaltliche Regeln
 
-- Nutze echte Belege aus `Private/Daten/`.
+- Nutze echte Belege aus `Private/Daten/` oder bestätigte, normalisierte auftragsbezogene Angaben nach Prompt 01 und 07.
 - Nenne die gewünschte oder passende Stellenart im Anschreiben immer: `Vollzeit`, `Teilzeit` oder `Vollzeit/Teilzeit`. Bei Teilzeit darf der gewünschte Stundenumfang genannt werden, wenn der Bewerbungsauftrag ihn enthält.
 - Wenn Bewerbungsauftrag und Stellenanzeige bei der Stellenart nicht zusammenpassen, erfinde keine Passung. Dokumentiere den Widerspruch in `Offene_Fragen.md` und formuliere nur wahr.
 - Nenne den Gehaltswunsch im Anschreiben, wenn `wunschgehaltVerwenden` im Bewerbungsauftrag auf `ja` steht oder wenn die Stellenanzeige ausdrücklich eine Gehaltsvorstellung verlangt und der Bewerbungsauftrag dies nicht ausschließt.

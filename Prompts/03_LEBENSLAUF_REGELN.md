@@ -12,6 +12,8 @@ Der öffentliche Agent ist neutral. Branche, Rollenprofil, Erfahrungsart, Zusatz
 2. `Private/Daten/01_PERSOENLICHE_DATEN.md`
 3. `Private/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.md`
 
+Bestätigte, normalisierte Angaben im aktuellen `Bewerbungsauftrag.json` ergänzen diese Quellen ausschließlich für diesen Auftrag nach Prompt 01 und 07.
+
 Keine Branche, keine konkrete Fachrolle und kein Projekttyp darf aus den öffentlichen Prompts als Standard angenommen werden.
 
 ## Datenquellen für den Lebenslauf
@@ -56,7 +58,7 @@ Pflichtlogik für formale Stationen:
 - Projekte und Zusatzpraxis ersetzen keine formalen Stationen. Wenn sie zu den stärksten Belegen der Zielrolle gehören, dürfen sie auf Seite 1 früh platziert oder in passende Stationen integriert werden; die formale Chronologie bleibt vollständig und klar auffindbar.
 - Zeiträume müssen für Recruiter nachvollziehbar sein. Auffällige Lücken oder aktuelle Phasen werden nicht erfunden, sondern mit vorhandenen Daten sauber eingeordnet oder in `Offene_Fragen.md` dokumentiert.
 - Bei Quereinstieg darf der Lebenslauf nicht den Eindruck erwecken, dass private IT-Praxis, Weiterbildung oder Grundlagen berufliche Administratorerfahrung seien. Abschnittstitel und Formulierungen müssen klar unterscheiden zwischen `übertragbarer technischer Erfahrung`, `IT-Grundlagen`, `privater Praxis / Home-Lab` und `Einarbeitungsfeldern`.
-- Wenn eine Kompetenz aus mehreren Belegarten stammt, muss die vorsichtigere Belegart die Formulierung steuern. Beispiel: `Linux` aus Home-Lab wird als `private Linux-Praxis` oder `Linux-Grundlagen aus Home-Lab` formuliert, nicht als berufliche Linux-Administration.
+- Ordne die Belegart jeder konkreten Aussage ihrem tatsächlichen Anwendungskontext zu. Belegte berufliche Linux-Administration darf beruflich genannt werden, auch wenn daneben private Linux-Praxis vorliegt. Ist ausschließlich Home-Lab belegt, bleibt die Aussage als private Praxis gekennzeichnet. Widersprüchliche oder nicht trennbare Angaben werden vor werblicher Verwendung geklärt; private Praxis wird nie zu Berufserfahrung aufgewertet.
 
 Die Reihenfolge und Abschnittsnamen dürfen je nach Profil angepasst werden, aber die formalen CV-Stationen müssen erkennbar bleiben. Mögliche Abschnittsnamen:
 
@@ -113,7 +115,7 @@ Vor dem Schreiben des Lebenslaufs muss der Agent ein kurzes Bewerbungsprofil bes
 - Seniorität oder Einstiegsniveau
 - Stellenart aus dem Bewerbungsauftrag und Stellenart aus der Anzeige
 - Arbeitsmodell, Region und Eintrittstermin, falls relevant
-- vermutete Firmengröße, falls aus der Stellenbeschreibung ableitbar
+- Firmengröße oder Organisationsart nur bei belastbaren Hinweisen; sonst offenlassen
 - Kernargumente für die Zielrolle
 - Zusatzkenntnisse mit Recruiter-Nutzen
 - bewusst weggelassene Inhalte
@@ -128,7 +130,7 @@ Bei `lebenslauf = universal_unveraendert` steuert dieses Profil ausschließlich 
 
 ## Inhalt
 
-- Verwende nur Daten aus `Private/Daten/` und aus der konkreten Stellenbeschreibung.
+- Verwende persönliche und fachliche Angaben nur aus den privaten Quellen oder bestätigten auftragsbezogenen Dialogangaben. Die Stellenbeschreibung liefert Anforderungen und Arbeitgeberkontext, keinen Beleg für Kenntnisse oder Lebensstationen des Bewerbers.
 - Verwende Datei `01` nur für persönliche Stammdaten und Datei `02` für fachliche Lebenslaufdaten.
 - Nenne die Stellenart im Lebenslauf immer kompakt: `Vollzeit`, `Teilzeit` oder `Vollzeit/Teilzeit`, gemäß Bewerbungsauftrag und Stellenanzeige.
 - Wenn der Bewerbungsauftrag einen Stundenumfang nennt, darf er bei Teilzeit oder gemischten Modellen ergänzt werden, z. B. `Teilzeit, 30 Std./Woche`.
@@ -141,7 +143,7 @@ Bei `lebenslauf = universal_unveraendert` steuert dieses Profil ausschließlich 
 - Nenne private, ehrenamtliche, schulische, akademische oder inoffizielle Praxis korrekt als solche, nicht als berufliche Verantwortung.
 - Trenne vorhandene Erfahrung, Grundlagen und Entwicklungsfelder sprachlich eindeutig.
 - Bei Quereinstiegsprofilen müssen Zielrolle und Einstiegssituation früh sichtbar sein, z. B. durch Formulierungen wie `Bewerbung als ... (Quereinstieg)`, `IT-Grundlagen aus Weiterbildung und Home-Lab` oder `gezielte Einarbeitung in ...`.
-- Verwende `NICHT BEHAUPTEN`-Abschnitte aus Datei `02` als harte Sperrliste. Diese Inhalte dürfen höchstens als Einarbeitungsziel erwähnt werden, wenn Datei `02` oder die Stellenanzeige dies erlaubt.
+- Verwende `NICHT BEHAUPTEN`-Abschnitte aus Datei `02` als harte Sperrliste nach Prompt 07. Eine Stellenanzeige hebt diese Sperre nicht auf. Bei einem Widerspruch zu einer neuen Angabe kläre zuerst die Wahrheit nach Prompt 01; verwende den gesperrten Inhalt bis dahin nicht werbend.
 - Erfinde keine Arbeitgeber, Zeiträume, Zertifikate, Tools, Systeme, Branchen oder Verantwortlichkeiten.
 - Lasse irrelevante Inhalte weg, auch wenn sie grundsätzlich vorhanden sind.
 
@@ -165,7 +167,7 @@ Erlaubt sind Zusatzkenntnisse, wenn sie mindestens eine dieser Funktionen erfül
 - sie belegen eine gewünschte Arbeitsweise
 - sie erhöhen Glaubwürdigkeit für die Zielrolle
 - sie zeigen Lernfähigkeit, Breite oder Transferfähigkeit ohne abzulenken
-- sie sind für die vermutete Firmengröße wahrscheinlich wertvoll
+- ihr Nutzen ergibt sich aus belegten Aufgaben oder belastbaren Hinweisen zur Organisation
 
 Wenn eine Zusatzkenntnis nur zeigt, „was die Person noch kann“, aber keinen Nutzen für diese Bewerbung hat, wird sie gekürzt oder weggelassen.
 

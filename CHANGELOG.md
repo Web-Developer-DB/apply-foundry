@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Alle Promptmodule wurden auf Konflikte und unnötige Arbeitsvorgaben für aktuelle Modelle geprüft. Die Regeln trennen überprüfbare Ergebnisse und verbindliche Verträge von redaktionellen Richtwerten; autorisierte reversible Arbeit läuft bis zum nächsten tatsächlichen Gate weiter. Bestätigte auftragsbezogene Angaben sind konsistent als Quelle zugelassen, und die Belegart wird pro Anwendungskontext zugeordnet. Sperrlisten, Datenschutz und persönliche Freigabe bleiben verbindlich.
+- Der kanonische Einstieg enthält wieder die referenzierten Abläufe zur Fortsetzung und zum eigenständigen Universal-Lebenslauf. Doppelte Befehle, ein veralteter Freigabeparameter, widersprüchliche Quellenregeln und veraltete Hinweise auf zwei Runtimekerne wurden bereinigt. Ein Dokumentationsvertrag gleicht Prompt-Befehle mit der tatsächlichen CLI-Registry ab.
+- Die Prompt-Canary zielt auf GPT-6.2 Sol; die vollständige Matrix ergänzt GPT-6.1 Sol für Vergleiche. Drei synthetische Szenarien prüfen Belegkontext, auftragsbezogene Dialogangaben und technisches Routing. Auditbericht und Evaluationsplan trennen bestandene lokale Vertragstests von noch ausstehenden echten Modell- und Qualitätsvergleichen.
+
 - Die Windows-Tests berücksichtigen fehlende Rechte für symbolische Links und unterstützen den Start des CMD-Testskripts aus PowerShell 7; Pfadvergleiche beachten die Windows-Groß-/Kleinschreibung.
 - Die Windows-Starter wechseln bei fehlendem oder ungeeignetem Python-Launcher zu `python.exe` und geben den tatsächlichen Exitcode des Python-Programms zurück. Das Windows-Setup kann Python 3.13 per WinGet installieren und anschließend im selben Aufruf verwenden. CI prüft die Starter unter `cmd.exe` und startet die Browser-Smokes bei Pushes auf `develop-windows`.
 - Unter Windows beziehen Diagnose, Setup und Chromium-Workflow die Browser-Version aus den Dateimetadaten der installierten Anwendung.

@@ -183,15 +183,9 @@ Regel:
 - keine losen temporären Dateien direkt unter `Private/Bewerbungen/`
 - keine generierten Bewerbungsdateien in öffentlichen Projektordnern
 
-## Optionales Hilfsskript
+## Verbindlicher Auftragseinstieg
 
 Ein neuer Bewerbungsordner wird mit dem gemeinsamen Python-Dispatcher vorbereitet:
-
-```bash
-python3 Tools/bewerbung.py neu --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A
-```
-
-Unter Linux mit Python:
 
 ```bash
 python3 Tools/bewerbung.py neu --firma "Muster GmbH" --rolle "Sachbearbeitung" --umfang A

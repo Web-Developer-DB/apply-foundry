@@ -6,25 +6,37 @@
       "id": "codex-openai",
       "agent": "codex",
       "provider": "openai",
-      "model": "gpt-5.6-terra",
+      "model": "gpt-6.2-sol",
       "command": "codex",
       "cliPackage": "@openai/codex",
       "cliVersion": "0.148.0-alpha.15",
       "credentialVariable": "OPENAI_API_KEY",
       "tier": "pr",
-      "arguments": ["exec", "--ephemeral", "--ignore-user-config", "--sandbox", "read-only", "--model", "gpt-5.6-terra", "--json"]
+      "arguments": ["exec", "--ephemeral", "--ignore-user-config", "--sandbox", "read-only", "--model", "gpt-6.2-sol", "--json"]
     },
     {
       "id": "opencode-openai",
       "agent": "opencode",
       "provider": "openai",
-      "model": "openai/gpt-5.6-terra",
+      "model": "openai/gpt-6.2-sol",
       "command": "opencode",
       "cliPackage": "opencode-ai",
       "cliVersion": "1.18.18",
       "credentialVariable": "OPENAI_API_KEY",
       "tier": "pr",
-      "arguments": ["run", "--model", "openai/gpt-5.6-terra", "--format", "json"]
+      "arguments": ["run", "--model", "openai/gpt-6.2-sol", "--format", "json"]
+    },
+    {
+      "id": "codex-openai-6-1",
+      "agent": "codex",
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "command": "codex",
+      "cliPackage": "@openai/codex",
+      "cliVersion": "0.148.0-alpha.15",
+      "credentialVariable": "OPENAI_API_KEY",
+      "tier": "vollstaendig",
+      "arguments": ["exec", "--ephemeral", "--ignore-user-config", "--sandbox", "read-only", "--model", "gpt-6.1-sol", "--json"]
     },
     {
       "id": "claude-anthropic",

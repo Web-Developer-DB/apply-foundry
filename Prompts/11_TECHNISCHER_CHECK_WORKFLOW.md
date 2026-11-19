@@ -8,7 +8,7 @@ Er ergänzt den inhaltlichen Qualitätscheck. Er ersetzt nicht die fachliche Pr�
 
 ## Grundregeln für Agenten
 
-- Kritische Eingabedateien bei jeder Plattform bevorzugt sequenziell lesen, wenn parallele Prozesse fehlschlagen oder instabil wirken.
+- Unabhängige reine Lesezugriffe dürfen gebündelt werden. Abhängige Schreib-, Prüf- und Freigabeschritte bleiben geordnet; bei konkreten Parallelitätsfehlern werden die betroffenen Lesezugriffe sequenziell wiederholt.
 - Bei Textsuche mit `rg` keine Pfad-Wildcards wie `ORDNER/*.html` verwenden. Stattdessen:
 
 ```powershell
@@ -21,7 +21,7 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - Finale Bewerbungsdateien dürfen erst gemeldet werden, nachdem mindestens der statische Check erfolgreich war.
 - PDFs dürfen erst erzeugt werden, nachdem der statische Check erfolgreich war.
 - Versandfertige Dateien werden zunächst im privaten `Kandidat`-Ordner geprüft. Der finale Zielordner bleibt bis zur atomaren Veröffentlichung leer.
-- Kandidaten liegen nur unter `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/`; ein loses Verzeichnis `Bewerbungen/` ist kein Exportpfad.
+- Stellenbezogene Kandidaten liegen nur unter `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLENNAME/Kandidat/`; eigenständige Universalaufträge verwenden den Universalpfad aus Prompt 00. Ein loses Verzeichnis `Bewerbungen/` ist kein Exportpfad.
 - `Stellenbeschreibung.md`, `Analyse.md`, `Qualitaetscheck.md` und `Druck-Hinweis.md` sind nichtleere fachliche Nachweise. Sie dürfen niemals als leere oder minimale Dummy-Dateien erzeugt werden, um den Prüfer zu umgehen.
 - Eine ausgewählte E-Mail ist ausschließlich `Email-Nachricht--FIRMEN-SLUG.md` in UTF-8-Markdown. Der exakte Slug kommt aus `Bewerbungsauftrag.json`; HTML-Dateien für E-Mails sind unzulässig.
 - HTML-Kandidaten müssen vor dem statischen Check die feste A4-Geometrie aus Prompt 08 enthalten: `@page { size: A4; margin: 0; }` und `.page { width: 210mm; height: 297mm; }`. `min-height` ersetzt diese Vertragswerte nicht.
@@ -33,7 +33,7 @@ rg -g "*.html" "SUCHMUSTER" "ORDNER"
 - In einer als verwaltete Sandbox bekannten Umgebung vor dem Browserlauf prüfen, ob eine lokale Browserfreigabe verfügbar ist. Eine vorhandene Freigabe direkt verwenden; andernfalls die Grenze offen melden und keinen erfolgreichen Lauf behaupten.
 - Tokenzahlen niemals schätzen oder aus Textlängen beziehungsweise Teilwerten ableiten. Exakte Zahlen sind nur zulässig, wenn die Agentenlaufzeit sie maschinenlesbar bereitstellt.
 - Ein Runtime-Fingerprint aus Betriebssystem, Architektur, Sprache und Version der Kernruntime sowie – bei Browserläufen – Browsername, Version und ausführbarer Datei bindet technische Nachweise an die Laufzeit. Nach einem Wechsel zwischen Windows und Linux oder umgekehrt Auftrag und Kandidaten erhalten, Layout-, PDF-, ATS-, Finalisierungs- und Sichtnachweise aber vollständig neu erzeugen.
-- Berichte und Zustandsdateien werden in beiden Kernen atomar als UTF-8 geschrieben und innerhalb pfadbasierter Sperren mit begrenzten Wiederholungen aktualisiert. Ein abgebrochener Austausch darf keine Teil-JSON-Datei hinterlassen.
+- Der gemeinsame Python-Kern schreibt Berichte und Zustandsdateien atomar als UTF-8 und aktualisiert sie innerhalb pfadbasierter Sperren mit begrenzten Wiederholungen. Ein abgebrochener Austausch darf keine Teil-JSON-Datei hinterlassen.
 - `Sichtfreigabe.json` ist der einzige technische Veröffentlichungsnachweis. Die Freigabe-ID, der vorbereitete Finalisierungsbericht und jeder geprüfte Artefakt-Hash müssen aktuell übereinstimmen; ein altes `--visuell-geprueft` ersetzt diesen Nachweis nicht.
 
 ## Gemeinsamer Plattform- und CLI-Vertrag
@@ -306,8 +306,8 @@ Ein optisch korrektes PDF ohne ausreichend extrahierbaren Text ist nicht versand
 
 1. Bestätigten Dokumentumfang und Dialogstatus prüfen, danach Stammdaten prüfen und `Anforderungsmatrix.json` vervollständigen.
 2. Nur ausgewählte Dateien im privaten Kandidatenordner erzeugen. Einen universellen Lebenslauf übernimmt der Ordnerhelfer unverändert.
-3. Nur nach Fertigstellung eines ausgewählten Lebenslauf-Kandidaten den Abschnitt `lebenslauf` in `Tokenverbrauch.json` aktualisieren, ohne den Workflow zu unterbrechen.
-4. Finalisierung ohne Veröffentlichung vorbereiten, danach `gesamte_bewerbung` aktualisieren und `technische_vorbereitung` nur bei isoliert verfügbaren Laufzeitwerten mit Zahlen befüllen.
+3. Nach Fertigstellung eines ausgewählten Lebenslauf-Kandidaten `lebenslauf` nur bei bereits exakt verfügbaren Nutzungsdaten aktualisieren; andernfalls genügt der spätere Verfügbarkeitsstatus der Finalisierung.
+4. Finalisierung ohne Veröffentlichung vorbereiten. `gesamte_bewerbung` und `technische_vorbereitung` nur mit tatsächlich verfügbaren Laufzeitwerten aktualisieren; keine zusätzlichen Modellaufrufe oder wiederholten Leermeldungen erzeugen.
 5. Jeden erzeugten Seitenscreenshot visuell öffnen und prüfen; ohne HTML die ausgewählten Textdateien persönlich prüfen.
 6. Bei Layoutproblemen Kandidaten-HTML korrigieren und die Vorbereitung vollständig wiederholen.
 7. Bei Dichte- oder Layoutwarnungen die Sichtbewertung als Freigabenotiz dokumentieren.
@@ -324,7 +324,7 @@ Der Windows-Browser-Smoke läuft bei jedem Pull Request sowie zeitgesteuert/manu
 
 `browser-stability-evidence.yml` darf aus der GitHub-Actions-API nur einen read-only Nachweisentwurf erzeugen. Der aktuelle Entwurf ist noch auf Ubuntu 24.04 beschränkt; die Distributionsmatrix lädt deshalb bereinigte Vollsuite- und verfügbare Browserberichte je Zielprofil getrennt hoch. Vor einer Promotion müssen Collector, Validator und öffentlicher Stabilitätsnachweis auf alle Zielprofile erweitert werden. Der Entwurf gilt nicht als Promotion; ein eigener PR muss danach je Profil drei aufeinanderfolgende Läufe und alle Kriterien übernehmen.
 
-Echte Prompt-Regressionen verwenden `Tests/PromptRegression/models.json` und `scenarios.json` und laufen unter Linux über `python3 Tools/bewerbung.py tests --suite prompt-pr` beziehungsweise `prompt-vollstaendig`. Codex und OpenCode bilden die PR-Canary mit identischer OpenAI-Modell-ID; Claude Code und Gemini CLI laufen in der vollständigen wöchentlichen/manuellen Matrix. Die Testworkflows installieren `bubblewrap` ausschließlich als CI-Sandbox-Voraussetzung und prüfen den Namespace vor jedem Modelllauf; es gehört nicht zu den Benutzerabhängigkeiten von `setup-linux.py`. Versionsprobe und Agentlauf sehen im Mount-/PID-/User-Namespace nur die synthetische Arbeitskopie sowie read-only eingebundene Systemruntimes, nicht das Host-Home. Das Netz bleibt ausschließlich für die Provider-API geteilt. Fehlt `bwrap` oder sind User-Namespaces gesperrt, entsteht fail-closed ein Schema-1-Fehlerbericht.
+Echte Prompt-Regressionen verwenden `Tests/PromptRegression/models.json` und `scenarios.json` und laufen unter Linux über `python3 Tools/bewerbung.py tests --suite prompt-pr` beziehungsweise `prompt-vollstaendig`. Codex und OpenCode bilden die PR-Canary mit `gpt-6.2-sol` (OpenCode mit Providerpräfix); ein weiterer Codex-Eintrag mit `gpt-6.1-sol`, Claude Code und Gemini CLI laufen in der vollständigen wöchentlichen/manuellen Matrix. Diese Zielkonfiguration ist kein erfolgreicher Modelltestnachweis. Die Testworkflows installieren `bubblewrap` ausschließlich als CI-Sandbox-Voraussetzung und prüfen den Namespace vor jedem Modelllauf; es gehört nicht zu den Benutzerabhängigkeiten von `setup-linux.py`. Versionsprobe und Agentlauf sehen im Mount-/PID-/User-Namespace nur die synthetische Arbeitskopie sowie read-only eingebundene Systemruntimes, nicht das Host-Home. Das Netz bleibt ausschließlich für die Provider-API geteilt. Fehlt `bwrap` oder sind User-Namespaces gesperrt, entsteht fail-closed ein Schema-1-Fehlerbericht.
 
 Der Runner reicht nur das deklarierte Credential weiter, lädt `AGENTS.md` über die jeweilige Umgebung und prüft Mutationsgrenzen sowie Ausgabesignale. Das Zielmodell muss im kataloggebundenen Argumentvektor stehen; weist die CLI ein tatsächlich verwendetes Modell maschinenlesbar aus, muss es exakt passen. Die Rollenfixtures beginnen ohne Matrix und Evidenzindex und müssen beide neu, schema-, SHA-, Evidenz- und strategievalidiert erzeugen; der direkte Rollenfall prüft zusätzlich ausgewählte Dokumente, A4-Grundstruktur und Platzhalterfreiheit. Fehlende Secrets und CLI-Versionsdrift schlagen fehl. Ein grüner Lauf belegt diese definierten Verträge, nicht jedes fachliche Verhalten beliebiger Modelle. Reports speichern keine Zugangsdaten oder privaten Inhalte.
 

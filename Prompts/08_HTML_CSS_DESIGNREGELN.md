@@ -4,6 +4,8 @@
 
 Ein laut Dokumentumfang ausgewählter Lebenslauf oder ein ausgewähltes Anschreiben wird jeweils als eigenständige HTML-Datei erzeugt. Jedes vorhandene HTML-Dokument muss in Chrome oder Edge sichtbar gut aussehen und im verbindlichen Chromium-Druckexport dieselben Proportionen behalten. Andere Browser dürfen zusätzlich manuell geprüft werden, ersetzen aber keinen maschinellen Nachweis.
 
+Feste A4-Geometrie, Ressourcenregeln, semantische Markierungen und Prüfnachweise sind verbindlich. Die Beispiele geben dafür ein Grundgerüst; Typografie, dezente Farben, Raster und passende Formulierungen werden für das tatsächliche Profil gestaltet. Nichtvertragliche Beispielmaße sind keine unveränderliche Vorlage. Prüfe die gerenderte Wirkung mit den tatsächlich verfügbaren Bildwerkzeugen und korrigiere konkrete Befunde. Eine Fähigkeit des Modells ersetzt keinen Browserlauf und keine persönliche Freigabe.
+
 ## Grundregeln
 
 - CSS immer direkt im HTML einbetten.
@@ -42,8 +44,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #e9edf3;
-  font-family: Arial, Helvetica, sans-serif;
+  background: #fff;
+  font-family: Arial, "Liberation Sans", Helvetica, sans-serif;
 }
 
 .page {
@@ -53,6 +55,12 @@ body {
   overflow: hidden;
   background: #fff;
   box-sizing: border-box;
+}
+
+@media screen {
+  body {
+    background: #e9edf3;
+  }
 }
 
 @media print {

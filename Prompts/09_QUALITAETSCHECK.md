@@ -45,7 +45,7 @@ Vor der technischen Vorbereitung prüft der Agent den fachlichen Kandidatenstand
 ## Anschreiben, falls ausgewählt
 
 - Wurde es gegen ausgewählten Lebenslauf oder unmittelbar gegen Profil, Dialogangaben, Matrix und Stelle abgeglichen?
-- Greift es die stärksten zwei bis vier Passungen auf, ohne Lebenslauf oder Matrix nachzuerzählen?
+- Greift es die stärksten zwei bis vier Passungen auf (bei dokumentiert schmalem Profil genügt eine), ohne Lebenslauf oder Matrix nachzuerzählen?
 - Verbindet es diese Belege mit einem konkreten Arbeitgebernutzen und ergänzt damit die scanbaren Lebenslaufbelege?
 - Verweist `Analyse.md` für relevante Inhaltsentscheidungen knapp auf Matrix-IDs; nicht relevante Kategorien benötigen keine künstlichen Einzelentscheidungen?
 - Sind Motivation und Soft Skills mit echten Belegen verbunden und frei von generischen KI-Floskeln oder defensiven Metaformulierungen?
@@ -86,7 +86,7 @@ Die Finalisierung verwaltet den Abschnitt `## Technischer Prüfbericht (automati
 ## Persönliches Freigabe-Gate
 
 - Jeder im aktuellen Lauf erzeugte Seitenscreenshot muss tatsächlich geöffnet und visuell auf Beschnitt, Überlappung, Lesbarkeit, Seitenverteilung, Footer, problematische Leerflächen und bei vorhandenem Passfoto zusätzlich auf Schärfe, Proportionen sowie Gesichtsausschnitt geprüft werden.
-- Automatische Dichte- oder Layoutwarnungen benötigen eine konkrete Sichtbewertung und gegebenenfalls `-VisuelleFreigabeNotiz`; sie sind keine Aufforderung, die Warnungszahl durch künstliches Auffüllen auf null zu bringen.
+- Automatische Dichte- oder Layoutwarnungen benötigen eine konkrete Sichtbewertung und bei der Freigabe eine passende `freigabe --notiz`; sie sind keine Aufforderung, die Warnungszahl durch künstliches Auffüllen auf null zu bringen.
 - Sprachqualitätswarnungen aus dem Inhaltsbericht sind von blockierenden Fach- und Wahrheitsfehlern getrennt zu behandeln. Sie brauchen eine redaktionelle Entscheidung, aber nicht zwingend eine fehlerfreie Nullwarnungsbilanz.
 - Ohne HTML muss jede ausgewählte Textdatei persönlich vollständig geprüft werden.
 - Jede nachträgliche Quellen- oder Kandidatenänderung entwertet Vorbereitung und Sichtbestätigung.

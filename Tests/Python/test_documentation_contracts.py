@@ -2,6 +2,7 @@
 """Regression contracts for public Python-core documentation."""
 
 import re
+import sys
 import tempfile
 import unittest
 from html.parser import HTMLParser
@@ -10,6 +11,11 @@ from urllib.parse import unquote, urlsplit
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from Tools.apply_foundry.registry import COMMANDS  # noqa: E402
+
 ROOT_DOCUMENTS = (
     REPO_ROOT / "README.md",
     REPO_ROOT / "AGENTS.md",
@@ -113,6 +119,24 @@ def documentation_files():
 
 
 class DocumentationContractTests(unittest.TestCase):
+    def test_prompt_command_examples_use_existing_subcommands_and_options(self):
+        failures = []
+        checked = 0
+        for path in sorted((REPO_ROOT / "Prompts").glob("*.md")):
+            content = path.read_text(encoding="utf-8").replace("\\\n", " ")
+            for match in re.finditer(r"python3 Tools/bewerbung\.py ([a-z][a-z-]*)\b([^\n`]*)", content):
+                command, arguments = match.groups()
+                spec = COMMANDS.get(command)
+                if spec is None:
+                    failures.append("%s: unknown command %s" % (path.name, command))
+                    continue
+                checked += 1
+                for option in re.findall(r"(?<!\S)--[a-z][a-z-]*", arguments):
+                    if option not in spec.options:
+                        failures.append("%s: %s %s" % (path.name, command, option))
+        self.assertGreater(checked, 15, "Expected the concrete prompt command examples to be checked")
+        self.assertEqual([], failures, "Invalid prompt CLI examples:\n" + "\n".join(failures))
+
     def test_active_documentation_has_no_removed_runtime_references(self):
         # This is a sample applicant skill, not documentation for the runtime.
         allowed_example = REPO_ROOT / "Private.example/Daten/02_BEWERBER_PROFIL_UND_POSITIONIERUNG.example.md"

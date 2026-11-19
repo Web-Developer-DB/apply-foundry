@@ -48,11 +48,38 @@ neu erzeugt.
 | Universal-Lebenslauf | Universalprozess unter `Private/Bewerbungen/_Universal-Lebenslauf/` verwenden |
 | Stammdaten prüfen | zuerst `Private/Daten/` prüfen, nie Werte aus `Private.example/` übernehmen |
 | Fortsetzen oder Status | `status --als-json` ausführen und Originalartefakte auswerten |
-| Technische Änderung | nur relevante Tools, Tests und Dokumentation bearbeiten |
+| Technische Änderung | nur relevante Prompts, Tools, Tests und Dokumentation bearbeiten; keine Bewerbung starten |
 
 Eine Stellenanzeige allein bestimmt den Umfang nicht. Für Auswahl A–E ist
 [Prompt 01](01_DOKUMENTMODI_UND_UNIVERSALER_LEBENSLAUF.md) die einzige
 Dialogquelle.
+
+## Ergebnis und schrittbezogener Kontext
+
+Ein Bewerbungsauftrag ist bis zum nächsten zulässigen Gate erledigt, wenn die
+ausgewählten Unterlagen wahr, rollenbezogen, vollständig und mit aktuellen
+Nachweisen vorbereitet sind. Bei `bereit_zur_sichtpruefung` endet die autonome
+Bearbeitung: Nenne jede tatsächlich zu prüfende PNG-Datei beziehungsweise die
+Textdatei und warte auf die neue persönliche Bestätigung. Eine eigene
+Bildbewertung des Agenten ersetzt diese Bestätigung nicht.
+
+Lade je nach anstehender Aufgabe:
+
+| Schritt | Zuständige Module |
+| --- | --- |
+| Umfang und Profilfragen | 01; Wahrheitsebenen aus 07 bei Bedarf |
+| Matrix, Belege und Rollenstrategie | 02, 06 und 07 |
+| Individueller Lebenslauf | 03 und 08 |
+| Anschreiben | 04 und 08 |
+| E-Mail-Text | 05 |
+| Fachliche Prüfung | 09 und nur die betroffenen Detailregeln |
+| Ablage oder technische Vorbereitung | 10 beziehungsweise 11 |
+
+Bei einer ausdrücklich beauftragten Promptprüfung dürfen alle betroffenen
+Module untersucht werden. Vorhandene aktuelle Belege werden weiterverwendet;
+inhaltliche Entscheidungen stehen kompakt in Analyse und Matrix, nicht als
+Protokoll interner Denkschritte. Die Arbeitsweise aus `AGENTS.md` gilt für alle
+Module und wird dort nicht jeweils neu definiert.
 
 ## Standardablauf
 
@@ -62,8 +89,10 @@ Dialogquelle.
    sichern, anschließend Profilabgleich, Matrix und Evidenz vorbereiten.
 4. Kandidaten nur aus belegten Informationen erstellen; die zuständigen
    Regeln stehen in Prompts 03–07.
-5. Fachlich über `stammdaten`, `dialog-pruefen`, `kontext`, `inhalt` und
-   `pruefen` kontrollieren.
+5. Fachliche Prüfung nach Prompt 09 abschließen. `stammdaten` und `kontext`
+   dienen dem Profilabgleich; `finalisieren` koordiniert die erforderlichen
+   technischen Prüfer. Einzelaufrufe sind nur bei einem konkreten
+   Diagnosebedarf nötig.
 6. Nach jeder sinnvollen Grenze `checkpoint` im Arbeitsordner aktualisieren.
 7. Ausschließlich über den vollständigen Einstieg finalisieren:
 
@@ -83,10 +112,73 @@ Dialogquelle.
    python3 Tools/bewerbung.py finalisieren --arbeitsordner "ARBEITSORDNER" --veroeffentlichen
    ```
 
+## Fortsetzen ohne Chatverlauf
+
+Eine reine Standabfrage verändert weder Auftrag, Kandidaten noch Profil.
+
+1. Bestimme den vom Nutzer gemeinten Arbeitsstand. Nutze bei fehlendem Pfad
+   `python3 Tools/bewerbung.py status --als-json`; bei mehreren passenden
+   Bewerbungen ohne eindeutige Zuordnung frage gezielt nach.
+2. Für einen bestimmten Auftrag nutze
+   `python3 Tools/bewerbung.py status --arbeitsordner "ARBEITSORDNER" --als-json`.
+   Lies `requiredPrompts`, `nextAction` und die dort referenzierten Artefakte.
+3. Rekonstruiere Umfang, Dialogblocker, auftragsbezogene Angaben und
+   Speicherentscheidungen aus `Bewerbungsauftrag.json` nach Prompt 01.
+   Prüfe anschließend nur die für die nächste Phase nötigen Originalartefakte.
+4. Verwende `Workflow-Checkpoint.json` nur bei passenden Hashes als Wegweiser.
+   Dateiexistenz, ein alter Chat oder ein Checkpoint allein belegen weder
+   fachliche Richtigkeit noch aktuelle technische Vorbereitung.
+5. Setze am ersten offenen beziehungsweise entwerteten Schritt fort.
+   Beantwortete Fragen und belastbare Analysen werden nicht wiederholt.
+   Geänderte Quellen, Kandidaten oder Laufzeitbedingungen erfordern die
+   jeweils vorgeschriebene Erneuerung der Nachweise und Sichtbestätigung.
+
+## Eigenständiger Universalprozess
+
+Ein universeller Lebenslauf ist stellenunabhängig und erzeugt weder
+Anschreiben noch E-Mail. Er verwendet keine erfundene Firma oder Stellenanzeige.
+
+1. Kläre die gewünschte Fachrichtung `softwareentwicklung` oder
+   `systemadministration`, soweit sie aus dem Auftrag nicht hervorgeht.
+   Prüfe Stammdaten und fachliche Belege; neue Angaben bleiben ohne gesonderte
+   Zustimmung nur auftragsbezogen. Der technische Standardwert ist keine
+   stillschweigende Fachrichtungsentscheidung des Nutzers.
+2. Prüfe einen vorhandenen Stand mit
+   `python3 Tools/bewerbung.py universal-status --fachrichtung FACHRICHTUNG --als-json`.
+   Lege einen neuen Stand mit
+   `python3 Tools/bewerbung.py universal-neu --fachrichtung FACHRICHTUNG` an;
+   verwende `--fortsetzen` nur für den tatsächlich bestehenden Auftrag.
+3. Arbeite ausschließlich unter
+   `Private/Bewerbungen/_Universal-Lebenslauf/_Arbeitsdateien/`.
+   `Universalauftrag.json` definiert Zielrollen und Seitenplan. Wende die
+   Wahrheits-, CV- und Designregeln aus 03, 07 und 08 auf dieses Rollenprofil an;
+   eine stellenbezogene Anforderungsmatrix ist hier nicht erforderlich.
+4. Ersetze die angelegten Entwurfsmarker in Analyse, Qualitätscheck und
+   Positionierungsgrundlage durch die tatsächlichen Entscheidungen. Erhalte
+   den im Universalauftrag vorgegebenen semantischen Seitenplan; er ist ein
+   eigener technischer Vertrag und keine allgemeine CV-Empfehlung.
+5. Aktualisiere `checkpoint` an sinnvollen Grenzen und bereite den Stand mit
+   `python3 Tools/bewerbung.py universal-finalisieren --arbeitsordner "ARBEITSORDNER"`
+   vor. Prüfe die aktuellen Seitenbilder, nenne jede PNG-Datei und stoppe bei
+   `bereit_zur_sichtpruefung` bis zur neuen persönlichen Bestätigung.
+6. Binde erst danach die ausgegebene Freigabe-ID mit `freigabe --bestaetigt`
+   wie im Standardablauf und aktiviere mit
+   `python3 Tools/bewerbung.py universal-finalisieren --arbeitsordner "ARBEITSORDNER" --veroeffentlichen`.
+   Eine vorhandene aktive Fassung wird nur im ausdrücklich beauftragten
+   Aktualisierungsprozess mit zusätzlichem `--ersetzen` ersetzt. Der Dispatcher
+   bereinigt anschließend den datierten Arbeitsordner; die Aktivfassung bleibt
+   je Fachrichtung getrennt.
+
+Bei Verwendung in einer Bewerbung wird ausschließlich die freigegebene
+Aktivfassung hashgleich übernommen. Eine neue Aktivfassung verändert keine
+bereits eingefrorenen Bewerbungssnapshots. Technische Details stehen in 11,
+die genaue Ablage in 10.
+
 ## Feste Verträge
 
-- Kandidaten und Berichte liegen ausschließlich unter
-  `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE/`.
+- Kandidaten und Berichte stellenbezogener Bewerbungen liegen ausschließlich
+  unter `Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE/`;
+  eigenständige Universalaufträge verwenden den oben definierten Universalpfad.
 - `Stellenbeschreibung.md`, `Analyse.md`, `Qualitaetscheck.md` und
   `Druck-Hinweis.md` müssen echten, nichtleeren Inhalt enthalten.
 - E-Mail ist ausschließlich `Email-Nachricht--FIRMEN-SLUG.md` in UTF-8-Markdown.

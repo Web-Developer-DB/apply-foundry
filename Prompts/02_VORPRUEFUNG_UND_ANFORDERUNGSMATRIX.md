@@ -12,10 +12,6 @@ Zuerst über den Plattform-Dispatcher ausführen:
 python3 Tools/bewerbung.py stammdaten
 ```
 
-```bash
-python3 Tools/bewerbung.py stammdaten
-```
-
 Pflichtangaben zu Identität und Kontakt dürfen keine Beispielplatzhalter enthalten. Die zentralen Entscheidungen zu gewünschter Stellenart, gewünschtem Arbeitsmodell, Verwendung eines Gehaltswunschs und Gehaltslogik müssen vor der finalen Freigabe eindeutig gepflegt sein.
 
 Der Ordnerhelfer kopiert die Bewerbungslogistik aus Datei `01` als Snapshot in `Bewerbungsauftrag.json`. Ab diesem Zeitpunkt ist dieser bewerbungsspezifische Snapshot für die konkrete Bewerbung maßgeblich; Datei `01` bleibt nur die Rückfallquelle für ältere Aufträge. So kann eine Bewerbung beispielsweise bewusst `Vollzeit` und `hybrid` verwenden, ohne globale Stammdaten für andere Bewerbungen umzuschreiben.
@@ -64,6 +60,8 @@ Firma, Rolle und Pfade in dieser Datei dürfen nach der Dokumenterstellung nicht
 ## Anforderungsmatrix
 
 Vor der Erstellung der ausgewählten Bewerbungsdokumente muss aus `Anforderungsmatrix--ENTWURF.json` eine geprüfte `Anforderungsmatrix.json` entstehen. Der Agent kann während des Profilabgleichs Anforderungen und Belege im Entwurf sammeln; die endgültigen Werte für Gewichtung und `behandlung` werden erst nach der Profil- und Dokumentstrategie festgelegt.
+
+Lege vor dem Schreiben die belegte Strategie fest. Dokumentanker können zunächst als geplante Formulierungen entstehen; nach dem Entwurf müssen sie dem tatsächlich sichtbaren Text entsprechen. Die abschließende Inhaltsprüfung bewertet diesen abgeglichenen Stand. Eine noch nicht geschriebene Formulierung ist kein bereits geprüfter Dokumentnachweis.
 
 Jede relevante Anforderung erhält:
 

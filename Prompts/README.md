@@ -6,6 +6,10 @@ Startpunkt ist `00_AGENTEN_START_HIER.md`. `01_DOKUMENTMODI_UND_UNIVERSALER_LEBE
 
 Private Bewerberdaten stehen nicht in diesem Ordner. Sie gehören lokal nach `Private/Daten/`.
 
+Die gemeinsame Arbeitsweise steht in `AGENTS.md`: überprüfbare Ergebnisse und fachliche Grenzen, eigenständige reversible Arbeit bis zum nächsten echten Gate sowie kontextbezogene statt pauschaler Kürzung. Richtwerte und Beispiele sind von Schema-, Wahrheits- und Freigabeverträgen getrennt. Der Einstieg enthält auch den vollständigen Fortsetzungs- und eigenständigen Universalprozess.
+
+Die [Promptprüfung vom 19. November 2026](../docs/prompt-audit-2026-11-19.md) dokumentiert Befunde zu jedem Modul, die geprüften offiziellen Quellen und die Grenzen des Nachweises. Für künftige Modellvergleiche gilt der [Evaluationsplan](../Tests/PromptRegression/README.md); er ist Entwicklerdokumentation und wird nicht bei jeder Bewerbung zusätzlich geladen.
+
 Aktuelle technische Leitplanken:
 
 - `08_HTML_CSS_DESIGNREGELN.md` verlangt A4-Seiten mit `210mm × 297mm`; Vorschauabstände, Schatten und Seitenhintergründe stehen ausschließlich in `@media screen`. Ein Selektor wie `.page + .page` wird im Druckmodus ausdrücklich auf `margin-top: 0` zurückgesetzt.

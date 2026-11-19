@@ -32,6 +32,8 @@
 
 Bei zweiseitigen Lebensläufen erzwingt der statische Prüfer pro Seite einen `data-cv-page-header`, pro fachlicher Rubrik eine dokumentweit eindeutige `data-cv-section`-Kennung und einen `<footer class="page-footer">`. Die Dichtemessung schließt den Footerbereich aus und blockiert ungewöhnlich große freie Inhaltsflächen vor der Sichtfreigabe.
 
+Die [Promptprüfung für aktuelle Modelle](prompt-audit-2026-11-19.md) trennt fachliche Verträge von flexibler Arbeitsweise und redaktionellen Richtwerten. Der [Evaluationsplan](../Tests/PromptRegression/README.md) beschreibt den Modellvergleich mit synthetischen Daten, objektiven Gates und einer gesonderten redaktionellen Bewertung. Die Audit- und Evaluationsdokumente sind keine zusätzlichen operativen Promptmodule.
+
 ## Tests und CI
 
 Die schnelle browserfreie Prüfung:

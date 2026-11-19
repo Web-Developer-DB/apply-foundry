@@ -2,7 +2,7 @@
 
 ## Grundregel
 
-Nichts erfinden. Keine Kenntnisse, Arbeitgeber, Zeiträume, Zertifikate, Projekte, Branchen, Systeme, Tools, Verantwortlichkeiten, Stellenarten, Eintrittstermine, Arbeitsmodelle oder Gehaltsangaben behaupten, die nicht in den privaten Daten stehen, aus der Stellenbeschreibung sicher hervorgehen oder nach den Gehaltsregeln plausibel abgeleitet und dokumentiert wurden.
+Nichts erfinden. Persönliche und fachliche Bewerberangaben stammen aus den privaten Quellen oder aus bestätigten, normalisierten Angaben im aktuellen Bewerbungsauftrag nach Prompt 01. Stellenbeschreibungen belegen Anforderungen und Arbeitgeberinformationen, niemals Kenntnisse, Lebensstationen, Motivation oder Verfügbarkeit des Bewerbers. Eine Gehaltsschätzung ist ausschließlich nach den ausdrücklich aktivierten Gehaltsregeln und mit dokumentierter aktueller Quelle zulässig.
 
 Der Agent darf keine fachliche Richtung aus den öffentlichen Prompts ableiten. Fachrichtung, Rollenprofil und Schwerpunkt kommen aus `Private/Daten/` und aus der konkreten Stellenbeschreibung.
 
@@ -78,6 +78,8 @@ Riskante Formulierungen vermeiden:
 ## Belegarten-Sprache
 
 Pflichtlogik:
+
+Jede konkrete Aussage wird an ihren Beleg und Anwendungskontext gebunden. Zusätzliche private Praxis schwächt separat belegte berufliche Praxis nicht ab; umgekehrt wertet ein beruflicher Beleg in einem anderen Kontext private Praxis nicht auf. Vermischte Aussagen werden getrennt. Bei tatsächlichem Widerspruch gilt die Klärung nach Prompt 01, bis dahin keine werbliche Verwendung der strittigen Aussage.
 
 - `BERUFLICH BELEGT`: darf beruflich formuliert werden.
 - `ÜBERTRAGBAR`: als übertragbare Stärke oder Brücke formulieren.

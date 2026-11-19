@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das Anschreiben. Sie enthält zusätzlich eine direkt nutzbare Betreffzeile für den E-Mail-Versand.
+Die E-Mail-Nachricht ist kurz, höflich und funktional. Bei ausgewähltem Anschreiben ergänzt sie dieses als Versandtext. Bei ausdrücklich bestätigter E-Mail ohne Anlagen erfüllt sie den vereinbarten Versandzweck eigenständig. Sie enthält immer eine direkt nutzbare Betreffzeile für den E-Mail-Versand.
 
 ## Datei
 
@@ -19,13 +19,13 @@ Die E-Mail-Nachricht ist kurz, höflich und funktional. Sie ersetzt nicht das An
 - Kurzer Hinweis auf Bewerbung und Zielrolle.
 - Hinweis ausschließlich auf die laut `dokumentumfang` tatsächlich ausgewählten PDF-Anlagen. Bei Lebenslauf und Anschreiben werden beide als getrennte Anlagen genannt; bei nur einer Anlage wird nur diese genannt.
 - Bei einer ausdrücklich bestätigten E-Mail ohne Anlagen darf die Nachricht keine Anlage behaupten. Sie muss inhaltlich zum bestätigten Versandzweck passen.
-- Bei universellem Lebenslauf und Anschreiben wird auf den unveränderten Lebenslauf und das neu erstellte Anschreiben als zwei getrennte Anlagen verwiesen.
+- Bei universellem Lebenslauf und Anschreiben werden Lebenslauf und Anschreiben als zwei getrennte Anlagen genannt. Interne Begriffe wie Snapshot, unveränderte Universalquelle oder neu erstellter Kandidat gehören nicht in den Versandtext.
 - Freundlicher Abschluss mit Name aus den privaten Daten.
-- Wenn die Stellenanzeige eine konkrete Bewerbungsfrage enthält, darf sie nur kurz und sachlich aufgegriffen werden, sofern die Antwort aus den Nutzerdaten oder der Stellenbeschreibung ableitbar ist.
+- Wenn die Stellenanzeige eine konkrete Bewerbungsfrage enthält, wird sie kurz und sachlich beantwortet, soweit die Antwort belegt ist. Bewerberangaben stammen aus privaten Quellen oder bestätigten auftragsbezogenen Angaben; die Stellenbeschreibung allein belegt keine persönliche Erfahrung oder Verfügbarkeit.
 
 ## Stil
 
-- 4 bis 7 Zeilen reichen meistens.
+- 4 bis 7 Zeilen sind ein Richtwert, kein Prüflimit; die tatsächliche Bildschirmbreite bestimmt Zeilenumbrüche. Notwendige Antworten auf Bewerbungsfragen bleiben vollständig.
 - Keine langen Motivationsabsätze.
 - Keine Platzhalter in finaler Datei.
 - Kein erfundener Ansprechpartner.
