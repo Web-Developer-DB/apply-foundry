@@ -38,6 +38,9 @@ Das Projekt richtet sich an Bewerber, die einen eingerichteten Coding-Agenten ve
 
 Aktuell vorgesehen sind **Windows, Linux und Intel-Macs auf x64**. Apple Silicon und andere ARM64-Systeme sind nicht freigegeben. Der Agent prüft Python 3.11+, Chrome/Edge/Chromium und die passende Systemschrift. Fehlende Voraussetzungen installiert er nur nach sichtbarem Plan und bestätigter Berechtigung.
 
+> [!IMPORTANT]
+> **Windows 11 und eingeschränkte Agentenumgebungen:** Der automatische PDF-Export kann trotz installiertem Chrome scheitern. Dann ist eine manuelle Fortsetzung in einem normalen lokalen Terminal nötig. Das betrifft nicht nachweislich jede Windows-Installation. [Ursache, Beispiel und Anleitung](#windows-pdf-export).
+
 ### 1. Projekt herunterladen
 
 Mit Git:
@@ -76,7 +79,7 @@ Damit ist der Umfang eindeutig. Du kannst genauso „nur ein Anschreiben“ oder
 Öffne jede vom Agenten genannte Seitenvorschau und prüfe Inhalt, Namen, Zeiträume, Lesbarkeit und Seitenaufteilung. Bestätige danach ausdrücklich die persönliche Prüfung. Bei einer bestätigten reinen E-Mail prüfst du stattdessen die genannte Textdatei.
 
 > [!TIP]
-> Für den normalen Ablauf genügt der Dialog mit deinem Agenten. Er verwendet die Projektwerkzeuge für Profilabgleich und technische Prüfungen. Plane Zeit für Rückfragen und deine persönliche Prüfung ein.
+> Im normalen Ablauf verwendest du den Dialog mit deinem Agenten. Er nutzt die Projektwerkzeuge für Profilabgleich und technische Prüfungen. In eingeschränkten Umgebungen kann ein manueller Terminalschritt nötig sein; siehe [Windows und PDF-Export](#windows-pdf-export). Plane Zeit für Rückfragen und deine persönliche Prüfung ein.
 
 <a id="beispiele"></a>
 
@@ -236,13 +239,53 @@ Für HTML-Unterlagen benötigt der Workflow Python 3.11+, Chrome/Edge/Chromium s
 
 Der historische Release v2.0 hatte einen breiteren Architekturvertrag. Seit dem 28. August 2026 gilt für den aktuellen Stand ausschließlich x64. [Plattformdetails, Setup und Releasehistorie](docs/platform-support.md)
 
+<a id="windows-pdf-export"></a>
+
+## Windows 11: Wenn der automatische PDF-Export scheitert
+
+Apply Foundry verwendet Chrome, Edge oder Chromium, um aus HTML-Unterlagen PDFs und Seitenvorschauen zu erzeugen und das Layout zu prüfen. Ein installierter Browser allein garantiert nicht, dass er auch aus jeder Agentenumgebung gestartet werden kann. Insbesondere unter Windows 11 kann eine eingeschränkte Umgebung den Browserstart blockieren. Dann kann der Agent die technische Vorbereitung nicht vollständig selbst durchführen und du musst sie gegebenenfalls im normalen lokalen Terminal fortsetzen.
+
+**Beobachteter Fall:** Auf einem Windows-11-System war die interne Chrome-Vorprüfung in einer Agentenumgebung mit niedriger Windows-Integritätsstufe fehlgeschlagen. Derselbe Vorprüfungsaufruf war zuvor im normalen PowerShell-Terminal erfolgreich. Das deutet auf einen Unterschied der Ausführungskontexte hin; die genaue Ursache ist damit nicht bewiesen. Dieses Ergebnis bedeutet weder, dass Windows 11 grundsätzlich nicht unterstützt wird, noch, dass jeder Fehler dieselbe Ursache hat.
+
+Die folgende Ausgabe ist eine **schematische Fehlermeldung zur Orientierung**, kein Screenshot und kein vollständiges Fehlerprotokoll:
+
+```text
+Browser-Vorprüfung fehlgeschlagen.
+Kein ausgewählter Browser konnte die A4-Testseite drucken.
+PDF-Browserlauf endete mit Exitcode 4294930433:
+TransactNamedPipe: Die Pipe wurde beendet. (0x6D)
+crash server failed to launch, self-terminating
+```
+
+### So setzt du eine Bewerbung manuell fort
+
+1. Bitte den Agenten, den Fehler und den **genauen privaten Arbeitsordner** der betroffenen Bewerbung zu nennen. Er soll prüfen, ob Auftrag, Kandidaten und erforderliche Nachweise für die technische Vorbereitung vollständig sind. Beispielpfade sind keine echten Arbeitsordner.
+2. Öffne ein normales PowerShell-Terminal über das Windows-Startmenü und wechsle in deinen Projektordner:
+
+   ```powershell
+   Set-Location "C:\Pfad\zu\apply-foundry"
+   ```
+
+3. Bitte den Agenten um den für deine Bewerbung passenden vollständigen Befehl. Der folgende Aufruf zeigt die Form für eine **normale Bewerbung**. Ersetze den Beispielpfad durch den tatsächlich genannten Arbeitsordner und verwende gegebenenfalls den vom Agenten ermittelten Python-Aufruf:
+
+   ```powershell
+   py -3 Tools/bewerbung.py finalisieren --arbeitsordner "Private/Bewerbungen/FIRMA/_Arbeitsdateien/YYYY-MM-DD--ROLLE" --browser auto
+   ```
+
+   `py -3` setzt den Windows-Python-Launcher mit Python 3.11 oder neuer voraus. Falls er nicht verfügbar ist, verwende den vollständigen Pfad zu einer geeigneten `python.exe`; der Agent kann ihn anhand der Voraussetzungen ermitteln. Ein universeller Lebenslauf hat einen eigenen Ablauf mit `universal-finalisieren` und seinem eigenen Arbeitsordner: Lass dir dafür den passenden Befehl nennen.
+4. Führe den Befehl aus und achte auf die Ausgabe. Die technische Vorbereitung erstellt bei Erfolg die erforderlichen Prüfberichte und Vorschauen. Sie veröffentlicht die Bewerbung mit diesem Aufruf noch nicht. Tritt erneut ein Fehler auf, gib dem Agenten die genaue Fehlermeldung; entferne dabei gegebenenfalls persönliche Daten und private Pfade.
+5. Bitte den Agenten, den Zustand aus den vorhandenen Projektdateien zu prüfen und fortzusetzen. Öffne **jede** genannte PNG-Vorschau, prüfe Inhalt und Gestaltung und bestätige deine persönliche Prüfung erst danach ausdrücklich. Erst anschließend darf der Agent den vorgesehenen lokalen Freigabeprozess durchführen. Für den Versand sind ausschließlich Dateien im freigegebenen Ordner `Versand/` vorgesehen.
+
+Änderungen an Quellen oder Kandidaten nach der Prüfung erfordern eine erneute technische Vorbereitung und persönliche Bestätigung. Den Browser-Sandboxschutz oder Windows-Sicherheitseinstellungen musst du für diesen Ablauf nicht deaktivieren. Der manuelle Weg ist keine Erfolgsgarantie: Wenn auch das normale Terminal scheitert, müssen Browser, Voraussetzungen und genaue Fehlermeldung gesondert untersucht werden.
+
 <a id="hilfe"></a>
 
 ## Häufige Probleme
 
 | Frage oder Problem | Nächster Schritt |
 | --- | --- |
-| Muss ich die technischen Kommandos kennen? | Öffne den Projektstamm im eingerichteten Agenten und gib deinen Auftrag; der Agent bedient die Werkzeuge. |
+| Muss ich die technischen Kommandos kennen? | Normalerweise bedient der Agent die Werkzeuge. Bei eingeschränktem Browserstart kann ein [manueller Terminalschritt](#windows-pdf-export) nötig sein. |
+| Unter Windows 11 scheitert der PDF-Export im Agenten | [Fehler und manuelle Fortsetzung](#windows-pdf-export) prüfen; ein installiertes Chrome genügt nicht immer. |
 | Python, Browser oder Schrift fehlen | Der Agent zeigt den Setupplan und nennt Voraussetzungen. Installationen brauchen bestätigte Berechtigung. |
 | Ich verwende einen Apple-Silicon-Mac oder ARM64-Rechner | Dieser aktuelle Stand ist dafür nicht freigegeben; siehe Plattformdetails. |
 | Agent oder Browser kann nicht auf Dateien zugreifen | Lass die fehlende Fähigkeit konkret benennen; ohne erforderliche Nachweise kann keine Freigabe erfolgen. |
